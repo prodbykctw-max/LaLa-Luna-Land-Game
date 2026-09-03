@@ -700,7 +700,7 @@ const ISLANDS = [
   decor:"ruins",
   notes:[
     {x:11,z:16,who:"Under the arch",text:"I wrote it in four letters because anything longer and I'd have lost my nerve."},
-    {x:-26,z:-18,dy:15,who:"On Horse Hill",text:"The horses don't belong to anybody. That was the whole point of the song."},
+    {x:-24,z:-16,who:"On Horse Hill",text:"The horses don't belong to anybody. That was the whole point of the song."},
     {x:-6,z:38,who:"By the stream",text:"Rain, then the rainbow. It always goes in that order. I checked."}
   ]
 },
@@ -739,7 +739,7 @@ const ISLANDS = [
   dock:[0,52], spawn:[0,44],
   weather:"storm", creature:{type:"jelly", n:9, r:[40,70], sp:[.04,.08], fly:true}, birds:0, bf:null,
   grassCols:[0x3E6A7A,0x2E5262,0x4C7E8C],
-  ability:{key:"lantern", at:[-30,-25], y:9, name:"Her lantern", hint:"The stones are there now. Look east.", lantern:true},
+  ability:{key:"lantern", at:[-26.6,-21.2], name:"Her lantern", hint:"The stones are there now. Look east.", lantern:true},
   letter:{at:[64,-12], y:4, gate:"lantern"},
   stones:[[42,-2],[47,-4.5],[52,-7],[57,-9.5]],
   places:[{x:-30,z:-25,r:14,name:"Lighthouse Rock"},{x:64,z:-12,r:10,name:"The Sea Stack"},{x:36,z:0,r:14,name:"The Shallows"},{x:0,z:50,r:12,name:"Night Landing"}],
@@ -747,8 +747,8 @@ const ISLANDS = [
   decor:"lighthouse",
   notes:[
     {x:22,z:18,who:"In a tide pool",text:"The storm is loud so I can hear myself under it."},
-    {x:-30,z:-25,dy:9,who:"Beside the lantern",text:"The path was always there. I just needed a light I was carrying myself."},
-    {x:64,z:-12,dy:4,who:"On the sea stack",text:"Full moon. Whole. That's what I'm trying to be."}
+    {x:-33.6,z:-28.4,who:"At the foot of the lighthouse",text:"The path was always there. I just needed a light I was carrying myself."},
+    {x:67.5,z:-9,who:"On the sea stack",text:"Full moon. Whole. That's what I'm trying to be."}
   ]
 },
 {
@@ -815,8 +815,12 @@ function buildIsland(cfg){
   });
   cfg.features.forEach(f => {
     if(f.type === "hill"){
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(f.crater ? f.r*.3 : 2.5, f.r, f.h, 30), toon(P.grassDk));
-      m.position.set(f.x, f.h/2-.2, f.z); scene.add(m);
+      /* the visible hill is lathed from the exact same profile the walker and every pickup use,
+         so nothing can sit "inside" the slope any more */
+      const pts = [new THREE.Vector2(f.r+.6, -.6)];
+      for(let k=28;k>=0;k--){ const d = f.r*(k/28); pts.push(new THREE.Vector2(Math.max(d, .001), height(f.x + d, f.z) - .05)); }
+      const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 48), toon(P.grassDk, {side:THREE.DoubleSide}));
+      m.position.set(f.x, 0, f.z); scene.add(m);
       if(f.crater){
         const lava = new THREE.Mesh(new THREE.CircleGeometry(f.r*.26, 24),
           new THREE.MeshBasicMaterial({color:0xFF7A3D}));
@@ -891,7 +895,7 @@ function buildIsland(cfg){
       arm.position.set(spC.x, yBase, spC.z - 7 + t*13);
       arm.rotation.set(Math.PI*.42, t*2.4, Math.PI/2);
       scene.add(arm);
-      I.colliders.push({x:arm.position.x, z:arm.position.z, r:rad*.55});
+      I.colliders.push({x:arm.position.x, z:arm.position.z, r:rad*.55, camOnly:true});
     }
     for(let i=0;i<18;i++){
       const s = sample(4, 42, true); if(!s) continue;
@@ -1025,7 +1029,10 @@ function buildIsland(cfg){
     if(cfg.letter && cfg.letter.gate === "glide"){ const h = cfg.features[0], m = cfg.features[1];
       for(let i=0;i<7;i++) spots.push([h.x+(m.x-h.x)*(i/7), h.z+(m.z-h.z)*(i/7), 11-i*.5]); }
     (cfg.stones||[]).forEach(([x,z]) => spots.push([x,z,2.0]));
+    /* every moon gets a soft ground marker so a collectible always reads as placed on purpose */
+    const ringG = new THREE.RingGeometry(.7,1.05,20), ringM = new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.22, side:THREE.DoubleSide, depthWrite:false});
     spots.forEach(([x,z,dy],i) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, height(x,z)+dy, z);
+      const ring = new THREE.Mesh(ringG, ringM); ring.rotation.x = -Math.PI/2; ring.position.y = -dy + .08; m.add(ring);
       m.userData = {id:cfg.key+":"+i}; if(G.moonsTaken[m.userData.id]) m.visible = false; scene.add(m); I.moons.push(m); }); }
 
   /* creatures */
@@ -1101,6 +1108,12 @@ function walkerUpdate(I, dt, t){
       W.x = nx; W.z = nz; return true;
     };
     if(!tryMove(W.x+mx, W.z+mz)) { if(!tryMove(W.x+mx, W.z)) tryMove(W.x, W.z+mz); }
+    /* solid scenery: slide around trunks, rocks and towers instead of walking through them */
+    if(I.colliders) for(const c of I.colliders){
+      if(c.camOnly) continue;
+      const rr = c.r*.7 + .55, dx = W.x-c.x, dz = W.z-c.z, d = Math.hypot(dx,dz);
+      if(d < rr && d > 1e-4){ const px = c.x + dx/d*rr, pz = c.z + dz/d*rr; if(canStand(I,px,pz)){ W.x = px; W.z = pz; } }
+    }
   }
   const ground = I.height(W.x,W.z);
   W.vy += GRAV*dt;
@@ -1206,15 +1219,24 @@ function islandUpdate(I, dt, t){
     $("valL").textContent = pl ? pl.name : cfg.fallback;
   }
 }
+/* Every interactable in range is scored; the letter and the outfit always win over a note that
+   happens to share the spot, and a note you've already read never blocks anything. */
 function nearest(I){
-  const W = I.W, cfg = I.cfg;
-  for(const n of I.notes){ if(Math.hypot(W.x-n.position.x, W.z-n.position.z) < 5.2 && Math.abs(W.y+2-n.position.y) < 4.5)
-    return {kind:"note", obj:n, label: G.notes[cfg.key+":"+n.userData.i] ? "Read again" : "Read the note"}; }
-  if(cfg.hub){ const d = Math.hypot(W.x,W.z); if(d < 14 && d > 6) return {kind:"castle", label: G.letters.every(Boolean) ? "Go inside" : "Try the doors"}; }
-  if(I.pickup && I.pickup.visible && Math.hypot(W.x-I.pickup.position.x, W.z-I.pickup.position.z) < 4.5 && Math.abs(W.y+2-I.pickup.position.y) < 5) return {kind:"ability", label:"Take "+cfg.ability.name.toLowerCase()};
-  if(I.letterMesh && I.letterMesh.visible && Math.hypot(W.x-I.letterMesh.position.x, W.z-I.letterMesh.position.z) < 4 && Math.abs(W.y - cfg.letter.y) < 3) return {kind:"letter", label:"Take the letter"};
-  if(Math.hypot(W.x-cfg.dock[0], W.z-cfg.dock[1]) < 10) return {kind:"dock", label: cfg.hub ? "Take the boat" : "Sail home"};
-  return null;
+  const W = I.W, cfg = I.cfg, cands = [];
+  const PRI = {letter:0, ability:1, castle:2, note:3, dock:4};
+  const add = (kind, d, extra) => cands.push(Object.assign({kind, d, pri:PRI[kind]}, extra));
+  if(I.letterMesh && I.letterMesh.visible){ const d = Math.hypot(W.x-I.letterMesh.position.x, W.z-I.letterMesh.position.z);
+    if(d < 4.6 && Math.abs(W.y - cfg.letter.y) < 3.5) add("letter", d, {label:"Take the letter"}); }
+  if(I.pickup && I.pickup.visible){ const d = Math.hypot(W.x-I.pickup.position.x, W.z-I.pickup.position.z);
+    if(d < 4.8 && Math.abs(W.y+2-I.pickup.position.y) < 5) add("ability", d, {label:"Take "+cfg.ability.name.toLowerCase()}); }
+  if(cfg.hub){ const d = Math.hypot(W.x,W.z); if(d < 14 && d > 6) add("castle", d, {label: G.letters.every(Boolean) ? "Go inside" : "Try the doors"}); }
+  for(const n of I.notes){ const d = Math.hypot(W.x-n.position.x, W.z-n.position.z);
+    if(d < 5.2 && Math.abs(W.y+2-n.position.y) < 4.5){ const read = !!G.notes[cfg.key+":"+n.userData.i];
+      add("note", d + (read ? 100 : 0), {obj:n, label: read ? "Read again" : "Read the note"}); } }
+  { const d = Math.hypot(W.x-cfg.dock[0], W.z-cfg.dock[1]); if(d < 10) add("dock", d, {label: cfg.hub ? "Take the boat" : "Sail home"}); }
+  if(!cands.length) return null;
+  cands.sort((a,b) => (a.pri - b.pri) || (a.d - b.d));
+  return cands[0];
 }
 function interact(){
   if(!CUR || !CUR.W.active || !CUR.W.target) return;
