@@ -200,6 +200,12 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 <script src="vendor/three.min.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script src="vendor/SkeletonUtils.js"></script>
+<script src="vendor/CopyShader.js"></script>
+<script src="vendor/LuminosityHighPassShader.js"></script>
+<script src="vendor/EffectComposer.js"></script>
+<script src="vendor/RenderPass.js"></script>
+<script src="vendor/ShaderPass.js"></script>
+<script src="vendor/UnrealBloomPass.js"></script>
 <script>
 (() => {
 "use strict";
@@ -207,17 +213,37 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 /* ============================================================
    SHARED RENDER + SHADING
    ============================================================ */
+/* r128 treats hex colours as linear, so with sRGB output every palette colour came out washed
+   and pale — the "sketched" look. Interpret every hex as sRGB (what the palettes were designed as). */
+{ const setHex = THREE.Color.prototype.setHex;
+  THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 document.body.appendChild(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(56, innerWidth/innerHeight, .1, 900);
+/* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
+const composer = new THREE.EffectComposer(renderer);
+const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
+const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .42, .55, .82); composer.addPass(bloomPass);
+const gradePass = new THREE.ShaderPass({
+  uniforms:{tDiffuse:{value:null}, vig:{value:.42}, sat:{value:1.08}, lift:{value:new THREE.Vector3(.006,.004,.012)}},
+  vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader:`uniform sampler2D tDiffuse; uniform float vig, sat; uniform vec3 lift; varying vec2 vUv;
+    void main(){ vec4 c=texture2D(tDiffuse,vUv);
+      float l=dot(c.rgb,vec3(.299,.587,.114)); c.rgb=mix(vec3(l),c.rgb,sat);
+      vec2 d=vUv-.5; float v=1.0-smoothstep(.45,1.05,length(d)*1.55)*vig; c.rgb*=v;
+      c.rgb=pow(max(c.rgb,0.0),vec3(1.0/2.2)); /* composer targets are linear; do the sRGB step here */
+      c.rgb+=lift;
+      gl_FragColor=c; }`
+}); composer.addPass(gradePass);
+function present(scene){ renderPass.scene = scene; composer.render(); }
 addEventListener("resize", () => {
   camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
 });
 const INK = 0x241E2E, MOON = 0xFFF6D6, BONE = 0xF7F1E6;
 
@@ -225,13 +251,26 @@ function ramp(n){
   /* shadow side sits at ~34% so forms read; the lit side is full — lights are kept under 1.4x
      total so pastel colours stop blowing out to white */
   const d = new Uint8Array(n);
-  for(let i=0;i<n;i++) d[i] = Math.round(86 + (169/(n-1))*i);
+  const steps = [.40, .58, .74, .90, 1.0];
+  for(let i=0;i<n;i++) d[i] = Math.round(255 * (steps[i] != null ? steps[i] : (i/(n-1))));
   const t = new THREE.DataTexture(d, n, 1, THREE.LuminanceFormat);
   t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
   return t;
 }
-const GRAD = ramp(4);
-const toon = (c, extra) => new THREE.MeshToonMaterial(Object.assign({color:c, gradientMap:GRAD}, extra||{}));
+const GRAD = ramp(5);
+const RIM = {color:new THREE.Color(0xFFF1D8), strength:0.28};
+/* every toon material gets a soft rim light (fresnel) so silhouettes lift off the background */
+function toonRim(mat){
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.rimColor = {value: RIM.color}; sh.uniforms.rimStrength = {value: RIM.strength};
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform vec3 rimColor; uniform float rimStrength;")
+      .replace("gl_FragColor = vec4( outgoingLight, diffuseColor.a );", "{ vec3 rn = normalize(vNormal); vec3 rv = normalize(vViewPosition); float rim = pow(1.0 - max(dot(rn, rv), 0.0), 3.2); vec3 wn = inverseTransformDirection(rn, viewMatrix); rim *= 1.0 - clamp(wn.y, 0.0, 1.0) * 0.9; outgoingLight += rim * rimColor * rimStrength * diffuseColor.rgb * 2.2; }\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );");
+  };
+  mat.customProgramCacheKey = () => "toonrim";
+  return mat;
+}
+const toon = (c, extra) => toonRim(new THREE.MeshToonMaterial(Object.assign({color:c, gradientMap:GRAD}, extra||{})));
 /* soft mottled surface texture (multiplies the material colour) so big flat surfaces —
    meadows, hills, mesas — stop reading as untextured plastic */
 function mottle(scale, dark, seedMul){
@@ -479,7 +518,7 @@ function loadRig(name){
     gltf.scene.traverse(o => { if(o.isMesh){
       o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
       const old = o.material;
-      o.material = new THREE.MeshToonMaterial({map: old && old.map || null, color: 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide});
+      o.material = toonRim(new THREE.MeshToonMaterial({map: old && old.map || null, color: 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
     } });
     rig.gltf = gltf;
     DBG("rig reshaded", name, "attaching", rig.waiting.length);
@@ -756,15 +795,15 @@ function makeCreature(type){
 const ISLANDS = [
 {
   key:"hub", name:"Home Island", sub:"Luna's Keep", acc:"#FFF6D6", hub:true,
-  pal:{skyTop:0x3E2F5C, skyMid:0xE8955E, skyBot:0x9CCFD0, fog:0xD6B394, sand:0xDCC49A, grass:0x5EAE72, grassDk:0x2F7A4E,
-       water:0x3F86B0, waterHi:0x74B6D6, key:0xFFE3BE, leaf:0x2F7A4E, leaf2:0x4FA36A, wood:0x6E4B32, stone:0xD3C6AC},
+  pal:{skyTop:0x4A3A63, skyMid:0xF0A56D, skyBot:0xA8DCD8, fog:0xDCBCA0, sand:0xEFE0C0, grass:0x7CC79A, grassDk:0x4E9C74,
+       water:0x5AA0C8, waterHi:0x86C4E0, key:0xFFE9CC, leaf:0x4E9C74, leaf2:0x6FBF92, wood:0x8D6141, stone:0xEDE0C8},
   moon:{pos:[-130,105,-340], r:20},
   lobes:[{x:0,z:0,r:56},{x:0,z:44,r:18}],
   features:[{type:"mesa",x:0,z:0,r:19,h:2.8}],
   trees:{n:44, min:24, max:50, s:[.7,1.4], willow:true},
   dock:[0,60], spawn:[0,46],
   weather:"clear", creature:null, birds:5, bf:{n:9, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
-  grassCols:[0x5FAE72,0x3F8A57,0x79C088],
+  grassCols:[0x7FCB9E,0x63B183,0x93D9AE],
   places:[{x:0,z:0,r:22,name:"Luna's Keep"},{x:0,z:56,r:16,name:"South Dock"}], fallback:"The Grounds",
   notes:[
     {x:0,z:12,who:"Pinned to the keep door",text:"Gone out. The islands sing without me if I'm not there to hear them. — L"},
@@ -777,15 +816,15 @@ const ISLANDS = [
 {
   key:"green", name:"Green", song:"4 Letters", idx:0, glyph:"L", acc:"#6FBF92", outfit:"green",
   intro:"The love song. Ruins, wild horses, rain that always turns into a rainbow. Her fans are here somewhere — hold them, jump, keep holding, and you'll glide. The letter is somewhere you can only reach on the air.",
-  pal:{skyTop:0x3B3A5E, skyMid:0xE0A473, skyBot:0xB8D6C6, fog:0xC9CDB4, sand:0xD9C79C, grass:0x4F9E60, grassDk:0x265E3C,
-       water:0x3F86B0, waterHi:0x74B6D6, key:0xFFE7C2, leaf:0x2C6B42, leaf2:0x4F9A5C, wood:0x5E4630, stone:0xB9B49C},
+  pal:{skyTop:0x4A3A63, skyMid:0xF0A56D, skyBot:0xA8DCD8, fog:0xD9CDB4, sand:0xEFE0C0, grass:0x86CC9E, grassDk:0x4E9C74,
+       water:0x5AA0C8, waterHi:0x86C4E0, key:0xFFE0B4, leaf:0x3F8A62, leaf2:0x6FBF92, wood:0x8D6141, stone:0xEDE0C8},
   moon:{pos:[90,78,-260], r:15},
   lobes:[{x:0,z:0,r:72},{x:-38,z:-20,r:36},{x:30,z:-36,r:32},{x:10,z:40,r:36}],
   features:[{type:"hill",x:-26,z:-18,r:19,h:15,name:"Horse Hill"},{type:"mesa",x:22,z:-34,r:13,h:8.5,name:"The High Rock",ink:true}],
   trees:{n:78, min:22, max:74, s:[.7,1.4], willow:true},
   dock:[0,64], spawn:[0,56],
   weather:"rain", creature:{type:"horse", n:9, r:[36,58], sp:[.11,.18]}, birds:9, bf:{n:20, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
-  grassCols:[0x5FAE72,0x3F8A57,0x79C088],
+  grassCols:[0x7FCB9E,0x63B183,0x93D9AE],
   ability:{key:"fans", at:[7,6], y:2.4, name:"Her fans", hint:"Jump, then hold to glide", glide:true},
   letter:{at:[22,-34], y:8.5, gate:"glide"},
   places:[{x:-26,z:-18,r:14,name:"Horse Hill"},{x:22,z:-34,r:13,name:"The High Rock"},{x:8,z:8,r:16,name:"The Ruins"},{x:0,z:62,r:14,name:"The Landing"}],
@@ -800,7 +839,7 @@ const ISLANDS = [
 {
   key:"gr", name:"Good Riddance", song:"the dinosaur island", idx:1, glyph:"U", acc:"#F08A5D", outfit:"gr",
   intro:"The letting-go song. Volcanic, overgrown, old bones everywhere and something very large walking through the trees. Her boots are here. In them you jump like you mean it — and there's a ledge on this island nobody reaches on foot.",
-  pal:{skyTop:0x2E1A2B, skyMid:0xD86A3E, skyBot:0xE0A878, fog:0xC28F6A, sand:0x74593F, grass:0x4D8A48, grassDk:0x2C5A2C,
+  pal:{skyTop:0x3A2333, skyMid:0xE07A4E, skyBot:0xE9B98A, fog:0xD9A582, sand:0x8A7156, grass:0x5E9A5A, grassDk:0x3E6B3C,
        water:0x3C6F8C, waterHi:0x5E93AE, key:0xFFCB9A, leaf:0x3E6B3C, leaf2:0x7EB56A, wood:0x5A3E2B, stone:0x9C8A78},
   moon:{pos:[-110,60,-300], r:14},
   lobes:[{x:0,z:0,r:55},{x:40,z:10,r:28},{x:-30,z:30,r:26},{x:0,z:45,r:20}],
@@ -808,7 +847,7 @@ const ISLANDS = [
   trees:{n:60, min:20, max:64, s:[1.0,2.2], palm:true},
   dock:[0,58], spawn:[0,50],
   weather:"embers", creature:{type:"dino", n:2, r:[34,46], sp:[.05,.07]}, birds:4, bf:{n:8, cols:[0xFFB36B,0xFFE08A,0xE8907E]},
-  grassCols:[0x5A9455,0x3E7A3C,0x74AE66],
+  grassCols:[0x6FA56A,0x4F8A4C,0x8AC07A],
   ability:{key:"boots", at:[-22,26], y:1.6, name:"Her boots", hint:"Jump higher than anything here", jumpMul:1.95},
   letter:{at:[40,12], y:5.6, gate:"jump"},
   places:[{x:0,z:-25,r:16,name:"The Caldera"},{x:40,z:12,r:12,name:"Bone Ledge"},{x:-30,z:30,r:18,name:"The Bone Yard"},{x:0,z:56,r:12,name:"Ash Landing"}],
@@ -823,7 +862,7 @@ const ISLANDS = [
 {
   key:"sanity", name:"Sanity", song:"ocean front · full moon", idx:2, glyph:"N", acc:"#5C9FD4", outfit:"sanity",
   intro:"The night song. Black water, lightning far out, and the only full moon in the archipelago. Her lantern is here. Carry it and you'll see the stones that were always under the surface — they lead out to a rock in the sea.",
-  pal:{skyTop:0x080B1E, skyMid:0x22305E, skyBot:0x3E5E92, fog:0x1E2A4E, sand:0x7E869C, grass:0x2F5262, grassDk:0x1A323E,
+  pal:{skyTop:0x0B0E24, skyMid:0x2A3A6E, skyBot:0x4A6B9E, fog:0x24325A, sand:0x9AA0B4, grass:0x3C5E6E, grassDk:0x24404E,
        water:0x142A4A, waterHi:0x2E5A86, key:0xBFD3FF, leaf:0x24404E, leaf2:0x3A6A78, wood:0x4A3A4E, stone:0xA9AFC2},
   moon:{pos:[40,120,-260], r:34, full:true},
   lobes:[{x:0,z:0,r:50},{x:-30,z:-25,r:28},{x:0,z:42,r:16}],
@@ -831,7 +870,7 @@ const ISLANDS = [
   trees:{n:26, min:14, max:44, s:[.6,1.1]},
   dock:[0,52], spawn:[0,44],
   weather:"storm", creature:{type:"jelly", n:9, r:[40,70], sp:[.04,.08], fly:true}, birds:0, bf:null,
-  grassCols:[0x2F5A6A,0x224452,0x3C6E7C],
+  grassCols:[0x3E6A7A,0x2E5262,0x4C7E8C],
   ability:{key:"lantern", at:[-26.6,-21.2], name:"Her lantern", hint:"The stones are there now. Look east.", lantern:true},
   letter:{at:[64,-12], y:4, gate:"lantern"},
   stones:[[42,-2],[47,-4.5],[52,-7],[57,-9.5]],
@@ -847,15 +886,15 @@ const ISLANDS = [
 {
   key:"town", name:"Town Square", song:"the Colombian beach", idx:3, glyph:"A", acc:"#9B84DC", outfit:"town",
   intro:"The song about being seen. A beach town at golden hour, string lights, a fountain, cows in glitter. Her crown and the cow-print dress are in the square. Wear them and the gate to the point opens — because they know you.",
-  pal:{skyTop:0x6A3E82, skyMid:0xEE8F62, skyBot:0xFFCF96, fog:0xE9B78E, sand:0xE9D2A2, grass:0x72B86E, grassDk:0x3F8A4C,
-       water:0x2F96B4, waterHi:0x78CCDE, key:0xFFDDAE, leaf:0x3F8A4C, leaf2:0x6DB46A, wood:0x7A5236, stone:0xE4D5B8},
+  pal:{skyTop:0x7A4C8A, skyMid:0xF5A27A, skyBot:0xFFD9A8, fog:0xF3C7A2, sand:0xF6E3BE, grass:0x9ED49A, grassDk:0x5FA86A,
+       water:0x4EAFC9, waterHi:0x8ED8E8, key:0xFFE3BC, leaf:0x5FA86A, leaf2:0x8CD08A, wood:0x9A6A4A, stone:0xF4E7D2},
   moon:{pos:[-100,80,-300], r:13},
   lobes:[{x:0,z:0,r:55},{x:45,z:-15,r:30},{x:-40,z:20,r:26},{x:0,z:46,r:18}],
   features:[{type:"mesa",x:0,z:0,r:16,h:.9,name:"The Square"},{type:"mesa",x:58,z:-20,r:9,h:2.4,name:"The Point"}],
   trees:{n:38, min:18, max:64, s:[.9,1.8], palm:true},
   dock:[0,58], spawn:[0,50],
   weather:"glitter", creature:{type:"cow", n:5, r:[26,44], sp:[.05,.09]}, birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
-  grassCols:[0x78BE76,0x5CA866,0x94CF8E],
+  grassCols:[0x9ED49A,0x7CC383,0xB6E2AE],
   ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true},
   letter:{at:[58,-20], y:2.4, gate:"gate"},
   gate:{x:24, zMin:-48, zMax:48},
@@ -878,8 +917,8 @@ function buildIsland(cfg){
   scene.fog = new THREE.Fog(P.fog, cfg.key === "sanity" ? 60 : 80, cfg.key === "sanity" ? 220 : 260);
   const sky = skyDome(P.skyTop, P.skyMid, P.skyBot); scene.add(sky.mesh);
   const moon = moonPair(new THREE.Vector3(...cfg.moon.pos), cfg.moon.r); scene.add(moon);
-  scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, cfg.key === "sanity" ? .3 : .38));
-  const key = new THREE.DirectionalLight(P.key, cfg.key === "sanity" ? .48 : .8); key.position.set(-25,40,15); scene.add(key);
+  scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, cfg.key === "sanity" ? .38 : .5));
+  const key = new THREE.DirectionalLight(P.key, cfg.key === "sanity" ? .55 : .95); key.position.set(-25,40,15); scene.add(key);
   const sea = seaMesh(P.water, P.waterHi); sea.position.y = -1.1; scene.add(sea);
 
   const inside = (x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r);
@@ -901,7 +940,7 @@ function buildIsland(cfg){
   /* ground */
   cfg.lobes.forEach(l => {
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand));
-    sand.position.set(l.x,-1.5,l.z); scene.add(sand);
+    sand.position.set(l.x,-1.62,l.z); scene.add(sand);   /* a hair under the meadow so the two never z-fight */
     const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass, {map:TEX.meadow}));
     grass.position.set(l.x,-1.6,l.z); scene.add(grass);   /* top face exactly at y=0 = the walkable height */
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
@@ -1503,7 +1542,7 @@ function tick(){
   const dt = Math.min(clock.getDelta(), .05); T += dt;
   FRAMES++; if(FRAMES < 4 || FRAMES % 300 === 0) DBG("frame", FRAMES, "dt", dt.toFixed(3));
   if(toastT > 0){ toastT -= dt; if(toastT <= 0) $("toast").classList.remove("on"); }
-  if(MODE === "island" && CUR){ islandUpdate(CUR, dt, T); renderer.render(CUR.scene, camera); }
+  if(MODE === "island" && CUR){ islandUpdate(CUR, dt, T); present(CUR.scene); }
   else if(MODE === "keep"){
     if(KW.active) walkerUpdate(keepI, dt, T);
     bubbles.forEach(b => { if(b.userData.popped) return; const u = b.userData; u.a += u.sp*dt*.3; u.y += u.rise*dt; if(u.y > 16) u.y = 0;
@@ -1516,7 +1555,7 @@ function tick(){
         auChime([392,440,523,587,659,784,880,1047,1175,1319,1568],.16,1.4);
         $("endBody").textContent = "The fifth song was never hidden. It was waiting for someone who'd found the other four. — L";
         setTimeout(() => { KW.active = false; ov("ovEnd"); }, 2200); } }
-    renderer.render(keep, camera);
+    present(keep);
   } else {
     sailT += dt; sSea.userData.mat.uniforms.t.value = T; sMoon.userData.halo.lookAt(camera.position);
     sBoat.position.z -= 15*dt; sBoat.position.y = Math.sin(T*1.4)*.3; sBoat.rotation.z = Math.sin(T*.95)*.05;
@@ -1526,7 +1565,7 @@ function tick(){
     camera.lookAt(sBoat.position.x, sBoat.position.y+2.5, sBoat.position.z);
     $("capq").textContent = SAIL_LINES[Math.min(SAIL_LINES.length-1, Math.floor(sailT/2.4))] || "";
     if(sailT > SAIL_DUR && sailDone){ const f = sailDone; sailDone = null; f(); }
-    renderer.render(sail, camera);
+    present(sail);
   }
 }
 load().then(() => {
