@@ -279,6 +279,28 @@ function lerpAngle(a, b, t){
   let d = b - a; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2;
   return a + d*t;
 }
+/* pull the follow-camera in front of anything solid between it and the player,
+   so turning near a tree/column/stall never leaves you staring at the inside of it */
+function cameraCollide(I, target, desired, minDist){
+  const dx = desired.x - target.x, dz = desired.z - target.z;
+  const full = Math.hypot(dx, dz);
+  if(full < 1e-4 || !I.colliders || !I.colliders.length) return desired;
+  const ux = dx/full, uz = dz/full;
+  const buffer = 1.5;
+  let clamped = full;
+  for(const c of I.colliders){
+    const cx = c.x - target.x, cz = c.z - target.z;
+    const proj = cx*ux + cz*uz;
+    if(proj <= 0 || proj - c.r > clamped) continue;
+    const perp = Math.abs(cx*uz - cz*ux);
+    if(perp >= c.r) continue;
+    const back = Math.sqrt(Math.max(0, c.r*c.r - perp*perp));
+    const hit = Math.max(0, proj - back - buffer);
+    if(hit < clamped) clamped = hit;
+  }
+  clamped = Math.max(clamped, minDist ?? 3.0);
+  return new THREE.Vector3(target.x + ux*clamped, desired.y, target.z + uz*clamped);
+}
 
 /* ============================================================
    AUDIO — synthesized
@@ -422,8 +444,27 @@ function applyOutfit(ch, key){
    PROGRESS + DOM
    ============================================================ */
 const G = { letters:[false,false,false,false], abilities:{}, notes:{}, moons:0, moonsTaken:{}, finished:false };
-async function load(){ try{ const r = await window.storage.get("lala:v3"); if(r && r.value) Object.assign(G, JSON.parse(r.value)); }catch(e){} syncHUD(); }
-async function save(){ try{ await window.storage.set("lala:v3", JSON.stringify(G)); }catch(e){} }
+const SAVE_KEY = "lala:v4";
+// Runs both inside a Claude artifact (window.storage) and as a plain static
+// site (GitHub Pages, file://, any host) via localStorage. Neither is assumed
+// present — both paths are try/caught so a blocked or missing API just means
+// progress doesn't persist rather than a crash.
+async function load(){
+  try{
+    let raw = null;
+    try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){}
+    if(raw){ Object.assign(G, JSON.parse(raw)); }
+    else if(window.storage && window.storage.get){
+      const r = await window.storage.get(SAVE_KEY); if(r && r.value) Object.assign(G, JSON.parse(r.value));
+    }
+  }catch(e){}
+  syncHUD();
+}
+async function save(){
+  const s = JSON.stringify(G);
+  try{ localStorage.setItem(SAVE_KEY, s); }catch(e){}
+  try{ if(window.storage && window.storage.set) await window.storage.set(SAVE_KEY, s); }catch(e){}
+}
 const $ = id => document.getElementById(id);
 const glyphs = [...document.querySelectorAll(".glyph")];
 const OVS = ["ovTitle","ovNote","ovCastle","ovDock","ovIntro","ovSecrets","ovEnd"];
@@ -646,11 +687,11 @@ const ISLANDS = [
   pal:{skyTop:0x4A3A63, skyMid:0xF0A56D, skyBot:0xA8DCD8, fog:0xE8C39A, sand:0xEFE0C0, grass:0x8FD3A6, grassDk:0x4E9C74,
        water:0x5AA0C8, waterHi:0x86C4E0, key:0xFFE0B4, leaf:0x4E9C74, leaf2:0x6FBF92, wood:0x8D6141, stone:0xEDE0C8},
   moon:{pos:[90,78,-260], r:15},
-  lobes:[{x:0,z:0,r:60},{x:-38,z:-20,r:30},{x:30,z:-36,r:26},{x:10,z:40,r:30}],
+  lobes:[{x:0,z:0,r:72},{x:-38,z:-20,r:36},{x:30,z:-36,r:32},{x:10,z:40,r:36}],
   features:[{type:"hill",x:-26,z:-18,r:19,h:15,name:"Horse Hill"},{type:"mesa",x:22,z:-34,r:13,h:8.5,name:"The High Rock",ink:true}],
-  trees:{n:56, min:22, max:60, s:[.7,1.4]},
+  trees:{n:78, min:22, max:74, s:[.7,1.4]},
   dock:[0,64], spawn:[0,56],
-  weather:"rain", creature:{type:"horse", n:6, r:[36,50], sp:[.11,.18]}, birds:7, bf:{n:16, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
+  weather:"rain", creature:{type:"horse", n:9, r:[36,58], sp:[.11,.18]}, birds:9, bf:{n:20, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
   grassCols:[0x7FCB9E,0x63B183,0x93D9AE],
   ability:{key:"fans", at:[7,6], y:2.4, name:"Her fans", hint:"Jump, then hold to glide", glide:true},
   letter:{at:[22,-34], y:8.5, gate:"glide"},
@@ -762,7 +803,7 @@ function buildIsland(cfg){
     }
     return y;
   };
-  const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[]};
+  const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[]};
 
   /* ground */
   cfg.lobes.forEach(l => {
@@ -816,22 +857,54 @@ function buildIsland(cfg){
         b.position.set((Math.random()-.5)*.6,(4+k*1.6)*sc,(Math.random()-.5)*.6); b.scale.y = .82; g.add(b); }
     }
     g.position.set(x,y,z); scene.add(g);
+    I.colliders.push({x, z, r:(cfg.trees.palm ? 1.35 : 2.0)*sc});
   }
   /* rocks */
   for(let i=0;i<22;i++){
     const s = sample(14, 60, true); if(!s) continue;
-    const rk = inked(new THREE.DodecahedronGeometry(.6+Math.random()*1.4,0), P.stone, 1.8);
+    const rr = .6+Math.random()*1.4;
+    const rk = inked(new THREE.DodecahedronGeometry(rr,0), P.stone, 1.8);
     rk.position.set(s[0], height(s[0],s[1])+.5, s[1]); rk.rotation.set(Math.random(),Math.random(),Math.random()); scene.add(rk);
+    I.colliders.push({x:s[0], z:s[1], r:rr*.9});
   }
   /* specific decor */
   const column = (x,z,h,tilt,col) => { const c = inked(new THREE.CylinderGeometry(.85,1.0,h,12), col||P.stone, 1.9);
-    c.position.set(x, height(x,z)+h/2, z); c.rotation.z = tilt||0; scene.add(c); return c; };
+    c.position.set(x, height(x,z)+h/2, z); c.rotation.z = tilt||0; scene.add(c); I.colliders.push({x,z,r:1.1}); return c; };
   if(cfg.decor === "ruins"){
     [[14,18],[20,10],[19,-2],[10,-8],[0,-6],[-7,2],[-4,14],[5,21]].forEach(([x,z],i) => column(x,z,5.5+(i%3)*1.6,(i%4===0)?.16:0));
     const arch = inked(new THREE.TorusGeometry(4.6,.85,8,20,Math.PI), P.stone, 2.0); arch.position.set(7,height(7,6),6); scene.add(arch);
     const stream = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 70), new THREE.MeshBasicMaterial({color:0x7FC9E0, transparent:true, opacity:.75}));
     stream.rotation.x = -Math.PI/2; stream.rotation.z = .35; stream.position.set(-10,.62,22); scene.add(stream);
     const bridge = inked(new THREE.BoxGeometry(5,.4,3.6), P.wood, 1.6); bridge.position.set(-2.6,1.0,33); bridge.rotation.y=.35; scene.add(bridge);
+
+    /* moss-spiral tunnel — a coiled, moss-wrapped branch arch you walk through
+       on the way to the bridge, after the misty-forest reference photo */
+    const mossDk = 0x2E5238, mossLt = 0x4E7A52;
+    const spC = {x:-4, z:27};
+    const arcCount = 7;
+    for(let i=0;i<arcCount;i++){
+      const t = i/(arcCount-1);
+      const rad = 7.2 - t*5.0;
+      const yBase = height(spC.x, spC.z) + 1.2 + t*3.6;
+      const arm = inked(new THREE.TorusGeometry(rad, .5-t*.16, 8, 22, Math.PI*1.55),
+        i%2 ? P.wood : mossDk, 1.7);
+      arm.position.set(spC.x, yBase, spC.z - 7 + t*13);
+      arm.rotation.set(Math.PI*.42, t*2.4, Math.PI/2);
+      scene.add(arm);
+      I.colliders.push({x:arm.position.x, z:arm.position.z, r:rad*.55});
+    }
+    for(let i=0;i<18;i++){
+      const s = sample(4, 42, true); if(!s) continue;
+      const clump = inked(new THREE.SphereGeometry(.55+Math.random()*.85, 8, 6), Math.random()<.5?mossDk:mossLt, 1.4);
+      clump.scale.y = .5; clump.position.set(s[0], height(s[0],s[1])+.28, s[1]); scene.add(clump);
+    }
+    for(let i=0;i<10;i++){
+      const a = Math.random()*Math.PI*2, r = 2.5+Math.random()*4;
+      const vx = spC.x+Math.cos(a)*r, vz = spC.z+Math.sin(a)*r;
+      const vine = inked(new THREE.CylinderGeometry(.05,.09,2.6+Math.random()*2.4,5), mossDk, 1.1);
+      vine.position.set(vx, height(vx,vz)+3.6+Math.random()*2.2, vz); vine.rotation.z = (Math.random()-.5)*.35;
+      scene.add(vine);
+    }
   }
   if(cfg.decor === "bones"){
     for(let i=0;i<7;i++){ const s = sample(20,56,true); if(!s) continue;
@@ -839,13 +912,14 @@ function buildIsland(cfg){
       rib.position.set(s[0], height(s[0],s[1]), s[1]); rib.rotation.y = Math.random()*3; scene.add(rib); }
     for(let i=0;i<5;i++){ const s = sample(20,50,true); if(!s) continue;
       const skull = inked(new THREE.SphereGeometry(1.4,10,8), 0xE8DEC8, 1.8); skull.scale.set(1.2,.9,1.6);
-      skull.position.set(s[0], height(s[0],s[1])+1, s[1]); scene.add(skull); }
+      skull.position.set(s[0], height(s[0],s[1])+1, s[1]); scene.add(skull); I.colliders.push({x:s[0],z:s[1],r:1.6}); }
     for(let i=0;i<5;i++){ const s = sample(10,40,true); if(!s) continue;
       const fern = inked(new THREE.ConeGeometry(2.2,3.2,5), P.leaf2, 1.5); fern.position.set(s[0],height(s[0],s[1])+1.4,s[1]); fern.rotation.x=Math.PI; scene.add(fern); }
   }
   if(cfg.decor === "lighthouse"){
     const lhx=-30, lhz=-25, base = height(lhx,lhz);
     const tower = inked(new THREE.CylinderGeometry(1.6,2.2,11,12), P.stone, 2.0); tower.position.set(lhx, base+5.5, lhz); scene.add(tower);
+    I.colliders.push({x:lhx, z:lhz, r:2.6});
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(1.2,12,10), new THREE.MeshBasicMaterial({color:MOON})); lamp.position.set(lhx, base+11.6, lhz); scene.add(lamp);
     const beam = new THREE.SpotLight(0xFFF0C0, 2.2, 160, .35, .5); beam.position.set(lhx, base+11.6, lhz); scene.add(beam);
     beam.target.position.set(lhx+40, 0, lhz); scene.add(beam.target); I.beam = beam;
@@ -859,6 +933,7 @@ function buildIsland(cfg){
   }
   if(cfg.decor === "town"){
     const fountain = inked(new THREE.CylinderGeometry(3,3.4,1,20), P.stone, 1.8); fountain.position.set(0,1.4,0); scene.add(fountain);
+    I.colliders.push({x:0, z:0, r:3.6});
     const spout = new THREE.Mesh(new THREE.CylinderGeometry(.3,.6,3,8), new THREE.MeshBasicMaterial({color:0x8ED8E8, transparent:true, opacity:.8}));
     spout.position.set(0,3.2,0); scene.add(spout);
     const fw = new THREE.Mesh(new THREE.CircleGeometry(2.6,20), new THREE.MeshBasicMaterial({color:0x8ED8E8, transparent:true, opacity:.85}));
@@ -866,6 +941,7 @@ function buildIsland(cfg){
     for(let i=0;i<8;i++){ const a = (i/8)*Math.PI*2, x = Math.cos(a)*12, z = Math.sin(a)*12;
       const stall = inked(new THREE.BoxGeometry(3.4,2.2,2.2), [0xF2A6C8,0xFFD37A,0x9B84DC,0x8ED8E8][i%4], 1.6);
       stall.position.set(x, height(x,z)+1.1, z); stall.rotation.y = -a; scene.add(stall);
+      I.colliders.push({x, z, r:2.0});
       const awn = inked(new THREE.BoxGeometry(3.8,.2,2.8), BONE, 1.3); awn.position.set(x, height(x,z)+2.4, z); awn.rotation.y = -a; scene.add(awn); }
     for(let i=0;i<10;i++){ const a = (i/10)*Math.PI*2, x = Math.cos(a)*15.5, z = Math.sin(a)*15.5;
       const post = inked(new THREE.CylinderGeometry(.14,.18,5,6), P.wood, 1.3); post.position.set(x, height(x,z)+2.5, z); scene.add(post);
@@ -1049,9 +1125,11 @@ function walkerUpdate(I, dt, t){
   W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? 1.6 : 0;
 
   W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*1.8));
-  const goal = new THREE.Vector3(W.x - Math.sin(W.camYaw)*13.5, W.y + 7.4, W.z - Math.cos(W.camYaw)*13.5);
-  camera.position.lerp(goal, Math.min(1, dt*3.2));
-  camera.lookAt(W.x, W.y+2.4, W.z);
+  const lookAt = new THREE.Vector3(W.x, W.y+2.4, W.z);
+  const desired = new THREE.Vector3(W.x - Math.sin(W.camYaw)*13.5, W.y + 7.4, W.z - Math.cos(W.camYaw)*13.5);
+  const goal = cameraCollide(I, lookAt, desired);
+  camera.position.lerp(goal, Math.min(1, dt*4.2));
+  camera.lookAt(lookAt);
 }
 function tryJump(){
   if(!CUR || !CUR.W.active) return;
@@ -1220,7 +1298,9 @@ async function goIsland(I, skipFade){
   CUR = I; setMode("island");
   const W = I.W, cfg = I.cfg;
   W.x = cfg.spawn[0]; W.z = cfg.spawn[1]; W.y = I.height(W.x,W.z); W.vy = 0; W.grounded = true; W.heading = Math.PI; W.camYaw = Math.PI; W.active = false;
-  camera.position.set(W.x - Math.sin(W.camYaw)*13.5, W.y+7.4, W.z - Math.cos(W.camYaw)*13.5);
+  camera.position.copy(cameraCollide(I,
+    new THREE.Vector3(W.x, W.y+2.4, W.z),
+    new THREE.Vector3(W.x - Math.sin(W.camYaw)*13.5, W.y+7.4, W.z - Math.cos(W.camYaw)*13.5)));
   applyOutfit(W, cfg.outfit && G.abilities[cfg.ability.key] ? cfg.outfit : "base");
   I.moons.forEach(m => m.visible = !G.moonsTaken[m.userData.id]);
   if(I.pickup) I.pickup.visible = !G.abilities[cfg.ability.key];
