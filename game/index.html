@@ -232,6 +232,21 @@ function ramp(n){
 }
 const GRAD = ramp(4);
 const toon = (c, extra) => new THREE.MeshToonMaterial(Object.assign({color:c, gradientMap:GRAD}, extra||{}));
+/* soft mottled surface texture (multiplies the material colour) so big flat surfaces —
+   meadows, hills, mesas — stop reading as untextured plastic */
+function mottle(scale, dark, seedMul){
+  const S = 256, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0,0,S,S);
+  for(let i=0;i<(seedMul||1)*520;i++){
+    const r = 3 + Math.random()*scale, x = Math.random()*S, y = Math.random()*S;
+    const g = ctx.createRadialGradient(x,y,0,x,y,r);
+    const v = Math.round(255 - dark*(0.4+Math.random()*.6));
+    g.addColorStop(0, `rgba(${v},${v},${v},.9)`); g.addColorStop(1, `rgba(${v},${v},${v},0)`);
+    ctx.fillStyle = g; ctx.fillRect(x-r,y-r,r*2,r*2);
+  }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6,6); return t;
+}
+const TEX = {meadow: mottle(18, 46), rock: mottle(9, 70, 1.6)};
 const outlineBase = new THREE.ShaderMaterial({
   uniforms:{thickness:{value:1.7}, inkColor:{value:new THREE.Color(INK)}},
   vertexShader:`uniform float thickness;
@@ -256,7 +271,7 @@ function skyDome(top, mid, bot){
       gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
     fragmentShader:`uniform vec3 top,mid,bot; uniform float blend,flash; varying vec3 vP;
       void main(){ float h=vP.y*.5+.5;
-        vec3 c=mix(bot,mid,smoothstep(.30,.56,h)); c=mix(c,top,smoothstep(.58,.96,h));
+        vec3 c=mix(bot,mid,smoothstep(.49,.60,h)); c=mix(c,top,smoothstep(.62,.90,h));
         c=mix(c,vec3(.40,.42,.50),blend*.66); c=mix(c,vec3(.92,.95,1.0),flash);
         gl_FragColor=vec4(c,1.0); }`,
     side:THREE.BackSide, depthWrite:false});
@@ -711,7 +726,7 @@ const ISLANDS = [
   moon:{pos:[-130,105,-340], r:20},
   lobes:[{x:0,z:0,r:56},{x:0,z:44,r:18}],
   features:[{type:"mesa",x:0,z:0,r:19,h:2.8}],
-  trees:{n:44, min:24, max:50, s:[.7,1.4]},
+  trees:{n:44, min:24, max:50, s:[.7,1.4], willow:true},
   dock:[0,60], spawn:[0,46],
   weather:"clear", creature:null, birds:5, bf:{n:9, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
   grassCols:[0x5FAE72,0x3F8A57,0x79C088],
@@ -732,7 +747,7 @@ const ISLANDS = [
   moon:{pos:[90,78,-260], r:15},
   lobes:[{x:0,z:0,r:72},{x:-38,z:-20,r:36},{x:30,z:-36,r:32},{x:10,z:40,r:36}],
   features:[{type:"hill",x:-26,z:-18,r:19,h:15,name:"Horse Hill"},{type:"mesa",x:22,z:-34,r:13,h:8.5,name:"The High Rock",ink:true}],
-  trees:{n:78, min:22, max:74, s:[.7,1.4]},
+  trees:{n:78, min:22, max:74, s:[.7,1.4], willow:true},
   dock:[0,64], spawn:[0,56],
   weather:"rain", creature:{type:"horse", n:9, r:[36,58], sp:[.11,.18]}, birds:9, bf:{n:20, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
   grassCols:[0x5FAE72,0x3F8A57,0x79C088],
@@ -828,8 +843,8 @@ function buildIsland(cfg){
   scene.fog = new THREE.Fog(P.fog, cfg.key === "sanity" ? 60 : 80, cfg.key === "sanity" ? 220 : 260);
   const sky = skyDome(P.skyTop, P.skyMid, P.skyBot); scene.add(sky.mesh);
   const moon = moonPair(new THREE.Vector3(...cfg.moon.pos), cfg.moon.r); scene.add(moon);
-  scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, cfg.key === "sanity" ? .32 : .48));
-  const key = new THREE.DirectionalLight(P.key, cfg.key === "sanity" ? .5 : .9); key.position.set(-25,40,15); scene.add(key);
+  scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, cfg.key === "sanity" ? .3 : .38));
+  const key = new THREE.DirectionalLight(P.key, cfg.key === "sanity" ? .48 : .8); key.position.set(-25,40,15); scene.add(key);
   const sea = seaMesh(P.water, P.waterHi); sea.position.y = -1.1; scene.add(sea);
 
   const inside = (x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r);
@@ -852,7 +867,7 @@ function buildIsland(cfg){
   cfg.lobes.forEach(l => {
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand));
     sand.position.set(l.x,-1.5,l.z); scene.add(sand);
-    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass));
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass, {map:TEX.meadow}));
     grass.position.set(l.x,-1.05,l.z); scene.add(grass);
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
@@ -862,7 +877,7 @@ function buildIsland(cfg){
          so nothing can sit "inside" the slope any more */
       const pts = [new THREE.Vector2(f.r+.6, -.6)];
       for(let k=28;k>=0;k--){ const d = f.r*(k/28); pts.push(new THREE.Vector2(Math.max(d, .001), height(f.x + d, f.z) - .05)); }
-      const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 48), toon(P.grassDk, {side:THREE.DoubleSide}));
+      const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 48), toon(P.grassDk, {side:THREE.DoubleSide, map:TEX.meadow}));
       m.position.set(f.x, 0, f.z); scene.add(m);
       if(f.crater){
         const lava = new THREE.Mesh(new THREE.CircleGeometry(f.r*.26, 24),
@@ -871,8 +886,8 @@ function buildIsland(cfg){
         const lg = new THREE.PointLight(0xFF8A4A, 1.6, 40); lg.position.set(f.x, height(f.x,f.z)+4, f.z); scene.add(lg);
       }
     } else {
-      const m = f.ink ? inked(new THREE.CylinderGeometry(f.r, f.r*1.06, f.h, 24), f.outer ? P.stone : P.grassDk, 2.0)
-                      : new THREE.Mesh(new THREE.CylinderGeometry(f.r, f.r*1.02, f.h, 32), toon(f.name === "The Square" ? P.stone : P.grassDk));
+      const m = f.ink ? inked(new THREE.CylinderGeometry(f.r, f.r*1.06, f.h, 24), f.outer ? P.stone : P.grassDk, 2.0, {map:TEX.rock})
+                      : new THREE.Mesh(new THREE.CylinderGeometry(f.r, f.r*1.02, f.h, 32), toon(f.name === "The Square" ? P.stone : P.grassDk, {map:TEX.rock}));
       m.position.set(f.x, f.h/2, f.z); scene.add(m);
     }
   });
@@ -898,6 +913,15 @@ function buildIsland(cfg){
       for(let k=0;k<6;k++){ const a = (k/6)*Math.PI*2;
         const fr = inked(new THREE.BoxGeometry(3.6*sc,.22,1.0*sc), k%2?P.leaf:P.leaf2, 1.4);
         fr.position.set(Math.cos(a)*1.5*sc, 7*sc, Math.sin(a)*1.5*sc); fr.rotation.set(0,-a,-.5); g.add(fr); }
+    } else if(cfg.trees.willow && i % 4 === 0){
+      /* weeping willow — leaning trunk, wide crown, curtains of hanging fronds (the willow photo) */
+      const lean = (Math.random()-.5)*.5, hs = sc*1.35;
+      const tr = inked(new THREE.CylinderGeometry(.3*hs,.55*hs,5.2*hs,8), P.wood, 1.5); tr.position.set(Math.sin(lean)*2.4*hs, 2.5*hs, 0); tr.rotation.z = -lean; g.add(tr);
+      const crown = inked(new THREE.SphereGeometry(3.4*hs,10,8), P.leaf, 1.7); crown.scale.set(1.25,.62,1.25); crown.position.set(Math.sin(lean)*4.6*hs, 5.4*hs, 0); g.add(crown);
+      for(let k=0;k<26;k++){ const a = Math.random()*Math.PI*2, rr = (1.6+Math.random()*2.6)*hs, len = (2.6+Math.random()*3.2)*hs;
+        const fr = new THREE.Mesh(new THREE.BoxGeometry(.16*hs, len, .16*hs), toon(k%3?P.leaf2:P.leaf));
+        fr.position.set(crown.position.x+Math.cos(a)*rr, crown.position.y - len/2 - .2*hs, Math.sin(a)*rr); fr.rotation.z = (Math.random()-.5)*.12; g.add(fr); }
+      g.userData.willow = true;
     } else {
       const tr = inked(new THREE.CylinderGeometry(.32*sc,.46*sc,3.2*sc,7), P.wood, 1.5); tr.position.y = 1.6*sc; g.add(tr);
       for(let k=0;k<3;k++){ const b = inked(new THREE.SphereGeometry((2.4-k*.45)*sc,9,7), k%2?P.leaf:P.leaf2, 1.7);
@@ -913,6 +937,15 @@ function buildIsland(cfg){
     const rk = inked(new THREE.DodecahedronGeometry(rr,0), P.stone, 1.8);
     rk.position.set(s[0], height(s[0],s[1])+.5, s[1]); rk.rotation.set(Math.random(),Math.random(),Math.random()); scene.add(rk);
     I.colliders.push({x:s[0], z:s[1], r:rr*.9});
+  }
+  /* wildflowers + clover — small colour in the meadow so the ground isn't one flat tone */
+  if(cfg.key !== "sanity"){
+    const petal = new THREE.SphereGeometry(.14,6,5), fcols = cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4];
+    const fmats = fcols.map(c => new THREE.MeshBasicMaterial({color:c}));
+    for(let i=0;i<70;i++){ const s = sample(6, 66, true); if(!s) continue;
+      const n = 3 + (Math.random()*5|0), mat = fmats[(Math.random()*fmats.length)|0];
+      for(let k=0;k<n;k++){ const fx = s[0]+(Math.random()-.5)*2.2, fz = s[1]+(Math.random()-.5)*2.2;
+        const f = new THREE.Mesh(petal, mat); f.scale.y = .55; f.position.set(fx, height(fx,fz)+.62, fz); scene.add(f); } }
   }
   /* specific decor */
   const column = (x,z,h,tilt,col) => { const c = inked(new THREE.CylinderGeometry(.85,1.0,h,12), col||P.stone, 1.9);
@@ -1458,7 +1491,12 @@ function tick(){
     renderer.render(sail, camera);
   }
 }
-load().then(() => { CUR = ISL.hub; goIsland(ISL.hub, true); ov("ovTitle"); CUR.W.active = false; tick(); });
+load().then(() => {
+  /* ?go=green|gr|sanity|town jumps straight onto an island — handy for playtesting one spot */
+  const jump = new URLSearchParams(location.search).get("go");
+  if(jump && ISL[jump] && jump !== "hub"){ CUR = ISL[jump]; goIsland(ISL[jump], true); ovNone(); CUR.W.active = true; tick(); return; }
+  CUR = ISL.hub; goIsland(ISL.hub, true); ov("ovTitle"); CUR.W.active = false; tick();
+});
 })();
 </script>
 </body>
