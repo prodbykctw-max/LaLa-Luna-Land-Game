@@ -441,7 +441,7 @@ function makeLala(){
     const f = inked(new THREE.CircleGeometry(.95,12,0,Math.PI*.85), 0xF6C9B0, 1.6);
     f.position.set(s*.72,1.95,.12); f.rotation.set(-Math.PI/2,0,s*.5); R.fans.add(f);
   });
-  R.fans.visible = false; p.add(R.fans);
+  R.fans.visible = false; p.add(R.fans); R.fanMeshes = [...R.fans.children];
   const lb = inked(new THREE.CylinderGeometry(.16,.2,.42,8), 0x8D6141, 1.4); R.lantern.add(lb);
   const lg = new THREE.Mesh(new THREE.SphereGeometry(.16,10,8), new THREE.MeshBasicMaterial({color:MOON}));
   lg.position.y = .02; R.lantern.add(lg);
@@ -456,6 +456,7 @@ function makeLala(){
 /* ---- rigged models (Autosprite GLBs) ----
    RIGS is a registry: each entry loads once, is scaled to a target height with feet at y=0, and
    every character built for it swaps from its primitive stand-in to a skinned clone with clips. */
+const DBG = (...a) => console.log("[lala]", (performance.now()/1000).toFixed(2)+"s", ...a);
 const RIGS = {
   lala: {url:"assets/lala.glb", height:2.95},
   fan:  {url:"assets/npc-fan.glb", height:2.8},
@@ -466,7 +467,9 @@ for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false
 function loadRig(name){
   const rig = RIGS[name]; if(!rig || rig.loading || rig.gltf || !THREE.GLTFLoader || !THREE.SkeletonUtils) return;
   rig.loading = true;
+  DBG("rig load start", name);
   new THREE.GLTFLoader().load(rig.url, gltf => {
+    DBG("rig parsed", name, gltf.animations.length);
     const box = new THREE.Box3().setFromObject(gltf.scene), size = box.getSize(new THREE.Vector3());
     const s = rig.height / Math.max(size.y, 1e-3);
     gltf.scene.scale.setScalar(s);
@@ -479,7 +482,9 @@ function loadRig(name){
       o.material = new THREE.MeshToonMaterial({map: old && old.map || null, color: 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide});
     } });
     rig.gltf = gltf;
+    DBG("rig reshaded", name, "attaching", rig.waiting.length);
     rig.waiting.forEach(R => attachRig(R, name)); rig.waiting.length = 0;
+    DBG("rig attached all", name);
   }, undefined, err => { rig.failed = true; rig.loading = false; console.warn(`Rig "${name}" not loaded — using the sketch figure`, err); });
 }
 function wantRig(R, name){ const rig = RIGS[name]; if(!rig) return; R.rigName = name; if(rig.gltf) attachRig(R, name); else { rig.waiting.push(R); loadRig(name); } }
@@ -488,12 +493,28 @@ function attachRig(R, name){
   const model = THREE.SkeletonUtils.clone(gltf.scene);
   R.group.add(model); R.model = model;
   (R.primitive||[]).forEach(m => m.visible = false);
+  bindAttachments(R, model, gltf.scene.scale.x);
   R.mixer = new THREE.AnimationMixer(model); R.actions = {}; R.current = null;
   const find = (...names) => gltf.animations.find(c => names.some(n => c.name.toLowerCase().includes(n)));
   const map = {idle: find("idle","breath","stand"), walk: find("walk"), run: find("run","jog","sprint"), jump: find("jump","fall"), dance: find("dance","celebrat")};
   for(const k in map) if(map[k]){ R.actions[k] = R.mixer.clipAction(map[k]); }
   if(!R.actions.run) R.actions.run = R.actions.walk;
   playClip(R, "idle", 0);
+}
+/* outfit pieces ride on the skeleton: fans in both hands, lantern in the right hand, crown on the head.
+   Anchors are scaled back to world units so the props keep their size inside the bone's space. */
+function bindAttachments(R, model, s){
+  /* GLTFLoader strips ":" from node names ("mixamorig:Head" -> "mixamorigHead"), so match by suffix */
+  const bone = n => { let hit = null; const want = n.toLowerCase(); model.traverse(o => { if(!hit && o.isBone && o.name.replace(/[^a-z]/gi,"").toLowerCase().endsWith(want)) hit = o; }); return hit; };
+  const anchor = (b, pos, rot) => { if(!b) return null; const a = new THREE.Group(); a.scale.setScalar(1/s); a.position.copy(pos); a.rotation.set(rot[0],rot[1],rot[2]); b.add(a); return a; };
+  const LH = bone("LeftHand"), RH = bone("RightHand"), HD = bone("Head");
+  if(R.fanMeshes && LH && RH){
+    [LH, RH].forEach((b,i) => { const f = R.fanMeshes[i]; if(!f) return;
+      const a = anchor(b, new THREE.Vector3(0, 0, 0), [0,0,0]); if(!a) return;
+      a.add(f); f.scale.setScalar(.62); f.position.set(0, .42, 0); f.rotation.set(-.4, i ? -1.0 : 1.0, i ? .5 : -.5); });
+  }
+  if(R.lantern && RH){ const a = anchor(RH, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.lantern); R.lantern.position.set(0, .4, 0); R.lantern.rotation.set(0, 0, 0); } }
+  if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, .3, 0); R.crown.rotation.set(Math.PI/2, 0, 0); R.crown.scale.setScalar(.7); } }
 }
 function playClip(R, name, fade){
   if(!R.actions) return;
@@ -882,7 +903,7 @@ function buildIsland(cfg){
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand));
     sand.position.set(l.x,-1.5,l.z); scene.add(sand);
     const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass, {map:TEX.meadow}));
-    grass.position.set(l.x,-1.05,l.z); scene.add(grass);
+    grass.position.set(l.x,-1.6,l.z); scene.add(grass);   /* top face exactly at y=0 = the walkable height */
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
   cfg.features.forEach(f => {
@@ -1231,9 +1252,11 @@ function walkerUpdate(I, dt, t){
   if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = .34; } } else AU.stepT = 0;
   W.group.position.set(W.x, W.y + (moving ? Math.abs(Math.sin(t*10))*.07 : 0), W.z);
   W.group.rotation.z = W.gliding ? Math.sin(t*2)*.06 : 0;
-  W.fans.visible = ab.glide;
-  if(ab.glide) W.fans.children.forEach((f,i) => { const s = W.gliding ? 1 : .42;
-    f.scale.setScalar(f.scale.x + (s - f.scale.x)*Math.min(1, dt*8)); f.rotation.z = (i?1:-1)*(W.gliding ? 1.25 : .5) + Math.sin(t*3+i)*.05; });
+  W.fans.visible = ab.glide; W.fanMeshes.forEach(f => f.visible = ab.glide);
+  if(ab.glide) W.fanMeshes.forEach((f,i) => { const s = (W.model ? .62 : 1) * (W.gliding ? 1.6 : .7);
+    f.scale.setScalar(f.scale.x + (s - f.scale.x)*Math.min(1, dt*8));
+    if(W.model) f.rotation.z = (i?1:-1)*(W.gliding ? 1.6 : .9) + Math.sin(t*3+i)*.05;
+    else f.rotation.z = (i?1:-1)*(W.gliding ? 1.25 : .5) + Math.sin(t*3+i)*.05; });
   W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? 1.6 : 0;
 
   W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*1.8));
@@ -1404,7 +1427,7 @@ let popped = 0, finaleDone = false;
 /* ============================================================
    MODES
    ============================================================ */
-const ISL = {}; ISLANDS.forEach(c => ISL[c.key] = buildIsland(c));
+DBG("building islands"); const ISL = {}; ISLANDS.forEach(c => ISL[c.key] = buildIsland(c)); DBG("islands built");
 let CUR = null, MODE = "island";
 function setMode(m){
   MODE = m;
@@ -1474,9 +1497,11 @@ $("bEnd").onclick = () => { ovNone(); goIsland(ISL.hub); };
    LOOP
    ============================================================ */
 const clock = new THREE.Clock(); let T = 0;
+let FRAMES = 0;
 function tick(){
   requestAnimationFrame(tick);
   const dt = Math.min(clock.getDelta(), .05); T += dt;
+  FRAMES++; if(FRAMES < 4 || FRAMES % 300 === 0) DBG("frame", FRAMES, "dt", dt.toFixed(3));
   if(toastT > 0){ toastT -= dt; if(toastT <= 0) $("toast").classList.remove("on"); }
   if(MODE === "island" && CUR){ islandUpdate(CUR, dt, T); renderer.render(CUR.scene, camera); }
   else if(MODE === "keep"){
