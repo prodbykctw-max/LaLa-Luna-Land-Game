@@ -260,14 +260,16 @@ function ramp(n){
 const GRAD = ramp(5);
 const RIM = {color:new THREE.Color(0xFFF1D8), strength:0.28};
 /* every toon material gets a soft rim light (fresnel) so silhouettes lift off the background */
+const rimPatch = sh => {
+  sh.uniforms.rimColor = {value: RIM.color}; sh.uniforms.rimStrength = {value: RIM.strength};
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", "#include <common>\nuniform vec3 rimColor; uniform float rimStrength;")
+    .replace("gl_FragColor = vec4( outgoingLight, diffuseColor.a );", "{ vec3 rn = normalize(vNormal); vec3 rv = normalize(vViewPosition); float rim = pow(1.0 - max(dot(rn, rv), 0.0), 3.2); vec3 wn = inverseTransformDirection(rn, viewMatrix); rim *= 1.0 - clamp(wn.y, 0.0, 1.0) * 0.9; outgoingLight += rim * rimColor * rimStrength * diffuseColor.rgb * 2.2; }\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );");
+};
 function toonRim(mat){
-  mat.onBeforeCompile = sh => {
-    sh.uniforms.rimColor = {value: RIM.color}; sh.uniforms.rimStrength = {value: RIM.strength};
-    sh.fragmentShader = sh.fragmentShader
-      .replace("#include <common>", "#include <common>\nuniform vec3 rimColor; uniform float rimStrength;")
-      .replace("gl_FragColor = vec4( outgoingLight, diffuseColor.a );", "{ vec3 rn = normalize(vNormal); vec3 rv = normalize(vViewPosition); float rim = pow(1.0 - max(dot(rn, rv), 0.0), 3.2); vec3 wn = inverseTransformDirection(rn, viewMatrix); rim *= 1.0 - clamp(wn.y, 0.0, 1.0) * 0.9; outgoingLight += rim * rimColor * rimStrength * diffuseColor.rgb * 2.2; }\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );");
-  };
-  mat.customProgramCacheKey = () => "toonrim";
+  mat.userData.patches = [["rim", rimPatch]];
+  mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));
+  mat.customProgramCacheKey = () => mat.userData.patches.map(([n]) => n).join("_");
   return mat;
 }
 const toon = (c, extra) => toonRim(new THREE.MeshToonMaterial(Object.assign({color:c, gradientMap:GRAD}, extra||{})));
@@ -676,15 +678,78 @@ function foamRing(scene, x, z, r, y){
     new THREE.MeshBasicMaterial({color:0xFFFFFF, transparent:true, opacity:.34, side:THREE.DoubleSide, depthWrite:false}));
   m.rotation.x = -Math.PI/2; m.position.set(x, y, z); scene.add(m); return m;
 }
+/* ---- grass: one instanced draw call per island, clumps that sway in the wind and part around
+   whoever walks through them (uPlayer is fed every frame) ---- */
+function clumpGeometry(){
+  const parts = [];
+  for(let k=0;k<3;k++){
+    const q = new THREE.PlaneGeometry(.40, .72, 1, 3);
+    const pos = q.attributes.position, col = [];
+    for(let i=0;i<pos.count;i++){ const y = pos.getY(i)+.5; pos.setY(i, y);
+      pos.setX(i, pos.getX(i)*(1-y*.75));                 /* taper to a blade tip */
+      const c = .58 + y*.42; col.push(c,c,c); }
+    q.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    q.rotateY(k*Math.PI/3); parts.push(q);
+  }
+  const g = parts[0];
+  /* merge manually (no BufferGeometryUtils vendored) */
+  const P=[],N=[],U=[],C=[],I=[]; let off=0;
+  parts.forEach(q => { P.push(...q.attributes.position.array); N.push(...q.attributes.normal.array); U.push(...q.attributes.uv.array); C.push(...q.attributes.color.array);
+    const idx = q.index.array; for(let i=0;i<idx.length;i++) I.push(idx[i]+off); off += q.attributes.position.count; });
+  const m = new THREE.BufferGeometry();
+  m.setAttribute("position", new THREE.Float32BufferAttribute(P,3)); m.setAttribute("normal", new THREE.Float32BufferAttribute(N,3));
+  m.setAttribute("uv", new THREE.Float32BufferAttribute(U,2)); m.setAttribute("color", new THREE.Float32BufferAttribute(C,3)); m.setIndex(I);
+  return m;
+}
+const CLUMP = clumpGeometry();
+const grassPatch = sh => {
+  sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3(0,-99,0)}; sh.uniforms.uWind = {value:1};
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nuniform float uTime, uWind; uniform vec3 uPlayer;")
+    .replace("#include <begin_vertex>", `#include <begin_vertex>
+      { float w = uv.y * uv.y;
+        vec3 io = (modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0)).xyz;
+        transformed.x += (sin(uTime*1.7 + io.x*.45 + io.z*.3) * .16 + sin(uTime*3.1 + io.z*.9)*.05) * w * uWind;
+        transformed.z += cos(uTime*1.3 + io.z*.4 + io.x*.2) * .11 * w * uWind;
+        vec2 d = io.xz - uPlayer.xz; float dist = length(d);
+        float push = (1.0 - smoothstep(0.0, 2.4, dist)) * (1.0 - smoothstep(1.5, 3.0, abs(io.y - uPlayer.y)));
+        transformed.xz += normalize(d + vec2(0.001)) * push * 1.15 * w; transformed.y -= push * .42 * w; }`);
+};
 function grassField(scene, n, sampler, heightFn, cols){
-  const tufts = [], geo = new THREE.ConeGeometry(.16,1.05,4), mats = cols.map(c => toon(c));
+  const mat = toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide});
+  mat.userData.patches = [["grass", sh => { grassPatch(sh); mat.userData.uniforms = sh.uniforms; }]];
+  const mesh = new THREE.InstancedMesh(CLUMP, mat, n);
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), c = new THREE.Color();
+  let k = 0;
   for(let i=0;i<n;i++){
     const s = sampler(); if(!s) continue;
-    const m = new THREE.Mesh(geo, mats[(Math.random()*mats.length)|0]);
-    m.position.set(s[0], heightFn(s[0],s[1])+.45, s[1]); m.userData.ph = Math.random()*6.3;
-    scene.add(m); tufts.push(m);
+    /* clumps come in patches of 2-5 so density reads as natural grouping, not confetti */
+    const cnt = 1 + (Math.random()*4|0);
+    for(let j=0;j<cnt && k<n;j++){
+      const x = s[0]+(Math.random()-.5)*1.6, z = s[1]+(Math.random()-.5)*1.6, h = .7+Math.random()*.7;
+      q.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.random()*Math.PI);
+      sc.set(.8+Math.random()*.5, h, .8+Math.random()*.5);
+      M.compose(new THREE.Vector3(x, heightFn(x,z)+.02, z), q, sc); mesh.setMatrixAt(k, M);
+      c.setHex(cols[(Math.random()*cols.length)|0]); c.offsetHSL(0, (Math.random()-.5)*.08, -.04+(Math.random()-.5)*.08); mesh.setColorAt(k, c);
+      k++;
+    }
   }
-  return tufts;
+  mesh.count = k; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false;
+  scene.add(mesh);
+  return {mesh, mat};
+}
+function flowerField(scene, n, sampler, heightFn, cols){
+  const geo = new THREE.IcosahedronGeometry(.16, 0); geo.scale(1, .5, 1);
+  const mat = new THREE.MeshBasicMaterial({color:0xffffff});
+  const mesh = new THREE.InstancedMesh(geo, mat, n);
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), sc = new THREE.Vector3(1,1,1);
+  let k = 0;
+  for(let i=0;i<n/5;i++){ const s = sampler(); if(!s) continue; c.setHex(cols[(Math.random()*cols.length)|0]);
+    for(let j=0;j<5 && k<n;j++){ const x = s[0]+(Math.random()-.5)*2.4, z = s[1]+(Math.random()-.5)*2.4;
+      sc.setScalar(.8+Math.random()*.5); M.compose(new THREE.Vector3(x, heightFn(x,z)+.6, z), q, sc); mesh.setMatrixAt(k, M); mesh.setColorAt(k, c); k++; } }
+  mesh.count = k; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  scene.add(mesh); return mesh;
 }
 function butterflies(scene, n, heightFn, cols){
   const list = [], geo = new THREE.PlaneGeometry(.44,.32);
@@ -729,7 +794,11 @@ function cloudShadows(scene, n, r){
 }
 function fxUpdate(fx, dt, t, camPos){
   fx.foam.forEach(f => f.material.opacity = .26 + Math.sin(t*.9)*.10);
-  fx.grass.forEach(g => { g.rotation.z = Math.sin(t*1.5+g.userData.ph)*.13*fx.windMul; g.rotation.x = Math.cos(t*1.2+g.userData.ph)*.07*fx.windMul; });
+  if(fx.grass && fx.grass.mat){ const u = fx.grass.mat.userData.uniforms; if(u){ u.uTime.value = t; u.uWind.value = fx.windMul; if(fx.player) u.uPlayer.value.set(fx.player.x, fx.player.y, fx.player.z); } }
+  if(fx.canopies) fx.canopies.forEach(c => { c.rotation.z = Math.sin(t*.9+c.userData.ph)*.022*fx.windMul; c.rotation.x = Math.cos(t*.7+c.userData.ph)*.016*fx.windMul; });
+  if(fx.bushes && fx.player) fx.bushes.forEach(b => { const d = Math.hypot(b.position.x-fx.player.x, b.position.z-fx.player.z);
+    b.userData.k = Math.max(0, (b.userData.k||0) - dt*2.5); if(d < 1.9) b.userData.k = 1;
+    const k = b.userData.k; b.scale.set(1+Math.sin(t*22)*.06*k, 1-Math.sin(t*22)*.05*k, 1+Math.cos(t*22)*.06*k); });
   if(fx.bf) fx.bf.list.forEach(b => { const u = b.userData; u.a += u.sp*dt*.1;
     const x = Math.cos(u.a)*u.r + Math.sin(t*.8+u.ph)*3, z = Math.sin(u.a)*u.r + Math.cos(t*.7+u.ph)*3;
     b.position.set(x, fx.bf.heightFn(x,z)+u.yb+Math.sin(t*2.1+u.ph)*.5, z);
@@ -978,49 +1047,85 @@ function buildIsland(cfg){
     }
     return null;
   };
-  /* trees */
-  for(let i=0;i<cfg.trees.n;i++){
-    const s = sample(cfg.trees.min, cfg.trees.max, true); if(!s) continue;
-    const [x,z] = s, sc = cfg.trees.s[0] + Math.random()*(cfg.trees.s[1]-cfg.trees.s[0]), y = height(x,z), g = new THREE.Group();
-    if(cfg.trees.palm){
-      const tr = inked(new THREE.CylinderGeometry(.28*sc,.42*sc,7*sc,7), P.wood, 1.5); tr.position.y = 3.5*sc; tr.rotation.z = (Math.random()-.5)*.25; g.add(tr);
-      for(let k=0;k<6;k++){ const a = (k/6)*Math.PI*2;
-        const fr = inked(new THREE.BoxGeometry(3.6*sc,.22,1.0*sc), k%2?P.leaf:P.leaf2, 1.4);
-        fr.position.set(Math.cos(a)*1.5*sc, 7*sc, Math.sin(a)*1.5*sc); fr.rotation.set(0,-a,-.5); g.add(fr); }
-    } else if(cfg.trees.willow && i % 4 === 0){
-      /* weeping willow — leaning trunk, wide crown, curtains of hanging fronds (the willow photo) */
-      const lean = (Math.random()-.5)*.5, hs = sc*1.35;
-      const tr = inked(new THREE.CylinderGeometry(.3*hs,.55*hs,5.2*hs,8), P.wood, 1.5); tr.position.set(Math.sin(lean)*2.4*hs, 2.5*hs, 0); tr.rotation.z = -lean; g.add(tr);
-      const crown = inked(new THREE.SphereGeometry(3.4*hs,10,8), P.leaf, 1.7); crown.scale.set(1.25,.62,1.25); crown.position.set(Math.sin(lean)*4.6*hs, 5.4*hs, 0); g.add(crown);
-      for(let k=0;k<26;k++){ const a = Math.random()*Math.PI*2, rr = (1.6+Math.random()*2.6)*hs, len = (2.6+Math.random()*3.2)*hs;
-        const fr = new THREE.Mesh(new THREE.BoxGeometry(.16*hs, len, .16*hs), toon(k%3?P.leaf2:P.leaf));
-        fr.position.set(crown.position.x+Math.cos(a)*rr, crown.position.y - len/2 - .2*hs, Math.sin(a)*rr); fr.rotation.z = (Math.random()-.5)*.12; g.add(fr); }
-      g.userData.willow = true;
-    } else {
-      const tr = inked(new THREE.CylinderGeometry(.32*sc,.46*sc,3.2*sc,7), P.wood, 1.5); tr.position.y = 1.6*sc; g.add(tr);
-      for(let k=0;k<3;k++){ const b = inked(new THREE.SphereGeometry((2.4-k*.45)*sc,9,7), k%2?P.leaf:P.leaf2, 1.7);
-        b.position.set((Math.random()-.5)*.6,(4+k*1.6)*sc,(Math.random()-.5)*.6); b.scale.y = .82; g.add(b); }
+  /* trees — real anatomy (flared, slightly bent trunk; clustered canopy; roots) planted in groves */
+  const canopies = [], bushes = [];
+  const bentTrunk = (rTop, rBot, h, bend) => {
+    const g = new THREE.CylinderGeometry(rTop, rBot, h, 9, 6); const pos = g.attributes.position;
+    for(let i=0;i<pos.count;i++){ const y = pos.getY(i), t = (y + h/2)/h;
+      pos.setX(i, pos.getX(i) + Math.sin(t*Math.PI*.9)*bend*h);            /* gentle S lean */
+      const flare = 1 + Math.pow(Math.max(0, 1 - t*4), 2)*.9;                /* root flare at the base */
+      pos.setX(i, pos.getX(i)*flare); pos.setZ(i, pos.getZ(i)*flare); }
+    g.computeVertexNormals(); return g;
+  };
+  const makeTree = (sc, kind) => {
+    const g = new THREE.Group(), lean = (Math.random()-.5)*.14;
+    if(kind === "palm"){
+      const h = 7.5*sc, tr = inked(bentTrunk(.24*sc,.4*sc,h,.10), P.wood, 1.5); tr.position.y = h/2; g.add(tr);
+      const top = new THREE.Group(); top.position.y = h - .3*sc;
+      for(let k=0;k<7;k++){ const a = (k/7)*Math.PI*2 + Math.random()*.4;
+        const fg = new THREE.BoxGeometry(4.0*sc,.2,1.15*sc); fg.translate(1.7*sc,0,0);
+        const fr = inked(fg, k%2?P.leaf:P.leaf2, 1.4); fr.position.set(Math.cos(a)*.3*sc, 0, Math.sin(a)*.3*sc); fr.rotation.set(0,-a,-.42-Math.random()*.25); top.add(fr); }
+      for(let k=0;k<3;k++){ const nut = inked(new THREE.SphereGeometry(.28*sc,7,6), 0x8D6141, 1.2); nut.position.set((Math.random()-.5)*.6*sc, -.35*sc, (Math.random()-.5)*.6*sc); top.add(nut); }
+      g.add(top); canopies.push(top); top.userData.ph = Math.random()*6.3;
+      return {g, r:1.3*sc, h};
     }
-    g.position.set(x,y,z); scene.add(g);
-    I.colliders.push({x, z, r:(cfg.trees.palm ? 1.35 : 2.0)*sc});
+    if(kind === "willow"){
+      const hs = sc*1.35, h = 5.4*hs, tr = inked(bentTrunk(.3*hs,.55*hs,h,.16), P.wood, 1.5); tr.position.y = h/2; g.add(tr);
+      const crown = new THREE.Group(); crown.position.set(.9*hs, h-.2*hs, 0);
+      [[0,0,0,3.3],[2.2,-.5,1.2,2.4],[-2.0,-.4,-1.4,2.3],[.6,.6,-2.2,2.0],[-.8,.4,2.1,2.1]].forEach(([x,y,z,r],i) => {
+        const b = inked(new THREE.SphereGeometry(r*hs,10,8), i%2?P.leaf2:P.leaf, 1.7); b.scale.set(1.2,.6,1.2); b.position.set(x*hs,y*hs,z*hs); crown.add(b); });
+      for(let k=0;k<34;k++){ const a = Math.random()*Math.PI*2, rr = (1.8+Math.random()*3.0)*hs, len = (2.4+Math.random()*3.6)*hs;
+        const fr = new THREE.Mesh(new THREE.BoxGeometry(.14*hs, len, .14*hs), toon(k%3?P.leaf2:P.leaf));
+        fr.position.set(Math.cos(a)*rr, -len/2-.4*hs, Math.sin(a)*rr); fr.rotation.z = (Math.random()-.5)*.1; crown.add(fr); }
+      g.add(crown); canopies.push(crown); crown.userData.ph = Math.random()*6.3;
+      return {g, r:2.2*hs, h};
+    }
+    const h = 3.4*sc, tr = inked(bentTrunk(.26*sc,.44*sc,h,.07), P.wood, 1.5); tr.position.y = h/2; tr.rotation.z = lean; g.add(tr);
+    for(let k=0;k<3;k++){ const a = k*2.1+Math.random(); const root = inked(new THREE.ConeGeometry(.22*sc,.9*sc,5), P.wood, 1.2);
+      root.position.set(Math.cos(a)*.42*sc, .2*sc, Math.sin(a)*.42*sc); root.rotation.set(Math.sin(a)*1.25, 0, -Math.cos(a)*1.25); g.add(root); }
+    const crown = new THREE.Group(); crown.position.set(Math.sin(lean)*h*.9, h - .3*sc, 0);
+    const R = (2.3 + Math.random()*.5)*sc;
+    const lobes = [[0,.35,0,1.0],[.85,-.1,.5,.72],[-.8,-.15,.55,.7],[.2,-.2,-.9,.74],[-.45,.55,-.4,.62],[.55,.5,.4,.6],[0,1.05,0,.55]];
+    lobes.forEach(([x,y,z,r],i) => { const b = inked(new THREE.SphereGeometry(R*r,9,7), (i===0||i>4)?P.leaf2:P.leaf, 1.7);
+      b.position.set(x*R,y*R,z*R); b.scale.y = .86; crown.add(b); });
+    g.add(crown); canopies.push(crown); crown.userData.ph = Math.random()*6.3;
+    return {g, r:2.0*sc, h};
+  };
+  const makeBush = (sc) => { const g = new THREE.Group();
+    [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]].forEach(([x,y,z,r],i) => {
+      const b = inked(new THREE.SphereGeometry(r*sc,8,6), i%2?P.leaf2:P.leaf, 1.5); b.scale.y = .62; b.position.set(x*sc,y*sc,z*sc); g.add(b); });
+    return g; };
+  /* groves: most trees cluster round a handful of centres, the rest are loners */
+  const groves = []; for(let k=0;k<5;k++){ const s = sample(cfg.trees.min+6, cfg.trees.max-6, true); if(s) groves.push(s); }
+  for(let i=0;i<cfg.trees.n;i++){
+    let s;
+    if(groves.length && Math.random() < .72){ const gc = groves[(Math.random()*groves.length)|0]; const a = Math.random()*Math.PI*2, r = Math.abs((Math.random()+Math.random()-1))*13;
+      const x = gc[0]+Math.cos(a)*r, z = gc[1]+Math.sin(a)*r; s = inside(x,z) && Math.hypot(x,z) >= cfg.trees.min && !cfg.features.some(f => f.type==="mesa" && Math.hypot(x-f.x,z-f.z) < f.r+2) ? [x,z] : sample(cfg.trees.min, cfg.trees.max, true); }
+    else s = sample(cfg.trees.min, cfg.trees.max, true);
+    if(!s) continue;
+    const [x,z] = s, sc = cfg.trees.s[0] + Math.random()*(cfg.trees.s[1]-cfg.trees.s[0]), y = height(x,z);
+    if(I.colliders.some(c => Math.hypot(c.x-x, c.z-z) < 2.2*sc)) continue;         /* no trunks inside trunks */
+    const kind = cfg.trees.palm ? "palm" : (cfg.trees.willow && i % 5 === 0 ? "willow" : "tree");
+    const t = makeTree(sc, kind); t.g.position.set(x,y,z); t.g.rotation.y = Math.random()*Math.PI*2; scene.add(t.g);
+    I.colliders.push({x, z, r:(kind==="palm" ? .5 : .55)*sc});
+    if(Math.random() < .55){ const a = Math.random()*Math.PI*2, d = (1.6+Math.random()*1.4)*sc, bx = x+Math.cos(a)*d, bz = z+Math.sin(a)*d;
+      if(inside(bx,bz)){ const b = makeBush(.7+Math.random()*.7); b.position.set(bx, height(bx,bz)+.25, bz); scene.add(b); bushes.push(b); } }
   }
-  /* rocks */
-  for(let i=0;i<22;i++){
+  /* loose bushes in the open */
+  for(let i=0;i<14;i++){ const s = sample(10, 60, true); if(!s) continue; const b = makeBush(.8+Math.random()*.9); b.position.set(s[0], height(s[0],s[1])+.25, s[1]); scene.add(b); bushes.push(b); }
+  I.canopies = canopies; I.bushes = bushes;
+  /* rocks — in families of 2-4, half-sunk */
+  for(let i=0;i<12;i++){
     const s = sample(14, 60, true); if(!s) continue;
-    const rr = .6+Math.random()*1.4;
-    const rk = inked(new THREE.DodecahedronGeometry(rr,0), P.stone, 1.8);
-    rk.position.set(s[0], height(s[0],s[1])+.5, s[1]); rk.rotation.set(Math.random(),Math.random(),Math.random()); scene.add(rk);
-    I.colliders.push({x:s[0], z:s[1], r:rr*.9});
+    const n = 2 + (Math.random()*3|0), big = .9+Math.random()*1.3;
+    for(let k=0;k<n;k++){ const rr = k===0 ? big : big*(.35+Math.random()*.4), a = Math.random()*Math.PI*2, d = k===0 ? 0 : big+rr*.6;
+      const rx = s[0]+Math.cos(a)*d, rz = s[1]+Math.sin(a)*d; if(!inside(rx,rz)) continue;
+      const rk = inked(new THREE.DodecahedronGeometry(rr,0), P.stone, 1.8, {map:TEX.rock});
+      rk.position.set(rx, height(rx,rz)+rr*.45, rz); rk.rotation.set(Math.random(),Math.random(),Math.random()); rk.scale.y = .75; scene.add(rk);
+      if(rr > .7) I.colliders.push({x:rx, z:rz, r:rr*.85}); }
   }
-  /* wildflowers + clover — small colour in the meadow so the ground isn't one flat tone */
-  if(cfg.key !== "sanity"){
-    const petal = new THREE.SphereGeometry(.14,6,5), fcols = cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4];
-    const fmats = fcols.map(c => new THREE.MeshBasicMaterial({color:c}));
-    for(let i=0;i<70;i++){ const s = sample(6, 66, true); if(!s) continue;
-      const n = 3 + (Math.random()*5|0), mat = fmats[(Math.random()*fmats.length)|0];
-      for(let k=0;k<n;k++){ const fx = s[0]+(Math.random()-.5)*2.2, fz = s[1]+(Math.random()-.5)*2.2;
-        const f = new THREE.Mesh(petal, mat); f.scale.y = .55; f.position.set(fx, height(fx,fz)+.62, fz); scene.add(f); } }
-  }
+  /* wildflowers — instanced, planted in beds */
+  if(cfg.key !== "sanity") flowerField(scene, 320, () => sample(6, 66, true), height, cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4]);
   /* specific decor */
   const column = (x,z,h,tilt,col) => { const c = inked(new THREE.CylinderGeometry(.85,1.0,h,12), col||P.stone, 1.9);
     c.position.set(x, height(x,z)+h/2, z); c.rotation.z = tilt||0; scene.add(c); I.colliders.push({x,z,r:1.1}); return c; };
@@ -1195,7 +1300,8 @@ function buildIsland(cfg){
   /* weather + fx */
   I.fx = {
     foam:I.foam,
-    grass: grassField(scene, cfg.key==="sanity"?180:420, () => sample(8, 62, true), height, cfg.grassCols),
+    grass: grassField(scene, cfg.key==="sanity"?900:2200, () => sample(6, 66, true), height, cfg.grassCols),
+    canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
     motes: motes(scene, 140, 80, cfg.weather==="embers" ? 0xFF9A55 : (cfg.weather==="glitter" ? 0xFFE59A : (cfg.key==="sanity" ? 0xA8DCF4 : 0xFFF0C0)), cfg.weather==="embers" ? 1.4 : .22),
@@ -1367,7 +1473,7 @@ function islandUpdate(I, dt, t){
   if(cfg.weather !== "storm" && AU.surfG) AU.surfG.gain.value = .16 + storm*.07;
   I.sky.mat.uniforms.blend.value = storm; I.fx.windMul = 1 + storm*2.2 + (cfg.weather==="storm" ? 1.2 : 0);
   $("weather").textContent = label;
-  fxUpdate(I.fx, dt, t, camera.position);
+  I.fx.player = W; fxUpdate(I.fx, dt, t, camera.position);
   AU.birdT -= dt;
   if(AU.birdT <= 0){ if(cfg.birds > 0 && storm < .2) auChirp(); AU.birdT = 1.4 + Math.random()*4; }
   if(Math.random() < dt*.06) auGust();
