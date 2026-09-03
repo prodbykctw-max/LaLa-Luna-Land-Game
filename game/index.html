@@ -450,34 +450,48 @@ function makeLala(){
   const cr = new THREE.Mesh(new THREE.TorusGeometry(.3,.06,8,5), new THREE.MeshBasicMaterial({color:0xFFD37A}));
   cr.rotation.x = Math.PI/2; cr.position.y = 3.12; cr.visible = false; p.add(cr); R.crown = cr;
   R.primitive = [dress, torso, head, hair, brim, crown, band, ...R.legs, ...R.patches];
-  if(LALA_MODEL.gltf) attachLalaModel(R); else LALA_MODEL.waiting.push(R);
+  wantRig(R, "lala");
   return R;
 }
-/* ---- rigged Lala model (Autosprite GLB) ----
-   The primitive figure above is the instant fallback; when assets/lala.glb loads, every
-   character that was built with makeLala() swaps to the rigged model and drives its clips. */
-const LALA_MODEL = {url:"assets/lala.glb", gltf:null, height:2.95, waiting:[], failed:false};
-function loadLalaModel(){
-  if(!THREE.GLTFLoader || !THREE.SkeletonUtils) return;
-  new THREE.GLTFLoader().load(LALA_MODEL.url, gltf => {
+/* ---- rigged models (Autosprite GLBs) ----
+   RIGS is a registry: each entry loads once, is scaled to a target height with feet at y=0, and
+   every character built for it swaps from its primitive stand-in to a skinned clone with clips. */
+const RIGS = {
+  lala: {url:"assets/lala.glb", height:2.95},
+  fan:  {url:"assets/npc-fan.glb", height:2.8},
+  dock: {url:"assets/npc-dock.glb", height:2.9},
+  green:{url:"assets/npc-green.glb", height:2.8}
+};
+for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false, loading:false});
+function loadRig(name){
+  const rig = RIGS[name]; if(!rig || rig.loading || rig.gltf || !THREE.GLTFLoader || !THREE.SkeletonUtils) return;
+  rig.loading = true;
+  new THREE.GLTFLoader().load(rig.url, gltf => {
     const box = new THREE.Box3().setFromObject(gltf.scene), size = box.getSize(new THREE.Vector3());
-    const s = LALA_MODEL.height / Math.max(size.y, 1e-3);
+    const s = rig.height / Math.max(size.y, 1e-3);
     gltf.scene.scale.setScalar(s);
     gltf.scene.position.set(-(box.min.x+box.max.x)/2*s, -box.min.y*s, -(box.min.z+box.max.z)/2*s);
-    gltf.scene.traverse(o => { if(o.isMesh){ o.castShadow = true; o.frustumCulled = false; if(o.material){ o.material.side = THREE.FrontSide; } } });
-    LALA_MODEL.gltf = gltf;
-    LALA_MODEL.waiting.forEach(attachLalaModel); LALA_MODEL.waiting.length = 0;
-  }, undefined, err => { LALA_MODEL.failed = true; console.warn("Lala model not loaded — using the sketch figure", err); });
+    /* re-shade with the world's toon ramp (keeping the painted texture) so the character sits in
+       the same light as everything else instead of reading as a darker PBR import */
+    gltf.scene.traverse(o => { if(o.isMesh){
+      o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
+      const old = o.material;
+      o.material = new THREE.MeshToonMaterial({map: old && old.map || null, color: 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide});
+    } });
+    rig.gltf = gltf;
+    rig.waiting.forEach(R => attachRig(R, name)); rig.waiting.length = 0;
+  }, undefined, err => { rig.failed = true; rig.loading = false; console.warn(`Rig "${name}" not loaded — using the sketch figure`, err); });
 }
-function attachLalaModel(R){
-  const gltf = LALA_MODEL.gltf; if(!gltf || R.model) return;
+function wantRig(R, name){ const rig = RIGS[name]; if(!rig) return; R.rigName = name; if(rig.gltf) attachRig(R, name); else { rig.waiting.push(R); loadRig(name); } }
+function attachRig(R, name){
+  const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
   const model = THREE.SkeletonUtils.clone(gltf.scene);
   R.group.add(model); R.model = model;
-  R.primitive.forEach(m => m.visible = false);
+  (R.primitive||[]).forEach(m => m.visible = false);
   R.mixer = new THREE.AnimationMixer(model); R.actions = {}; R.current = null;
   const find = (...names) => gltf.animations.find(c => names.some(n => c.name.toLowerCase().includes(n)));
-  const map = {idle: find("idle","breath","stand"), walk: find("walk"), run: find("run","jog","sprint"), jump: find("jump","fall")};
-  for(const k in map) if(map[k]){ const a = R.mixer.clipAction(map[k]); if(k==="jump"){ a.loop = THREE.LoopOnce; a.clampWhenFinished = true; } R.actions[k] = a; }
+  const map = {idle: find("idle","breath","stand"), walk: find("walk"), run: find("run","jog","sprint"), jump: find("jump","fall"), dance: find("dance","celebrat")};
+  for(const k in map) if(map[k]){ R.actions[k] = R.mixer.clipAction(map[k]); }
   if(!R.actions.run) R.actions.run = R.actions.walk;
   playClip(R, "idle", 0);
 }
@@ -1391,7 +1405,6 @@ let popped = 0, finaleDone = false;
    MODES
    ============================================================ */
 const ISL = {}; ISLANDS.forEach(c => ISL[c.key] = buildIsland(c));
-loadLalaModel();
 let CUR = null, MODE = "island";
 function setMode(m){
   MODE = m;
