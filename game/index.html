@@ -62,6 +62,7 @@ canvas{display:block;position:fixed;inset:0}
  border:2px solid rgba(111,191,146,.85);background:rgba(111,191,146,.28);color:var(--bone);opacity:1;
  box-shadow:0 4px 18px rgba(0,0,0,.35)}
 #jmp:active{background:rgba(111,191,146,.6)}
+#build{position:fixed;right:8px;bottom:4px;z-index:6;font:9px/1 "DM Mono",monospace;letter-spacing:.12em;opacity:.28;color:var(--bone);pointer-events:none}
 #cstick{position:fixed;width:156px;height:156px;border-radius:50%;border:2px solid rgba(255,246,214,.35);background:rgba(18,16,28,.28);
  z-index:7;display:none;touch-action:none;pointer-events:none}
 #cstick.on{display:block}
@@ -175,6 +176,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 
 <div id="stick"><div id="nub"></div></div>
 <div id="cstick"><div id="cnub"></div></div>
+<div id="build"></div>
 <button id="recenter" class="rbtn" title="Put the camera behind Lala">⟲</button>
 <div id="khint">WASD / arrows — walk · Q/E turn camera · R/F tilt · C recenter<br>Mouse drag — look · wheel — zoom<br>Space — jump (hold to glide) · E — interact</div>
 <button id="act" class="rbtn">Look</button>
@@ -258,6 +260,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
+const BUILD = "2026-09-04h";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 renderer.setPixelRatio(PROF.dpr);
@@ -719,7 +722,7 @@ let lastTouchEnd = 0;
 document.addEventListener("touchend", e => { const now = Date.now(); if(now - lastTouchEnd < 320) e.preventDefault(); lastTouchEnd = now; }, {passive:false});
 document.addEventListener("touchmove", e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
 document.addEventListener("dblclick", e => e.preventDefault(), {passive:false});
-document.body.classList.add(isTouch ? "touch" : "desktop");
+document.body.classList.add(isTouch ? "touch" : "desktop"); $("build").textContent = "build " + BUILD; console.log("[lala] build", BUILD);
 $("pk").textContent = isTouch ? "TAP" : "E";
 let jumpHeld = false;
 addEventListener("keydown", e => {
@@ -1155,7 +1158,7 @@ function makeBoat(wood, sailCol, scale){
   const deck = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 7.4), toon(0xC9A277, {map:TEX.rock})); deck.rotation.x = -Math.PI/2; deck.position.set(0, .95, 0); g.add(deck);
   for(let k=0;k<7;k++){ const line = new THREE.Mesh(new THREE.BoxGeometry(.04, .02, 7.2), toon(0x8A6A48)); line.position.set(-1.35+k*.45, .97, 0); g.add(line); }
   const rail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(-1.7,1.25,-3.7), new THREE.Vector3(-1.85,1.3,-1), new THREE.Vector3(-1.4,1.55,2.8), new THREE.Vector3(0,1.85,4.5), new THREE.Vector3(1.4,1.55,2.8), new THREE.Vector3(1.85,1.3,-1), new THREE.Vector3(1.7,1.25,-3.7)]), 40, .09, 6, false), toon(0x5E4630)); g.add(rail);
-  const bench = inked(new THREE.BoxGeometry(3.0,.18,.9), 0xB88E62, 1.4); bench.position.set(0, 1.35, -1.9); g.add(bench);
+  const bench = inked(new THREE.BoxGeometry(3.0,.22,.9), 0x9C7A52, 1.4); bench.position.set(0, 1.33, -1.9); g.add(bench);
   [-1.2,1.2].forEach(x => { const leg = new THREE.Mesh(new THREE.BoxGeometry(.14,.5,.6), toon(0x8A6A48)); leg.position.set(x, 1.15, -1.9); g.add(leg); });
   const mast = inked(new THREE.CylinderGeometry(.11,.16,7.6,8), wood, 1.5); mast.position.set(0,4.5,.6); g.add(mast);
   const boom = inked(new THREE.CylinderGeometry(.07,.09,4.4,6), wood, 1.3); boom.rotation.set(Math.PI/2, 0, -.3); boom.position.set(.7,2.3,2.4); g.add(boom);
@@ -1709,6 +1712,14 @@ function abilityOf(I){
   const has = !!G.abilities[a.key];
   return {glide: has && !!a.glide, jumpMul: has && a.jumpMul ? a.jumpMul : 1, lantern: has && !!a.lantern, gateOpen: has && !!a.gate};
 }
+/* where an NPC may put a foot: solid ground only (no dock/stone/lantern exceptions), never inside the keep's walls */
+function npcStand(I, x, z){
+  if(!I.inside(x,z)) return false;
+  if(I.cfg.hub && Math.hypot(x,z) < 15.5) return false;
+  if(I.cfg.gate && Math.abs(x - I.cfg.gate.x) < 1.6 && z > I.cfg.gate.zMin-2 && z < I.cfg.gate.zMax+2) return false;
+  if(I.cfg.grotto && Math.hypot(x-I.cfg.grotto.x, z-I.cfg.grotto.z) < I.cfg.grotto.r + 1) return false;
+  return true;
+}
 function canStand(I, x, z){
   if(I.inside(x,z)) {
     if(I.cfg.gate && !abilityOf(I).gateOpen && Math.abs(x - I.cfg.gate.x) < 1.6 && z > I.cfg.gate.zMin-2 && z < I.cfg.gate.zMax+2) return false;
@@ -1746,6 +1757,8 @@ function walkerUpdate(I, dt, t){
       const rr = c.r + .5, dx = W.x-c.x, dz = W.z-c.z, d = Math.hypot(dx,dz);      /* her own body radius on top of the object's */
       if(d < rr && d > 1e-4){ const px = c.x + dx/d*rr, pz = c.z + dz/d*rr; if(canStand(I,px,pz)){ W.x = px; W.z = pz; } }
     }
+    for(const g of (I.npcs||[])){ const dx = W.x-g.position.x, dz = W.z-g.position.z, d = Math.hypot(dx,dz);
+      if(d < 1.1 && d > 1e-4 && Math.abs(W.y - g.position.y) < 2.5){ const px = g.position.x + dx/d*1.1, pz = g.position.z + dz/d*1.1; if(canStand(I,px,pz)){ W.x = px; W.z = pz; } } }
   }
   const ground = I.height(W.x,W.z);
   W.vy += GRAV*dt;
@@ -1861,12 +1874,18 @@ function islandUpdate(I, dt, t){
     else if(u.state === "idle"){ u.timer -= dt; if(u.timer <= 0){ const a = Math.random()*Math.PI*2, r = Math.random()*u.cfg.wander;
         const tx = u.home.x+Math.cos(a)*r, tz = u.home.z+Math.sin(a)*r;
         const clear = !I.colliders.some(c => !c.camOnly && Math.hypot(tx-c.x, tz-c.z) < c.r + 1.2);
-        if(clear && I.inside(tx,tz) && canStand(I,tx,tz)){ u.target = {x:tx, z:tz}; u.state = "walk"; } else u.timer = .5; } }
+        if(clear && npcStand(I,tx,tz)){ u.target = {x:tx, z:tz}; u.state = "walk"; } else u.timer = .5; } }
     else if(u.state === "walk"){ const dx = u.target.x-g.position.x, dz = u.target.z-g.position.z, d = Math.hypot(dx,dz);
       if(d < .4){ u.state = "idle"; u.timer = 2+Math.random()*4; }
-      else { const sp = 2.1*dt; g.position.x += dx/d*sp; g.position.z += dz/d*sp; u.heading = Math.atan2(dx, dz);
+      else { const sp = 2.1*dt, nx = g.position.x + dx/d*sp, nz = g.position.z + dz/d*sp;
+        if(!npcStand(I,nx,nz)){ u.timer = 0; u.state = "idle"; } else { g.position.x = nx; g.position.z = nz; } u.heading = Math.atan2(dx, dz);
         for(const c of I.colliders){ if(c.camOnly) continue; const rr = c.r + .6, cx = g.position.x-c.x, cz = g.position.z-c.z, cd = Math.hypot(cx,cz);
           if(cd < rr && cd > 1e-4){ g.position.x = c.x + cx/cd*rr; g.position.z = c.z + cz/cd*rr; u.timer = 0; u.state = "idle"; } } } }
+    /* bodies are solid: other fans push apart, and nobody stands inside Lala */
+    for(const o of I.npcs){ if(o === g) continue; const ox = g.position.x-o.position.x, oz = g.position.z-o.position.z, od = Math.hypot(ox,oz);
+      if(od < 1.1 && od > 1e-4){ const push = (1.1-od)*.5; g.position.x += ox/od*push; g.position.z += oz/od*push; } }
+    { const px = g.position.x-W.x, pz = g.position.z-W.z, pd = Math.hypot(px,pz);
+      if(pd < 1.3 && pd > 1e-4 && npcStand(I, g.position.x + px/pd*(1.3-pd), g.position.z + pz/pd*(1.3-pd))){ g.position.x += px/pd*(1.3-pd); g.position.z += pz/pd*(1.3-pd); } }
     g.position.y = I.height(g.position.x, g.position.z);
     let da = u.heading - g.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2; g.rotation.y += da*Math.min(1, dt*6);
     if(R.mixer){ playClip(R, u.state === "walk" ? "walk" : "idle"); R.mixer.update(dt); }
@@ -1987,18 +2006,31 @@ sail.add(new THREE.HemisphereLight(0xA8DCD8, 0x5AA0C8, .92));
 { const k = new THREE.DirectionalLight(0xFFE9CC, 1.0); k.position.set(-20,40,10); sail.add(k); }
 const sSea = seaMesh(0x5AA0C8, 0x86C4E0); sail.add(sSea);
 const sBoat = makeBoat(0x8D6141, MOON, 1.0); const sRider = makeLala();
-{ sRider.group.scale.setScalar(.85); sRider.group.position.set(0, sBoat.userData.benchY, sBoat.userData.benchZ + .15); sRider.group.rotation.y = 0;
-  sRider.seated = true; sBoat.add(sRider.group); sail.add(sBoat); }
+{ sRider.group.scale.setScalar(.85); sRider.group.position.set(0, sBoat.userData.benchY - .72, sBoat.userData.benchZ + .15); sRider.group.rotation.y = 0;   /* origin is her feet: on the deck, hips on the thwart */
+  sRider.seated = true; sRider.fans.visible = false; sRider.fanMeshes.forEach(f => f.visible = false); sRider.lantern.visible = false; sBoat.add(sRider.group); sail.add(sBoat); }
 /* seated pose: overrides the leg bones after the idle clip so she sits on the bench, knees forward, hands on the rail */
 function applySeated(R){
   if(!R.model) return;
   const find = n => { let h = null; R.model.traverse(o => { if(!h && o.isBone && o.name.replace(/[^a-z]/gi,"").toLowerCase().endsWith(n)) h = o; }); return h; };
-  if(!R.seatBones){ R.seatBones = {lu:find("leftupleg"), ru:find("rightupleg"), ll:find("leftleg"), rl:find("rightleg"), sp:find("spine"), la:find("leftarm"), ra:find("rightarm")}; }
-  const B = R.seatBones, Q = new THREE.Quaternion(), E = new THREE.Euler();
-  const turn = (b, x, y, z) => { if(!b) return; Q.setFromEuler(E.set(x, y, z)); b.quaternion.multiply(Q); };   /* relative to the clip's pose */
-  const s1 = R.seatSign || 1;
-  turn(B.lu, -1.4*s1, 0, .1); turn(B.ru, -1.4*s1, 0, -.1); turn(B.ll, 1.3*s1, 0, 0); turn(B.rl, 1.3*s1, 0, 0); turn(B.sp, .1*s1, 0, 0);
-  turn(B.la, 0, 0, .3); turn(B.ra, 0, 0, -.3);
+  if(!R.seatBones){ R.seatBones = {hips:find("hips"), lu:find("leftupleg"), ru:find("rightupleg"), ll:find("leftleg"), rl:find("rightleg"), sp:find("spine"), la:find("leftarm"), ra:find("rightarm"),
+    lf:find("leftfoot"), rf:find("rightfoot")}; R.model.updateMatrixWorld(true); }
+  const B = R.seatBones; if(!B.hips) return;
+  R.model.updateMatrixWorld(true);
+  /* aim a bone's +Y (Mixamo bones point at their child) along a world direction — no guessing at local axes */
+  const qW = new THREE.Quaternion(), qP = new THREE.Quaternion(), qR = new THREE.Quaternion(), cur = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+  const aim = (b, dir) => { if(!b) return; b.getWorldQuaternion(qW); cur.copy(up).applyQuaternion(qW);
+    qR.setFromUnitVectors(cur, dir.clone().normalize()); qW.premultiply(qR);
+    b.parent.getWorldQuaternion(qP); b.quaternion.copy(qP.invert().multiply(qW)); b.updateMatrixWorld(true); };
+  const fwd = new THREE.Vector3(0,0,1).applyQuaternion(B.hips.getWorldQuaternion(qW)); fwd.y = 0; fwd.normalize();
+  const side = new THREE.Vector3().crossVectors(up, fwd);
+  const P = R.seatPose || {thighDown:.18, thighOut:.12, shinFwd:.12, lean:.06};
+  aim(B.lu, fwd.clone().addScaledVector(up, -P.thighDown).addScaledVector(side, P.thighOut));
+  aim(B.ru, fwd.clone().addScaledVector(up, -P.thighDown).addScaledVector(side, -P.thighOut));
+  aim(B.ll, up.clone().negate().addScaledVector(fwd, P.shinFwd)); aim(B.rl, up.clone().negate().addScaledVector(fwd, P.shinFwd));
+  aim(B.lf, fwd.clone().addScaledVector(up, -.35)); aim(B.rf, fwd.clone().addScaledVector(up, -.35));
+  /* hands come forward to rest on her lap */
+  const Q = new THREE.Quaternion(), E = new THREE.Euler(); const turn = (b, x, y, z) => { if(!b) return; Q.setFromEuler(E.set(x, y, z)); b.quaternion.multiply(Q); };
+  turn(B.sp, P.lean, 0, 0); turn(B.la, .55, 0, .25); turn(B.ra, .55, 0, -.25);
 }
 for(let i=0;i<7;i++){ const a = Math.random()*Math.PI*2, r = 120+Math.random()*140;
   const far = inked(new THREE.SphereGeometry(15+Math.random()*9,10,8), 0x4E9C74, 1.8); far.scale.y = .55; far.position.set(Math.cos(a)*r,1,Math.sin(a)*r-60); sail.add(far); }
