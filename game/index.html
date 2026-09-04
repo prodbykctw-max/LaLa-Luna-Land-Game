@@ -260,7 +260,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-04h";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-04i";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 renderer.setPixelRatio(PROF.dpr);
@@ -549,18 +549,21 @@ function makeLala(){
 const DBG = (...a) => console.log("[lala]", (performance.now()/1000).toFixed(2)+"s", ...a);
 const RIGS = {
   lala: {url:"assets/lala.glb", height:2.95, ink:.018},
-  horse:{url:"assets/horse.glb", height:2.9},
-  cow:  {url:"assets/cow.glb", height:2.6},
+  horse:{url:"assets/horse.glb", height:1.65*2.95/1.70},        /* ~16 hands at the withers */
+  cow:  {url:"assets/cow.glb", height:1.42*2.95/1.70},          /* real cattle stand ~1.4 m at the shoulder */
   dino: {url:"assets/dino.glb", height:7.4},
-  fan:  {url:"assets/npc-fan.glb", height:2.8, ink:.018},
-  dock: {url:"assets/npc-dock.glb", height:2.9, ink:.018},
-  green:{url:"assets/npc-green.glb", height:2.8, ink:.018},
+  fan:  {url:"assets/npc-fan.glb", height:1.63*2.95/1.70, ink:.018},
+  dock: {url:"assets/npc-dock.glb", height:1.79*2.95/1.70, ink:.018},
+  green:{url:"assets/npc-green.glb", height:1.71*2.95/1.70, ink:.018},
   crowd:{url:"assets/npc-crowd.glb", height:2.7, ink:.018}
 };
 /* the twelve LUNA-tics: distinct generated fans (different people, heights, styles) — light crowd builds */
-const FANS = [[3.05,"tall man, locs, cow-print bucket hat"],[2.45,"petite woman, pink-streak bob"],[2.6,"teen boy, moon hoodie"],[2.8,"woman, afro, gold bomber"],
-  [2.85,"man, denim vest with moon patches"],[2.75,"woman, copper braids, glow stick"],[2.5,"grandmother, lavender cardigan"],[2.7,"woman, lilac hijab, cow-print bomber"],
-  [3.0,"big man, bun, moon floral shirt"],[2.7,"teen, blue mullet, cow-print overalls"],[2.6,"teen girl, space buns, tie-dye"],[2.75,"older man, grey beard, LUNA tee"]];
+/* heights are world units; Lala is 2.95u = 1.70 m, so 1 m = 1.735u. Every fan sits in a real adult range
+   (1.55-1.90 m) — measured after loading, because each GLB's own proportions differ (qa/scale.mjs). */
+const M2U = 2.95/1.70;
+const FANS = [[1.88*M2U,"tall man, locs, cow-print bucket hat"],[1.57*M2U,"petite woman, pink-streak bob"],[1.72*M2U,"teen boy, moon hoodie"],[1.66*M2U,"woman, afro, gold bomber"],
+  [1.80*M2U,"man, denim vest with moon patches"],[1.68*M2U,"woman, copper braids, glow stick"],[1.58*M2U,"grandmother, lavender cardigan"],[1.65*M2U,"woman, lilac hijab, cow-print bomber"],
+  [1.86*M2U,"big man, bun, moon floral shirt"],[1.74*M2U,"teen, blue mullet, cow-print overalls"],[1.62*M2U,"teen girl, space buns, tie-dye"],[1.76*M2U,"older man, grey beard, LUNA tee"]];
 FANS.forEach((f,i) => { RIGS["fan"+(i+1)] = {url:`assets/fans/fan${String(i+1).padStart(2,"0")}.glb`, height:f[0], ink:.016, fallback:"crowd"}; });
 for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false, loading:false});
 function loadRig(name){
@@ -770,7 +773,7 @@ function lookMove(e){ if(e.pointerId !== look.id || !CUR) return;
   if(isTouch){ let dx = e.clientX-look.x, dy = e.clientY-look.y; const d = Math.hypot(dx,dy); if(d > MAXR){ dx = dx/d*MAXR; dy = dy/d*MAXR; }
     cam2.x = dx/MAXR; cam2.y = dy/MAXR; if(cnub) cnub.style.transform = `translate(${dx}px,${dy}px)`; return; }
   const dx = e.clientX - look.x, dy = e.clientY - look.y; look.x = e.clientX; look.y = e.clientY;
-  CUR.W.camYaw -= dx*.0062; CUR.W.camPitch += dy*.0045; CUR.W.lookHold = 1.2; CUR.W.recenter = false; }
+  CUR.W.camYaw -= dx*.0062; CUR.W.camPitch += dy*.0045; CUR.W.lookHold = .7; CUR.W.recenter = false; }
 function lookEnd(e){ if(e.pointerId !== look.id) return; look.id = null; cam2.x = 0; cam2.y = 0;
   if(cstick){ cstick.classList.remove("on"); cstick.style.left = cstick.style.top = cstick.style.right = cstick.style.bottom = ""; } if(cnub) cnub.style.transform = ""; }
 addEventListener("wheel", e => { if(!CUR || e.target.closest(".card,.ov")) return; const W = CUR.W; W.camDist = Math.max(CAM.distMin, Math.min(CAM.distMax, (W.camDist || CAM.dist) + e.deltaY*.01)); }, {passive:true});
@@ -784,7 +787,18 @@ addEventListener("pointerup", lookEnd); addEventListener("pointercancel", lookEn
 addEventListener("pointerdown", joyStart, {passive:false});
 addEventListener("pointermove", joyMove, {passive:false});
 addEventListener("pointerup", joyEnd); addEventListener("pointercancel", joyEnd);
-$("act").addEventListener("pointerdown", e => { e.stopPropagation(); interact(); });
+/* the Look button behaves like the desktop mouse: a tap interacts, holding and dragging steers the camera */
+{ const act = $("act"); let a = null;
+  act.addEventListener("pointerdown", e => { e.stopPropagation(); e.preventDefault(); a = {id:e.pointerId, x:e.clientX, y:e.clientY, t:performance.now(), moved:false};
+    act.setPointerCapture(e.pointerId); });
+  act.addEventListener("pointermove", e => { if(!a || e.pointerId !== a.id || !CUR) return;
+    let dx = e.clientX-a.x, dy = e.clientY-a.y; if(Math.hypot(dx,dy) > 8) a.moved = true;
+    if(!a.moved) return;
+    const d = Math.hypot(dx,dy); if(d > MAXR){ dx = dx/d*MAXR; dy = dy/d*MAXR; }
+    cam2.x = dx/MAXR; cam2.y = dy/MAXR; });
+  const end = e => { if(!a || e.pointerId !== a.id) return; cam2.x = 0; cam2.y = 0;
+    if(!a.moved && performance.now()-a.t < 600) interact(); a = null; };
+  act.addEventListener("pointerup", end); act.addEventListener("pointercancel", end); }
 $("recenter").addEventListener("pointerdown", e => { e.stopPropagation(); recenterCam(); });
 $("jmp").addEventListener("pointerdown", e => { e.stopPropagation(); jumpHeld = true; tryJump(); });
 $("jmp").addEventListener("pointerup", e => { e.stopPropagation(); jumpHeld = false; });
@@ -808,14 +822,14 @@ function foamRing(scene, x, z, r, y){
    whoever walks through them (uPlayer is fed every frame) ---- */
 function clumpGeometry(){
   const parts = [];
-  for(let k=0;k<3;k++){
-    const q = new THREE.PlaneGeometry(.40, .72, 1, 3);
+  for(let k=0;k<2;k++){                                   /* two crossed planes, not three — half the triangles per tuft */
+    const q = new THREE.PlaneGeometry(.30, .52, 1, 3);
     const pos = q.attributes.position, col = [];
     for(let i=0;i<pos.count;i++){ const y = pos.getY(i)+.5; pos.setY(i, y);
       pos.setX(i, pos.getX(i)*(1-y*.75));                 /* taper to a blade tip */
       const c = .58 + y*.42; col.push(c,c,c); }
     q.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-    q.rotateY(k*Math.PI/3); parts.push(q);
+    q.rotateY(k*Math.PI/2); parts.push(q);
   }
   const g = parts[0];
   /* merge manually (no BufferGeometryUtils vendored) */
@@ -850,11 +864,13 @@ function grassField(scene, n, sampler, heightFn, cols, skip){
   for(let i=0;i<n;i++){
     const s = sampler(); if(!s || (skip && skip(s[0], s[1]))) continue;
     /* clumps come in patches of 2-5 so density reads as natural grouping, not confetti */
-    const cnt = 1 + (Math.random()*4|0);
+    const cnt = 4 + (Math.random()*7|0);                  /* dense tufts in patches, so the ground reads as grass, not spikes */
+    const spread = 1.6 + Math.random()*1.4;
     for(let j=0;j<cnt && k<n;j++){
-      const x = s[0]+(Math.random()-.5)*1.6, z = s[1]+(Math.random()-.5)*1.6, h = .7+Math.random()*.7;
+      const a = Math.random()*6.283, r = Math.sqrt(Math.random())*spread;
+      const x = s[0]+Math.cos(a)*r, z = s[1]+Math.sin(a)*r, h = .75+Math.random()*.55;
       q.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.random()*Math.PI);
-      sc.set(.8+Math.random()*.5, h, .8+Math.random()*.5);
+      sc.set(.8+Math.random()*.45, h, .8+Math.random()*.45);
       M.compose(new THREE.Vector3(x, heightFn(x,z)+.02, z), q, sc); mesh.setMatrixAt(k, M);
       c.setHex(cols[(Math.random()*cols.length)|0]); c.offsetHSL(0, (Math.random()-.5)*.08, -.04+(Math.random()-.5)*.08); mesh.setColorAt(k, c);
       k++;
@@ -1026,8 +1042,8 @@ const ISLANDS = [
   trees:{n:44, min:24, max:50, s:[.7,1.4], willow:true},
   dock:[0,60], spawn:[0,46],
   weather:"clear", creature:null, birds:5, bf:{n:9, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
-  npcs:[{rig:"dock", name:"Moss", at:[6,48], wander:9, line:"Boat's yours whenever. She took the same one out — didn't say where. They never do."},
-        {rig:"fan", name:"Pip", at:[-16,-8], wander:12, line:"I've counted every moon on this island twice. There's one I still can't reach. Tell me if you find it."}],
+  npcs:[{rig:"dock", name:"Moss", h:1.83, at:[6,48], wander:9, line:"Boat's yours whenever. She took the same one out — didn't say where. They never do."},
+        {rig:"fan", name:"Pip", h:1.62, at:[-16,-8], wander:12, line:"I've counted every moon on this island twice. There's one I still can't reach. Tell me if you find it."}],
   grassCols:[0x7FCB9E,0x63B183,0x93D9AE],
   places:[{x:0,z:0,r:22,name:"Luna's Keep"},{x:0,z:56,r:16,name:"South Dock"}], fallback:"The Grounds",
   notes:[
@@ -1049,8 +1065,8 @@ const ISLANDS = [
   trees:{n:78, min:22, max:74, s:[.7,1.4], willow:true},
   dock:[0,64], spawn:[0,56],
   weather:"rain", creature:{type:"horse", n:9, r:[36,58], sp:[.11,.18]}, birds:9, bf:{n:20, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
-  npcs:[{rig:"green", name:"Wren", at:[-9,34], wander:10, line:"The horses come down to the stream after the rain. Stand still and they'll walk right past you."},
-        {rig:"fan", name:"Juno", at:[14,20], wander:8, line:"4 Letters was the first one I ever heard. I cried in a parking lot. Don't tell anyone."}],
+  npcs:[{rig:"green", name:"Wren", h:1.66, at:[-9,34], wander:10, line:"The horses come down to the stream after the rain. Stand still and they'll walk right past you."},
+        {rig:"fan", name:"Juno", h:1.6, at:[14,20], wander:8, line:"4 Letters was the first one I ever heard. I cried in a parking lot. Don't tell anyone."}],
   grassCols:[0x7FCB9E,0x63B183,0x93D9AE],
   ability:{key:"fans", at:[7,6], y:2.4, name:"Her fans", hint:"Jump, then hold to glide", glide:true},
   letter:{at:[22,-34], y:8.5, gate:"glide"},
@@ -1121,9 +1137,9 @@ const ISLANDS = [
   trees:{n:38, min:18, max:64, s:[.9,1.8], palm:true},
   dock:[0,58], spawn:[0,50],
   weather:"glitter", creature:{type:"cow", n:5, r:[26,44], sp:[.05,.09]}, birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
-  npcs:[{rig:"fan", name:"Bea", at:[20,-6], wander:9, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
-        {rig:"fan", name:"Cass", at:[-19,14], wander:9, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
-        {rig:"dock", name:"Rafa", at:[-38,22], wander:8, line:"Beach is better at golden hour. Everything is. That's the whole trick of this town."}],
+  npcs:[{rig:"fan", name:"Bea", h:1.68, at:[20,-6], wander:9, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
+        {rig:"fan", name:"Cass", h:1.72, at:[-19,14], wander:9, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
+        {rig:"dock", name:"Rafa", h:1.86, at:[-38,22], wander:8, line:"Beach is better at golden hour. Everything is. That's the whole trick of this town."}],
   grassCols:[0x9ED49A,0x7CC383,0xB6E2AE],
   ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true},
   letter:{at:[58,-20], y:2.4, gate:"gate"},
@@ -1254,6 +1270,38 @@ function mergeStatics(I, scene){
   if(inks.length){ const inkMesh = new THREE.Mesh(bake(inks, true), inkMergedMat()); scene.add(inkMesh); I.staticInk = inkMesh; I.windMats.push(inkMesh.material); }
   DBG("static batch", I.cfg.key, mains.length, "props +", inks.length, "inks →", Math.round(tris), "tris");
 }
+/* ---- real coastlines ----
+   Island outlines are the actual shapes of real islands, taken from Natural Earth 1:10m land polygons
+   (npm world-atlas land-10m), resampled to 72 points, rotated to game axes (north = -z) and scaled so each
+   island keeps the play area it had before. Real size in km is noted per island. */
+const COASTS = {
+  hub: {name:"Providencia, Colombia", km:[4.6,6.2], maxR:100.1, poly:[-51.64,85.75, -52.63,79.1, -53.61,72.44, -54.6,65.79, -55.58,59.13, -56.57,52.48, -57.56,45.82, -58.54,39.17, -59.53,32.52, -60.51,25.86, -61.5,19.21, -62.49,12.55, -61.02,6.33, -57.94,0.39, -54.86,-5.55, -51.78,-11.49, -48.7,-17.43, -45.62,-23.37, -42.54,-29.32, -39.46,-35.26, -36.38,-41.2, -33.3,-47.14, -30.22,-53.08, -26.26,-58.38, -21.84,-63.35, -17.42,-68.32, -13,-73.29, -8.58,-78.26, -4.17,-83.23, 0.25,-88.19, 4.7,-92.94, 10.35,-89.54, 16,-86.13, 21.65,-82.73, 27.3,-79.32, 32.95,-75.92, 38.6,-72.51, 44.25,-69.11, 49.69,-65.51, 52.26,-59.32, 54.83,-53.13, 57.4,-46.93, 59.96,-40.74, 62.53,-34.55, 65.1,-28.36, 67.67,-22.17, 70.24,-15.97, 71.09,-9.82, 68.28,-3.73, 65.48,2.35, 62.67,8.43, 59.87,14.52, 57.07,20.6, 54.26,26.68, 51.46,32.77, 47.87,38.18, 42.52,42.05, 37.16,45.92, 31.8,49.8, 26.45,53.67, 21.09,57.54, 15.73,61.42, 10.38,65.29, 5.02,69.16, -1.2,71.16, -7.51,72.99, -13.81,74.81, -20.12,76.63, -26.42,78.46, -32.73,80.28, -39.03,82.11, -45.33,83.93]},
+  green: {name:"Isla Margarita, Venezuela", km:[67.4,34.1], maxR:180.5, poly:[121.74,-72.1, 124.53,-58.75, 129.38,-45.99, 133.06,-32.86, 139.09,-20.7, 145.54,-8.69, 151.48,3.52, 154.07,15.91, 140.92,13.12, 137.28,22.25, 130.26,22.17, 121.53,25.55, 111.73,34.91, 104.69,46.46, 98.22,58.46, 88.78,64.38, 75.49,62.4, 62.18,60.71, 48.96,62.6, 36.34,67.29, 23.72,71.98, 11.51,77.6, 8.21,71.56, 2.94,63.14, -10.44,62.46, -17.15,51.73, -23.57,39.97, -34.66,32.27, -46.83,26.46, -57.14,21.83, -66.94,31.19, -79.47,35.37, -92.81,34.12, -106.17,32.6, -119.52,31.08, -131.91,27.41, -145.29,27.66, -158.25,24.14, -171.19,20.57, -179.78,16.69, -173.95,4.35, -168.12,-7.98, -164.78,-21.19, -158.76,-32.33, -145.37,-33.13, -132.25,-35.19, -121.33,-42.93, -108.51,-41.51, -95.96,-44.45, -82.92,-47.34, -69.63,-46.59, -62.76,-36.49, -60.85,-23.03, -52.47,-14.58, -39.54,-10.88, -28.3,-3.39, -16.57,2.97, -3.38,5.36, 10.01,6.52, 22.92,3.7, 30.84,-7.29, 31.37,-20.64, 33.75,-33.21, 43.26,-42.36, 46.1,-54.23, 54.75,-63.75, 68.02,-65.5, 79.69,-70.89, 88.67,-81.04, 97.45,-91.35, 105.24,-91.12, 112.89,-80.97]},
+  gr: {name:"Isla Gorgona, Colombia", km:[6,8], maxR:124.8, poly:[3.17,-79.09, 9.39,-84.21, 15.62,-89.32, 21.84,-94.44, 28.06,-99.55, 34.29,-104.67, 40.51,-109.78, 47.58,-111.24, 55.42,-109.4, 63.26,-107.56, 63.61,-99.78, 63.61,-91.72, 63.61,-83.65, 63.61,-75.59, 63.61,-67.53, 63.61,-59.47, 63.61,-51.4, 63.61,-43.34, 63.61,-35.28, 63.61,-27.22, 63.61,-19.16, 63.61,-11.09, 63.61,-3.03, 63.61,5.03, 61.87,12.28, 55.72,17.48, 49.56,22.68, 43.41,27.89, 37.26,33.09, 31.11,38.29, 24.95,43.49, 18.8,48.69, 12.68,53.92, 6.81,59.44, 0.93,64.95, -4.94,70.47, -10.81,75.98, -16.68,81.5, -24.42,83.53, -32.26,85.37, -40.1,87.21, -47.94,89.05, -55.78,90.89, -63.49,89.29, -71.18,86.89, -78.86,84.48, -86.55,82.07, -87.49,74.71, -87.49,66.65, -87.49,58.58, -84.65,53.05, -76.65,52.12, -68.66,51.18, -60.66,50.24, -52.66,49.3, -46.11,46.35, -42.66,39.06, -39.21,31.78, -35.77,24.49, -32.32,17.21, -28.87,9.92, -26.39,2.33, -24.98,-5.61, -23.57,-13.55, -22.16,-21.49, -20.75,-29.43, -19.34,-37.36, -17.94,-45.3, -15.49,-52.8, -10.82,-59.38, -6.16,-65.95, -1.49,-72.52]},
+  sanity: {name:"San Andres, Colombia", km:[3.8,9.6], maxR:130, poly:[-18.92,61.35, -21.55,53.77, -24.19,46.18, -26.82,38.59, -29.45,31, -32.08,23.41, -34.71,15.82, -37.35,8.23, -37.71,0.45, -36.34,-7.48, -34.96,-15.41, -33.59,-23.34, -32.21,-31.27, -30.84,-39.2, -29.46,-47.13, -26.8,-54.54, -22.56,-61.33, -18.32,-68.11, -14.09,-74.9, -9.85,-81.68, -5.62,-88.47, -1.38,-95.25, 4,-100.92, 10.43,-105.55, 16.86,-110.19, 23.29,-114.82, 29.72,-119.45, 36.15,-124.09, 40.93,-123.42, 43.56,-115.83, 46.19,-108.24, 48.83,-100.65, 48.27,-92.88, 46.46,-85.04, 44.65,-77.21, 42.83,-69.37, 41.02,-61.53, 39.21,-53.7, 37.4,-45.86, 35.59,-38.02, 33.77,-30.18, 31.96,-22.35, 30.15,-14.51, 28.34,-6.67, 26.52,1.16, 24.71,9, 22.9,16.84, 21.09,24.68, 19.28,32.51, 17.46,40.35, 15.65,48.19, 13.84,56.02, 12.03,63.86, 10.22,71.7, 8.4,79.54, 6.59,87.37, 4.78,95.21, 2.97,103.05, 1.15,110.88, -4.98,113.75, -12.79,114.69, -20.6,115.62, -28.4,116.56, -36.21,117.5, -40.67,112.53, -43.76,105.12, -46.84,97.71, -45.44,91.08, -40.13,85.14, -34.83,79.19, -29.53,73.25, -24.22,67.3]},
+  town: {name:"Curacao", km:[46.4,38.8], maxR:160, poly:[113.07,60.07, 120.01,67.06, 126.95,74.05, 133.89,81.04, 132.87,89.14, 123.6,91.43, 113.93,92.49, 104.22,93.08, 94.51,92.3, 85.48,88.89, 76.75,84.5, 68.79,78.76, 60.83,73.03, 52.86,67.3, 44.28,62.89, 34.91,60.19, 25.53,57.5, 16.25,54.58, 7.8,49.62, -0.65,44.67, -8.29,38.52, -15.82,32.2, -21.91,24.56, -27.05,16.13, -30.32,6.74, -38.09,1.55, -47.67,0.17, -57.11,-2.15, -64.68,-7.92, -70.56,-15.77, -75.37,-24.43, -80.19,-33.09, -85,-41.75, -93.15,-47.11, -101.4,-52.38, -107.86,-59.56, -109.75,-68.9, -108.77,-78.81, -108.14,-88.74, -108.95,-98.46, -114.2,-106.85, -108.08,-114.19, -100.02,-110.37, -91.08,-106.43, -82.13,-102.5, -73.37,-98.17, -65.13,-92.94, -58.03,-86.13, -52.5,-78.04, -48.74,-68.96, -46.5,-59.26, -44.25,-49.57, -40.51,-40.45, -35.24,-32.2, -28.14,-25.39, -21.03,-18.57, -13.4,-12.53, -4.72,-8.01, 3.96,-3.5, 13.01,-0.02, 22.5,2.19, 32,4.4, 41.49,6.61, 50.99,8.83, 60.48,11.04, 69.98,13.25, 79.47,15.47, 87.81,20.35, 92.13,28.77, 93.86,38.58, 98.09,47.41, 105.49,53.82]},
+};
+/* polygon helpers: point-in-polygon for the walkable test, and an outward offset for beach/foam rings */
+function polyOf(cfg){ const f = COASTS[cfg.key]; if(!f) return null; const p = []; for(let i=0;i<f.poly.length;i+=2) p.push([f.poly[i], f.poly[i+1]]); return p; }
+function polyInside(p, x, z){ let c = false; for(let i=0, j=p.length-1; i<p.length; j=i++){
+  const xi=p[i][0], zi=p[i][1], xj=p[j][0], zj=p[j][1];
+  if(((zi>z)!==(zj>z)) && (x < (xj-xi)*(z-zi)/(zj-zi)+xi)) c = !c; } return c; }
+function polyOffset(p, d){                      /* move each vertex along its averaged outward normal */
+  const n = p.length, out = [];
+  const wind = (() => { let A=0; for(let i=0;i<n;i++){ const a=p[i], b=p[(i+1)%n]; A += a[0]*b[1]-b[0]*a[1]; } return A > 0 ? 1 : -1; })();
+  for(let i=0;i<n;i++){ const a=p[(i-1+n)%n], b=p[i], c=p[(i+1)%n];
+    const n1x = (b[1]-a[1]), n1z = -(b[0]-a[0]), l1 = Math.hypot(n1x,n1z) || 1;
+    const n2x = (c[1]-b[1]), n2z = -(c[0]-b[0]), l2 = Math.hypot(n2x,n2z) || 1;
+    let nx = n1x/l1 + n2x/l2, nz = n1z/l1 + n2z/l2; const l = Math.hypot(nx,nz) || 1;
+    out.push([b[0] + nx/l*d*wind, b[1] + nz/l*d*wind]); }
+  return out;
+}
+function polyShape(p){ const sh = new THREE.Shape(); sh.moveTo(p[0][0], -p[0][1]); for(let i=1;i<p.length;i++) sh.lineTo(p[i][0], -p[i][1]); sh.closePath(); return sh; }
+function polySlab(p, depth, topY, mat){          /* a shaped slab of land: flat top at topY, straight sides */
+  const g = new THREE.ExtrudeGeometry(polyShape(p), {depth, bevelEnabled:false});
+  g.rotateX(-Math.PI/2); g.translate(0, topY - depth, 0); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, mat); m.receiveShadow = true; return m;
+}
 function buildIsland(cfg){
   const P = cfg.pal, scene = new THREE.Scene();
   scene.fog = new THREE.Fog(P.fog, cfg.key === "sanity" ? 60 : 80, cfg.key === "sanity" ? 220 : 260);
@@ -1263,7 +1311,54 @@ function buildIsland(cfg){
   const key = new THREE.DirectionalLight(P.key, cfg.key === "sanity" ? .55 : .95); key.position.set(-25,40,15); scene.add(key);
   const sea = seaMesh(P.water, P.waterHi); sea.position.y = -1.1; scene.add(sea);
 
-  const inside = (x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r);
+  const POLY = polyOf(cfg); cfg.poly = POLY; if(COASTS[cfg.key]) cfg.coast = COASTS[cfg.key];
+  const inside = POLY ? ((x,z) => polyInside(POLY, x, z)) : ((x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r));
+  /* decor was scattered inside the old circles — spread it over the real island instead */
+  cfg.spread = POLY ? (COASTS[cfg.key].maxR / Math.max(...cfg.lobes.map(l => l.r))) : 1;
+  /* the coastline changed shape, so any hand-placed point that now sits in the sea is walked back onto land
+     along the line to the island's centre until it is a comfortable margin inside the shore. */
+  if(POLY && !cfg.landified){
+    const cx = POLY.reduce((a,p) => a+p[0], 0)/POLY.length, cz = POLY.reduce((a,p) => a+p[1], 0)/POLY.length;
+    const deepInside = (x,z,m) => { if(!inside(x,z)) return false;
+      for(let a=0;a<6;a++){ const t=a/6*Math.PI*2; if(!inside(x+Math.cos(t)*m, z+Math.sin(t)*m)) return false; } return true; };
+    const land = (x, z, margin) => { const m = margin || 4;
+      if(deepInside(x,z,m)) return [x,z];
+      /* nearest point that is genuinely inland: rings outward from where the designer put it */
+      for(let r=3; r<=260; r+=3){ for(let a=0; a<24; a++){ const t = a/24*Math.PI*2 + r*.37;
+        const nx = x+Math.cos(t)*r, nz = z+Math.sin(t)*r; if(deepInside(nx,nz,m)) return [+nx.toFixed(1), +nz.toFixed(1)]; } }
+      for(let k=1;k<=60;k++){ const f = k/60, nx = x+(cx-x)*f, nz = z+(cz-z)*f; if(deepInside(nx,nz,m)) return [+nx.toFixed(1), +nz.toFixed(1)]; }
+      return [x, z]; };
+    cfg.landify = land;
+    /* an "outer" feature is deliberately offshore (the sea stack you reach on the stepping stones) — it is
+       pushed OUT to open water instead, and anything standing on it travels with it. */
+    (cfg.features||[]).forEach(f => {
+      if(f.outer){ const ox=f.x, oz=f.z; let fx=f.x, fz=f.z, k=0;
+        while(k++ < 90 && (inside(fx,fz) || inside(fx+f.r,fz) || inside(fx-f.r,fz) || inside(fx,fz+f.r) || inside(fx,fz-f.r))){ const l=Math.hypot(fx,fz)||1; fx += fx/l*3; fz += fz/l*3; }
+        f.dx = fx-ox; f.dz = fz-oz; f.x = +fx.toFixed(1); f.z = +fz.toFixed(1); return; }
+      const [x,z] = land(f.x, f.z, (f.r||6)*.5); f.x = x; f.z = z; });
+    const outer = (cfg.features||[]).find(f => f.outer);
+    (cfg.notes||[]).forEach(n => { const [x,z] = land(n.x, n.z, 5); n.x = x; n.z = z; });
+    (cfg.npcs||[]).forEach(n => { const [x,z] = land(n.at[0], n.at[1], 6); n.at = [x,z]; });
+    if(cfg.stones && cfg.stones.length && outer){       /* re-lay the stepping stones from the shore to the stack */
+      const tx = outer.x, tz = outer.z, n = cfg.stones.length;
+      let sx = 0, sz = 0; const l = Math.hypot(tx,tz)||1;
+      for(let r=0; r<400; r+=2){ const px = tx/l*r, pz = tz/l*r; if(!inside(px,pz)){ sx = px; sz = pz; break; } }
+      for(let i=0;i<n;i++){ const f = (i+1)/(n+1); cfg.stones[i] = [+(sx+(tx-sx)*f*.86).toFixed(1), +(sz+(tz-sz)*f*.86).toFixed(1)]; }
+    } else (cfg.stones||[]).forEach(st => { const [x,z] = land(st[0], st[1], 3); st[0] = x; st[1] = z; });
+    if(cfg.ability){ const [x,z] = land(cfg.ability.at[0], cfg.ability.at[1], 5); cfg.ability.at = [x,z]; }
+    if(cfg.letter){
+      if(outer && Math.hypot(cfg.letter.at[0]-(outer.x-(outer.dx||0)), cfg.letter.at[1]-(outer.z-(outer.dz||0))) < outer.r + 2){
+        cfg.letter.at = [+(cfg.letter.at[0]+(outer.dx||0)).toFixed(1), +(cfg.letter.at[1]+(outer.dz||0)).toFixed(1)];   /* rides the sea stack */
+      } else { const [x,z] = land(cfg.letter.at[0], cfg.letter.at[1], 5); if(x !== cfg.letter.at[0] || z !== cfg.letter.at[1]){ cfg.letter.at = [x,z]; cfg.letter.reY = true; } }
+    }
+    if(cfg.beach){ const [x,z] = land(cfg.beach.x, cfg.beach.z, cfg.beach.r*.6); cfg.beach.x = x; cfg.beach.z = z; }
+    if(cfg.grotto){ const [x,z] = land(cfg.grotto.x, cfg.grotto.z, cfg.grotto.r*.6); cfg.grotto.x = x; cfg.grotto.z = z; }
+    cfg.landified = true;
+  }
+  /* the dock is a pier: it starts on the shore and runs out over the water, and the boat floats beside its far end.
+     Both are placed from the actual shoreline (first open water along +z from the dock's x), never by hand. */
+  { let shoreZ = null; for(let z = cfg.dock[1]-20; z < cfg.dock[1]+40; z += .25){ if(!inside(cfg.dock[0], z)){ shoreZ = z; break; } }
+    if(shoreZ != null){ cfg.dock = [cfg.dock[0], shoreZ + 3]; cfg.spawn = [cfg.dock[0], shoreZ - 11]; cfg.shoreZ = shoreZ; } }
   const height = (x,z) => {
     let y = 0;
     if(Math.abs(x-cfg.dock[0]) < 3 && Math.abs(z-cfg.dock[1]) < 9) y = .75;        /* the dock planks are a deck, not a decal */
@@ -1281,11 +1376,20 @@ function buildIsland(cfg){
   const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[]};
 
   /* ground */
-  cfg.lobes.forEach(l => {
+  if(POLY){
+    const sandP = polyOffset(POLY, 6), grassP = polyOffset(POLY, -2.5);
+    scene.add(polySlab(sandP, 3.2, -.12, toon(P.sand)));                 /* the beach, a hair below the meadow */
+    scene.add(polySlab(grassP, 3.4, 0, toon(P.grass, {map:TEX.meadow}))); /* top face at y=0 = the walkable height */
+    const foamShape = polyShape(polyOffset(POLY, 9.5));
+    foamShape.holes.push(new THREE.Path(polyShape(polyOffset(POLY, 4.5)).getPoints().reverse()));
+    const fg = new THREE.ShapeGeometry(foamShape); fg.rotateX(-Math.PI/2);
+    const foam = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({color:0xFFFFFF, transparent:true, opacity:.30, side:THREE.DoubleSide, depthWrite:false}));
+    foam.position.y = -.45; scene.add(foam); I.foam.push(foam);
+  } else cfg.lobes.forEach(l => {
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand));
-    sand.position.set(l.x,-1.62,l.z); scene.add(sand);   /* a hair under the meadow so the two never z-fight */
+    sand.position.set(l.x,-1.62,l.z); scene.add(sand);
     const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass, {map:TEX.meadow}));
-    grass.position.set(l.x,-1.6,l.z); scene.add(grass);   /* top face exactly at y=0 = the walkable height */
+    grass.position.set(l.x,-1.6,l.z); scene.add(grass);
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
   cfg.features.forEach(f => {
@@ -1312,7 +1416,8 @@ function buildIsland(cfg){
   /* sampler for decor */
   const sample = (min, max, avoidMesa) => {
     for(let k=0;k<20;k++){
-      const a = Math.random()*Math.PI*2, r = min + Math.random()*(max-min);
+      const sp = cfg.spread || 1;
+      const a = Math.random()*Math.PI*2, r = (min + Math.random()*(max-min))*sp;
       const x = Math.cos(a)*r, z = Math.sin(a)*r;
       if(!inside(x,z)) continue;
       if(avoidMesa && cfg.features.some(f => f.type==="mesa" && Math.hypot(x-f.x,z-f.z) < f.r+2)) continue;
@@ -1566,7 +1671,7 @@ function buildIsland(cfg){
     const clearOf = s => s && !I.colliders.some(c => !c.camOnly && Math.hypot(s[0]-c.x, s[1]-c.z) < c.r + 1.0);
     for(let i=0;i<24;i++){ const onBeach = i < 16; let s = null; for(let k=0;k<12 && !clearOf(s);k++) s = onBeach ? bsample(3, 20) : sample(18, 26, true); if(!clearOf(s)) continue;
       const g = new THREE.Group(); const R = {group:g, primitive:[]};
-      g.scale.setScalar(.96 + Math.random()*.08);
+      g.scale.setScalar(.98 + Math.random()*.04);
       g.userData = {R, cfg:{name:null, wander: onBeach ? 5 : 8}, home:new THREE.Vector3(s[0],0,s[1]), state:"idle", timer:Math.random()*4, target:null, heading:Math.random()*6.3};
       g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); }
     if(cfg.gate){
@@ -1580,7 +1685,11 @@ function buildIsland(cfg){
   const [dx,dz] = cfg.dock;
   const planks = inked(new THREE.BoxGeometry(6,.5,18), P.wood, 1.9); planks.position.set(dx,.5,dz); scene.add(planks);
   const boat = makeBoat(P.wood, MOON, .9);
-  boat.position.set(dx+5.2,.1,dz+4); boat.rotation.y=.2; scene.add(boat); I.boat = boat;
+  /* moor the boat in real water: start beside the dock's outer end and walk out until nothing is under it */
+  { let bx = dx+5.2, bz = dz+5;
+    for(let k=0;k<80 && (inside(bx,bz) || inside(bx+2.4,bz) || inside(bx-2.4,bz) || inside(bx,bz+4) || inside(bx,bz-4)); k++){ bz += 1.5; if(k%6===5) bx += .8; }
+    boat.position.set(bx,.1,bz); }
+  boat.rotation.y=.2; scene.add(boat); I.boat = boat;
   /* lantern path spawn → island heart */
   for(let i=0;i<7;i++){ const k = i/7, x = cfg.spawn[0]*(1-k), z = cfg.spawn[1]*(1-k) + 18*k;
     [-2.6,2.6].forEach(ox => { const p = inked(new THREE.CylinderGeometry(.16,.2,2.4,6), P.wood, 1.4); p.position.set(x+ox, height(x+ox,z)+1.4, z); scene.add(p);
@@ -1602,14 +1711,22 @@ function buildIsland(cfg){
 
   /* notes */
   I.notes = [];
-  { const paper = new THREE.PlaneGeometry(1.15,1.5);
+  { const paper = new THREE.PlaneGeometry(1.0,1.3);
     cfg.notes.forEach((n,i) => {
+      const gy = (n.dy != null ? n.dy : height(n.x,n.z));
+      /* every note is nailed to something real: a weathered stake with a crossbar, driven into the ground it stands on */
+      const postH = 2.6;
+      const post = inked(new THREE.CylinderGeometry(.10,.13,postH,6), 0x6B5238, 1.2);
+      post.position.set(n.x, gy + postH/2, n.z); scene.add(post);
+      const bar = inked(new THREE.BoxGeometry(1.3,.10,.12), 0x6B5238, 1.0);
+      bar.position.set(n.x, gy + postH - .12, n.z); scene.add(bar);
       const g = new THREE.Group();
-      g.add(new THREE.Mesh(paper, new THREE.MeshBasicMaterial({color:BONE, side:THREE.DoubleSide})));
-      const glow = new THREE.Mesh(new THREE.RingGeometry(1.1,1.5,20), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.24, side:THREE.DoubleSide}));
-      glow.rotation.x = -Math.PI/2; glow.position.y = -1.4; g.add(glow);
-      const base = (n.dy != null ? n.dy : height(n.x,n.z)) + 3.2;
-      g.position.set(n.x, base, n.z); g.userData = {i, base}; scene.add(g); I.notes.push(g);
+      const sheet = new THREE.Mesh(paper, new THREE.MeshBasicMaterial({color:BONE, side:THREE.DoubleSide}));
+      sheet.position.y = -.72; g.add(sheet);                       /* the sheet hangs below the crossbar */
+      const glow = new THREE.Mesh(new THREE.RingGeometry(.9,1.25,20), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.22, side:THREE.DoubleSide}));
+      glow.rotation.x = -Math.PI/2; glow.position.y = -(postH - .2); g.add(glow);
+      const base = gy + postH - .2;
+      g.position.set(n.x, base, n.z); g.userData = {i, base, pivot:true}; scene.add(g); I.notes.push(g);
     }); }
 
   /* ability pickup + letter */
@@ -1626,6 +1743,7 @@ function buildIsland(cfg){
     pk.position.set(a.at[0], (a.y != null ? a.y : height(a.at[0],a.at[1])) + 2.2, a.at[1]); scene.add(pk); I.pickup = pk;
 
     const L = cfg.letter;
+    if(L.reY) L.y = height(L.at[0], L.at[1]);
     const lm = inked(new THREE.OctahedronGeometry(.8,0), 0xF0A56D, 2.4); lm.position.set(L.at[0], L.y+2.2, L.at[1]); scene.add(lm); I.letterMesh = lm;
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,26,16,1,true), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.10, side:THREE.DoubleSide}));
     beam.position.set(L.at[0], L.y+13, L.at[1]); scene.add(beam); I.letterBeam = beam;
@@ -1643,7 +1761,8 @@ function buildIsland(cfg){
     if(I.grotto) spots.push([I.grotto.x + Math.cos(I.grotto.ga+Math.PI)*4.2, I.grotto.z + Math.sin(I.grotto.ga+Math.PI)*4.2, 1.6]);
     /* every moon gets a soft ground marker so a collectible always reads as placed on purpose */
     const ringG = new THREE.RingGeometry(.7,1.05,20), ringM = new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.22, side:THREE.DoubleSide, depthWrite:false});
-    spots.forEach(([x,z,dy],i) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, height(x,z)+dy, z);
+    spots.forEach(([x0,z0,dy],i) => { const [x,z] = cfg.landify ? cfg.landify(x0, z0, 2.5) : [x0,z0];
+      const m = new THREE.Mesh(geo, mat); m.position.set(x, height(x,z)+dy, z);
       const ring = new THREE.Mesh(ringG, ringM); ring.rotation.x = -Math.PI/2; ring.position.y = -dy + .08; m.add(ring);
       m.userData = {id:cfg.key+":"+i}; if(G.moonsTaken[m.userData.id]) m.visible = false; scene.add(m); I.moons.push(m); }); }
 
@@ -1652,6 +1771,7 @@ function buildIsland(cfg){
     const g = new THREE.Group();
     const ph = inked(new THREE.CylinderGeometry(.38,.42,2.5,8), 0xC9B8A8, 1.5); ph.position.y = 1.3; g.add(ph);
     const R = {group:g, primitive:[ph]}; g.userData = {R, cfg:n, home:new THREE.Vector3(n.at[0], 0, n.at[1]), state:"idle", timer:1+Math.random()*3, target:null, heading:Math.random()*6.3};
+    if(n.h) g.scale.setScalar(n.h*2.95/1.70 / (RIGS[n.rig] ? RIGS[n.rig].height : 2.8));   /* their own height in metres, not the rig's */
     g.position.set(n.at[0], height(n.at[0], n.at[1]), n.at[1]); scene.add(g); I.npcs.push(g); wantRig(R, n.rig);
   });
   /* creatures */
@@ -1664,7 +1784,7 @@ function buildIsland(cfg){
   /* weather + fx */
   I.fx = {
     foam:I.foam,
-    grass: grassField(scene, cfg.key==="sanity"?900:2200, () => sample(6, 66, true), height, cfg.grassCols, (x,z) => (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)),
+    grass: grassField(scene, cfg.key==="sanity"?2600:5600, () => sample(6, 66, true), height, cfg.grassCols, (x,z) => (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
@@ -1771,7 +1891,7 @@ function walkerUpdate(I, dt, t){
   else W.grounded = false;
 
   let da = W.heading - W.group.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2;
-  W.group.rotation.y += da*Math.min(1, dt*9);
+  W.group.rotation.y += da*Math.min(1, dt*15);
   const moving = mag > .08 && W.grounded;
   W.legs.forEach((l,i) => l.position.z = moving ? Math.sin(t*10+i*Math.PI)*.3 : 0);
   if(W.mixer){
@@ -1817,9 +1937,14 @@ function updateCamera(I, dt, speed){
   if(W.lookHold > 0) W.lookHold -= dt;
   else if(W.recenter){ W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*6)); W.camPitch += (CAM.pitch - W.camPitch)*Math.min(1, dt*6);
     let d = W.heading - W.camYaw; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2; if(Math.abs(d) < .02) W.recenter = false; }
-  else if(speed > 0){ /* lazy settle: strength = how much she is already walking away from the camera; zero when strafing or backing up */
+  else if(speed > 0){
+    /* always-behind: the camera swings in behind her while she walks away from it, fast enough that you
+       always see where you are going. The strength is cos(angle between her heading and the camera's back
+       vector), so it is FULL when running away, zero at 90 deg (strafe) and zero at 180 deg (walking at the
+       camera) — the two cases that used to feed back into the input angle and spiral the view. */
     let d = W.heading - W.camYaw; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2;
-    const away = Math.max(0, Math.cos(d)); if(away > .5) W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*.55*away*(speed/SPEED))); }
+    const away = Math.max(0, Math.cos(d));
+    if(away > .25) W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*3.4*away*(speed/SPEED))); }
   while(W.camYaw > Math.PI) W.camYaw -= Math.PI*2; while(W.camYaw < -Math.PI) W.camYaw += Math.PI*2;
   /* the look point trails her a touch so steps and jumps don't jolt the frame */
   if(W.look.distanceTo(look) > 10) W.look.copy(look); else W.look.lerp(look, Math.min(1, dt*12));   /* a teleport snaps, a step trails */
@@ -1860,7 +1985,7 @@ function islandUpdate(I, dt, t){
   I.sea.userData.mat.uniforms.t.value = t;
   I.moon.userData.halo.lookAt(camera.position);
   I.boat.position.y = .1 + Math.sin(t*1.3)*.18; I.boat.rotation.z = Math.sin(t*.9)*.04;
-  I.notes.forEach((n,i) => { n.position.y = n.userData.base + Math.sin(t*1.7+i)*.22; n.rotation.y += dt*.6;
+  I.notes.forEach((n,i) => { n.rotation.z = Math.sin(t*1.5+i)*.09; n.rotation.y = Math.sin(t*.7+i)*.25;   /* swings on its nail */
     n.children[0].material.color.setHex(G.notes[cfg.key+":"+i] ? 0xCFC6B4 : BONE); });
   if(I.pickup && I.pickup.visible){ I.pickup.rotation.y += dt*.8; I.pickup.position.y += Math.sin(t*1.6)*.004; }
   if(I.letterMesh && I.letterMesh.visible){ I.letterMesh.rotation.y += dt*1.4; I.letterMesh.rotation.x += dt*.6; }
