@@ -13,15 +13,21 @@ for (const isl of argIslands(['town'])) {
     const meas = (obj, label) => { if (!obj) return null; box.makeEmpty(); obj.updateMatrixWorld(true);
       obj.traverse(o => { if (!o.isMesh || !o.visible) return; let p = o; while (p) { if (!p.visible) return; p = p.parent === obj.parent ? null : p.parent; }
         if (o.material && (o.material.side === THREE.BackSide || o.material.userData.isInk)) return;
+        if (o.userData.noMeasure) return;                       /* hats and props are not body height */
         tmp.setFromObject(o); if (!tmp.isEmpty()) box.union(tmp); });
       if (box.isEmpty()) return null; box.getSize(size);
       return { label, h: +size.y.toFixed(2), w: +size.x.toFixed(2), d: +size.z.toFixed(2), footY: +box.min.y.toFixed(2) }; };
     const rows = [];
+    /* a hat is not height: hide accessories for the measurement, then put them back */
+    const hidden = []; const hideAcc = R => { if (R && R.hat) { hidden.push(R.hat); R.hat.visible = false; } };
+    hideAcc(I.W.group.userData.R || I.W); if (I.W.hat) { hidden.push(I.W.hat); I.W.hat.visible = false; }
+    for (const g of I.npcs) if (g.userData.R && g.userData.R.hat) { hidden.push(g.userData.R.hat); g.userData.R.hat.visible = false; }
     rows.push(Object.assign(meas(I.W.group, 'Lala (player)') || {}, { rig: I.W.rigName }));
     const seen = {};
     for (const g of I.npcs) { const n = g.userData.cfg.name || ('crowd:' + g.userData.R.rigName); if (seen[n]) continue; seen[n] = 1;
       rows.push(Object.assign(meas(g, n) || {}, { rig: g.userData.R.rigName, scale: +g.scale.x.toFixed(2) })); }
     for (const c of I.creatures.slice(0, 3)) rows.push(Object.assign(meas(c, 'creature:' + c.userData.type) || {}, {}));
+    hidden.forEach(h => h.visible = true);
     return rows.filter(r => r.h);
   });
   const L = res[isl].find(r => /Lala/.test(r.label));
