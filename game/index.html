@@ -1140,19 +1140,30 @@ function makeBoat(wood, sailCol, scale){
    Top-level inked groups and plain toon meshes that never move are merged per island: colours become vertex
    colours on one MeshToonMaterial, and every outline goes into one ink mesh whose thickness rides on a vertex
    attribute. Dynamic things (pickups, stones, gates, boat, creatures, NPCs, notes, moons, the walker) are excluded. */
-const inkMergedMat = new THREE.ShaderMaterial({
-  uniforms:{inkColor:{value:new THREE.Color(INK)}},
-  vertexShader:`attribute float th;
-    void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0);
+/* wind on baked geometry: sway=1 canopies (slow lean), sway=2 bushes (jiggle when the walker brushes them) */
+const SWAY_GLSL = `vec3 swayOf(vec3 p, float sw, float t, vec3 pl){ vec3 d = vec3(0.0);
+  if(sw > 0.5 && sw < 1.5){ float ph = t*0.9 + p.x*0.15 + p.z*0.15; d.x += sin(ph)*0.09; d.z += cos(ph*0.8)*0.06; }
+  else if(sw > 1.5){ float k = clamp(1.0 - distance(p.xz, pl.xz)/2.1, 0.0, 1.0); d.x += sin(t*22.0)*0.08*k; d.z += cos(t*22.0)*0.08*k; d.y += sin(t*22.0+1.0)*0.05*k; }
+  return d; }`;
+function inkMergedMat(){ return new THREE.ShaderMaterial({
+  uniforms:{inkColor:{value:new THREE.Color(INK)}, uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}},
+  vertexShader:`attribute float th; attribute float sway; uniform float uTime; uniform vec3 uPlayer; ${SWAY_GLSL}
+    void main(){ vec3 p = position + swayOf(position, sway, uTime, uPlayer); vec4 mv=modelViewMatrix*vec4(p,1.0);
       vec3 n=normalize(normalMatrix*normal); mv.xyz += n*th*(-mv.z)*0.0018;
       gl_Position=projectionMatrix*mv; }`,
   fragmentShader:`uniform vec3 inkColor; void main(){ gl_FragColor=vec4(inkColor,1.0); }`,
   side:THREE.BackSide
-});
+}); }
+const swayPatch = mat => { mat.userData.patches.push(["sway", sh => {
+  sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3()}; mat.userData.uniforms = sh.uniforms;
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nattribute float sway; uniform float uTime; uniform vec3 uPlayer; " + SWAY_GLSL)
+    .replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed += swayOf(position, sway, uTime, uPlayer);"); }]); return mat; };
 function mergeStatics(I, scene){
   const skip = new Set([I.pickup, I.letterMesh, I.boat, I.door, I.W && I.W.group, I.sea, I.moon, I.rain, I.bow, I.beam && I.beam.target].filter(Boolean));
   (I.gateMeshes||[]).forEach(m => skip.add(m)); (I.stones||[]).forEach(s => skip.add(s.mesh)); (I.moons||[]).forEach(m => skip.add(m));
-  (I.creatures||[]).forEach(c => skip.add(c)); (I.npcs||[]).forEach(n => skip.add(n)); (I.notes||[]).forEach(n => skip.add(n)); (I.mist||[]).forEach(m => skip.add(m));
+  (I.creatures||[]).forEach(c => skip.add(c)); (I.npcs||[]).forEach(n => skip.add(n)); (I.canopies||[]).forEach(c => c.traverse(o => o.userData.sway = 1)); (I.bushes||[]).forEach(b => b.traverse(o => o.userData.sway = 2));   /* baked, but they keep moving via the sway attribute */ (I.notes||[]).forEach(n => skip.add(n)); (I.mist||[]).forEach(m => skip.add(m));
+  const fx = I.fx || {}; for(const [k, v] of Object.entries(fx)){ if(k === "canopies" || k === "bushes") continue; const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null); if(arr) arr.forEach(o => { if(o && o.isObject3D) skip.add(o); }); }   /* birds, clouds, butterflies, foam… all move */
   scene.updateMatrixWorld(true);
   const plainToon = m => m && m.isMeshToonMaterial && !m.map && !m.transparent && m.opacity === 1 && m.side === THREE.FrontSide && !m.emissiveMap;
   const mains = [], inks = []; let tris = 0;
@@ -1160,10 +1171,10 @@ function mergeStatics(I, scene){
   const visit = o => {
     if(skip.has(o) || o.userData.dyn || !o.visible || o.isLight || o.isCamera) return;
     if(o.isGroup && o.userData.main){
-      const m = o.userData.main, rest = o.children.filter(c => c !== m), ink = rest.find(c => c.material && c.material.uniforms && c.material.uniforms.thickness);
-      if(!m.isMesh || !m.geometry || !m.geometry.attributes.normal || !plainToon(m.material) || !stock(m)) return;
-      if(rest.length > (ink ? 1 : 0)) return;   /* something else was hung on it (a decal, a half-sphere) — leave it */
-      mains.push(m); if(ink) inks.push(ink); o.parent.remove(o); return;
+      const m = o.userData.main, ink = o.children.find(c => c !== m && c.material && c.material.uniforms && c.material.uniforms.thickness);
+      if(m.isMesh && m.geometry && m.geometry.attributes.normal && plainToon(m.material) && stock(m)){ mains.push(m); o.remove(m); if(ink){ inks.push(ink); o.remove(ink); } }
+      o.children.slice().forEach(visit);            /* things hung on it (a canopy on a trunk, a half-sphere on a ball) */
+      if(!o.children.length) o.parent.remove(o); return;
     }
     if(o.isMesh){ if(!o.isInstancedMesh && !o.isSkinnedMesh && o.geometry && o.geometry.attributes.normal && plainToon(o.material) && stock(o) && !o.children.length){ mains.push(o); o.parent.remove(o); } return; }
     if(o.isGroup || o.isObject3D) o.children.slice().forEach(visit);
@@ -1171,25 +1182,25 @@ function mergeStatics(I, scene){
   scene.children.slice().forEach(visit);
   if(!mains.length) return;
   const bake = (list, withTh) => {
-    const pos = [], nor = [], col = [], th = []; const v = new THREE.Vector3(), nm = new THREE.Matrix3();
+    const pos = [], nor = [], col = [], th = [], sw = []; const v = new THREE.Vector3(), nm = new THREE.Matrix3();
     for(const m of list){
       const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry; const P = g.attributes.position, N = g.attributes.normal;
-      nm.getNormalMatrix(m.matrixWorld); const c = m.material.color || null, t = withTh ? m.material.uniforms.thickness.value : 0;
+      nm.getNormalMatrix(m.matrixWorld); const c = m.material.color || null, t = withTh ? m.material.uniforms.thickness.value : 0, swv = m.userData.sway || (m.parent && m.parent.userData.sway) || 0;
       for(let i=0;i<P.count;i++){
         v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); pos.push(v.x, v.y, v.z);
         v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor.push(v.x, v.y, v.z);
-        if(c) col.push(c.r, c.g, c.b); if(withTh) th.push(t);
+        if(c) col.push(c.r, c.g, c.b); if(withTh) th.push(t); sw.push(swv);
       }
       if(g !== m.geometry) g.dispose();
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
-    if(col.length) geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); if(withTh) geo.setAttribute("th", new THREE.Float32BufferAttribute(th, 1));
+    if(col.length) geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); if(withTh) geo.setAttribute("th", new THREE.Float32BufferAttribute(th, 1)); geo.setAttribute("sway", new THREE.Float32BufferAttribute(sw, 1));
     tris += pos.length/9; return geo;
   };
-  const mainMesh = new THREE.Mesh(bake(mains, false), toonRim(new THREE.MeshToonMaterial({color:0xffffff, vertexColors:true, gradientMap:GRAD})));
-  mainMesh.castShadow = true; mainMesh.receiveShadow = true; scene.add(mainMesh); I.staticMesh = mainMesh;
-  if(inks.length){ const inkMesh = new THREE.Mesh(bake(inks, true), inkMergedMat); scene.add(inkMesh); I.staticInk = inkMesh; }
+  const mainMesh = new THREE.Mesh(bake(mains, false), swayPatch(toonRim(new THREE.MeshToonMaterial({color:0xffffff, vertexColors:true, gradientMap:GRAD}))));
+  mainMesh.castShadow = true; mainMesh.receiveShadow = true; scene.add(mainMesh); I.staticMesh = mainMesh; I.windMats = [mainMesh.material];
+  if(inks.length){ const inkMesh = new THREE.Mesh(bake(inks, true), inkMergedMat()); scene.add(inkMesh); I.staticInk = inkMesh; I.windMats.push(inkMesh.material); }
   DBG("static batch", I.cfg.key, mains.length, "props +", inks.length, "inks →", Math.round(tris), "tris");
 }
 function buildIsland(cfg){
@@ -1737,6 +1748,7 @@ function tryJump(){
 function islandUpdate(I, dt, t){
   const cfg = I.cfg, W = I.W;
   if(I.sun){ I.sun.position.set(W.x-25, W.y+40, W.z+15); I.sun.target.position.set(W.x, W.y, W.z); }
+  if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
   I.sea.userData.mat.uniforms.t.value = t;
   I.moon.userData.halo.lookAt(camera.position);
