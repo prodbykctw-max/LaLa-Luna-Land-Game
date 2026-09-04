@@ -538,6 +538,11 @@ const RIGS = {
   green:{url:"assets/npc-green.glb", height:2.8, ink:.018},
   crowd:{url:"assets/npc-crowd.glb", height:2.7, ink:.018}
 };
+/* the twelve LUNA-tics: distinct generated fans (different people, heights, styles) — light crowd builds */
+const FANS = [[3.05,"tall man, locs, cow-print bucket hat"],[2.45,"petite woman, pink-streak bob"],[2.6,"teen boy, moon hoodie"],[2.8,"woman, afro, gold bomber"],
+  [2.85,"man, denim vest with moon patches"],[2.75,"woman, copper braids, glow stick"],[2.5,"grandmother, lavender cardigan"],[2.7,"woman, lilac hijab, cow-print bomber"],
+  [3.0,"big man, bun, moon floral shirt"],[2.7,"teen, blue mullet, cow-print overalls"],[2.6,"teen girl, space buns, tie-dye"],[2.75,"older man, grey beard, LUNA tee"]];
+FANS.forEach((f,i) => { RIGS["fan"+(i+1)] = {url:`assets/fans/fan${String(i+1).padStart(2,"0")}.glb`, height:f[0], ink:.016, fallback:"crowd"}; });
 for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false, loading:false});
 function loadRig(name){
   const rig = RIGS[name]; if(!rig || rig.loading || rig.gltf || !THREE.GLTFLoader || !THREE.SkeletonUtils) return;
@@ -570,7 +575,8 @@ function loadRig(name){
     DBG("rig reshaded", name, "attaching", rig.waiting.length);
     rig.waiting.forEach(R => attachRig(R, name)); rig.waiting.length = 0;
     DBG("rig attached all", name);
-  }, undefined, err => { rig.failed = true; rig.loading = false; console.warn(`Rig "${name}" not loaded — using the sketch figure`, err); });
+  }, undefined, err => { rig.failed = true; rig.loading = false; console.warn(`Rig "${name}" not loaded — using ${rig.fallback || "the sketch figure"}`, err);
+    if(rig.fallback){ const w = rig.waiting.slice(); rig.waiting.length = 0; w.forEach(R => wantRig(R, rig.fallback)); } });
 }
 function wantRig(R, name){ const rig = RIGS[name]; if(!rig) return; R.rigName = name; if(rig.gltf) attachRig(R, name); else { rig.waiting.push(R); loadRig(name); } }
 function attachRig(R, name){
@@ -1431,12 +1437,15 @@ function buildIsland(cfg){
       const door = new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.3), toon(0x5E4630)); door.position.set(x-1.4, height(x,z)+1.15, z+3.02); scene.add(door);
       for(let k=0;k<2+(i%3);k++){ const win = new THREE.Mesh(new THREE.PlaneGeometry(1.0,1.1), new THREE.MeshBasicMaterial({color:0xBFE6F0})); win.position.set(x-2.2+k*1.8, height(x,z)+3.6+(k%2)*.0, z+3.02); scene.add(win); }
       for(let k=0;k<3;k++){ const w2 = new THREE.Mesh(new THREE.PlaneGeometry(1.0,1.1), new THREE.MeshBasicMaterial({color:0xBFE6F0})); w2.position.set(x-2.2+k*2.2, height(x,z)+h-1.6, z+3.02); scene.add(w2); } }
-    /* the LUNA-tic crowd on the beach and round the square — light copies of the fan model, each tinted */
-    const tints = [0xFFFFFF, 0xFFD9E6, 0xDDF3FF, 0xFFF3C4, 0xE6DDFF, 0xD9FFE9];
-    for(let i=0;i<22;i++){ const onBeach = i < 15; const s = onBeach ? bsample(3, 20) : sample(18, 26, true); if(!s) continue;
-      const g = new THREE.Group(); const R = {group:g, primitive:[], tint: tints[i%tints.length]};
+    /* the LUNA-tic crowd on the beach and round the square — twelve different fans, each appearing twice,
+       shuffled so the same face never stands next to itself */
+    const order = []; for(let k=0;k<2;k++){ const ids = FANS.map((_,i) => i+1); for(let j=ids.length-1;j>0;j--){ const r = Math.floor(Math.random()*(j+1)); [ids[j],ids[r]] = [ids[r],ids[j]]; } order.push(...ids); }
+    const clearOf = s => s && !I.colliders.some(c => !c.camOnly && Math.hypot(s[0]-c.x, s[1]-c.z) < c.r + 1.0);
+    for(let i=0;i<24;i++){ const onBeach = i < 16; let s = null; for(let k=0;k<12 && !clearOf(s);k++) s = onBeach ? bsample(3, 20) : sample(18, 26, true); if(!clearOf(s)) continue;
+      const g = new THREE.Group(); const R = {group:g, primitive:[]};
+      g.scale.setScalar(.96 + Math.random()*.08);
       g.userData = {R, cfg:{name:null, wander: onBeach ? 5 : 8}, home:new THREE.Vector3(s[0],0,s[1]), state:"idle", timer:Math.random()*4, target:null, heading:Math.random()*6.3};
-      g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "crowd"); }
+      g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); }
     if(cfg.gate){
       for(let z = cfg.gate.zMin; z <= cfg.gate.zMax; z += 4){
         const post = inked(new THREE.CylinderGeometry(.35,.4,3.6,8), BONE, 1.6); post.position.set(cfg.gate.x, height(cfg.gate.x,z)+1.8, z); scene.add(post); I.gateMeshes.push(post);
