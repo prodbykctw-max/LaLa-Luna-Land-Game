@@ -62,12 +62,22 @@ canvas{display:block;position:fixed;inset:0}
  border:2px solid rgba(111,191,146,.85);background:rgba(111,191,146,.28);color:var(--bone);opacity:1;
  box-shadow:0 4px 18px rgba(0,0,0,.35)}
 #jmp:active{background:rgba(111,191,146,.6)}
+#cstick{position:fixed;width:156px;height:156px;border-radius:50%;border:2px solid rgba(255,246,214,.35);background:rgba(18,16,28,.28);
+ z-index:7;display:none;touch-action:none;pointer-events:none}
+#cstick.on{display:block}
+#cstick::before,#cstick::after{content:"";position:absolute;left:50%;top:50%;background:rgba(255,246,214,.18)}
+#cstick::before{width:2px;height:60%;margin:-30% 0 0 -1px}
+#cstick::after{height:2px;width:60%;margin:-1px 0 0 -30%}
+#cnub{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;
+ background:rgba(255,246,214,.4);border:2px solid rgba(255,246,214,.8)}
+#recenter{bottom:250px;width:44px;height:44px;right:43px;padding:0;font-size:18px;line-height:44px;border:1px solid rgba(255,246,214,.45);background:rgba(18,16,28,.42);color:var(--moon);opacity:.7}
 body.walk .rbtn,body.walk #stick{display:block}
+body.desktop #recenter{display:none}
 .topbtn{position:fixed;top:16px;z-index:7;background:none;border:1px solid rgba(247,241,230,.22);
  color:var(--bone);opacity:.5;border-radius:999px;padding:7px 14px;font-size:9px;letter-spacing:.2em;margin:0;
  text-transform:uppercase;font-family:"DM Mono",monospace;cursor:pointer;display:none}
-#mute{left:50%;transform:translateX(-62%)}
-#secretsBtn{left:50%;transform:translateX(38%)}
+#mute{left:50%;transform:translateX(calc(-100% - 5px))}
+#secretsBtn{left:50%;transform:translateX(5px)}
 body.walk .topbtn{display:block}
 /* liquid-glass surfaces: frosted blur, refracted rim highlight, soft inner glow */
 .glass{background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.05) 45%,rgba(255,255,255,.12));
@@ -92,9 +102,10 @@ body.walk .topbtn{display:block}
 .pick{border-radius:14px}
 .glyph.on{box-shadow:0 0 20px rgba(255,246,214,.45), inset 0 1px 0 rgba(255,255,255,.9)}
 @media (max-width:640px){
-  .topbtn{top:auto;bottom:212px;font-size:8px;padding:6px 11px}
-  #mute{left:22px;transform:none} #secretsBtn{left:112px;transform:none}
-  #prompt{margin-bottom:214px} .place{font-size:19px}
+  .topbtn{top:calc(96px + env(safe-area-inset-top));font-size:8px;padding:9px 12px;min-height:32px}
+  #prompt{margin-bottom:calc(214px + env(safe-area-inset-bottom))} .place{font-size:19px}
+  #stick{bottom:calc(30px + env(safe-area-inset-bottom));left:calc(22px + env(safe-area-inset-left))}
+  .rbtn{right:calc(26px + env(safe-area-inset-right))} #jmp{bottom:calc(40px + env(safe-area-inset-bottom))} #act{bottom:calc(150px + env(safe-area-inset-bottom))} #recenter{bottom:calc(250px + env(safe-area-inset-bottom))}
 }
 #khint{position:fixed;left:26px;bottom:200px;z-index:7;font-size:9px;letter-spacing:.16em;
  text-transform:uppercase;opacity:.32;display:none;line-height:1.9}
@@ -163,7 +174,9 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 </div>
 
 <div id="stick"><div id="nub"></div></div>
-<div id="khint">WASD / arrows — walk<br>Space — jump (hold to glide)<br>E — interact</div>
+<div id="cstick"><div id="cnub"></div></div>
+<button id="recenter" class="rbtn" title="Put the camera behind Lala">⟲</button>
+<div id="khint">WASD / arrows — walk · Q/E turn camera · R/F tilt · C recenter<br>Mouse drag — look · wheel — zoom<br>Space — jump (hold to glide) · E — interact</div>
 <button id="act" class="rbtn">Look</button>
 <button id="jmp" class="rbtn">Jump</button>
 <button id="mute" class="topbtn">Sound on</button>
@@ -582,7 +595,16 @@ function loadRig(name){
   }, undefined, err => { rig.failed = true; rig.loading = false; console.warn(`Rig "${name}" not loaded — using ${rig.fallback || "the sketch figure"}`, err);
     if(rig.fallback){ const w = rig.waiting.slice(); rig.waiting.length = 0; w.forEach(R => wantRig(R, rig.fallback)); } });
 }
-function wantRig(R, name){ const rig = RIGS[name]; if(!rig) return; R.rigName = name; if(rig.gltf) attachRig(R, name); else { rig.waiting.push(R); loadRig(name); } }
+/* rigs are requested at build time but only fetched when their island is about to be played (or the sail
+   towards it starts), so the hub doesn't download the Town crowd and the first frame isn't behind 13 MB */
+function wantRig(R, name){ const rig = RIGS[name]; if(!rig) return; R.rigName = name; if(rig.gltf) attachRig(R, name); else { rig.waiting.push(R); if(RIGS_EAGER) loadRig(name); } }
+let RIGS_EAGER = false;
+function preloadRigs(I){
+  const names = new Set([I.W && I.W.rigName]);
+  (I.npcs||[]).forEach(g => g.userData.R && names.add(g.userData.R.rigName));
+  (I.creatures||[]).forEach(h => h.userData.R && names.add(h.userData.R.rigName));
+  names.forEach(n => { if(n && RIGS[n] && !RIGS[n].gltf) loadRig(n); });
+}
 function attachRig(R, name){
   const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
   const model = THREE.SkeletonUtils.clone(gltf.scene);
@@ -710,7 +732,7 @@ addEventListener("keyup", e => { keys[e.code] = false; if(e.code === "Space") ju
 const stick = $("stick"), nub = $("nub");
 let joy = {x:0,y:0,id:null,cx:0,cy:0}; const MAXR = 62;
 function joyStart(e){
-  if(joy.id !== null || !CUR) return;
+  if(joy.id !== null || !CUR || (e.target.closest && e.target.closest("button,.card,.ov"))) return;
   const r = stick.getBoundingClientRect();
   const onStick = e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom;
   const inLeft = e.clientX < innerWidth*.5 && e.clientY > innerHeight*.35;
@@ -731,19 +753,36 @@ function joyEnd(e){
   joy.id = null; joy.x = 0; joy.y = 0; nub.style.transform = "";
   stick.style.left = ""; stick.style.top = ""; stick.style.bottom = "";
 }
-/* drag on the right half (touch) or with the mouse anywhere off the UI: orbit the camera; auto-follow resumes after */
-let look = {id:null, x:0};
-function lookStart(e){ if(look.id !== null || !CUR || e.target.closest("button,.card,.ov")) return;
-  if(e.clientX < innerWidth*.5 && (isTouch || e.clientY > innerHeight*.35)) return; look.id = e.pointerId; look.x = e.clientX; }
-function lookMove(e){ if(e.pointerId !== look.id || !CUR) return; const dx = e.clientX - look.x; look.x = e.clientX;
-  CUR.W.camYaw -= dx*.0085; CUR.W.lookHold = 2.2; }
-function lookEnd(e){ if(e.pointerId === look.id) look.id = null; }
+/* camera control. Mouse: drag anywhere off the UI to orbit (yaw + pitch), wheel to zoom.
+   Touch: the right half is a second stick — a nub appears under the finger and its deflection turns the
+   camera at a steady rate (twin-stick), so a thumb resting anywhere on the right side steers the view. */
+let look = {id:null, x:0, y:0};
+const cam2 = {x:0, y:0};
+const cstick = $("cstick"), cnub = $("cnub");
+function lookStart(e){ if(look.id !== null || !CUR || (e.target.closest && e.target.closest("button,.card,.ov"))) return;
+  if(e.clientX < innerWidth*.5 && (isTouch || e.clientY > innerHeight*.35)) return;
+  look.id = e.pointerId; look.x = e.clientX; look.y = e.clientY;
+  if(isTouch && cstick){ cstick.style.left = (e.clientX-78)+"px"; cstick.style.top = (e.clientY-78)+"px"; cstick.style.right = "auto"; cstick.style.bottom = "auto"; cstick.classList.add("on"); } }
+function lookMove(e){ if(e.pointerId !== look.id || !CUR) return;
+  if(isTouch){ let dx = e.clientX-look.x, dy = e.clientY-look.y; const d = Math.hypot(dx,dy); if(d > MAXR){ dx = dx/d*MAXR; dy = dy/d*MAXR; }
+    cam2.x = dx/MAXR; cam2.y = dy/MAXR; if(cnub) cnub.style.transform = `translate(${dx}px,${dy}px)`; return; }
+  const dx = e.clientX - look.x, dy = e.clientY - look.y; look.x = e.clientX; look.y = e.clientY;
+  CUR.W.camYaw -= dx*.0062; CUR.W.camPitch += dy*.0045; CUR.W.lookHold = 1.2; CUR.W.recenter = false; }
+function lookEnd(e){ if(e.pointerId !== look.id) return; look.id = null; cam2.x = 0; cam2.y = 0;
+  if(cstick){ cstick.classList.remove("on"); cstick.style.left = cstick.style.top = cstick.style.right = cstick.style.bottom = ""; } if(cnub) cnub.style.transform = ""; }
+addEventListener("wheel", e => { if(!CUR || e.target.closest(".card,.ov")) return; const W = CUR.W; W.camDist = Math.max(CAM.distMin, Math.min(CAM.distMax, (W.camDist || CAM.dist) + e.deltaY*.01)); }, {passive:true});
+function recenterCam(){ if(CUR && CUR.W){ CUR.W.recenter = true; CUR.W.lookHold = 0; } }
+addEventListener("keydown", e => { if(e.code === "KeyC") recenterCam(); });
+/* losing focus (alt-tab, a phone call) must not leave a key "held" — she would walk forever */
+const releaseAll = () => { for(const k in keys) keys[k] = false; jumpHeld = false; joy.x = joy.y = 0; cam2.x = cam2.y = 0; };
+addEventListener("blur", releaseAll); document.addEventListener("visibilitychange", () => { if(document.hidden) releaseAll(); });
 addEventListener("pointerdown", lookStart, {passive:false}); addEventListener("pointermove", lookMove, {passive:false});
 addEventListener("pointerup", lookEnd); addEventListener("pointercancel", lookEnd);
 addEventListener("pointerdown", joyStart, {passive:false});
 addEventListener("pointermove", joyMove, {passive:false});
 addEventListener("pointerup", joyEnd); addEventListener("pointercancel", joyEnd);
 $("act").addEventListener("pointerdown", e => { e.stopPropagation(); interact(); });
+$("recenter").addEventListener("pointerdown", e => { e.stopPropagation(); recenterCam(); });
 $("jmp").addEventListener("pointerdown", e => { e.stopPropagation(); jumpHeld = true; tryJump(); });
 $("jmp").addEventListener("pointerup", e => { e.stopPropagation(); jumpHeld = false; });
 $("jmp").addEventListener("pointercancel", () => jumpHeld = false);
@@ -1380,7 +1419,7 @@ function buildIsland(cfg){
       arm.position.set(spC.x, yBase, spC.z - 7 + t*13);
       arm.rotation.set(Math.PI*.42, t*2.4, Math.PI/2);
       scene.add(arm);
-      I.colliders.push({x:arm.position.x, z:arm.position.z, r:rad*.55, camOnly:true});
+      I.colliders.push({x:arm.position.x, z:arm.position.z, r:rad*.4, camOnly:true});
     }
     for(let i=0;i<18;i++){
       const s = sample(4, 42, true); if(!s) continue;
@@ -1729,13 +1768,58 @@ function walkerUpdate(I, dt, t){
     else f.rotation.z = (i?1:-1)*(W.gliding ? 1.25 : .5) + Math.sin(t*3+i)*.05; });
   W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? 1.6 : 0;
 
-  if(W.lookHold > 0) W.lookHold -= dt; else W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*1.8));
-  const portrait = innerHeight > innerWidth, camD = portrait ? 15 : 11.5, camH = portrait ? 6.2 : 4.9;
-  const lookAt = new THREE.Vector3(W.x, W.y+2.6, W.z);
-  const desired = new THREE.Vector3(W.x - Math.sin(W.camYaw)*camD, W.y + camH, W.z - Math.cos(W.camYaw)*camD);
-  const goal = cameraCollide(I, lookAt, desired);
-  camera.position.lerp(goal, Math.min(1, dt*4.2));
-  camera.lookAt(lookAt);
+  updateCamera(I, dt, mag > .08 ? curSpeed : 0);
+}
+/* ---- the follow camera ----
+   A free orbit the player owns: yaw and pitch only change when you turn them (drag, right stick, Q/E, R/F,
+   wheel to zoom). There is no "swing round behind her" chase — that loop (heading defined relative to the
+   camera, camera chasing the heading) is what made strafing spiral and backing up pirouette. The only
+   automatic motion is a lazy settle that acts when she is already walking roughly away from the camera,
+   so it converges instead of steering. The arm is clamped by scenery and by the terrain itself. */
+const CAM = {pitch:.30, pitchMin:-.12, pitchMax:.95, dist:11.5, distMin:6.5, distMax:17, portraitDist:15};
+function camRig(I, immediate){
+  const W = I.W, portrait = innerHeight > innerWidth;
+  if(W.camPitch == null) W.camPitch = CAM.pitch;
+  if(W.camDist == null) W.camDist = portrait ? CAM.portraitDist : CAM.dist;
+  if(W.camDistCur == null) W.camDistCur = W.camDist;
+  const look = new THREE.Vector3(W.x, W.y+2.6, W.z);
+  if(!W.look || immediate) W.look = look.clone();
+  return {W, look, portrait};
+}
+function updateCamera(I, dt, speed){
+  const {W, look} = camRig(I);
+  /* input: right stick (rate), Q/E + R/F keys (rate); drag is applied directly in lookMove */
+  const yawRate = (keys.KeyQ ? 1 : 0) - (keys.KeyE ? 1 : 0) - cam2.x*1.3, pitchRate = ((keys.KeyR ? 1 : 0) - (keys.KeyF ? 1 : 0))*.8 + cam2.y*1.1;
+  if(yawRate || pitchRate){ W.camYaw += yawRate*2.4*dt; W.camPitch += pitchRate*1.3*dt; W.lookHold = 1.2; }
+  W.camPitch = Math.max(CAM.pitchMin, Math.min(CAM.pitchMax, W.camPitch));
+  if(W.lookHold > 0) W.lookHold -= dt;
+  else if(W.recenter){ W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*6)); W.camPitch += (CAM.pitch - W.camPitch)*Math.min(1, dt*6);
+    let d = W.heading - W.camYaw; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2; if(Math.abs(d) < .02) W.recenter = false; }
+  else if(speed > 0){ /* lazy settle: strength = how much she is already walking away from the camera; zero when strafing or backing up */
+    let d = W.heading - W.camYaw; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2;
+    const away = Math.max(0, Math.cos(d)); if(away > .5) W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*.55*away*(speed/SPEED))); }
+  while(W.camYaw > Math.PI) W.camYaw -= Math.PI*2; while(W.camYaw < -Math.PI) W.camYaw += Math.PI*2;
+  /* the look point trails her a touch so steps and jumps don't jolt the frame */
+  W.look.lerp(look, Math.min(1, dt*12));
+  placeCamera(I, dt);
+}
+function placeCamera(I, dt){
+  const W = I.W, portrait = innerHeight > innerWidth;
+  const want = portrait ? Math.max(W.camDist, CAM.portraitDist) : W.camDist;
+  const cp = Math.cos(W.camPitch), sp = Math.sin(W.camPitch);
+  const dir = new THREE.Vector3(-Math.sin(W.camYaw)*cp, sp, -Math.cos(W.camYaw)*cp);      /* unit vector from her to the camera */
+  const desired = W.look.clone().addScaledVector(dir, want);
+  /* scenery: cylinders pull the arm in */
+  const cc = cameraCollide(I, W.look, desired, 3.5*cp); let arm = Math.min(want, Math.hypot(cc.x-W.look.x, cc.z-W.look.z)/Math.max(cp, .05));
+  /* terrain: walk the arm and stop before it dips under the ground (hills, mesas, the lighthouse rock) */
+  for(let k = 1; k <= 12; k++){ const t = arm*k/12, px = W.look.x + dir.x*t, pz = W.look.z + dir.z*t, py = W.look.y + dir.y*t;
+    if(I.inside(px,pz) && py < I.height(px,pz) + 1.1){ arm = Math.max(3.5, t - .8); break; } }
+  /* pull in fast, ease back out slowly */
+  W.camDistCur += (arm - W.camDistCur)*Math.min(1, dt*(arm < W.camDistCur ? 14 : 3));
+  camera.position.copy(W.look).addScaledVector(dir, W.camDistCur);
+  const gy = I.inside(camera.position.x, camera.position.z) ? I.height(camera.position.x, camera.position.z) + 1.0 : -Infinity;
+  if(camera.position.y < gy) camera.position.y = gy;
+  camera.lookAt(W.look);
 }
 function tryJump(){
   if(!CUR || !CUR.W.active) return;
@@ -1854,6 +1938,9 @@ function nearest(I){
   { const d = Math.hypot(W.x-cfg.dock[0], W.z-cfg.dock[1]); if(d < 10) add("dock", d, {label: "Take the boat"}); }
   if(!cands.length) return null;
   cands.sort((a,b) => (a.pri - b.pri) || (a.d - b.d));
+  /* an unread note right at her feet beats a wandering NPC or the castle doors, which otherwise hide it */
+  const closeNote = cands.find(c => c.kind === "note" && c.d < 3);
+  if(closeNote && (cands[0].kind === "npc" || cands[0].kind === "castle")) return closeNote;
   return cands[0];
 }
 function interact(){
@@ -1940,17 +2027,15 @@ function setMode(m){
   $("cap").classList.toggle("on", m === "sail"); $("hud").classList.toggle("hide", m === "sail");
   $("prompt").classList.remove("on");
 }
-async function goSail(after){ ovNone(); await toBlack(); sailT = 0; sBoat.position.set(0,0,0);
+async function goSail(after){ loadRig("lala"); ovNone(); await toBlack(); sailT = 0; sBoat.position.set(0,0,0);
   applyOutfit(sRider, CUR && CUR.cfg.outfit && G.abilities[CUR.cfg.ability.key] ? CUR.cfg.outfit : "base");
   CUR = null; setMode("sail"); sailDone = after; await fromBlack(); }
 async function goIsland(I, skipFade){
   if(!skipFade) await toBlack();
-  CUR = I; setMode("island");
+  CUR = I; setMode("island"); preloadRigs(I);
   const W = I.W, cfg = I.cfg;
   W.x = cfg.spawn[0]; W.z = cfg.spawn[1]; W.y = I.height(W.x,W.z); W.vy = 0; W.grounded = true; W.heading = Math.PI; W.camYaw = Math.PI; W.active = false;
-  camera.position.copy(cameraCollide(I,
-    new THREE.Vector3(W.x, W.y+2.4, W.z),
-    new THREE.Vector3(W.x - Math.sin(W.camYaw)*13.5, W.y+7.4, W.z - Math.cos(W.camYaw)*13.5)));
+  W.camPitch = CAM.pitch; W.lookHold = 0; W.recenter = false; camRig(I, true); W.camDistCur = W.camDist; placeCamera(I, 1);
   applyOutfit(W, cfg.outfit && G.abilities[cfg.ability.key] ? cfg.outfit : "base");
   I.moons.forEach(m => m.visible = !G.moonsTaken[m.userData.id]);
   if(I.pickup) I.pickup.visible = !G.abilities[cfg.ability.key];
@@ -1975,7 +2060,7 @@ function renderDock(){
     const got = G.letters.filter(Boolean).length;
     const st = c.hub ? `${got} of 4 letters · the keep` : (G.letters[c.idx] ? `Letter ${c.glyph} recovered` : (G.abilities[c.ability.key] ? `${c.ability.name} found — letter still out there` : "Unexplored"));
     d.innerHTML = `<h3>${c.hub ? "Home Island" : c.name}</h3><div class="s">${c.hub ? "Luna's Keep" : c.song}</div><div class="st">${st}</div>`;
-    d.onclick = () => { SAIL_LINES = c.hub ? ["Home, then.", `${got} of four.`, "The keep is waiting."] : [`${c.name}. ${c.song}.`, "Find what she left. Wear it.", "Then find the letter."]; goSail(() => goIsland(ISL[c.key])); };
+    d.onclick = () => { SAIL_LINES = c.hub ? ["Home, then.", `${got} of four.`, "The keep is waiting."] : [`${c.name}. ${c.song}.`, "Find what she left. Wear it.", "Then find the letter."]; preloadRigs(ISL[c.key]); goSail(() => goIsland(ISL[c.key])); };
     list.appendChild(d);
   });
 }
