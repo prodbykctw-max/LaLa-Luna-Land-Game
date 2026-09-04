@@ -260,7 +260,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-04m";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-04p";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 renderer.setPixelRatio(PROF.dpr);
@@ -548,7 +548,11 @@ function makeLala(){
    every character built for it swaps from its primitive stand-in to a skinned clone with clips. */
 const DBG = (...a) => console.log("[lala]", (performance.now()/1000).toFixed(2)+"s", ...a);
 const RIGS = {
-  lala: {url:"assets/lala.glb", height:2.95, ink:.009},
+  /* Her head is rebuilt: Autosprite's image->3D step melted the face (gouged mesh + a shredded UV atlas),
+     so the clean 2D portrait is re-projected onto the mesh and the reconstruction noise is smoothed out.
+     ?old=1 loads the previous head for comparison. */
+  lala: {url: new URLSearchParams(location.search).get("old") ? "assets/lala-v2-original.glb" : "assets/lala.glb", height:2.95, ink:.009,
+         pbr: !!new URLSearchParams(location.search).get("pbr")},
   horse:{url:"assets/horse.glb", height:1.65*2.95/1.70},        /* ~16 hands at the withers */
   cow:  {url:"assets/cow.glb", height:1.42*2.95/1.70},          /* real cattle stand ~1.4 m at the shoulder */
   dino: {url:"assets/dino.glb", height:7.4},
@@ -581,10 +585,13 @@ function loadRig(name){
     const meshes = []; gltf.scene.traverse(o => { if(o.isMesh) meshes.push(o); });
     meshes.forEach(o => {
       o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
+      if(rig.pbr){                                   /* keep the model's own material and texture: exactly what Autosprite shows */
+        if(o.material){ o.material.side = THREE.FrontSide; o.material.envMapIntensity = 1; }
+        return; }
       const old = o.material;
       o.material = toonRim(new THREE.MeshToonMaterial({map: old && old.map || null, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
       /* ink outline: an inflated back-face twin sharing the skeleton, so rigged models match the inked world */
-      if(!PROF.ink || rig.ink === 0) return;
+      if(!PROF.ink || rig.ink === 0 || rig.pbr) return;
       const om = new THREE.MeshBasicMaterial({color: INK, side: THREE.BackSide, skinning: !!o.isSkinnedMesh, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4});
       om.onBeforeCompile = sh => { sh.uniforms.thick = {value: (rig.ink != null ? rig.ink : .045) / s}; sh.vertexShader = sh.vertexShader
         .replace("#include <common>", "#include <common>\nuniform float thick;")
