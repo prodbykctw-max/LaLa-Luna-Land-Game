@@ -508,7 +508,8 @@ const RIGS = {
   dino: {url:"assets/dino.glb", height:7.4},
   fan:  {url:"assets/npc-fan.glb", height:2.8, ink:.018},
   dock: {url:"assets/npc-dock.glb", height:2.9, ink:.018},
-  green:{url:"assets/npc-green.glb", height:2.8, ink:.018}
+  green:{url:"assets/npc-green.glb", height:2.8, ink:.018},
+  crowd:{url:"assets/npc-crowd.glb", height:2.7, ink:.018}
 };
 for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false, loading:false});
 function loadRig(name){
@@ -548,6 +549,7 @@ function wantRig(R, name){ const rig = RIGS[name]; if(!rig) return; R.rigName = 
 function attachRig(R, name){
   const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
   const model = THREE.SkeletonUtils.clone(gltf.scene);
+  if(R.tint != null) model.traverse(o => { if(o.isMesh && o.material && o.material.isMeshToonMaterial){ o.material = toonRim(o.material.clone()); o.material.color.setHex(R.tint); } });
   R.group.add(model); R.model = model;
   (R.primitive||[]).forEach(m => m.visible = false);
   bindAttachments(R, model, gltf.scene.scale.x);
@@ -759,14 +761,14 @@ const grassPatch = sh => {
         float push = (1.0 - smoothstep(0.0, 2.4, dist)) * (1.0 - smoothstep(1.5, 3.0, abs(io.y - uPlayer.y)));
         transformed.xz += normalize(d + vec2(0.001)) * push * 1.15 * w; transformed.y -= push * .42 * w; }`);
 };
-function grassField(scene, n, sampler, heightFn, cols){
+function grassField(scene, n, sampler, heightFn, cols, skip){
   const mat = toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide});
   mat.userData.patches = [["grass", sh => { grassPatch(sh); mat.userData.uniforms = sh.uniforms; }]];
   const mesh = new THREE.InstancedMesh(CLUMP, mat, n);
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), c = new THREE.Color();
   let k = 0;
   for(let i=0;i<n;i++){
-    const s = sampler(); if(!s) continue;
+    const s = sampler(); if(!s || (skip && skip(s[0], s[1]))) continue;
     /* clumps come in patches of 2-5 so density reads as natural grouping, not confetti */
     const cnt = 1 + (Math.random()*4|0);
     for(let j=0;j<cnt && k<n;j++){
@@ -1045,7 +1047,7 @@ const ISLANDS = [
   grassCols:[0x9ED49A,0x7CC383,0xB6E2AE],
   ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true},
   letter:{at:[58,-20], y:2.4, gate:"gate"},
-  gate:{x:24, zMin:-48, zMax:48},
+  gate:{x:24, zMin:-48, zMax:48}, beach:{x:-40, z:20, r:23},
   places:[{x:0,z:0,r:16,name:"The Square"},{x:58,z:-20,r:12,name:"The Point"},{x:-40,z:20,r:18,name:"The Beach"},{x:0,z:54,r:12,name:"Harbor Landing"}],
   fallback:"The Backstreets",
   decor:"town",
@@ -1120,7 +1122,7 @@ function buildIsland(cfg){
     }
     return y;
   };
-  const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[]};
+  const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[]};
 
   /* ground */
   cfg.lobes.forEach(l => {
@@ -1247,7 +1249,7 @@ function buildIsland(cfg){
       if(rr > .7) I.colliders.push({x:rx, z:rz, r:rr*.85}); }
   }
   /* wildflowers — instanced, planted in beds */
-  if(cfg.key !== "sanity") flowerField(scene, 320, () => sample(6, 66, true), height, cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4]);
+  if(cfg.key !== "sanity") flowerField(scene, 320, () => { const s = sample(6, 66, true); return (s && cfg.beach && Math.hypot(s[0]-cfg.beach.x, s[1]-cfg.beach.z) < cfg.beach.r) ? null : s; }, height, cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4]);
   /* specific decor */
   const column = (x,z,h,tilt,col) => { const c = inked(new THREE.CylinderGeometry(.85,1.0,h,12), col||P.stone, 1.9);
     c.position.set(x, height(x,z)+h/2, z); c.rotation.z = tilt||0; scene.add(c); I.colliders.push({x,z,r:1.1}); return c; };
@@ -1332,6 +1334,40 @@ function buildIsland(cfg){
     for(let i=0;i<8;i++){ const s = sample(28,52,true); if(!s) continue;
       const um = inked(new THREE.ConeGeometry(2.6,1.2,10), [0xF2A6C8,0xFFD37A,0x8ED8E8][i%3], 1.5); um.position.set(s[0],height(s[0],s[1])+3,s[1]); scene.add(um);
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,3,5), toon(BONE)); pole.position.set(s[0],height(s[0],s[1])+1.5,s[1]); scene.add(pole); }
+    /* beach life: towels, balls, a sandcastle, and a promenade of colourful storefronts on the north edge */
+    const beach = cfg.beach;
+    const sandPatch = new THREE.Mesh(new THREE.CircleGeometry(beach.r, 40), toon(P.sand, {map:TEX.meadow})); sandPatch.rotation.x = -Math.PI/2; sandPatch.position.set(beach.x, .04, beach.z); sandPatch.receiveShadow = true; scene.add(sandPatch);
+    const wetLine = new THREE.Mesh(new THREE.RingGeometry(beach.r-1.5, beach.r+.5, 40), new THREE.MeshBasicMaterial({color:0xD9C39C, transparent:true, opacity:.5})); wetLine.rotation.x = -Math.PI/2; wetLine.position.set(beach.x, .05, beach.z); scene.add(wetLine);
+    const bsample = (rmin, rmax) => { for(let k=0;k<20;k++){ const a = Math.random()*Math.PI*2, r = rmin+Math.random()*(rmax-rmin), x = beach.x+Math.cos(a)*r, z = beach.z+Math.sin(a)*r; if(inside(x,z)) return [x,z]; } return null; };
+    for(let i=0;i<14;i++){ const s = bsample(2, 20); if(!s) continue;
+      const tw = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.6), toon([0xF2A6C8,0xFFD37A,0x8ED8E8,0xB9A4F4,0xFFFFFF][i%5])); tw.rotation.x = -Math.PI/2; tw.rotation.z = Math.random()*Math.PI; tw.position.set(s[0], height(s[0],s[1])+.06, s[1]); scene.add(tw);
+      if(i%2===0){ const stripe = new THREE.Mesh(new THREE.PlaneGeometry(1.6,.3), toon(0xFFFFFF)); stripe.rotation.copy(tw.rotation); stripe.position.copy(tw.position); stripe.position.y += .01; stripe.translateY(.9); scene.add(stripe); } }
+    for(let i=0;i<5;i++){ const s = bsample(3, 20); if(!s) continue;
+      const ball = inked(new THREE.SphereGeometry(.45,12,10), [0xF08A5D,0x8ED8E8,0xFFE59A][i%3], 1.3); ball.position.set(s[0], height(s[0],s[1])+.45, s[1]); scene.add(ball);
+      const half = new THREE.Mesh(new THREE.SphereGeometry(.455,12,10,0,Math.PI), new THREE.MeshToonMaterial({color:0xFFFFFF, gradientMap:GRAD})); half.rotation.y = Math.random()*6; ball.add(half); }
+    { const cx = beach.x+6, cz = beach.z-4, by = height(cx,cz);
+      const base = inked(new THREE.CylinderGeometry(2.2,2.5,1.0,10), 0xE8D5A6, 1.4); base.position.set(cx, by+.5, cz); scene.add(base);
+      [[1.3,1.0,1.9],[-1.2,1.0,-.6],[.2,1.0,-1.7],[-.9,1.3,1.4]].forEach(([ox,h,oz]) => { const tw = inked(new THREE.CylinderGeometry(.5,.55,h+1.2,8), 0xE8D5A6, 1.2); tw.position.set(cx+ox, by+1.0+(h+1.2)/2, cz+oz); scene.add(tw);
+        const roof = inked(new THREE.ConeGeometry(.62,.7,8), 0xF2A6C8, 1.1); roof.position.set(cx+ox, by+1.0+h+1.2+.35, cz+oz); scene.add(roof); });
+      const keep = inked(new THREE.BoxGeometry(1.4,1.6,1.4), 0xE8D5A6, 1.3); keep.position.set(cx, by+1.8, cz); scene.add(keep);
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(.5,.32), new THREE.MeshBasicMaterial({color:0x9B84DC, side:THREE.DoubleSide})); flag.position.set(cx+.25, by+3.1, cz); scene.add(flag);
+      const fpole = new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,4), toon(0x5E4630)); fpole.position.set(cx, by+2.95, cz); scene.add(fpole);
+      I.colliders.push({x:cx, z:cz, r:2.4}); }
+    /* promenade storefronts along the north edge */
+    for(let i=0;i<8;i++){ const x = -28 + i*8, z = -36, w = 6.4, h = 5 + (i%3)*1.4, col = [0xF2A6C8,0xFFD37A,0x8ED8E8,0xB9A4F4,0xA8E6C8,0xFFB3A1,0xFFF1B8,0xC8E8FA][i];
+      if(!inside(x,z)) continue;
+      const bld = inked(new THREE.BoxGeometry(w,h,6), col, 1.6); bld.position.set(x, height(x,z)+h/2, z); scene.add(bld); I.colliders.push({x, z, r:4.2});
+      const roof = inked(new THREE.BoxGeometry(w+.6,.5,6.6), BONE, 1.3); roof.position.set(x, height(x,z)+h+.25, z); scene.add(roof);
+      const awn = inked(new THREE.BoxGeometry(w-.8,.16,2.2), i%2 ? 0xFFFFFF : 0xF08A5D, 1.2); awn.position.set(x, height(x,z)+2.6, z+3.9); awn.rotation.x = .22; scene.add(awn);
+      const door = new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.3), toon(0x5E4630)); door.position.set(x-1.4, height(x,z)+1.15, z+3.02); scene.add(door);
+      for(let k=0;k<2+(i%3);k++){ const win = new THREE.Mesh(new THREE.PlaneGeometry(1.0,1.1), new THREE.MeshBasicMaterial({color:0xBFE6F0})); win.position.set(x-2.2+k*1.8, height(x,z)+3.6+(k%2)*.0, z+3.02); scene.add(win); }
+      for(let k=0;k<3;k++){ const w2 = new THREE.Mesh(new THREE.PlaneGeometry(1.0,1.1), new THREE.MeshBasicMaterial({color:0xBFE6F0})); w2.position.set(x-2.2+k*2.2, height(x,z)+h-1.6, z+3.02); scene.add(w2); } }
+    /* the LUNA-tic crowd on the beach and round the square — light copies of the fan model, each tinted */
+    const tints = [0xFFFFFF, 0xFFD9E6, 0xDDF3FF, 0xFFF3C4, 0xE6DDFF, 0xD9FFE9];
+    for(let i=0;i<22;i++){ const onBeach = i < 15; const s = onBeach ? bsample(3, 20) : sample(18, 26, true); if(!s) continue;
+      const g = new THREE.Group(); const R = {group:g, primitive:[], tint: tints[i%tints.length]};
+      g.userData = {R, cfg:{name:null, wander: onBeach ? 5 : 8}, home:new THREE.Vector3(s[0],0,s[1]), state:"idle", timer:Math.random()*4, target:null, heading:Math.random()*6.3};
+      g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "crowd"); }
     if(cfg.gate){
       for(let z = cfg.gate.zMin; z <= cfg.gate.zMax; z += 4){
         const post = inked(new THREE.CylinderGeometry(.35,.4,3.6,8), BONE, 1.6); post.position.set(cfg.gate.x, height(cfg.gate.x,z)+1.8, z); scene.add(post); I.gateMeshes.push(post);
@@ -1410,7 +1446,6 @@ function buildIsland(cfg){
       m.userData = {id:cfg.key+":"+i}; if(G.moonsTaken[m.userData.id]) m.visible = false; scene.add(m); I.moons.push(m); }); }
 
   /* people — wanderers with idle/walk states; each has a line for the player */
-  I.npcs = [];
   (cfg.npcs||[]).forEach(n => {
     const g = new THREE.Group();
     const ph = inked(new THREE.CylinderGeometry(.38,.42,2.5,8), 0xC9B8A8, 1.5); ph.position.y = 1.3; g.add(ph);
@@ -1427,7 +1462,7 @@ function buildIsland(cfg){
   /* weather + fx */
   I.fx = {
     foam:I.foam,
-    grass: grassField(scene, cfg.key==="sanity"?900:2200, () => sample(6, 66, true), height, cfg.grassCols),
+    grass: grassField(scene, cfg.key==="sanity"?900:2200, () => sample(6, 66, true), height, cfg.grassCols, cfg.beach ? (x,z) => Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r : null),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
@@ -1652,7 +1687,7 @@ function nearest(I){
   if(I.pickup && I.pickup.visible){ const d = Math.hypot(W.x-I.pickup.position.x, W.z-I.pickup.position.z);
     if(d < 4.8 && Math.abs(W.y+2-I.pickup.position.y) < 5) add("ability", d, {label:"Take "+cfg.ability.name.toLowerCase()}); }
   if(cfg.hub){ const d = Math.hypot(W.x,W.z); if(d < 14 && d > 6) add("castle", d, {label: G.letters.every(Boolean) ? "Go inside" : "Try the doors"}); }
-  for(const g of (I.npcs||[])){ const d = Math.hypot(W.x-g.position.x, W.z-g.position.z); if(d < 4) add("npc", d, {obj:g, label:"Talk to "+g.userData.cfg.name}); }
+  for(const g of (I.npcs||[])){ if(!g.userData.cfg.name) continue; const d = Math.hypot(W.x-g.position.x, W.z-g.position.z); if(d < 4) add("npc", d, {obj:g, label:"Talk to "+g.userData.cfg.name}); }
   for(const n of I.notes){ const d = Math.hypot(W.x-n.position.x, W.z-n.position.z);
     if(d < 5.2 && Math.abs(W.y+2-n.position.y) < 4.5){ const read = !!G.notes[cfg.key+":"+n.userData.i];
       add("note", d + (read ? 100 : 0), {obj:n, label: read ? "Read again" : "Read the note"}); } }
