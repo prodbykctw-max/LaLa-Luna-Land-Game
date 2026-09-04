@@ -1027,8 +1027,8 @@ const ISLANDS = [
   trees:{n:38, min:18, max:64, s:[.9,1.8], palm:true},
   dock:[0,58], spawn:[0,50],
   weather:"glitter", creature:{type:"cow", n:5, r:[26,44], sp:[.05,.09]}, birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
-  npcs:[{rig:"fan", name:"Bea", at:[9,-7], wander:10, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
-        {rig:"fan", name:"Cass", at:[-12,11], wander:10, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
+  npcs:[{rig:"fan", name:"Bea", at:[20,-6], wander:9, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
+        {rig:"fan", name:"Cass", at:[-19,14], wander:9, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
         {rig:"dock", name:"Rafa", at:[-38,22], wander:8, line:"Beach is better at golden hour. Everything is. That's the whole trick of this town."}],
   grassCols:[0x9ED49A,0x7CC383,0xB6E2AE],
   ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true},
@@ -1528,10 +1528,14 @@ function islandUpdate(I, dt, t){
     if(dp < 4.5){ u.state = "greet"; u.timer = 1.2; u.heading = Math.atan2(W.x-g.position.x, W.z-g.position.z); }
     else if(u.state === "greet"){ u.timer -= dt; if(u.timer <= 0){ u.state = "idle"; u.timer = 1; } }
     else if(u.state === "idle"){ u.timer -= dt; if(u.timer <= 0){ const a = Math.random()*Math.PI*2, r = Math.random()*u.cfg.wander;
-        const tx = u.home.x+Math.cos(a)*r, tz = u.home.z+Math.sin(a)*r; if(I.inside(tx,tz) && canStand(I,tx,tz)){ u.target = {x:tx, z:tz}; u.state = "walk"; } else u.timer = .5; } }
+        const tx = u.home.x+Math.cos(a)*r, tz = u.home.z+Math.sin(a)*r;
+        const clear = !I.colliders.some(c => !c.camOnly && Math.hypot(tx-c.x, tz-c.z) < c.r + 1.2);
+        if(clear && I.inside(tx,tz) && canStand(I,tx,tz)){ u.target = {x:tx, z:tz}; u.state = "walk"; } else u.timer = .5; } }
     else if(u.state === "walk"){ const dx = u.target.x-g.position.x, dz = u.target.z-g.position.z, d = Math.hypot(dx,dz);
       if(d < .4){ u.state = "idle"; u.timer = 2+Math.random()*4; }
-      else { const sp = 2.1*dt; g.position.x += dx/d*sp; g.position.z += dz/d*sp; u.heading = Math.atan2(dx, dz); } }
+      else { const sp = 2.1*dt; g.position.x += dx/d*sp; g.position.z += dz/d*sp; u.heading = Math.atan2(dx, dz);
+        for(const c of I.colliders){ if(c.camOnly) continue; const rr = c.r + .6, cx = g.position.x-c.x, cz = g.position.z-c.z, cd = Math.hypot(cx,cz);
+          if(cd < rr && cd > 1e-4){ g.position.x = c.x + cx/cd*rr; g.position.z = c.z + cz/cd*rr; u.timer = 0; u.state = "idle"; } } } }
     g.position.y = I.height(g.position.x, g.position.z);
     let da = u.heading - g.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2; g.rotation.y += da*Math.min(1, dt*6);
     if(R.mixer){ playClip(R, u.state === "walk" ? "walk" : "idle"); R.mixer.update(dt); } });
