@@ -500,6 +500,9 @@ function makeLala(){
 const DBG = (...a) => console.log("[lala]", (performance.now()/1000).toFixed(2)+"s", ...a);
 const RIGS = {
   lala: {url:"assets/lala.glb", height:2.95},
+  horse:{url:"assets/horse.glb", height:2.9},
+  cow:  {url:"assets/cow.glb", height:2.6},
+  dino: {url:"assets/dino.glb", height:7.4},
   fan:  {url:"assets/npc-fan.glb", height:2.8},
   dock: {url:"assets/npc-dock.glb", height:2.9},
   green:{url:"assets/npc-green.glb", height:2.8}
@@ -517,11 +520,21 @@ function loadRig(name){
     gltf.scene.position.set(-(box.min.x+box.max.x)/2*s, -box.min.y*s, -(box.min.z+box.max.z)/2*s);
     /* re-shade with the world's toon ramp (keeping the painted texture) so the character sits in
        the same light as everything else instead of reading as a darker PBR import */
-    gltf.scene.traverse(o => { if(o.isMesh){
+    const meshes = []; gltf.scene.traverse(o => { if(o.isMesh) meshes.push(o); });
+    meshes.forEach(o => {
       o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
       const old = o.material;
-      o.material = toonRim(new THREE.MeshToonMaterial({map: old && old.map || null, color: 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
-    } });
+      o.material = toonRim(new THREE.MeshToonMaterial({map: old && old.map || null, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
+      /* ink outline: an inflated back-face twin sharing the skeleton, so rigged models match the inked world */
+      const om = new THREE.MeshBasicMaterial({color: INK, side: THREE.BackSide, skinning: !!o.isSkinnedMesh});
+      om.onBeforeCompile = sh => { sh.uniforms.thick = {value: .045 / s}; sh.vertexShader = sh.vertexShader
+        .replace("#include <common>", "#include <common>\nuniform float thick;")
+        .replace("#include <begin_vertex>", "vec3 transformed = vec3(position) + normalize(normal) * thick;"); };
+      om.customProgramCacheKey = () => "rigink" + (o.isSkinnedMesh ? "s" : "");
+      const tw = o.isSkinnedMesh ? new THREE.SkinnedMesh(o.geometry, om) : new THREE.Mesh(o.geometry, om);
+      if(o.isSkinnedMesh) tw.bind(o.skeleton, o.bindMatrix);
+      tw.frustumCulled = false; tw.castShadow = false; o.parent.add(tw);
+    });
     rig.gltf = gltf;
     DBG("rig reshaded", name, "attaching", rig.waiting.length);
     rig.waiting.forEach(R => attachRig(R, name)); rig.waiting.length = 0;
@@ -855,7 +868,9 @@ function makeCreature(type){
     const sp = new THREE.Points(gl, new THREE.PointsMaterial({color:0xFFE59A, size:.18, transparent:true, opacity:.9}));
     h.add(sp); h.userData.sparkle = sp;
   }
-  h.userData.legs = legs; h.userData.type = type; return h;
+  h.userData.legs = legs; h.userData.type = type;
+  if(RIGS[type]){ const R = {group:h, primitive:[...h.children].filter(c => !c.isPoints)}; h.userData.R = R; wantRig(R, type); }
+  return h;
 }
 
 /* ============================================================
@@ -1438,6 +1453,7 @@ function islandUpdate(I, dt, t){
     h.position.set(x, base, z); h.rotation.y = -u.a + Math.PI/2;
     if(u.type === "jelly"){ h.scale.y = 1 + Math.sin(t*2+u.ph)*.12; u.legs.forEach(l => l.rotation.x = Math.sin(t*2+l.userData.phase)*.25); }
     else u.legs.forEach(l => l.rotation.x = Math.sin(t*(u.type==="dino"?2.2:5) + l.userData.phase)*.45);
+    if(u.R && u.R.mixer){ if(u.R.current !== u.R.actions.walk) playClip(u.R, "walk", 0); u.R.mixer.update(dt * (u.type==="dino" ? .7 : 1)); }
     if(u.sparkle) u.sparkle.rotation.y = t*.8; });
   const ab = abilityOf(I);
   I.stones.forEach(s => s.mesh.visible = ab.lantern);
