@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Lala Luna Land</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -224,7 +224,7 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 document.body.appendChild(renderer.domElement);
-const camera = new THREE.PerspectiveCamera(56, innerWidth/innerHeight, .1, 900);
+const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .1, 900);
 /* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
@@ -242,7 +242,7 @@ const gradePass = new THREE.ShaderPass({
 }); composer.addPass(gradePass);
 function present(scene){ renderPass.scene = scene; composer.render(); }
 addEventListener("resize", () => {
-  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  camera.aspect = innerWidth/innerHeight; camera.fov = innerHeight > innerWidth ? 66 : 56; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
 });
 const INK = 0x241E2E, MOON = 0xFFF6D6, BONE = 0xF7F1E6;
@@ -638,6 +638,13 @@ function syncHUD(){
    ============================================================ */
 const keys = {};
 const isTouch = matchMedia("(pointer:coarse)").matches;
+/* iOS Safari ignores user-scalable=no: kill pinch-zoom and double-tap zoom by hand so the page never gets stuck zoomed in */
+["gesturestart","gesturechange","gestureend"].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), {passive:false}));
+document.addEventListener("touchstart", e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
+let lastTouchEnd = 0;
+document.addEventListener("touchend", e => { const now = Date.now(); if(now - lastTouchEnd < 320) e.preventDefault(); lastTouchEnd = now; }, {passive:false});
+document.addEventListener("touchmove", e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
+document.addEventListener("dblclick", e => e.preventDefault(), {passive:false});
 document.body.classList.add(isTouch ? "touch" : "desktop");
 $("pk").textContent = isTouch ? "TAP" : "E";
 let jumpHeld = false;
@@ -672,6 +679,15 @@ function joyEnd(e){
   joy.id = null; joy.x = 0; joy.y = 0; nub.style.transform = "";
   stick.style.left = ""; stick.style.top = ""; stick.style.bottom = "";
 }
+/* drag on the right half (touch) or with the mouse anywhere off the UI: orbit the camera; auto-follow resumes after */
+let look = {id:null, x:0};
+function lookStart(e){ if(look.id !== null || !CUR || e.target.closest("button,.card,.ov")) return;
+  if(e.clientX < innerWidth*.5 && (isTouch || e.clientY > innerHeight*.35)) return; look.id = e.pointerId; look.x = e.clientX; }
+function lookMove(e){ if(e.pointerId !== look.id || !CUR) return; const dx = e.clientX - look.x; look.x = e.clientX;
+  CUR.W.camYaw -= dx*.0085; CUR.W.lookHold = 2.2; }
+function lookEnd(e){ if(e.pointerId === look.id) look.id = null; }
+addEventListener("pointerdown", lookStart, {passive:false}); addEventListener("pointermove", lookMove, {passive:false});
+addEventListener("pointerup", lookEnd); addEventListener("pointercancel", lookEnd);
 addEventListener("pointerdown", joyStart, {passive:false});
 addEventListener("pointermove", joyMove, {passive:false});
 addEventListener("pointerup", joyEnd); addEventListener("pointercancel", joyEnd);
@@ -782,11 +798,16 @@ function butterflies(scene, n, heightFn, cols){
 function birdFlock(scene, n, col){
   const list = [];
   for(let i=0;i<n;i++){
-    const g = new THREE.Group();
-    [-1,1].forEach(s => { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.5,.22),
-      new THREE.MeshBasicMaterial({color:col, side:THREE.DoubleSide, transparent:true, opacity:.62}));
-      w.position.x = s*.75; w.userData.s = s; g.add(w); });
-    g.userData = {a:Math.random()*6.3, r:90+Math.random()*70, sp:.05+Math.random()*.04, y:44+Math.random()*26, ph:Math.random()*6.3};
+    const g = new THREE.Group(), low = i % 3 === 0;                     /* every third bird is a low gull near the shore */
+    const bm = toon(low ? 0xF7F1E6 : col);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(.34,8,6), bm); body.scale.set(1.9,.8,.8); g.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.2,7,6), bm); head.position.set(.62,.14,0); g.add(head);
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(.07,.3,5), new THREE.MeshBasicMaterial({color:0xF0A56D})); beak.rotation.z = -Math.PI/2; beak.position.set(.88,.12,0); g.add(beak);
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(.18,.5,4), bm); tail.rotation.z = Math.PI/2; tail.position.set(-.72,.02,0); tail.scale.y = .5; g.add(tail);
+    [-1,1].forEach(s => { const wg = new THREE.PlaneGeometry(1.7,.5); wg.translate(0,0,0);
+      const w = new THREE.Mesh(wg, new THREE.MeshToonMaterial({color:low ? 0xE8E0D2 : col, gradientMap:GRAD, side:THREE.DoubleSide}));
+      const piv = new THREE.Group(); piv.position.set(-.05, .12, s*.25); w.rotation.x = Math.PI/2; w.position.z = s*.85; piv.add(w); piv.userData.s = s; g.add(piv); });
+    g.userData = {a:Math.random()*6.3, r: low ? 30+Math.random()*34 : 90+Math.random()*70, sp: low ? .12+Math.random()*.06 : .05+Math.random()*.04, y: low ? 7+Math.random()*9 : 44+Math.random()*26, ph:Math.random()*6.3};
     scene.add(g); list.push(g);
   }
   return list;
@@ -836,8 +857,8 @@ function fxUpdate(fx, dt, t, camPos){
     b.children.forEach((w,i) => w.rotation.y = Math.sin(t*13+u.ph)*(i?1:-1)*1.1);
     b.lookAt(camPos.x, b.position.y, camPos.z); });
   fx.birds.forEach(b => { const u = b.userData; u.a += u.sp*dt;
-    b.position.set(Math.cos(u.a)*u.r, u.y+Math.sin(t*.4+u.ph)*3, Math.sin(u.a)*u.r); b.rotation.y = -u.a;
-    b.children.forEach(w => w.rotation.z = w.userData.s*Math.sin(t*7+u.ph)*.55); });
+    b.position.set(Math.cos(u.a)*u.r, u.y+Math.sin(t*.4+u.ph)*3, Math.sin(u.a)*u.r); b.rotation.y = -u.a - Math.PI/2; b.rotation.z = .12;
+    b.children.forEach(w => { if(w.userData.s) w.rotation.x = w.userData.s*Math.sin(t*(u.r < 70 ? 9 : 6)+u.ph)*.7; }); });
   if(fx.motes){ const m = fx.motes; m.position.x = camPos.x; m.position.z = camPos.z; m.rotation.y = t*.02;
     const p = m.geometry.attributes.position.array;
     for(let i=0;i<p.length;i+=3){ p[i+1] += m.userData.rise*dt; if(p[i+1] > 15) p[i+1] = 1; }
@@ -864,13 +885,19 @@ function makeCreature(type){
     for(let k=0;k<4;k++){ const l = inked(new THREE.CylinderGeometry(.42,.5,2.6,8), 0x587F49, 1.6);
       l.position.set(k<2?1.5:-1.5,1.3,k%2?1:-1); l.userData.phase=k*1.5; h.add(l); legs.push(l); }
   } else if(type === "jelly"){
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(1.4,16,12,0,Math.PI*2,0,Math.PI/2),
-      new THREE.MeshToonMaterial({color:0xA8DCF4, gradientMap:GRAD, transparent:true, opacity:.55, emissive:0x6FB4E8, emissiveIntensity:.4}));
+    /* bell with a scalloped skirt, an inner glowing core, and eight two-segment tentacles that wave */
+    const pts = []; for(let k=0;k<=14;k++){ const t = k/14, ang = t*Math.PI/2; pts.push(new THREE.Vector2(Math.sin(ang)*1.45*(1 + (k===14 ? .08*Math.sin(t*40) : 0)), Math.cos(ang)*1.2 - .3)); }
+    pts.push(new THREE.Vector2(1.35,-.55), new THREE.Vector2(1.1,-.35));
+    const dome = new THREE.Mesh(new THREE.LatheGeometry(pts, 28),
+      new THREE.MeshToonMaterial({color:0xA8DCF4, gradientMap:GRAD, transparent:true, opacity:.6, emissive:0x6FB4E8, emissiveIntensity:.45, side:THREE.DoubleSide, depthWrite:false}));
     h.add(dome);
-    for(let k=0;k<6;k++){ const a = (k/6)*Math.PI*2;
-      const tn = new THREE.Mesh(new THREE.CylinderGeometry(.05,.02,2.6,4), new THREE.MeshBasicMaterial({color:0xC8E8FA, transparent:true, opacity:.6}));
-      tn.position.set(Math.cos(a)*.7,-1.3,Math.sin(a)*.7); tn.userData.phase=k; h.add(tn); legs.push(tn); }
-    const glow = new THREE.PointLight(0x8FD0F4, .7, 12); h.add(glow);
+    const core = new THREE.Mesh(new THREE.SphereGeometry(.5,10,8), new THREE.MeshBasicMaterial({color:0xE8F6FF})); core.position.y = .25; core.scale.y = .7; h.add(core);
+    for(let k=0;k<8;k++){ const a = (k/8)*Math.PI*2, r = .55+.35*(k%2);
+      const seg = new THREE.Group(); seg.position.set(Math.cos(a)*r, -.35, Math.sin(a)*r);
+      const t1 = new THREE.Mesh(new THREE.CylinderGeometry(.06,.035,1.5,5), new THREE.MeshBasicMaterial({color:0xC8E8FA, transparent:true, opacity:.65})); t1.position.y = -.75; seg.add(t1);
+      const seg2 = new THREE.Group(); seg2.position.y = -1.5; const t2 = new THREE.Mesh(new THREE.CylinderGeometry(.035,.012,1.6,5), t1.material); t2.position.y = -.8; seg2.add(t2); seg.add(seg2);
+      seg.userData.phase = k*.8; seg.userData.child = seg2; h.add(seg); legs.push(seg); }
+    const glow = new THREE.PointLight(0x8FD0F4, .8, 14); h.add(glow);
   } else if(type === "cow"){
     const body = inked(new THREE.BoxGeometry(2.4,1.3,1.2), BONE, 1.9); body.position.y=1.5; h.add(body);
     [[.5,1.9,.61],[-.6,1.4,-.61],[.1,1.2,.61],[-.4,2.0,.3]].forEach(([x,y,z]) => {
@@ -1247,7 +1274,7 @@ function buildIsland(cfg){
     for(let i=0;i<8;i++){ const a = (i/8)*Math.PI*2, x = Math.cos(a)*12, z = Math.sin(a)*12;
       const stall = inked(new THREE.BoxGeometry(3.4,2.2,2.2), [0xF2A6C8,0xFFD37A,0x9B84DC,0x8ED8E8][i%4], 1.6);
       stall.position.set(x, height(x,z)+1.1, z); stall.rotation.y = -a; scene.add(stall);
-      I.colliders.push({x, z, r:2.0});
+      I.colliders.push({x, z, r:2.15});
       const awn = inked(new THREE.BoxGeometry(3.8,.2,2.8), BONE, 1.3); awn.position.set(x, height(x,z)+2.4, z); awn.rotation.y = -a; scene.add(awn); }
     for(let i=0;i<10;i++){ const a = (i/10)*Math.PI*2, x = Math.cos(a)*15.5, z = Math.sin(a)*15.5;
       const post = inked(new THREE.CylinderGeometry(.14,.18,5,6), P.wood, 1.3); post.position.set(x, height(x,z)+2.5, z); scene.add(post);
@@ -1393,7 +1420,7 @@ function buildIsland(cfg){
 /* ============================================================
    WALKER PHYSICS
    ============================================================ */
-const GRAV = -26, JUMPV = 9.4, GLIDE_VY = -2.0, SPEED = 12.5;
+const GRAV = -26, JUMPV = 11.5, GLIDE_VY = -2.0, SPEED = 8.6, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
 function abilityOf(I){
   const a = I.cfg.ability; if(!a) return {glide:false, jumpMul:1, lantern:false, gateOpen:false};
   const has = !!G.abilities[a.key];
@@ -1417,9 +1444,11 @@ function walkerUpdate(I, dt, t){
   if(keys.KeyA||keys.ArrowLeft) ix-=1; if(keys.KeyD||keys.ArrowRight) ix+=1;
   ix += joy.x; iz += joy.y;
   const mag = Math.min(1, Math.hypot(ix,iz));
+  let curSpeed = 0;
   if(mag > .08){
     const ang = Math.atan2(-ix,-iz) + W.camYaw, boost = W.gliding ? 1.35 : 1;
-    const mx = Math.sin(ang)*SPEED*mag*boost*dt, mz = Math.cos(ang)*SPEED*mag*boost*dt;
+    curSpeed = SPEED*mag*boost;
+    const mx = Math.sin(ang)*curSpeed*dt, mz = Math.cos(ang)*curSpeed*dt;
     W.heading = ang;
     const hNow = I.height(W.x,W.z);
     const tryMove = (nx,nz) => {
@@ -1431,7 +1460,7 @@ function walkerUpdate(I, dt, t){
     /* solid scenery: slide around trunks, rocks and towers instead of walking through them */
     if(I.colliders) for(const c of I.colliders){
       if(c.camOnly) continue;
-      const rr = c.r*.7 + .55, dx = W.x-c.x, dz = W.z-c.z, d = Math.hypot(dx,dz);
+      const rr = c.r + .5, dx = W.x-c.x, dz = W.z-c.z, d = Math.hypot(dx,dz);      /* her own body radius on top of the object's */
       if(d < rr && d > 1e-4){ const px = c.x + dx/d*rr, pz = c.z + dz/d*rr; if(canStand(I,px,pz)){ W.x = px; W.z = pz; } }
     }
   }
@@ -1449,7 +1478,12 @@ function walkerUpdate(I, dt, t){
   W.group.rotation.y += da*Math.min(1, dt*9);
   const moving = mag > .08 && W.grounded;
   W.legs.forEach((l,i) => l.position.z = moving ? Math.sin(t*10+i*Math.PI)*.3 : 0);
-  if(W.mixer){ playClip(W, !W.grounded ? "jump" : (moving ? (W.gliding ? "run" : "walk") : "idle")); W.mixer.update(dt); }
+  if(W.mixer){
+    /* feet match the ground: clip speed is tied to distance covered per stride, and the jog takes over above a brisk walk */
+    const jog = curSpeed > SPEED*.62;
+    playClip(W, !W.grounded ? "jump" : (moving ? (jog ? "run" : "walk") : "idle"));
+    if(moving && W.current){ W.current.timeScale = curSpeed / (jog ? STRIDE_JOG : STRIDE_WALK); } else if(W.current) W.current.timeScale = 1;
+    W.mixer.update(dt); }
   if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = .34; } } else AU.stepT = 0;
   W.group.position.set(W.x, W.y + (moving ? Math.abs(Math.sin(t*10))*.07 : 0), W.z);
   W.group.rotation.z = W.gliding ? Math.sin(t*2)*.06 : 0;
@@ -1460,9 +1494,10 @@ function walkerUpdate(I, dt, t){
     else f.rotation.z = (i?1:-1)*(W.gliding ? 1.25 : .5) + Math.sin(t*3+i)*.05; });
   W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? 1.6 : 0;
 
-  W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*1.8));
+  if(W.lookHold > 0) W.lookHold -= dt; else W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*1.8));
+  const portrait = innerHeight > innerWidth, camD = portrait ? 17.5 : 13.5, camH = portrait ? 9.4 : 7.4;
   const lookAt = new THREE.Vector3(W.x, W.y+2.4, W.z);
-  const desired = new THREE.Vector3(W.x - Math.sin(W.camYaw)*13.5, W.y + 7.4, W.z - Math.cos(W.camYaw)*13.5);
+  const desired = new THREE.Vector3(W.x - Math.sin(W.camYaw)*camD, W.y + camH, W.z - Math.cos(W.camYaw)*camD);
   const goal = cameraCollide(I, lookAt, desired);
   camera.position.lerp(goal, Math.min(1, dt*4.2));
   camera.lookAt(lookAt);
@@ -1504,7 +1539,8 @@ function islandUpdate(I, dt, t){
     const x = Math.cos(u.a)*u.r, z = Math.sin(u.a)*u.r;
     const base = u.fly ? 5 + Math.sin(t*.9+u.ph)*1.6 : I.height(x,z) + Math.abs(Math.sin(t*5))*.12;
     h.position.set(x, base, z); h.rotation.y = -u.a - Math.PI/2;   /* nose points along the direction of travel */
-    if(u.type === "jelly"){ h.scale.y = 1 + Math.sin(t*2+u.ph)*.12; u.legs.forEach(l => l.rotation.x = Math.sin(t*2+l.userData.phase)*.25); }
+    if(u.type === "jelly"){ const p = Math.sin(t*2+u.ph); h.scale.set(1 - p*.06, 1 + p*.14, 1 - p*.06);
+      u.legs.forEach(l => { l.rotation.x = Math.sin(t*2+l.userData.phase)*.3; l.rotation.z = Math.cos(t*1.6+l.userData.phase)*.25; l.userData.child.rotation.x = Math.sin(t*2.4+l.userData.phase+1)*.45; }); }
     else u.legs.forEach(l => l.rotation.x = Math.sin(t*(u.type==="dino"?2.2:5) + l.userData.phase)*.45);
     if(u.R && u.R.mixer){ if(u.R.current !== u.R.actions.walk) playClip(u.R, "walk", 0); u.R.mixer.update(dt * (u.type==="dino" ? .7 : 1)); }
     if(u.sparkle) u.sparkle.rotation.y = t*.8; });
