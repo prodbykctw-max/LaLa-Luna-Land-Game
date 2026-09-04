@@ -227,3 +227,13 @@ Rule of thumb: everything the update loop *reads* should be reachable from `__T`
 ### Outputs in this run
 
 `qa/_harness.mjs`, `qa/traversal.mjs`, `qa/reach.mjs`, `qa/camera.mjs`, `qa/console_load.mjs`, `qa/assets.mjs`, `qa/mobile.mjs`, `qa/framebudget.mjs`, `qa/codehealth.mjs`, `qa/probe_hit.mjs` (helper), `qa/out/*.json|.png|.log`.
+
+---
+
+## Fixes applied after this audit (same day, commits 70b012c → 3173009)
+
+- **Camera (Suite 3, T1/T2)**: rewritten as a player-owned free orbit (`updateCamera` / `placeCamera` in index.html). No heading→camera chase loop; lazy settle only when already walking away from the camera; pitch control; wheel zoom; C / on-screen button recenter; right-half touch stick; arm clamped by scenery, terrain height and baked canopy spheres; near-camera screen-door fade on baked props; unified arrival placement. `qa/camera.mjs` after the fix: yaw path 0° on W/A/S/D, S-from-rest moves 18 u (was 1.4), stuck-keys-after-blur = 0 (blur/visibilitychange release). Camera-under-terrain grid check (2716 samples on green, 1376 sanity, 1760 town): 0 under ground.
+- **Reach R1/R2**: an unread note within 3 u now beats NPC and castle prompts — hub keep-door note and Town umbrella note both OK in `reach.mjs`.
+- **Assets (Suite 5)**: rigs load per island (`preloadRigs`); hub now fetches 3 GLBs, Town 16, Green 4.
+- **Mobile (Suite 6)**: top buttons no longer overlap the HUD (portrait: 0 overlaps), safe-area insets, `joyStart` button guard.
+- Still open: canopy pass-through when orbiting fast (now faded, not blocked), unseeded layout (T3), Sanity's 16 lights, skinned triangle share (player rig 60k).
