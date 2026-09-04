@@ -260,7 +260,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-04j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-04k";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 renderer.setPixelRatio(PROF.dpr);
@@ -1193,6 +1193,31 @@ const ISLANDS = [
     {x:4,z:6,who:"By the fountain",text:"Cow print and glitter, because why would a queen dress quiet."},
     {x:20,z:-12,who:"At the gate",text:"They opened it because they knew me. That's the only kind of gate I want."}
   ]
+},
+{
+  /* the fifth island — behind the keep door. Not on any dock list; you reach it through the portal. */
+  key:"moon", name:"Lala Luna Land", song:"the fifth song", idx:4, glyph:"\u25CF", acc:"#FFF6D6", outfit:"town", hidden:true,
+  intro:"The island that isn't on any map. She's been here the whole time, at the top of the rock, waiting for someone who found the other four.",
+  pal:{skyTop:0x1B1436, skyMid:0x6B4A8E, skyBot:0xE9A9A0, fog:0x8C6E9E, sand:0xF2DFC6, grass:0x6E9E8C, grassDk:0x3E6B62,
+       water:0x2A4A78, waterHi:0x74B4D6, key:0xFFF0D2, leaf:0x4E7E70, leaf2:0x7CB49E, wood:0x7A5A46, stone:0xE6DCCE},
+  moon:{pos:[0,150,-250], r:52, full:true},
+  lobes:[{x:0,z:0,r:46}],
+  features:[{type:"hill",x:-6,z:-26,r:26,h:34,name:"Morro do Pico"}],
+  trees:{n:22, min:16, max:60, s:[.7,1.2]},
+  dock:[0,44], spawn:[0,36],
+  weather:"glitter", creature:null, birds:8, bf:{n:16, cols:[0xFFF6D6,0xF2A6C8,0xB9A4F4]},
+  grassCols:[0x7FB79E,0x5E9986,0x9BD0B4],
+  ability:null,
+  letter:{at:[-6,-26], y:null, onPeak:true, gate:null},
+  places:[{x:-6,z:-26,r:30,name:"Morro do Pico"},{x:0,z:30,r:16,name:"The Last Landing"},{x:26,z:6,r:16,name:"The Gathering"}],
+  fallback:"Lala Luna Land",
+  decor:"none",
+  npcs:[],
+  notes:[
+    {x:0,z:30,who:"Nailed to the last post",text:"If you're reading this you found all four. Come up. I'll wait."},
+    {x:26,z:6,who:"Left in the grass",text:"Everybody who ever sang along is standing right here. Look around before you climb."},
+    {x:-6,z:2,who:"Halfway up",text:"Last one. The song was never hidden \u2014 it was waiting."}
+  ]
 }
 ];
 
@@ -1321,6 +1346,7 @@ const COASTS = {
   gr: {name:"Isla Gorgona, Colombia", km:[6,8], maxR:124.8, poly:[3.17,-79.09, 9.39,-84.21, 15.62,-89.32, 21.84,-94.44, 28.06,-99.55, 34.29,-104.67, 40.51,-109.78, 47.58,-111.24, 55.42,-109.4, 63.26,-107.56, 63.61,-99.78, 63.61,-91.72, 63.61,-83.65, 63.61,-75.59, 63.61,-67.53, 63.61,-59.47, 63.61,-51.4, 63.61,-43.34, 63.61,-35.28, 63.61,-27.22, 63.61,-19.16, 63.61,-11.09, 63.61,-3.03, 63.61,5.03, 61.87,12.28, 55.72,17.48, 49.56,22.68, 43.41,27.89, 37.26,33.09, 31.11,38.29, 24.95,43.49, 18.8,48.69, 12.68,53.92, 6.81,59.44, 0.93,64.95, -4.94,70.47, -10.81,75.98, -16.68,81.5, -24.42,83.53, -32.26,85.37, -40.1,87.21, -47.94,89.05, -55.78,90.89, -63.49,89.29, -71.18,86.89, -78.86,84.48, -86.55,82.07, -87.49,74.71, -87.49,66.65, -87.49,58.58, -84.65,53.05, -76.65,52.12, -68.66,51.18, -60.66,50.24, -52.66,49.3, -46.11,46.35, -42.66,39.06, -39.21,31.78, -35.77,24.49, -32.32,17.21, -28.87,9.92, -26.39,2.33, -24.98,-5.61, -23.57,-13.55, -22.16,-21.49, -20.75,-29.43, -19.34,-37.36, -17.94,-45.3, -15.49,-52.8, -10.82,-59.38, -6.16,-65.95, -1.49,-72.52]},
   sanity: {name:"San Andres, Colombia", km:[3.8,9.6], maxR:130, poly:[-18.92,61.35, -21.55,53.77, -24.19,46.18, -26.82,38.59, -29.45,31, -32.08,23.41, -34.71,15.82, -37.35,8.23, -37.71,0.45, -36.34,-7.48, -34.96,-15.41, -33.59,-23.34, -32.21,-31.27, -30.84,-39.2, -29.46,-47.13, -26.8,-54.54, -22.56,-61.33, -18.32,-68.11, -14.09,-74.9, -9.85,-81.68, -5.62,-88.47, -1.38,-95.25, 4,-100.92, 10.43,-105.55, 16.86,-110.19, 23.29,-114.82, 29.72,-119.45, 36.15,-124.09, 40.93,-123.42, 43.56,-115.83, 46.19,-108.24, 48.83,-100.65, 48.27,-92.88, 46.46,-85.04, 44.65,-77.21, 42.83,-69.37, 41.02,-61.53, 39.21,-53.7, 37.4,-45.86, 35.59,-38.02, 33.77,-30.18, 31.96,-22.35, 30.15,-14.51, 28.34,-6.67, 26.52,1.16, 24.71,9, 22.9,16.84, 21.09,24.68, 19.28,32.51, 17.46,40.35, 15.65,48.19, 13.84,56.02, 12.03,63.86, 10.22,71.7, 8.4,79.54, 6.59,87.37, 4.78,95.21, 2.97,103.05, 1.15,110.88, -4.98,113.75, -12.79,114.69, -20.6,115.62, -28.4,116.56, -36.21,117.5, -40.67,112.53, -43.76,105.12, -46.84,97.71, -45.44,91.08, -40.13,85.14, -34.83,79.19, -29.53,73.25, -24.22,67.3]},
   town: {name:"Curacao", km:[46.4,38.8], maxR:160, poly:[113.07,60.07, 120.01,67.06, 126.95,74.05, 133.89,81.04, 132.87,89.14, 123.6,91.43, 113.93,92.49, 104.22,93.08, 94.51,92.3, 85.48,88.89, 76.75,84.5, 68.79,78.76, 60.83,73.03, 52.86,67.3, 44.28,62.89, 34.91,60.19, 25.53,57.5, 16.25,54.58, 7.8,49.62, -0.65,44.67, -8.29,38.52, -15.82,32.2, -21.91,24.56, -27.05,16.13, -30.32,6.74, -38.09,1.55, -47.67,0.17, -57.11,-2.15, -64.68,-7.92, -70.56,-15.77, -75.37,-24.43, -80.19,-33.09, -85,-41.75, -93.15,-47.11, -101.4,-52.38, -107.86,-59.56, -109.75,-68.9, -108.77,-78.81, -108.14,-88.74, -108.95,-98.46, -114.2,-106.85, -108.08,-114.19, -100.02,-110.37, -91.08,-106.43, -82.13,-102.5, -73.37,-98.17, -65.13,-92.94, -58.03,-86.13, -52.5,-78.04, -48.74,-68.96, -46.5,-59.26, -44.25,-49.57, -40.51,-40.45, -35.24,-32.2, -28.14,-25.39, -21.03,-18.57, -13.4,-12.53, -4.72,-8.01, 3.96,-3.5, 13.01,-0.02, 22.5,2.19, 32,4.4, 41.49,6.61, 50.99,8.83, 60.48,11.04, 69.98,13.25, 79.47,15.47, 87.81,20.35, 92.13,28.77, 93.86,38.58, 98.09,47.41, 105.49,53.82]},
+  moon: {name:"Fernando de Noronha, Brazil", km:[8.3,5.4], maxR:109.5, poly:[53.46,-55.52, 59.85,-57.53, 66.24,-59.53, 72.63,-61.53, 79.02,-63.53, 82.94,-59.51, 86.09,-53.59, 89.24,-47.67, 89.57,-41.04, 89.57,-34.33, 89.57,-27.63, 89.57,-20.92, 87.11,-15.41, 81.84,-11.28, 76.57,-7.15, 71.3,-3.02, 66.02,1.12, 60.41,4.62, 54.09,6.84, 47.78,9.07, 41.46,11.3, 35.15,13.52, 28.84,15.75, 22.76,18.53, 16.85,21.66, 10.93,24.79, 5.01,27.92, -0.91,31.05, -6.83,34.18, -12.75,37.31, -18.67,40.44, -24.59,43.57, -30.51,46.7, -36.43,49.83, -42.35,52.96, -48.55,55.23, -55.17,56.27, -61.78,57.3, -68.39,58.34, -74.83,58.14, -80.89,55.29, -86.95,52.44, -93.01,49.6, -99.07,46.75, -95.84,42.42, -90.96,37.83, -86.08,33.24, -81.14,28.72, -75.86,24.59, -70.59,20.46, -65.32,16.33, -60.04,12.19, -54.79,8.04, -50.91,2.57, -47.04,-2.89, -44.02,-8.84, -41.4,-15.01, -38.77,-21.19, -35.21,-26.32, -28.82,-28.32, -22.43,-30.32, -16.05,-32.33, -9.66,-34.32, -3.14,-35.85, 3.38,-37.39, 9.89,-38.92, 16.41,-40.45, 22.92,-41.98, 29.23,-44.13, 35.29,-46.98, 41.35,-49.83, 47.41,-52.68]},
 };
 /* polygon helpers: point-in-polygon for the walkable test, and an outward offset for beach/foam rings */
 function polyOf(cfg){ const f = COASTS[cfg.key]; if(!f) return null; const p = []; for(let i=0;i<f.poly.length;i+=2) p.push([f.poly[i], f.poly[i+1]]); return p; }
@@ -1391,6 +1417,7 @@ function buildIsland(cfg){
       if(outer && Math.hypot(cfg.letter.at[0]-(outer.x-(outer.dx||0)), cfg.letter.at[1]-(outer.z-(outer.dz||0))) < outer.r + 2){
         cfg.letter.at = [+(cfg.letter.at[0]+(outer.dx||0)).toFixed(1), +(cfg.letter.at[1]+(outer.dz||0)).toFixed(1)];   /* rides the sea stack */
       } else { const [x,z] = land(cfg.letter.at[0], cfg.letter.at[1], 5); if(x !== cfg.letter.at[0] || z !== cfg.letter.at[1]){ cfg.letter.at = [x,z]; cfg.letter.reY = true; } }
+      if(cfg.letter.onPeak) cfg.letter.reY = true;
     }
     if(cfg.beach){ const [x,z] = land(cfg.beach.x, cfg.beach.z, cfg.beach.r*.6); cfg.beach.x = x; cfg.beach.z = z; }
     if(cfg.grotto){ const [x,z] = land(cfg.grotto.x, cfg.grotto.z, cfg.grotto.r*.6); cfg.grotto.x = x; cfg.grotto.z = z; }
@@ -1658,6 +1685,21 @@ function buildIsland(cfg){
       I.grotto = {x:gx, z:gz, r:gr, ga};
     }
   }
+  if(cfg.key === "moon"){
+    /* everyone who ever sang along, gathered at the foot of the rock */
+    const order = []; for(let k=0;k<2;k++){ const ids = FANS.map((_,i) => i+1); for(let j=ids.length-1;j>0;j--){ const r = Math.floor(Math.random()*(j+1)); [ids[j],ids[r]] = [ids[r],ids[j]]; } order.push(...ids); }
+    for(let i=0;i<20;i++){
+      const a = (i/20)*Math.PI*2 + Math.random()*.2, r = 16 + Math.random()*16;
+      const x = 12 + Math.cos(a)*r, z = 8 + Math.sin(a)*r; if(!inside(x,z)) continue;
+      const g = new THREE.Group(); const R = {group:g, primitive:[]};
+      g.scale.setScalar(.98 + Math.random()*.04);
+      g.userData = {R, cfg:{name:null, wander:4}, home:new THREE.Vector3(x,0,z), state:"idle", timer:Math.random()*4, target:null, heading:Math.atan2(-6-x, -26-z)};
+      g.position.set(x, height(x,z), z); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); }
+    /* a lantern path up the rock so the climb reads as a route */
+    for(let i=0;i<14;i++){ const k = i/13, x = 0 + (-6-0)*k, z = 24 + (-26-24)*k;
+      [-3.2,3.2].forEach(ox => { const p2 = inked(new THREE.CylinderGeometry(.14,.18,2.6,6), P.wood, 1.3); p2.position.set(x+ox, height(x+ox,z)+1.3, z); scene.add(p2);
+        const l = new THREE.Mesh(new THREE.SphereGeometry(.44,10,8), new THREE.MeshBasicMaterial({color:MOON})); l.position.set(x+ox, height(x+ox,z)+3.1, z); scene.add(l); }); }
+  }
   if(cfg.decor === "town"){
     const fountain = inked(new THREE.CylinderGeometry(3,3.4,1,20), P.stone, 1.8); fountain.position.set(0,1.4,0); scene.add(fountain);
     I.colliders.push({x:0, z:0, r:3.6});
@@ -1788,9 +1830,10 @@ function buildIsland(cfg){
     const glow = new THREE.Mesh(new THREE.RingGeometry(1.4,2.0,22), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.28, side:THREE.DoubleSide}));
     glow.rotation.x = -Math.PI/2; glow.position.y = -1.5; pk.add(glow);
     pk.position.set(a.at[0], (a.y != null ? a.y : height(a.at[0],a.at[1])) + 2.2, a.at[1]); scene.add(pk); I.pickup = pk;
-
+  }
+  if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
     const L = cfg.letter;
-    if(L.reY) L.y = height(L.at[0], L.at[1]);
+    if(L.reY || L.y == null) L.y = height(L.at[0], L.at[1]);
     const lm = inked(new THREE.OctahedronGeometry(.8,0), 0xF0A56D, 2.4); lm.position.set(L.at[0], L.y+2.2, L.at[1]); scene.add(lm); I.letterMesh = lm;
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,26,16,1,true), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.10, side:THREE.DoubleSide}));
     beam.position.set(L.at[0], L.y+13, L.at[1]); scene.add(beam); I.letterBeam = beam;
@@ -2186,6 +2229,12 @@ function interact(){
     G.abilities[cfg.ability.key] = true; save(); I.pickup.visible = false; applyOutfit(W, cfg.outfit);
     auChime([523,659,784,1047]); toast(cfg.ability.name, cfg.ability.hint);
   } else if(t.kind === "letter"){
+    if(cfg.key === "moon"){          /* the fifth song, at the top of the rock — this is the ending */
+      I.letterMesh.visible = false; if(I.letterBeam) I.letterBeam.visible = false; G.finished = true; save();
+      auChime([392,440,523,587,659,784,880,1047,1175,1319,1568],.16,1.6);
+      $("endBody").textContent = "The fifth song was never hidden. It was waiting for someone who'd found the other four. — L";
+      W.active = false; setTimeout(() => ov("ovEnd"), 2400); return;
+    }
     G.letters[cfg.idx] = true; save(); syncHUD(); I.letterMesh.visible = false; I.letterBeam.visible = false;
     auChime([392,523,659,784,1047]); toast("Letter "+cfg.glyph, "Take it back to the keep");
   }
@@ -2273,14 +2322,15 @@ async function goIsland(I, skipFade){
   const W = I.W, cfg = I.cfg;
   W.x = cfg.spawn[0]; W.z = cfg.spawn[1]; W.y = I.height(W.x,W.z); W.vy = 0; W.grounded = true; W.heading = Math.PI; W.camYaw = Math.PI; W.active = false;
   W.camPitch = CAM.pitch; W.lookHold = 0; W.recenter = false; camRig(I, true); W.camDistCur = W.camDist; placeCamera(I, 1);
-  applyOutfit(W, cfg.outfit && G.abilities[cfg.ability.key] ? cfg.outfit : "base");
+  applyOutfit(W, cfg.outfit && cfg.ability && G.abilities[cfg.ability.key] ? cfg.outfit : (cfg.key === "moon" ? "town" : "base"));
   I.moons.forEach(m => m.visible = !G.moonsTaken[m.userData.id]);
-  if(I.pickup) I.pickup.visible = !G.abilities[cfg.ability.key];
-  if(I.letterMesh){ I.letterMesh.visible = !G.letters[cfg.idx]; I.letterBeam.visible = !G.letters[cfg.idx]; }
-  $("lblL").textContent = cfg.hub ? "Home Island" : `Island ${["I","II","III","IV"][cfg.idx]} — ${cfg.name}`;
+  if(I.pickup && cfg.ability) I.pickup.visible = !G.abilities[cfg.ability.key];
+  if(I.letterMesh){ const got = cfg.key === "moon" ? G.finished : G.letters[cfg.idx]; I.letterMesh.visible = !got; if(I.letterBeam) I.letterBeam.visible = !got; }
+  const roman = ["I","II","III","IV"][cfg.idx];
+  $("lblL").textContent = cfg.hub ? "Home Island" : (roman ? `Island ${roman} — ${cfg.name}` : cfg.name);
   $("valL").textContent = cfg.places[0] ? cfg.places[0].name : ""; syncHUD();
   if(cfg.hub){ ovNone(); W.active = true; }
-  else { $("inEye").textContent = `Island ${["I","II","III","IV"][cfg.idx]}`; $("inTitle").innerHTML = `${cfg.name}<span>${cfg.song}</span>`; $("inBody").textContent = cfg.intro; ov("ovIntro"); }
+  else { $("inEye").textContent = roman ? `Island ${roman}` : "The fifth song"; $("inTitle").innerHTML = `${cfg.name}<span>${cfg.song}</span>`; $("inBody").textContent = cfg.intro; ov("ovIntro"); }
   if(!skipFade) await fromBlack();
 }
 async function goKeep(){
@@ -2292,7 +2342,7 @@ async function goKeep(){
 }
 function renderDock(){
   const list = $("isleList"); list.innerHTML = "";
-  ISLANDS.filter(c => !CUR || c.key !== CUR.cfg.key).forEach(c => {
+  ISLANDS.filter(c => !c.hidden && (!CUR || c.key !== CUR.cfg.key)).forEach(c => {
     const d = document.createElement("div"); d.className = "pick"; d.style.setProperty("--acc", c.acc || "#FFF6D6");
     const got = G.letters.filter(Boolean).length;
     const st = c.hub ? `${got} of 4 letters · the keep` : (G.letters[c.idx] ? `Letter ${c.glyph} recovered` : (G.abilities[c.ability.key] ? `${c.ability.name} found — letter still out there` : "Unexplored"));
@@ -2303,7 +2353,7 @@ function renderDock(){
 }
 function renderSecrets(){
   const list = $("secretsList"); list.innerHTML = "";
-  ISLANDS.forEach(c => {
+  ISLANDS.filter(c => !c.hidden || G.finished).forEach(c => {
     const d = document.createElement("div"); d.className = "srow"; d.style.setProperty("--acc", c.acc);
     const parts = [`notes ${noteCount(c.key)}/${c.notes.length}`];
     if(!c.hub){ parts.push(G.abilities[c.ability.key] ? c.ability.name.replace("Her ","") + " ✓" : "outfit —"); parts.push(G.letters[c.idx] ? c.glyph + " ✓" : "letter —"); }
@@ -2342,12 +2392,15 @@ function tick(){
       b.position.set(Math.cos(u.a)*u.r, u.y+1.5, Math.sin(u.a)*u.r);
       if(Math.hypot(KW.x-b.position.x, KW.z-b.position.z) < 1.4+u.s && Math.abs(KW.y+1.5-b.position.y) < 2.4){ u.popped = true; b.visible = false; popped++; auPop(); auChime([[523,659,784,988,1175][popped%5]],0,.3); $("valL").textContent = `${popped} / 24`; } });
     const fin = keep.userData.fin;
-    if(popped >= 24 && !fin.visible){ fin.visible = true; $("valL").textContent = "One left"; }
+      if(popped >= 24 && !fin.visible){ fin.visible = true; $("valL").textContent = "A way out"; $("weather").textContent = "Something opened"; }
     if(fin.visible && !finaleDone){ fin.position.y = 4 + Math.sin(T*1.2)*.6; fin.rotation.y = T*.3;
-      if(Math.hypot(KW.x,KW.z) < 4 && KW.y < 6){ finaleDone = true; fin.visible = false; auPop(); G.finished = true; save();
+      if(Math.hypot(KW.x,KW.z) < 4 && KW.y < 6){ finaleDone = true; auPop();
         auChime([392,440,523,587,659,784,880,1047,1175,1319,1568],.16,1.4);
-        $("endBody").textContent = "The fifth song was never hidden. It was waiting for someone who'd found the other four. — L";
-        setTimeout(() => { KW.active = false; ov("ovEnd"); }, 2200); } }
+        $("valL").textContent = "A door in the water"; $("weather").textContent = "Step through";
+        toast("The fifth song", "It isn't in this room. Step through.");
+        KW.active = false;
+        setTimeout(() => { SAIL_LINES = ["The island that isn't on any map.", "She's been here the whole time.", "Top of the rock."];
+          goSail(() => goIsland(ISL.moon)); }, 2400); } }
     present(keep);
   } else {
     sailT += dt; sSea.userData.mat.uniforms.t.value = T; sMoon.userData.halo.lookAt(camera.position);
