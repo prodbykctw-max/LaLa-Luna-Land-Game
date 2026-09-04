@@ -244,18 +244,20 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
    and pale — the "sketched" look. Interpret every hex as sRGB (what the palettes were designed as). */
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
+/* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
+const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setPixelRatio(PROF.dpr);
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = PROF.shadow; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 document.body.appendChild(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .1, 900);
 /* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
-const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .42, .55, .82); composer.addPass(bloomPass);
+const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .42, .55, .82); if(PROF.bloom) composer.addPass(bloomPass);
 const gradePass = new THREE.ShaderPass({
   uniforms:{tDiffuse:{value:null}, vig:{value:.42}, sat:{value:1.08}, lift:{value:new THREE.Vector3(.006,.004,.012)}},
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
@@ -327,6 +329,7 @@ const outlineBase = new THREE.ShaderMaterial({
 function inked(geo, color, th, extra){
   const g = new THREE.Group();
   const m = new THREE.Mesh(geo, toon(color, extra)); g.add(m); g.userData.main = m;
+  if(!PROF.ink) return g;
   const o = new THREE.Mesh(geo, outlineBase.clone());
   o.material.uniforms.thickness.value = th ?? 1.7; g.add(o);
   return g;
@@ -562,6 +565,7 @@ function loadRig(name){
       const old = o.material;
       o.material = toonRim(new THREE.MeshToonMaterial({map: old && old.map || null, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
       /* ink outline: an inflated back-face twin sharing the skeleton, so rigged models match the inked world */
+      if(!PROF.ink || rig.ink === 0) return;
       const om = new THREE.MeshBasicMaterial({color: INK, side: THREE.BackSide, skinning: !!o.isSkinnedMesh, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4});
       om.onBeforeCompile = sh => { sh.uniforms.thick = {value: (rig.ink != null ? rig.ink : .045) / s}; sh.vertexShader = sh.vertexShader
         .replace("#include <common>", "#include <common>\nuniform float thick;")
@@ -1931,7 +1935,7 @@ function tick(){
   requestAnimationFrame(tick);
   const dt = Math.min(clock.getDelta(), .05); T += dt;
   FRAMES++; if(FRAMES < 4 || FRAMES % 300 === 0) DBG("frame", FRAMES, "dt", dt.toFixed(3));
-  if(FPS_EL){ const now = performance.now(); if(!fpsT0) fpsT0 = now; fpsAcc = (now - fpsT0)/1000; fpsN++; if(fpsAcc >= .5){ FPS_EL.textContent = Math.round(fpsN/fpsAcc) + " fps · " + renderer.info.render.triangles.toLocaleString() + " tris · " + renderer.info.render.calls + " calls"; fpsAcc = 0; fpsN = 0; fpsT0 = now; renderer.info.reset(); } }
+  if(FPS_EL){ const now = performance.now(); if(!fpsT0) fpsT0 = now; fpsAcc = (now - fpsT0)/1000; fpsN++; if(fpsAcc >= .5){ FPS_EL.textContent = Math.round(fpsN/fpsAcc) + " fps · " + Math.round(renderer.info.render.triangles/fpsN).toLocaleString() + " tris · " + Math.round(renderer.info.render.calls/fpsN) + " calls"; fpsAcc = 0; fpsN = 0; fpsT0 = now; renderer.info.reset(); } }
   if(toastT > 0){ toastT -= dt; if(toastT <= 0) $("toast").classList.remove("on"); }
   if(MODE === "island" && CUR){ islandUpdate(CUR, dt, T); present(CUR.scene); }
   else if(MODE === "keep"){
