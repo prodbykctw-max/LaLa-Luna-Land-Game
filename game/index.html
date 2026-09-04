@@ -333,8 +333,8 @@ function seaMesh(a, b){
         p.z+=w; vW=w; vP=p.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
     fragmentShader:`uniform vec3 a,b,m; uniform float t; varying float vW; varying vec2 vP;
       void main(){ vec3 c=mix(a,b,smoothstep(-.2,.6,vW));
-        float sp = sin(vP.x*1.9+t*2.3)*sin(vP.y*2.3-t*1.7); sp = smoothstep(.86,1.0,sp);      /* glints */
-        c=mix(c,m,step(.92,vW)*.5 + sp*.55);
+        float sp = sin(vP.x*1.9+t*2.3)*sin(vP.y*2.3-t*1.7)*sin(vP.x*.37-vP.y*.53+t*.7); sp = smoothstep(.72,1.0,sp);      /* glints */
+        c=mix(c,m,step(.92,vW)*.35 + sp*.4);
         gl_FragColor=vec4(c,1.0); }`});
   const s = new THREE.Mesh(new THREE.PlaneGeometry(1600,1600,60,60), mat);
   s.rotation.x = -Math.PI/2; s.userData.mat = mat; return s;
@@ -493,7 +493,7 @@ function makeLala(){
   R.lantern.position.set(.62,1.75,.25); R.lantern.visible = false; p.add(R.lantern);
   const cr = new THREE.Mesh(new THREE.TorusGeometry(.3,.06,8,5), new THREE.MeshBasicMaterial({color:0xFFD37A}));
   cr.rotation.x = Math.PI/2; cr.position.y = 3.12; cr.visible = false; p.add(cr); R.crown = cr;
-  R.primitive = [dress, torso, head, hair, brim, crown, band, ...R.legs, ...R.patches];
+  R.primitive = [dress, torso, head, hair, brim, crown, band, ...R.legs, ...R.patches]; R.wearsHat = true;
   wantRig(R, "lala");
   return R;
 }
@@ -572,6 +572,17 @@ function bindAttachments(R, model, s){
   }
   if(R.lantern && RH){ const a = anchor(RH, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.lantern); R.lantern.position.set(0, .4, 0); R.lantern.rotation.set(0, 0, 0); } }
   if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, .3, 0); R.crown.rotation.set(Math.PI/2, 0, 0); R.crown.scale.setScalar(.7); } }
+  /* her white cowgirl hat — the band takes the island's colour when she wears that island's outfit */
+  if(R.wearsHat && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){
+    const hat = new THREE.Group();
+    const HATC = 0xF6F2EA, brim = inked(new THREE.CylinderGeometry(.46,.5,.045,20), HATC, 1.2); brim.userData.main.geometry.computeVertexNormals(); hat.add(brim);
+    const bg = new THREE.CylinderGeometry(.25,.29,.3,16); const pos = bg.attributes.position;   /* pinched crown */
+    for(let i=0;i<pos.count;i++){ if(pos.getY(i) > .1) pos.setZ(i, pos.getZ(i)*.72); } bg.computeVertexNormals();
+    const crown = inked(bg, HATC, 1.2); crown.position.y = .16; hat.add(crown);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(.285,.03,6,20), new THREE.MeshBasicMaterial({color:0x6FBF92})); band.rotation.x = Math.PI/2; band.position.y = .05; hat.add(band);
+    hat.position.set(0, .27, -.02); hat.rotation.set(-.14, 0, 0); a.add(hat); R.hat = hat; R.hatBandMesh = band;
+    if(R.pendingBand != null) band.material.color.setHex(R.pendingBand);
+  } }
 }
 function playClip(R, name, fade){
   if(!R.actions) return;
@@ -588,6 +599,7 @@ function applyOutfit(ch, key){
   ch.legs.forEach(l => l.userData.main.material.color.setHex(o.boots));
   ch.patches.forEach(p => p.visible = o.patches);
   ch.crown.visible = o.crown;
+  if(ch.hatBandMesh) ch.hatBandMesh.material.color.setHex(o.hatBand); else ch.pendingBand = o.hatBand;
 }
 
 /* ============================================================
@@ -1048,6 +1060,42 @@ const ISLANDS = [
 /* ============================================================
    ISLAND BUILDER
    ============================================================ */
+/* a proper little sailboat: planked hull with a raised bow, gunwale rail, bench, mast + boom, rigging, bow lantern, rudder */
+function makeBoat(wood, sailCol, scale){
+  const g = new THREE.Group(), sc = scale || 1;
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 4.4); shape.quadraticCurveTo(1.9, 2.4, 1.85, -1.2); shape.quadraticCurveTo(1.7, -3.6, 1.2, -3.9);
+  shape.lineTo(-1.2, -3.9); shape.quadraticCurveTo(-1.7, -3.6, -1.85, -1.2); shape.quadraticCurveTo(-1.9, 2.4, 0, 4.4);
+  const hg = new THREE.ExtrudeGeometry(shape, {depth:1.5, bevelEnabled:true, bevelThickness:.25, bevelSize:.3, bevelSegments:3});
+  hg.rotateX(-Math.PI/2); hg.translate(0, 0, 0);
+  const pos = hg.attributes.position;                                            /* narrow the keel, lift the bow */
+  for(let i=0;i<pos.count;i++){ const y = pos.getY(i), z = pos.getZ(i); const t = THREE.MathUtils.clamp((y+.3)/1.8, 0, 1);
+    pos.setX(i, pos.getX(i)*(.45+.55*t)); pos.setY(i, y + Math.max(0, z-2.2)*.35*(1-t*.5)); }
+  hg.computeVertexNormals();
+  const hull = inked(hg, wood, 2.0, {map:TEX.rock}); hull.position.y = -.3; g.add(hull);
+  const deck = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 7.4), toon(0xC9A277, {map:TEX.rock})); deck.rotation.x = -Math.PI/2; deck.position.set(0, .95, 0); g.add(deck);
+  for(let k=0;k<7;k++){ const line = new THREE.Mesh(new THREE.BoxGeometry(.04, .02, 7.2), toon(0x8A6A48)); line.position.set(-1.35+k*.45, .97, 0); g.add(line); }
+  const rail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(-1.7,1.25,-3.7), new THREE.Vector3(-1.85,1.3,-1), new THREE.Vector3(-1.4,1.55,2.8), new THREE.Vector3(0,1.85,4.5), new THREE.Vector3(1.4,1.55,2.8), new THREE.Vector3(1.85,1.3,-1), new THREE.Vector3(1.7,1.25,-3.7)]), 40, .09, 6, false), toon(0x5E4630)); g.add(rail);
+  const bench = inked(new THREE.BoxGeometry(3.0,.18,.9), 0xB88E62, 1.4); bench.position.set(0, 1.35, -1.9); g.add(bench);
+  [-1.2,1.2].forEach(x => { const leg = new THREE.Mesh(new THREE.BoxGeometry(.14,.5,.6), toon(0x8A6A48)); leg.position.set(x, 1.15, -1.9); g.add(leg); });
+  const mast = inked(new THREE.CylinderGeometry(.11,.16,7.6,8), wood, 1.5); mast.position.set(0,4.5,.6); g.add(mast);
+  const boom = inked(new THREE.CylinderGeometry(.07,.09,4.4,6), wood, 1.3); boom.rotation.set(Math.PI/2, 0, -.3); boom.position.set(.7,2.3,2.4); g.add(boom);
+  const sailG = new THREE.PlaneGeometry(3.9, 5.4, 6, 8); const sp = sailG.attributes.position;
+  for(let i=0;i<sp.count;i++){ const x = sp.getX(i), y = sp.getY(i); sp.setZ(i, Math.sin((x/3.9+.5)*Math.PI)*.45*(1-(y/5.4+.5)*.3)); } sailG.computeVertexNormals();
+  const cloth = inked(sailG, sailCol, 1.5, {side:THREE.DoubleSide}); cloth.rotation.y = Math.PI/2 + .3; cloth.position.set(.75, 5.0, 2.4); g.add(cloth); g.userData.sail = cloth;
+  const sig = new THREE.Mesh(new THREE.TorusGeometry(.55,.12,6,18,Math.PI*1.4), new THREE.MeshBasicMaterial({color:0x9B84DC})); sig.rotation.set(0, Math.PI/2 + .3, 1.1); sig.position.set(1.15, 5.2, 2.5); g.add(sig);
+  [[0,8.2,.6,0,1.9,-4.2],[0,8.2,.6,1.2,2.3,4.4]].forEach(([x1,y1,z1,x2,y2,z2]) => { const a = new THREE.Vector3(x1,y1,z1), b = new THREE.Vector3(x2,y2,z2), d = b.clone().sub(a);
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,d.length(),4), new THREE.MeshBasicMaterial({color:0x3A2E24}));
+    rope.position.copy(a).add(d.multiplyScalar(.5)); rope.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), b.clone().sub(a).normalize()); g.add(rope); });
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.9,6), toon(0x5E4630)); post.position.set(0, 1.95, -4.05); g.add(post);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(.2,10,8), new THREE.MeshBasicMaterial({color:MOON})); lamp.position.set(0, 2.5, -4.05); g.add(lamp);
+  const cage = inked(new THREE.CylinderGeometry(.26,.22,.5,6,1,true), 0x5E4630, 1.0, {side:THREE.DoubleSide}); cage.position.copy(lamp.position); g.add(cage);
+  const lgt = new THREE.PointLight(0xFFE2A8, 1.0, 12); lgt.position.copy(lamp.position); g.add(lgt);
+  const rudder = inked(new THREE.BoxGeometry(.12,1.6,.9), wood, 1.3); rudder.position.set(0, .3, 4.1); g.add(rudder);
+  const tiller = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.6,6), toon(0x5E4630)); tiller.rotation.x = Math.PI/2; tiller.position.set(0, 1.3, 3.2); g.add(tiller);
+  g.scale.setScalar(sc); g.userData.benchY = 1.44*sc; g.userData.benchZ = -1.9*sc;
+  return g;
+}
 function buildIsland(cfg){
   const P = cfg.pal, scene = new THREE.Scene();
   scene.fog = new THREE.Fog(P.fog, cfg.key === "sanity" ? 60 : 80, cfg.key === "sanity" ? 220 : 260);
@@ -1294,10 +1342,7 @@ function buildIsland(cfg){
   /* dock + boat */
   const [dx,dz] = cfg.dock;
   const planks = inked(new THREE.BoxGeometry(6,.5,18), P.wood, 1.9); planks.position.set(dx,.5,dz); scene.add(planks);
-  const boat = new THREE.Group();
-  const hull = inked(new THREE.BoxGeometry(3.2,1.6,7.4), BONE, 2.0); hull.position.y=.4; boat.add(hull);
-  const mast = inked(new THREE.CylinderGeometry(.16,.2,7,6), P.wood, 1.6); mast.position.y=4; boat.add(mast);
-  const cloth = inked(new THREE.PlaneGeometry(4.4,5), MOON, 1.6); cloth.position.set(0,4.4,.4); boat.add(cloth);
+  const boat = makeBoat(P.wood, MOON, .9);
   boat.position.set(dx+5.2,.1,dz+4); boat.rotation.y=.2; scene.add(boat); I.boat = boat;
   /* lantern path spawn → island heart */
   for(let i=0;i<7;i++){ const k = i/7, x = cfg.spawn[0]*(1-k), z = cfg.spawn[1]*(1-k) + 18*k;
@@ -1495,8 +1540,8 @@ function walkerUpdate(I, dt, t){
   W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? 1.6 : 0;
 
   if(W.lookHold > 0) W.lookHold -= dt; else W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*1.8));
-  const portrait = innerHeight > innerWidth, camD = portrait ? 17.5 : 13.5, camH = portrait ? 9.4 : 7.4;
-  const lookAt = new THREE.Vector3(W.x, W.y+2.4, W.z);
+  const portrait = innerHeight > innerWidth, camD = portrait ? 15 : 11.5, camH = portrait ? 6.2 : 4.9;
+  const lookAt = new THREE.Vector3(W.x, W.y+2.6, W.z);
   const desired = new THREE.Vector3(W.x - Math.sin(W.camYaw)*camD, W.y + camH, W.z - Math.cos(W.camYaw)*camD);
   const goal = cameraCollide(I, lookAt, desired);
   camera.position.lerp(goal, Math.min(1, dt*4.2));
@@ -1649,11 +1694,20 @@ const sMoon = moonPair(new THREE.Vector3(-90,70,-260), 18); sail.add(sMoon);
 sail.add(new THREE.HemisphereLight(0xA8DCD8, 0x5AA0C8, .92));
 { const k = new THREE.DirectionalLight(0xFFE9CC, 1.0); k.position.set(-20,40,10); sail.add(k); }
 const sSea = seaMesh(0x5AA0C8, 0x86C4E0); sail.add(sSea);
-const sBoat = new THREE.Group(); const sRider = makeLala();
-{ const hull = inked(new THREE.BoxGeometry(3.4,1.7,8), BONE, 2.0); hull.position.y=.4; sBoat.add(hull);
-  const mast = inked(new THREE.CylinderGeometry(.17,.21,7.4,6), 0x8D6141, 1.6); mast.position.y=4.2; sBoat.add(mast);
-  const cloth = inked(new THREE.PlaneGeometry(4.6,5.2), MOON, 1.6); cloth.position.set(0,4.6,.4); sBoat.add(cloth);
-  sRider.group.scale.setScalar(.85); sRider.group.position.set(0,1.25,-1.6); sBoat.add(sRider.group); sail.add(sBoat); }
+const sBoat = makeBoat(0x8D6141, MOON, 1.0); const sRider = makeLala();
+{ sRider.group.scale.setScalar(.85); sRider.group.position.set(0, sBoat.userData.benchY, sBoat.userData.benchZ + .15); sRider.group.rotation.y = 0;
+  sRider.seated = true; sBoat.add(sRider.group); sail.add(sBoat); }
+/* seated pose: overrides the leg bones after the idle clip so she sits on the bench, knees forward, hands on the rail */
+function applySeated(R){
+  if(!R.model) return;
+  const find = n => { let h = null; R.model.traverse(o => { if(!h && o.isBone && o.name.replace(/[^a-z]/gi,"").toLowerCase().endsWith(n)) h = o; }); return h; };
+  if(!R.seatBones){ R.seatBones = {lu:find("leftupleg"), ru:find("rightupleg"), ll:find("leftleg"), rl:find("rightleg"), sp:find("spine"), la:find("leftarm"), ra:find("rightarm")}; }
+  const B = R.seatBones, Q = new THREE.Quaternion(), E = new THREE.Euler();
+  const turn = (b, x, y, z) => { if(!b) return; Q.setFromEuler(E.set(x, y, z)); b.quaternion.multiply(Q); };   /* relative to the clip's pose */
+  const s1 = R.seatSign || 1;
+  turn(B.lu, -1.4*s1, 0, .1); turn(B.ru, -1.4*s1, 0, -.1); turn(B.ll, 1.3*s1, 0, 0); turn(B.rl, 1.3*s1, 0, 0); turn(B.sp, .1*s1, 0, 0);
+  turn(B.la, 0, 0, .3); turn(B.ra, 0, 0, -.3);
+}
 for(let i=0;i<7;i++){ const a = Math.random()*Math.PI*2, r = 120+Math.random()*140;
   const far = inked(new THREE.SphereGeometry(15+Math.random()*9,10,8), 0x4E9C74, 1.8); far.scale.y = .55; far.position.set(Math.cos(a)*r,1,Math.sin(a)*r-60); sail.add(far); }
 let sailT = 0, sailDone = null, SAIL_LINES = []; const SAIL_DUR = 7.2;
@@ -1777,10 +1831,11 @@ function tick(){
   } else {
     sailT += dt; sSea.userData.mat.uniforms.t.value = T; sMoon.userData.halo.lookAt(camera.position);
     sBoat.position.z -= 15*dt; sBoat.position.y = Math.sin(T*1.4)*.3; sBoat.rotation.z = Math.sin(T*.95)*.05;
-    if(sRider.mixer) sRider.mixer.update(dt);
+    if(sRider.mixer){ sRider.mixer.update(dt); applySeated(sRider); }
+    if(sBoat.userData.sail) sBoat.userData.sail.rotation.y = Math.PI/2 + .3 + Math.sin(T*1.1)*.05;
     const k = sailT/SAIL_DUR;
-    camera.position.set(sBoat.position.x+9+k*14, 5.5+k*9, sBoat.position.z+15+k*10);
-    camera.lookAt(sBoat.position.x, sBoat.position.y+2.5, sBoat.position.z);
+    if(!window.__T || !window.__T.__freeze){ camera.position.set(sBoat.position.x+9+k*14, 5.5+k*9, sBoat.position.z+15+k*10);
+    camera.lookAt(sBoat.position.x, sBoat.position.y+2.5, sBoat.position.z); }
     $("capq").textContent = SAIL_LINES[Math.min(SAIL_LINES.length-1, Math.floor(sailT/2.4))] || "";
     if(sailT > SAIL_DUR && sailDone){ const f = sailDone; sailDone = null; f(); }
     present(sail);
@@ -1790,6 +1845,7 @@ load().then(() => {
   /* ?go=green|gr|sanity|town jumps straight onto an island — handy for playtesting one spot */
   const jump = new URLSearchParams(location.search).get("go");
   if(jump && ISL[jump] && jump !== "hub"){ CUR = ISL[jump]; goIsland(ISL[jump], true); ovNone(); CUR.W.active = true; tick(); return; }
+  if(new URLSearchParams(location.search).get("sail")){ CUR = ISL.hub; tick(); SAIL_LINES = ["Green. 4 Letters.", "Find what she left.", "Then find the letter."]; goSail(() => goIsland(ISL.green)); return; }
   CUR = ISL.hub; goIsland(ISL.hub, true); ov("ovTitle"); CUR.W.active = false; tick();
 });
 })();
