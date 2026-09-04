@@ -1020,7 +1020,7 @@ const ISLANDS = [
   grassCols:[0x3E6A7A,0x2E5262,0x4C7E8C],
   ability:{key:"lantern", at:[-26.6,-21.2], name:"Her lantern", hint:"The stones are there now. Look east.", lantern:true},
   letter:{at:[64,-12], y:4, gate:"lantern"},
-  stones:[[42,-2],[47,-4.5],[52,-7],[57,-9.5]],
+  stones:[[42,-2],[47,-4.5],[52,-7],[57,-9.5]], grotto:{x:-20, z:28, r:9},
   places:[{x:-30,z:-25,r:14,name:"Lighthouse Rock"},{x:64,z:-12,r:10,name:"The Sea Stack"},{x:36,z:0,r:14,name:"The Shallows"},{x:0,z:50,r:12,name:"Night Landing"}],
   fallback:"The Shore",
   decor:"lighthouse",
@@ -1167,6 +1167,7 @@ function buildIsland(cfg){
       if(cfg.letter && Math.hypot(x-cfg.letter.at[0], z-cfg.letter.at[1]) < 4) continue;
       if(cfg.notes.some(n => Math.hypot(x-n.x, z-n.z) < 3)) continue;
       if((cfg.npcs||[]).some(n => Math.hypot(x-n.at[0], z-n.at[1]) < 3)) continue;
+      if(cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r + 2.5) continue;
       return [x,z];
     }
     return null;
@@ -1313,6 +1314,33 @@ function buildIsland(cfg){
       const st = inked(new THREE.CylinderGeometry(2,2.3,1.4,10), P.stone, 1.8); st.position.set(x,-.2,z); st.visible = false; scene.add(st);
       I.stones.push({x,z,mesh:st});
     });
+    /* the grotto — a flowstone cave off the west shore (the cave photos): amber-lit curtains of stone,
+       stalactites, and at the back the teal coin pool. A moon waits inside. */
+    { const gx = cfg.grotto.x, gz = cfg.grotto.z, gr = cfg.grotto.r, ga = Math.atan2(-gz, -gx);   /* mouth faces the island centre */
+      const GAP = .95, rotY = (Math.PI + GAP/2) - ga;                      /* leave a wedge open, turned to face the island */
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(gr, 24, 16, 0, Math.PI*2-GAP, 0, Math.PI*.55), toon(0x6E5A48, {side:THREE.BackSide, map:TEX.rock}));
+      shell.position.set(gx, -.5, gz); shell.rotation.y = rotY; scene.add(shell);
+      const outer = inked(new THREE.SphereGeometry(gr+.6, 18, 12, 0, Math.PI*2-GAP, 0, Math.PI*.55), 0x5A4A3C, 2.2, {map:TEX.rock}); outer.position.set(gx, -.6, gz); outer.rotation.y = rotY; scene.add(outer);
+      const lipL = inked(new THREE.CylinderGeometry(.9,1.3,6.5,8), 0x5A4A3C, 1.8), lipR = lipL.clone();
+      [[lipL, .5],[lipR, -.5]].forEach(([m, sd]) => { const a = ga + sd*GAP*.95; m.position.set(gx+Math.cos(a)*(gr+.3), 2.4, gz+Math.sin(a)*(gr+.3)); m.rotation.z = sd*.15; scene.add(m); I.colliders.push({x:m.position.x, z:m.position.z, r:1.2}); });
+      for(let k=0;k<26;k++){ const a = Math.random()*Math.PI*2, r = 1.5+Math.random()*(gr-3), len = .8+Math.random()*2.4;
+        const st = inked(new THREE.ConeGeometry(.16+Math.random()*.22, len, 6), 0xC9A66B, 1.2); st.rotation.x = Math.PI;
+        const yTop = -.5 + Math.sqrt(Math.max(0, gr*gr - r*r)) - .35; st.position.set(gx+Math.cos(a)*r, yTop - len/2, gz+Math.sin(a)*r); scene.add(st); }
+      for(let k=0;k<7;k++){ const a = ga + Math.PI + (k/6-.5)*2.2, r = gr-1.2;        /* flowstone curtains along the back wall */
+        const pts = []; for(let j=0;j<=10;j++){ const t = j/10; pts.push(new THREE.Vector2(.5+Math.sin(t*Math.PI*3+k)*.18+t*.5, t*7)); }
+        const cur = new THREE.Mesh(new THREE.LatheGeometry(pts, 10, 0, Math.PI), toon(k%2?0xD4B47A:0xB8945E, {side:THREE.DoubleSide, map:TEX.rock}));
+        cur.position.set(gx+Math.cos(a)*r, -.3, gz+Math.sin(a)*r); cur.rotation.y = -a; scene.add(cur); }
+      const amber = new THREE.PointLight(0xFFB067, 1.8, 22); amber.position.set(gx, 3.5, gz); scene.add(amber);
+      const pool = new THREE.Mesh(new THREE.CircleGeometry(3.2, 24), new THREE.MeshBasicMaterial({color:0x1FA39A, transparent:true, opacity:.85}));
+      const px = gx + Math.cos(ga+Math.PI)*4.2, pz = gz + Math.sin(ga+Math.PI)*4.2; pool.rotation.x = -Math.PI/2; pool.position.set(px, .06, pz); scene.add(pool);
+      const glow = new THREE.PointLight(0x3FE0D0, 1.6, 12); glow.position.set(px, 1.2, pz); scene.add(glow);
+      const coinG = new THREE.CylinderGeometry(.14,.14,.03,10), coinM = new THREE.MeshToonMaterial({color:0xE8C24A, gradientMap:GRAD, emissive:0x6A4A08, emissiveIntensity:.5});
+      const coins = new THREE.InstancedMesh(coinG, coinM, 90); const M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(1,1,1);
+      for(let k=0;k<90;k++){ const a = Math.random()*Math.PI*2, r = Math.random()*3.0; q.setFromEuler(e.set((Math.random()-.5)*.6, Math.random()*6, (Math.random()-.5)*.6)); M.compose(new THREE.Vector3(px+Math.cos(a)*r, .08+Math.random()*.08, pz+Math.sin(a)*r), q, sc); coins.setMatrixAt(k, M); }
+      scene.add(coins);
+      I.colliders.push({x:gx, z:gz, r:gr+1.2, camOnly:true});
+      I.grotto = {x:gx, z:gz, r:gr, ga};
+    }
   }
   if(cfg.decor === "town"){
     const fountain = inked(new THREE.CylinderGeometry(3,3.4,1,20), P.stone, 1.8); fountain.position.set(0,1.4,0); scene.add(fountain);
@@ -1439,6 +1467,7 @@ function buildIsland(cfg){
     if(cfg.letter && cfg.letter.gate === "glide"){ const h = cfg.features[0], m = cfg.features[1];
       for(let i=0;i<7;i++) spots.push([h.x+(m.x-h.x)*(i/7), h.z+(m.z-h.z)*(i/7), 11-i*.5]); }
     (cfg.stones||[]).forEach(([x,z]) => spots.push([x,z,2.0]));
+    if(I.grotto) spots.push([I.grotto.x + Math.cos(I.grotto.ga+Math.PI)*4.2, I.grotto.z + Math.sin(I.grotto.ga+Math.PI)*4.2, 1.6]);
     /* every moon gets a soft ground marker so a collectible always reads as placed on purpose */
     const ringG = new THREE.RingGeometry(.7,1.05,20), ringM = new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.22, side:THREE.DoubleSide, depthWrite:false});
     spots.forEach(([x,z,dy],i) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, height(x,z)+dy, z);
@@ -1462,7 +1491,7 @@ function buildIsland(cfg){
   /* weather + fx */
   I.fx = {
     foam:I.foam,
-    grass: grassField(scene, cfg.key==="sanity"?900:2200, () => sample(6, 66, true), height, cfg.grassCols, cfg.beach ? (x,z) => Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r : null),
+    grass: grassField(scene, cfg.key==="sanity"?900:2200, () => sample(6, 66, true), height, cfg.grassCols, (x,z) => (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
