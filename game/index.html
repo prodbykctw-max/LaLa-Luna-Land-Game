@@ -260,7 +260,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-04k";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-04m";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 renderer.setPixelRatio(PROF.dpr);
@@ -340,7 +340,7 @@ const outlineBase = new THREE.ShaderMaterial({
       vec3 n=normalize(normalMatrix*normal); mv.xyz += n*thickness*(-mv.z)*0.0018;
       gl_Position=projectionMatrix*mv; }`,
   fragmentShader:`uniform vec3 inkColor; void main(){ gl_FragColor=vec4(inkColor,1.0); }`,
-  side:THREE.BackSide
+  side:THREE.BackSide, polygonOffset:true, polygonOffsetFactor:2, polygonOffsetUnits:4
 });
 function inked(geo, color, th, extra){
   const g = new THREE.Group();
@@ -548,14 +548,14 @@ function makeLala(){
    every character built for it swaps from its primitive stand-in to a skinned clone with clips. */
 const DBG = (...a) => console.log("[lala]", (performance.now()/1000).toFixed(2)+"s", ...a);
 const RIGS = {
-  lala: {url:"assets/lala.glb", height:2.95, ink:.018},
+  lala: {url:"assets/lala.glb", height:2.95, ink:.009},
   horse:{url:"assets/horse.glb", height:1.65*2.95/1.70},        /* ~16 hands at the withers */
   cow:  {url:"assets/cow.glb", height:1.42*2.95/1.70},          /* real cattle stand ~1.4 m at the shoulder */
   dino: {url:"assets/dino.glb", height:7.4},
-  fan:  {url:"assets/npc-fan.glb", height:1.63*2.95/1.70, ink:.018},
-  dock: {url:"assets/npc-dock.glb", height:1.79*2.95/1.70, ink:.018},
-  green:{url:"assets/npc-green.glb", height:1.71*2.95/1.70, ink:.018},
-  crowd:{url:"assets/npc-crowd.glb", height:2.7, ink:.018}
+  fan:  {url:"assets/npc-fan.glb", height:1.63*2.95/1.70, ink:.010},
+  dock: {url:"assets/npc-dock.glb", height:1.79*2.95/1.70, ink:.010},
+  green:{url:"assets/npc-green.glb", height:1.71*2.95/1.70, ink:.010},
+  crowd:{url:"assets/npc-crowd.glb", height:2.7, ink:.010}
 };
 /* the twelve LUNA-tics: distinct generated fans (different people, heights, styles) — light crowd builds */
 /* heights are world units; Lala is 2.95u = 1.70 m, so 1 m = 1.735u. Every fan sits in a real adult range
@@ -564,7 +564,7 @@ const M2U = 2.95/1.70;
 const FANS = [[1.88*M2U,"tall man, locs, cow-print bucket hat"],[1.57*M2U,"petite woman, pink-streak bob"],[1.72*M2U,"teen boy, moon hoodie"],[1.66*M2U,"woman, afro, gold bomber"],
   [1.80*M2U,"man, denim vest with moon patches"],[1.68*M2U,"woman, copper braids, glow stick"],[1.58*M2U,"grandmother, lavender cardigan"],[1.65*M2U,"woman, lilac hijab, cow-print bomber"],
   [1.86*M2U,"big man, bun, moon floral shirt"],[1.74*M2U,"teen, blue mullet, cow-print overalls"],[1.62*M2U,"teen girl, space buns, tie-dye"],[1.76*M2U,"older man, grey beard, LUNA tee"]];
-FANS.forEach((f,i) => { RIGS["fan"+(i+1)] = {url:`assets/fans/fan${String(i+1).padStart(2,"0")}.glb`, height:f[0], ink:.016, fallback:"crowd"}; });
+FANS.forEach((f,i) => { RIGS["fan"+(i+1)] = {url:`assets/fans/fan${String(i+1).padStart(2,"0")}.glb`, height:f[0], ink:.010, fallback:"crowd"}; });
 for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false, loading:false});
 function loadRig(name){
   const rig = RIGS[name]; if(!rig || rig.loading || rig.gltf || !THREE.GLTFLoader || !THREE.SkeletonUtils) return;
@@ -642,15 +642,55 @@ function bindAttachments(R, model, s){
   if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, .3, 0); R.crown.rotation.set(Math.PI/2, 0, 0); R.crown.scale.setScalar(.7); } }
   /* her white cowgirl hat — the band takes the island's colour when she wears that island's outfit */
   if(R.wearsHat && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){
-    const hat = new THREE.Group();
-    const HATC = 0xF6F2EA, brim = inked(new THREE.CylinderGeometry(.46,.5,.045,20), HATC, 1.2); brim.userData.main.geometry.computeVertexNormals(); hat.add(brim);
-    const bg = new THREE.CylinderGeometry(.25,.29,.3,16); const pos = bg.attributes.position;   /* pinched crown */
-    for(let i=0;i<pos.count;i++){ if(pos.getY(i) > .1) pos.setZ(i, pos.getZ(i)*.72); } bg.computeVertexNormals();
-    const crown = inked(bg, HATC, 1.2); crown.position.y = .16; hat.add(crown);
-    const band = new THREE.Mesh(new THREE.TorusGeometry(.285,.03,6,20), new THREE.MeshBasicMaterial({color:0x6FBF92})); band.rotation.x = Math.PI/2; band.position.y = .05; hat.add(band);
-    hat.position.set(0, .52, -.03); hat.rotation.set(-.10, 0, 0); a.add(hat); R.hat = hat; R.hatBandMesh = band;   /* brim rests on the crown of her hair, not across her eyes */
-    if(R.pendingBand != null) band.material.color.setHex(R.pendingBand);
+    const hat = cowgirlHat(); hat.position.set(0, .34, -.02); hat.rotation.set(-.06, 0, 0); a.add(hat);
+    R.hat = hat; R.hatBandMesh = hat.userData.band;
+    if(R.pendingBand != null) R.hatBandMesh.material.color.setHex(R.pendingBand);
   } }
+}
+/* ---- her white cowgirl hat ----
+   A real western hat, not a fedora: a wide brim that curls UP at the sides and dips at the front, and a tall
+   crown with a centre crease and two front pinches. Built from polar grids so the curl and crease are real
+   geometry. Local +z is the way she is facing; brim radius .34 u = about 38 cm across, to her 18 cm head. */
+function cowgirlHat(){
+  const HATC = 0xF6F2EA, SEG = 44;
+  const g = new THREE.Group();
+  /* brim */
+  { const R0 = .125, R1 = .34, RINGS = 5, pos = [], idx = [];
+    for(let i=0;i<=RINGS;i++){ const t = i/RINGS, r = R0 + (R1-R0)*t;
+      for(let j=0;j<=SEG;j++){ const a = j/SEG*Math.PI*2, cx = Math.cos(a), sz = Math.sin(a);
+        const side = Math.abs(cx), front = Math.max(0, sz), back = Math.max(0, -sz);
+        const y = .115*Math.pow(t,2.1)*Math.pow(side,2.3)      /* the sides roll up */
+                - .050*Math.pow(t,2.3)*front                    /* the front dips over her eyes */
+                - .018*Math.pow(t,2.3)*back;
+        pos.push(cx*r, y, sz*r); } }
+    for(let i=0;i<RINGS;i++) for(let j=0;j<SEG;j++){ const a = i*(SEG+1)+j, b = a+1, c = a+SEG+1, d = c+1;
+      idx.push(a,c,b, b,c,d); }
+    const bg = new THREE.BufferGeometry();
+    bg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); bg.setIndex(idx); bg.computeVertexNormals();
+    g.add(inked(bg, HATC, 1.0, {side:THREE.DoubleSide})); }
+  /* crown: tapered, with a centre crease down the top and a pinch either side of the front */
+  { const H = .30, CR = 7, pos = [], idx = [];
+    const crease = (x, z, u) => { if(u < .45) return 0;
+      const k = (u-.45)/.55;
+      const dip = .085*k*Math.exp(-Math.pow(x/.070, 2));                        /* the long crease */
+      const pinch = .045*k*Math.exp(-Math.pow((Math.abs(x)-.10)/.055, 2))*Math.max(0, (z+.05)/.19);
+      return -(dip + pinch); };
+    for(let i=0;i<=CR;i++){ const u = i/CR, r = .175 - .028*u;
+      for(let j=0;j<=SEG;j++){ const a = j/SEG*Math.PI*2, x = Math.cos(a)*r, z = Math.sin(a)*r;
+        pos.push(x, u*H + crease(x,z,u), z); } }
+    for(let i=0;i<CR;i++) for(let j=0;j<SEG;j++){ const a = i*(SEG+1)+j, b = a+1, c = a+SEG+1, d = c+1;
+      idx.push(a,c,b, b,c,d); }
+    const topRing = CR*(SEG+1), centre = pos.length/3;
+    pos.push(0, H + crease(0,0,1), 0);
+    for(let j=0;j<SEG;j++) idx.push(topRing+j+1, topRing+j, centre);
+    const cg = new THREE.BufferGeometry();
+    cg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); cg.setIndex(idx); cg.computeVertexNormals();
+    const crown = inked(cg, HATC, 1.0); crown.position.y = .012; g.add(crown); }
+  /* the band — takes the island's colour */
+  { const band = new THREE.Mesh(new THREE.CylinderGeometry(.180,.184,.045,SEG,1,true),
+      new THREE.MeshToonMaterial({color:0x6FBF92, gradientMap:GRAD, side:THREE.DoubleSide}));
+    band.position.y = .043; g.add(band); g.userData.band = band; }
+  return g;
 }
 function playClip(R, name, fade){
   if(!R.actions) return;
@@ -1276,7 +1316,7 @@ function inkMergedMat(){ return new THREE.ShaderMaterial({
       vec3 n=normalize(normalMatrix*normal); mv.xyz += n*th*(-mv.z)*0.0018; vViewPosition = -mv.xyz;
       gl_Position=projectionMatrix*mv; }`,
   fragmentShader:`uniform vec3 inkColor; varying vec3 vViewPosition; void main(){ ${NEARFADE_GLSL} gl_FragColor=vec4(inkColor,1.0); }`,
-  side:THREE.BackSide
+  side:THREE.BackSide, polygonOffset:true, polygonOffsetFactor:2, polygonOffsetUnits:4
 }); }
 const swayPatch = mat => { mat.userData.patches.push(["sway", sh => {
   sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3()}; mat.userData.uniforms = sh.uniforms;
