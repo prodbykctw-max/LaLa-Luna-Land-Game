@@ -1186,22 +1186,31 @@ const SWAY_GLSL = `vec3 swayOf(vec3 p, float sw, float t, vec3 pl){ vec3 d = vec
   return d; }`;
 function inkMergedMat(){ return new THREE.ShaderMaterial({
   uniforms:{inkColor:{value:new THREE.Color(INK)}, uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}},
-  vertexShader:`attribute float th; attribute float sway; uniform float uTime; uniform vec3 uPlayer; ${SWAY_GLSL}
+  vertexShader:`attribute float th; attribute float sway; uniform float uTime; uniform vec3 uPlayer; varying vec3 vViewPosition; ${SWAY_GLSL}
     void main(){ vec3 p = position + swayOf(position, sway, uTime, uPlayer); vec4 mv=modelViewMatrix*vec4(p,1.0);
-      vec3 n=normalize(normalMatrix*normal); mv.xyz += n*th*(-mv.z)*0.0018;
+      vec3 n=normalize(normalMatrix*normal); mv.xyz += n*th*(-mv.z)*0.0018; vViewPosition = -mv.xyz;
       gl_Position=projectionMatrix*mv; }`,
-  fragmentShader:`uniform vec3 inkColor; void main(){ gl_FragColor=vec4(inkColor,1.0); }`,
+  fragmentShader:`uniform vec3 inkColor; varying vec3 vViewPosition; void main(){ ${NEARFADE_GLSL} gl_FragColor=vec4(inkColor,1.0); }`,
   side:THREE.BackSide
 }); }
 const swayPatch = mat => { mat.userData.patches.push(["sway", sh => {
   sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3()}; mat.userData.uniforms = sh.uniforms;
   sh.vertexShader = sh.vertexShader
     .replace("#include <common>", "#include <common>\nattribute float sway; uniform float uTime; uniform vec3 uPlayer; " + SWAY_GLSL)
-    .replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed += swayOf(position, sway, uTime, uPlayer);"); }]); return mat; };
+    .replace("#include <begin_vertex>", "#include <begin_vertex>\ntransformed += swayOf(position, sway, uTime, uPlayer);");
+  /* anything the camera is inside of or right behind (a canopy, a bush) dissolves with a screen-door fade
+     instead of filling the frame */
+  sh.fragmentShader = sh.fragmentShader.replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n" + NEARFADE_GLSL); }]); return mat; };
+const NEARFADE_GLSL = `{ float dCam = length(vViewPosition); if(dCam < 4.5){ float a = smoothstep(1.2, 4.5, dCam);
+  float m = mod(floor(gl_FragCoord.x), 2.0) + 2.0*mod(floor(gl_FragCoord.y), 2.0);
+  float jit = fract(sin(dot(floor(gl_FragCoord.xy*0.5), vec2(12.9898, 78.233)))*43758.5453);
+  if(a < (m + jit*0.9 + 0.05)/4.9) discard; } }`;
 function mergeStatics(I, scene){
   const skip = new Set([I.pickup, I.letterMesh, I.boat, I.door, I.W && I.W.group, I.sea, I.moon, I.rain, I.bow, I.beam && I.beam.target].filter(Boolean));
   (I.gateMeshes||[]).forEach(m => skip.add(m)); (I.stones||[]).forEach(s => skip.add(s.mesh)); (I.moons||[]).forEach(m => skip.add(m));
-  (I.creatures||[]).forEach(c => skip.add(c)); (I.npcs||[]).forEach(n => skip.add(n)); (I.canopies||[]).forEach(c => c.traverse(o => o.userData.sway = 1)); (I.bushes||[]).forEach(b => b.traverse(o => o.userData.sway = 2));   /* baked, but they keep moving via the sway attribute */ (I.notes||[]).forEach(n => skip.add(n)); (I.mist||[]).forEach(m => skip.add(m));
+  (I.creatures||[]).forEach(c => skip.add(c)); (I.npcs||[]).forEach(n => skip.add(n)); (I.canopies||[]).forEach(c => c.traverse(o => o.userData.sway = 1)); (I.bushes||[]).forEach(b => b.traverse(o => o.userData.sway = 2));   /* baked, but they keep moving via the sway attribute */
+  /* remember where the tree crowns are so the camera arm can stop short of them once they're baked away */
+  I.camBlobs = (I.canopies||[]).map(c => { const b = new THREE.Box3().setFromObject(c); if(b.isEmpty()) return null; const sp = b.getBoundingSphere(new THREE.Sphere()); return {x:sp.center.x, y:sp.center.y, z:sp.center.z, r:sp.radius*.8}; }).filter(Boolean); (I.notes||[]).forEach(n => skip.add(n)); (I.mist||[]).forEach(m => skip.add(m));
   const fx = I.fx || {}; for(const [k, v] of Object.entries(fx)){ if(k === "canopies" || k === "bushes") continue; const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null); if(arr) arr.forEach(o => { if(o && o.isObject3D) skip.add(o); }); }   /* birds, clouds, butterflies, foam… all move */
   scene.updateMatrixWorld(true);
   const plainToon = m => m && m.isMeshToonMaterial && !m.map && !m.transparent && m.opacity === 1 && m.side === THREE.FrontSide && !m.emissiveMap;
@@ -1800,7 +1809,7 @@ function updateCamera(I, dt, speed){
     const away = Math.max(0, Math.cos(d)); if(away > .5) W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*.55*away*(speed/SPEED))); }
   while(W.camYaw > Math.PI) W.camYaw -= Math.PI*2; while(W.camYaw < -Math.PI) W.camYaw += Math.PI*2;
   /* the look point trails her a touch so steps and jumps don't jolt the frame */
-  W.look.lerp(look, Math.min(1, dt*12));
+  if(W.look.distanceTo(look) > 10) W.look.copy(look); else W.look.lerp(look, Math.min(1, dt*12));   /* a teleport snaps, a step trails */
   placeCamera(I, dt);
 }
 function placeCamera(I, dt){
@@ -1813,7 +1822,8 @@ function placeCamera(I, dt){
   const cc = cameraCollide(I, W.look, desired, 3.5*cp); let arm = Math.min(want, Math.hypot(cc.x-W.look.x, cc.z-W.look.z)/Math.max(cp, .05));
   /* terrain: walk the arm and stop before it dips under the ground (hills, mesas, the lighthouse rock) */
   for(let k = 1; k <= 12; k++){ const t = arm*k/12, px = W.look.x + dir.x*t, pz = W.look.z + dir.z*t, py = W.look.y + dir.y*t;
-    if(I.inside(px,pz) && py < I.height(px,pz) + 1.1){ arm = Math.max(3.5, t - .8); break; } }
+    if(I.inside(px,pz) && py < I.height(px,pz) + 1.1){ arm = Math.max(3.5, t - .8); break; }
+    if(I.camBlobs && t > 3.5){ let hit = false; for(const b of I.camBlobs){ const ddx = px-b.x, ddy = py-b.y, ddz = pz-b.z; if(ddx*ddx+ddy*ddy+ddz*ddz < b.r*b.r){ hit = true; break; } } if(hit){ arm = Math.max(3.5, t - .8); break; } } }
   /* pull in fast, ease back out slowly */
   W.camDistCur += (arm - W.camDistCur)*Math.min(1, dt*(arm < W.camDistCur ? 14 : 3));
   camera.position.copy(W.look).addScaledVector(dir, W.camDistCur);
