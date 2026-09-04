@@ -570,7 +570,7 @@ function loadRig(name){
       om.onBeforeCompile = sh => { sh.uniforms.thick = {value: (rig.ink != null ? rig.ink : .045) / s}; sh.vertexShader = sh.vertexShader
         .replace("#include <common>", "#include <common>\nuniform float thick;")
         .replace("#include <begin_vertex>", "vec3 transformed = vec3(position) + normalize(normal) * thick;"); };
-      om.customProgramCacheKey = () => "rigink" + (o.isSkinnedMesh ? "s" : "");
+      om.customProgramCacheKey = () => "rigink" + (o.isSkinnedMesh ? "s" : ""); om.userData.isInk = true;
       const tw = o.isSkinnedMesh ? new THREE.SkinnedMesh(o.geometry, om) : new THREE.Mesh(o.geometry, om);
       if(o.isSkinnedMesh) tw.bind(o.skeleton, o.bindMatrix);
       tw.frustumCulled = false; tw.castShadow = false; o.parent.add(tw);
@@ -588,6 +588,7 @@ function attachRig(R, name){
   const model = THREE.SkeletonUtils.clone(gltf.scene);
   if(R.tint != null) model.traverse(o => { if(o.isMesh && o.material && o.material.isMeshToonMaterial){ o.material = toonRim(o.material.clone()); o.material.color.setHex(R.tint); } });
   R.group.add(model); R.model = model;
+  R.inkTwins = []; R.skins = []; model.traverse(o => { if(!o.isMesh) return; if(o.material.userData && o.material.userData.isInk) R.inkTwins.push(o); else R.skins.push(o); });
   (R.primitive||[]).forEach(m => m.visible = false);
   bindAttachments(R, model, gltf.scene.scale.x);
   R.mixer = new THREE.AnimationMixer(model); R.actions = {}; R.current = null;
@@ -1762,7 +1763,10 @@ function islandUpdate(I, dt, t){
           if(cd < rr && cd > 1e-4){ g.position.x = c.x + cx/cd*rr; g.position.z = c.z + cz/cd*rr; u.timer = 0; u.state = "idle"; } } } }
     g.position.y = I.height(g.position.x, g.position.z);
     let da = u.heading - g.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2; g.rotation.y += da*Math.min(1, dt*6);
-    if(R.mixer){ playClip(R, u.state === "walk" ? "walk" : "idle"); R.mixer.update(dt); } });
+    if(R.mixer){ playClip(R, u.state === "walk" ? "walk" : "idle"); R.mixer.update(dt); }
+    /* crowd LOD: ink outline only when close to the camera, shadow only at mid range — halves the skinned triangle load */
+    if(R.inkTwins){ const dc = camera.position.distanceTo(g.position), nearInk = dc < 26, midShadow = dc < 42;
+      for(const m of R.inkTwins) m.visible = nearInk; for(const m of R.skins) m.castShadow = midShadow; } });
   I.creatures.forEach(h => { const u = h.userData; u.a += u.sp*dt;
     const x = Math.cos(u.a)*u.r, z = Math.sin(u.a)*u.r;
     const base = u.fly ? 5 + Math.sin(t*.9+u.ph)*1.6 : I.height(x,z) + Math.abs(Math.sin(t*5))*.12;
