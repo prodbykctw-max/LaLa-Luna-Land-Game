@@ -12,6 +12,17 @@ import { fileURLToPath } from 'url'; import path from 'path';
 /* ROOT = the folder holding index.html: QA_ROOT env, else the parent of this qa/ folder */
 export const ROOT = process.env.QA_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const OUT = ROOT + '/qa/out';
+/* the test build = index.html + the window.__T hook line; (re)generate it whenever index.html is newer */
+import { readFileSync, writeFileSync, statSync, existsSync } from 'fs';
+export function ensureTestBuild(){
+  const src = ROOT + '/index.html', dst = ROOT + '/index_test.html';
+  if(existsSync(dst) && statSync(dst).mtimeMs >= statSync(src).mtimeMs) return;
+  const hook = "window.__T = {ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat};";
+  const txt = readFileSync(src, 'utf8'); if(txt.includes('window.__T = {')) { writeFileSync(dst, txt); return; }
+  const out = txt.replace(/^\}\)\(\);$/m, hook + '\n})();'); if(!out.includes('window.__T')) throw new Error('could not place the __T hook — no top-level "})();" line');
+  writeFileSync(dst, out);
+}
+ensureTestBuild();
 mkdirSync(OUT, { recursive: true });
 export const ISLANDS = ['hub', 'green', 'gr', 'sanity', 'town'];
 
