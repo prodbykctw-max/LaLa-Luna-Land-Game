@@ -1923,14 +1923,15 @@ $("bEnd").onclick = () => { ovNone(); goIsland(ISL.hub); };
    LOOP
    ============================================================ */
 const clock = new THREE.Clock(); let T = 0;
-let FRAMES = 0, fpsAcc = 0, fpsN = 0;
+let FRAMES = 0, fpsAcc = 0, fpsN = 0, fpsT0 = 0;
 /* ?fps=1 shows a live performance readout (frame rate, triangles, draw calls) */
 const FPS_EL = new URLSearchParams(location.search).get("fps") ? (() => { const d = document.createElement("div"); d.style.cssText = "position:fixed;left:50%;top:52px;transform:translateX(-50%);z-index:20;font:11px/1.4 'DM Mono',monospace;letter-spacing:.1em;color:#FFF6D6;background:rgba(18,16,28,.55);padding:4px 10px;border-radius:999px;pointer-events:none"; document.body.appendChild(d); return d; })() : null;
+if(FPS_EL) renderer.info.autoReset = false;
 function tick(){
   requestAnimationFrame(tick);
   const dt = Math.min(clock.getDelta(), .05); T += dt;
   FRAMES++; if(FRAMES < 4 || FRAMES % 300 === 0) DBG("frame", FRAMES, "dt", dt.toFixed(3));
-  if(FPS_EL){ fpsAcc += dt; fpsN++; if(fpsAcc >= .5){ FPS_EL.textContent = Math.round(fpsN/fpsAcc) + " fps · " + renderer.info.render.triangles.toLocaleString() + " tris · " + renderer.info.render.calls + " calls"; fpsAcc = 0; fpsN = 0; } }
+  if(FPS_EL){ const now = performance.now(); if(!fpsT0) fpsT0 = now; fpsAcc = (now - fpsT0)/1000; fpsN++; if(fpsAcc >= .5){ FPS_EL.textContent = Math.round(fpsN/fpsAcc) + " fps · " + renderer.info.render.triangles.toLocaleString() + " tris · " + renderer.info.render.calls + " calls"; fpsAcc = 0; fpsN = 0; fpsT0 = now; renderer.info.reset(); } }
   if(toastT > 0){ toastT -= dt; if(toastT <= 0) $("toast").classList.remove("on"); }
   if(MODE === "island" && CUR){ islandUpdate(CUR, dt, T); present(CUR.scene); }
   else if(MODE === "keep"){
