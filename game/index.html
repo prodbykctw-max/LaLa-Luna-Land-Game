@@ -237,6 +237,12 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
   <h1 style="font-size:40px">What you've found</h1>
   <div id="secretsList" style="margin-top:18px"></div>
   <button id="bSecrets">Back</button>
+  <button class="ghost" id="bReset" style="margin-top:10px">Start over</button>
+  <div id="resetWrap" class="hide" style="margin-top:14px">
+    <div style="opacity:.8;font-size:15px;line-height:1.5">This clears every letter, note, moon and outfit and puts you back at the keep. It cannot be undone.</div>
+    <button id="bResetYes" style="margin-top:10px">Yes, start over</button>
+    <button class="ghost" id="bResetNo" style="margin-top:8px">Keep my progress</button>
+  </div>
 </div></div>
 
 <div class="ov hide" id="ovEnd"><div class="card">
@@ -269,7 +275,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-05g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-05j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -278,6 +284,10 @@ const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-
    without touching the size of anything that stands on the ground, so the island grows while
    Lala, the trees, the buildings and the props stay the size they were. ?world= overrides. */
 const WORLD = Math.max(1, parseFloat(QS.get("world")) || 4);
+/* the pier: the beach ring is 6 u of sand outside the coastline, so the deck has to clear that and
+   still sit over water at its far end. DOCK_LEN is its length, DOCK_OUT how far past the shore its
+   centre sits, DOCK_IN how far inland she lands. */
+const DOCK_LEN = 34, DOCK_OUT = 9, DOCK_IN = 14;
 renderer.setPixelRatio(PROF.dpr);
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
@@ -590,27 +600,33 @@ function makeLala(){
    RIGS is a registry: each entry loads once, is scaled to a target height with feet at y=0, and
    every character built for it swaps from its primitive stand-in to a skinned clone with clips. */
 const DBG = (...a) => console.log("[lala]", (performance.now()/1000).toFixed(2)+"s", ...a);
+/* metres -> world units. Lala is 1.70 m = 2.95 u, so 1 m = 1.735 u. */
+const M = m => m*2.95/1.70;
 const RIGS = {
   /* Her head is rebuilt: Autosprite's image->3D step melted the face (gouged mesh + a shredded UV atlas),
      so the clean 2D portrait is re-projected onto the mesh and the reconstruction noise is smoothed out.
      ?old=1 loads the previous head for comparison. */
   lala: {url: new URLSearchParams(location.search).get("old") ? "assets/lala-v2-original.glb" : "assets/lala.glb", height:2.95, ink:.009,
          pbr: !!new URLSearchParams(location.search).get("pbr")},
-  horse:{url:"assets/horse.glb", height:1.65*2.95/1.70},        /* ~16 hands at the withers */
-  cow:  {url:"assets/cow.glb", height:1.42*2.95/1.70},          /* real cattle stand ~1.4 m at the shoulder */
-  dino: {url:"assets/dino.glb", height:7.4},
-  fan:  {url:"assets/npc-fan.glb", height:1.63*2.95/1.70, ink:.010},
-  dock: {url:"assets/npc-dock.glb", height:1.79*2.95/1.70, ink:.010},
-  green:{url:"assets/npc-green.glb", height:1.71*2.95/1.70, ink:.010},
-  crowd:{url:"assets/npc-crowd.glb", height:2.7, ink:.010}
+  /* TRUE SCALE. rig.height is the model's TOTAL height (crown of the head, or poll on an animal),
+     because that is what loadRig fits the bounding box to. The old numbers used withers/shoulder
+     figures for the animals, which made a horse hoof-to-poll only 1.65 m — shorter than a man — and
+     put grown men within 3% of Lala, so nobody read as bigger than her. Lala is 1.70 m. */
+  horse:{url:"assets/horse.glb", height:M(2.06)},   /* 16 hands = 1.63 m at the withers, ~2.05 m to the poll */
+  cow:  {url:"assets/cow.glb",   height:M(1.75)},   /* 1.45 m at the shoulder, ~1.75 m to the poll */
+  dino: {url:"assets/dino.glb",  height:M(4.30)},
+  fan:  {url:"assets/npc-fan.glb",   height:M(1.70), ink:.010},
+  dock: {url:"assets/npc-dock.glb",  height:M(1.88), ink:.010},   /* the dockhand is a big man */
+  green:{url:"assets/npc-green.glb", height:M(1.72), ink:.010},
+  crowd:{url:"assets/npc-crowd.glb", height:M(1.74), ink:.010}
 };
 /* the twelve LUNA-tics: distinct generated fans (different people, heights, styles) — light crowd builds */
 /* heights are world units; Lala is 2.95u = 1.70 m, so 1 m = 1.735u. Every fan sits in a real adult range
    (1.55-1.90 m) — measured after loading, because each GLB's own proportions differ (qa/scale.mjs). */
 const M2U = 2.95/1.70;
-const FANS = [[1.88*M2U,"tall man, locs, cow-print bucket hat"],[1.57*M2U,"petite woman, pink-streak bob"],[1.72*M2U,"teen boy, moon hoodie"],[1.66*M2U,"woman, afro, gold bomber"],
-  [1.80*M2U,"man, denim vest with moon patches"],[1.68*M2U,"woman, copper braids, glow stick"],[1.58*M2U,"grandmother, lavender cardigan"],[1.65*M2U,"woman, lilac hijab, cow-print bomber"],
-  [1.86*M2U,"big man, bun, moon floral shirt"],[1.74*M2U,"teen, blue mullet, cow-print overalls"],[1.62*M2U,"teen girl, space buns, tie-dye"],[1.76*M2U,"older man, grey beard, LUNA tee"]];
+const FANS = [[1.96*M2U,"tall man, locs, cow-print bucket hat"],[1.55*M2U,"petite woman, pink-streak bob"],[1.74*M2U,"teen boy, moon hoodie"],[1.65*M2U,"woman, afro, gold bomber"],
+  [1.88*M2U,"man, denim vest with moon patches"],[1.67*M2U,"woman, copper braids, glow stick"],[1.56*M2U,"grandmother, lavender cardigan"],[1.64*M2U,"woman, lilac hijab, cow-print bomber"],
+  [1.94*M2U,"big man, bun, moon floral shirt"],[1.76*M2U,"teen, blue mullet, cow-print overalls"],[1.61*M2U,"teen girl, space buns, tie-dye"],[1.84*M2U,"older man, grey beard, LUNA tee"]];
 FANS.forEach((f,i) => { RIGS["fan"+(i+1)] = {url:`assets/fans/fan${String(i+1).padStart(2,"0")}.glb`, height:f[0], ink:.010, fallback:"crowd"}; });
 for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false, loading:false});
 function loadRig(name){
@@ -793,6 +809,11 @@ const SAVE_KEY = "lala:v4";
 // present — both paths are try/caught so a blocked or missing API just means
 // progress doesn't persist rather than a crash.
 async function load(){
+  /* ?reset=1 clears the save before it is read, then drops the flag so a refresh does not wipe again */
+  if(QS.get("reset")){
+    await wipeSave();
+    try{ const u = new URL(location.href); u.searchParams.delete("reset"); history.replaceState(null, "", u); }catch(e){}
+  }
   try{
     let raw = null;
     try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){}
@@ -802,6 +823,11 @@ async function load(){
     }
   }catch(e){}
   syncHUD();
+}
+async function wipeSave(){
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  try{ if(window.storage && window.storage.delete) await window.storage.delete(SAVE_KEY);
+       else if(window.storage && window.storage.set) await window.storage.set(SAVE_KEY, ""); }catch(e){}
 }
 async function save(){
   const s = JSON.stringify(G);
@@ -1272,8 +1298,8 @@ const ISLANDS = [
   trees:{n:44, min:24, max:50, s:[.7,1.4], willow:true},
   dock:[0,60], spawn:[0,46],
   weather:"clear", creature:null, birds:5, bf:{n:9, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
-  npcs:[{rig:"dock", name:"Moss", h:1.83, at:[6,48], wander:9, line:"Boat's yours whenever. She took the same one out — didn't say where. They never do."},
-        {rig:"fan", name:"Pip", h:1.62, at:[-16,-8], wander:12, line:"I've counted every moon on this island twice. There's one I still can't reach. Tell me if you find it."}],
+  npcs:[{rig:"dock", name:"Moss", h:1.91, at:[6,48], wander:9, line:"Boat's yours whenever. She took the same one out — didn't say where. They never do."},
+        {rig:"fan", name:"Pip", h:1.60, at:[-16,-8], wander:12, line:"I've counted every moon on this island twice. There's one I still can't reach. Tell me if you find it."}],
   grassCols:[0x7FCB9E,0x63B183,0x93D9AE],
   places:[{x:0,z:0,r:22,name:"Luna's Keep"},{x:0,z:56,r:16,name:"South Dock"}], fallback:"The Grounds",
   notes:[
@@ -1295,8 +1321,8 @@ const ISLANDS = [
   trees:{n:78, min:22, max:74, s:[.7,1.4], willow:true},
   dock:[0,64], spawn:[0,56],
   weather:"rain", creature:{type:"horse", n:9, r:[36,58], sp:[.11,.18]}, birds:9, bf:{n:20, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
-  npcs:[{rig:"green", name:"Wren", h:1.66, at:[-9,34], wander:10, line:"The horses come down to the stream after the rain. Stand still and they'll walk right past you."},
-        {rig:"fan", name:"Juno", h:1.6, at:[14,20], wander:8, line:"4 Letters was the first one I ever heard. I cried in a parking lot. Don't tell anyone."}],
+  npcs:[{rig:"green", name:"Wren", h:1.63, at:[-9,34], wander:10, line:"The horses come down to the stream after the rain. Stand still and they'll walk right past you."},
+        {rig:"fan", name:"Juno", h:1.58, at:[14,20], wander:8, line:"4 Letters was the first one I ever heard. I cried in a parking lot. Don't tell anyone."}],
   grassCols:[0x7FCB9E,0x63B183,0x93D9AE],
   ability:{key:"fans", at:[7,6], y:2.4, name:"Her fans", hint:"Jump, then hold to glide", glide:true},
   letter:{at:[22,-34], y:8.5, gate:"glide"},
@@ -1367,9 +1393,9 @@ const ISLANDS = [
   trees:{n:38, min:18, max:64, s:[.9,1.8], palm:true},
   dock:[0,58], spawn:[0,50],
   weather:"glitter", creature:{type:"cow", n:5, r:[26,44], sp:[.05,.09]}, birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
-  npcs:[{rig:"fan", name:"Bea", h:1.68, at:[20,-6], wander:9, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
-        {rig:"fan", name:"Cass", h:1.72, at:[-19,14], wander:9, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
-        {rig:"dock", name:"Rafa", h:1.86, at:[-38,22], wander:8, line:"Beach is better at golden hour. Everything is. That's the whole trick of this town."}],
+  npcs:[{rig:"fan", name:"Bea", h:1.64, at:[20,-6], wander:9, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
+        {rig:"fan", name:"Cass", h:1.78, at:[-19,14], wander:9, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
+        {rig:"dock", name:"Rafa", h:1.95, at:[-38,22], wander:8, line:"Beach is better at golden hour. Everything is. That's the whole trick of this town."}],
   grassCols:[0x9ED49A,0x7CC383,0xB6E2AE],
   ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true},
   letter:{at:[58,-20], y:2.4, gate:"gate"},
@@ -1618,6 +1644,7 @@ function buildIsland(cfg){
     const outer = (cfg.features||[]).find(f => f.outer);
     (cfg.notes||[]).forEach(n => { const [x,z] = land(n.x, n.z, 5); n.x = x; n.z = z; });
     (cfg.npcs||[]).forEach(n => { const [x,z] = land(n.at[0], n.at[1], 6); n.at = [x,z]; });
+    (cfg.places||[]).forEach(q => { const [x,z] = land(q.x, q.z, Math.min(q.r*.4, 8)); q.x = x; q.z = z; });
     if(cfg.stones && cfg.stones.length && outer){       /* re-lay the stepping stones from the shore to the stack */
       const tx = outer.x, tz = outer.z, n = cfg.stones.length;
       let sx = 0, sz = 0; const l = Math.hypot(tx,tz)||1;
@@ -1637,11 +1664,32 @@ function buildIsland(cfg){
   }
   /* the dock is a pier: it starts on the shore and runs out over the water, and the boat floats beside its far end.
      Both are placed from the actual shoreline (first open water along +z from the dock's x), never by hand. */
-  { let shoreZ = null; for(let z = cfg.dock[1]-20; z < cfg.dock[1]+40; z += .25){ if(!inside(cfg.dock[0], z)){ shoreZ = z; break; } }
-    if(shoreZ != null){ cfg.dock = [cfg.dock[0], shoreZ + 3]; cfg.spawn = [cfg.dock[0], shoreZ - 11]; cfg.shoreZ = shoreZ; } }
+  { /* The old search was a fixed z window (dock-20 .. dock+40). That was authored for the small
+       circular islands; once WORLD scaled the coastline up it missed the shore entirely (hub and
+       San Andres came back with no shoreline at all, leaving the pier inland and the arrival spawn
+       out in the water). Search the island's real z extent instead, and take the OUTERMOST
+       land->water crossing on the pier's x line. */
+    const zs = POLY ? POLY.map(q => q[1]) : [-120, 120];
+    const zLo = Math.min(...zs) - 20*WORLD, zHi = Math.max(...zs) + 20*WORLD;
+    const step = Math.max(.25, (zHi - zLo)/1500);
+    const shoreOn = x => { let last = null, prevIn = false;
+      for(let z = zLo; z <= zHi; z += step){ const now = inside(x, z); if(prevIn && !now) last = z; prevIn = now; }
+      return last; };
+    let sx = cfg.dock[0], shoreZ = shoreOn(sx);
+    for(let k = 1; k <= 30 && shoreZ == null; k++){                 /* that x may miss the island entirely */
+      for(const sgn of [-1, 1]){ const x = cfg.dock[0] + sgn*k*3*WORLD; const hit = shoreOn(x);
+        if(hit != null){ sx = x; shoreZ = hit; break; } } }
+    if(shoreZ != null){
+      cfg.shoreZ = shoreZ;
+      cfg.dock = [sx, shoreZ + DOCK_OUT];
+      /* she must arrive on solid ground: walk the landing inward until it really is inside */
+      let sz = shoreZ - DOCK_IN;
+      for(let k = 0; k < 120 && !(inside(sx, sz) && inside(sx+3, sz) && inside(sx-3, sz) && inside(sx, sz-3)); k++) sz -= 1.5;
+      cfg.spawn = [sx, sz];
+    } }
   const height = (x,z) => {
     let y = 0;
-    if(Math.abs(x-cfg.dock[0]) < 3 && Math.abs(z-cfg.dock[1]) < 9) y = .75;        /* the dock planks are a deck, not a decal */
+    if(Math.abs(x-cfg.dock[0]) < 3 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2) y = .75;   /* the dock planks are a deck, not a decal */
     for(const f of cfg.features){
       const d = Math.hypot(x-f.x, z-f.z);
       if(f.type === "hill" && d < f.r){
@@ -1702,7 +1750,7 @@ function buildIsland(cfg){
       if(!inside(x,z)) continue;
       if(avoidMesa && cfg.features.some(f => f.type==="mesa" && Math.hypot(x-f.x,z-f.z) < f.r+2)) continue;
       if(cfg.gate && Math.abs(x-cfg.gate.x) < 5 && z > cfg.gate.zMin && z < cfg.gate.zMax) continue;
-      if(Math.abs(x-cfg.dock[0]) < 6 && Math.abs(z-cfg.dock[1]) < 13) continue;                 /* keep the landing clear */
+      if(Math.abs(x-cfg.dock[0]) < 6 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2+4) continue;        /* keep the landing clear */
       if(Math.hypot(x-cfg.spawn[0], z-cfg.spawn[1]) < 7) continue;
       if(cfg.ability && Math.hypot(x-cfg.ability.at[0], z-cfg.ability.at[1]) < 4) continue;
       if(cfg.letter && Math.hypot(x-cfg.letter.at[0], z-cfg.letter.at[1]) < 4) continue;
@@ -2028,10 +2076,10 @@ function buildIsland(cfg){
   }
   /* dock + boat */
   const [dx,dz] = cfg.dock;
-  const planks = inked(new THREE.BoxGeometry(6,.5,18), P.wood, 1.9); planks.position.set(dx,.5,dz); scene.add(planks);
+  const planks = inked(new THREE.BoxGeometry(6,.5,DOCK_LEN), P.wood, 1.9); planks.position.set(dx,.5,dz); scene.add(planks);
   const boat = makeBoat(P.wood, MOON, .9);
   /* moor the boat in real water: start beside the dock's outer end and walk out until nothing is under it */
-  { let bx = dx+5.2, bz = dz+5;
+  { let bx = dx+5.2, bz = dz + DOCK_LEN/2 - 2;
     for(let k=0;k<80 && (inside(bx,bz) || inside(bx+2.4,bz) || inside(bx-2.4,bz) || inside(bx,bz+4) || inside(bx,bz-4)); k++){ bz += 1.5; if(k%6===5) bx += .8; }
     boat.position.set(bx,.1,bz); }
   boat.rotation.y=.2; scene.add(boat); I.boat = boat;
@@ -2126,7 +2174,7 @@ function buildIsland(cfg){
   const GRASS_POLY = POLY ? polyOffset(POLY, -4.5) : null;
   const noGrass = (x,z) => {
     if(GRASS_POLY ? !polyInside(GRASS_POLY, x, z) : !inside(x,z)) return true;
-    if(Math.abs(x-cfg.dock[0]) < 5.5 && Math.abs(z-cfg.dock[1]) < 12) return true;      /* the dock and its landing */
+    if(Math.abs(x-cfg.dock[0]) < 5.5 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2+3) return true;   /* the dock and its landing */
     if(cfg.beach  && Math.hypot(x-cfg.beach.x,  z-cfg.beach.z)  < cfg.beach.r)     return true;
     if(cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)  return true;
     for(const c of I.colliders){ const r = c.r + .8; if((x-c.x)*(x-c.x) + (z-c.z)*(z-c.z) < r*r) return true; }
@@ -2215,7 +2263,7 @@ function canStand(I, x, z){
   }
   if(abilityOf(I).lantern && I.stones.some(s => Math.hypot(x-s.x, z-s.z) < 3.3)) return true;
   if(abilityOf(I).lantern) { const f = I.cfg.features.find(f => f.outer); if(f && Math.hypot(x-f.x,z-f.z) < f.r) return true; }
-  if(Math.hypot(x - I.cfg.dock[0], z - I.cfg.dock[1]) < 4 || (Math.abs(x - I.cfg.dock[0]) < 3.2 && z > I.cfg.dock[1]-9 && z < I.cfg.dock[1]+9)) return true;
+  if(Math.hypot(x - I.cfg.dock[0], z - I.cfg.dock[1]) < 4 || (Math.abs(x - I.cfg.dock[0]) < 3.2 && z > I.cfg.dock[1]-DOCK_LEN/2 && z < I.cfg.dock[1]+DOCK_LEN/2)) return true;
   return false;
 }
 function walkerUpdate(I, dt, t){
@@ -2692,7 +2740,7 @@ $("bCastle").onclick = () => { ovNone(); CUR.W.active = true; };
 $("bEnter").onclick = goKeep;
 $("bDock").onclick = () => { ovNone(); CUR.W.active = true; };
 $("bIntro").onclick = () => { audioInit(); ovNone(); CUR.W.active = true; };
-$("secretsBtn").onclick = () => { if(!CUR) return; renderSecrets(); CUR.W.active = false; ov("ovSecrets"); };
+$("secretsBtn").onclick = () => { if(!CUR) return; renderSecrets(); $("resetWrap").classList.add("hide"); $("bReset").classList.remove("hide"); CUR.W.active = false; ov("ovSecrets"); };
 function renderTravel(){
   const I = CUR, list = $("travelList"); list.innerHTML = "";
   const here = (I.cfg.places||[]).filter(q => G.visited[I.cfg.key+":"+q.name]);
@@ -2718,6 +2766,9 @@ function renderTravel(){
   });
 }
 $("travelBtn").onclick = () => { if(!CUR || !CUR.W) return; renderTravel(); CUR.W.active = false; ov("ovTravel"); };
+$("bReset").onclick = () => { $("resetWrap").classList.remove("hide"); $("bReset").classList.add("hide"); };
+$("bResetNo").onclick = () => { $("resetWrap").classList.add("hide"); $("bReset").classList.remove("hide"); };
+$("bResetYes").onclick = async () => { await wipeSave(); location.href = location.pathname; };
 $("bTravel").onclick = () => { ovNone(); if(CUR) CUR.W.active = true; };
 $("bSecrets").onclick = () => { ovNone(); if(CUR) CUR.W.active = true; };
 $("bEnd").onclick = () => { ovNone(); goIsland(ISL.hub); };
