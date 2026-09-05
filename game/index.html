@@ -260,7 +260,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-05c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-05d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 renderer.setPixelRatio(PROF.dpr);
@@ -694,7 +694,7 @@ function cowgirlHat(){
   const HATC = 0xF6F2EA, SEG = 44;
   const g = new THREE.Group();
   /* brim */
-  { const R0 = .125, R1 = .34, RINGS = 5, pos = [], idx = [];
+  { const R0 = .165, R1 = .355, RINGS = 5, pos = [], idx = [];
     for(let i=0;i<=RINGS;i++){ const t = i/RINGS, r = R0 + (R1-R0)*t;
       for(let j=0;j<=SEG;j++){ const a = j/SEG*Math.PI*2, cx = Math.cos(a), sz = Math.sin(a);
         const side = Math.abs(cx), front = Math.max(0, sz), back = Math.max(0, -sz);
@@ -708,13 +708,13 @@ function cowgirlHat(){
     bg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); bg.setIndex(idx); bg.computeVertexNormals();
     g.add(inked(bg, HATC, 1.0, {side:THREE.DoubleSide})); }
   /* crown: tapered, with a centre crease down the top and a pinch either side of the front */
-  { const H = .30, CR = 7, pos = [], idx = [];
+  { const H = .31, CR = 7, pos = [], idx = [];
     const crease = (x, z, u) => { if(u < .45) return 0;
       const k = (u-.45)/.55;
       const dip = .085*k*Math.exp(-Math.pow(x/.070, 2));                        /* the long crease */
       const pinch = .045*k*Math.exp(-Math.pow((Math.abs(x)-.10)/.055, 2))*Math.max(0, (z+.05)/.19);
       return -(dip + pinch); };
-    for(let i=0;i<=CR;i++){ const u = i/CR, r = .175 - .028*u;
+    for(let i=0;i<=CR;i++){ const u = i/CR, r = .228 - .034*u;   /* wide enough to swallow her hair (half-width .201) */
       for(let j=0;j<=SEG;j++){ const a = j/SEG*Math.PI*2, x = Math.cos(a)*r, z = Math.sin(a)*r;
         pos.push(x, u*H + crease(x,z,u), z); } }
     for(let i=0;i<CR;i++) for(let j=0;j<SEG;j++){ const a = i*(SEG+1)+j, b = a+1, c = a+SEG+1, d = c+1;
@@ -726,10 +726,29 @@ function cowgirlHat(){
     cg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); cg.setIndex(idx); cg.computeVertexNormals();
     const crown = inked(cg, HATC, 1.0); crown.position.y = .012; g.add(crown); }
   /* the band — takes the island's colour */
-  { const band = new THREE.Mesh(new THREE.CylinderGeometry(.180,.184,.045,SEG,1,true),
+  { const band = new THREE.Mesh(new THREE.CylinderGeometry(.233,.237,.045,SEG,1,true),
       new THREE.MeshToonMaterial({color:0x6FBF92, gradientMap:GRAD, side:THREE.DoubleSide}));
     band.position.y = .043; g.add(band); g.userData.band = band; }
   return g;
+}
+/* inside the coastline with a margin, so wandering animals keep clear of the waterline */
+function onLand(I, x, z){
+  if(!I.inside(x,z)) return false;
+  const M = 2.6;
+  return I.inside(x+M,z) && I.inside(x-M,z) && I.inside(x,z+M) && I.inside(x,z-M);
+}
+/* the furthest point on this bearing that is still comfortably on land, walking inward from rMax.
+   Margarita is two-lobed, so "pull toward the centre" is not enough on its own — if the whole
+   bearing is water we sweep nearby bearings before giving up. */
+function landOnBearing(I, a, rMax){
+  for(let sweep=0; sweep<24; sweep++){
+    const ang = a + (sweep === 0 ? 0 : (sweep % 2 ? 1 : -1) * Math.ceil(sweep/2) * 0.26);
+    for(let r=rMax; r>4; r-=1.2){
+      const x = Math.cos(ang)*r, z = Math.sin(ang)*r;
+      if(onLand(I, x, z)) return [x, z, r, ang];
+    }
+  }
+  return null;
 }
 function playClip(R, name, fade){
   if(!R.actions) return;
@@ -1713,8 +1732,50 @@ function buildIsland(cfg){
   if(cfg.decor === "ruins"){
     [[14,18],[20,10],[19,-2],[10,-8],[0,-6],[-7,2],[-4,14],[5,21]].forEach(([x,z],i) => column(x,z,5.5+(i%3)*1.6,(i%4===0)?.16:0));
     const arch = inked(new THREE.TorusGeometry(4.6,.85,8,20,Math.PI), P.stone, 2.0); arch.position.set(7,height(7,6),6); scene.add(arch);
-    const stream = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 70), new THREE.MeshBasicMaterial({color:0x7FC9E0, transparent:true, opacity:.75}));
-    stream.rotation.x = -Math.PI/2; stream.rotation.z = .35; stream.position.set(-10,.62,22); scene.add(stream);
+    /* A real stream, not a blue rectangle laid on the grass. The water is a ribbon that follows a
+       curved path and sits at the terrain height at every step, sunk slightly into a darker cut
+       bank that is drawn a little wider and a little lower, so it reads as a channel in the ground.
+       Rocks along the edges break the silhouette. */
+    (() => {
+      const STEPS = 46, path = [];
+      for(let i=0;i<=STEPS;i++){
+        const t = i/STEPS;
+        const z = -14 + t*74;                                   /* runs roughly south to north */
+        const x = -10 + Math.sin(t*3.1)*5.2 + Math.sin(t*7.4)*1.6;   /* it meanders */
+        path.push([x, z, 1.35 + Math.sin(t*4.2)*.45]);          /* and its half-width varies */
+      }
+      const ribbon = (widen, drop, colour, opacity) => {
+        const pos = [], idx = [];
+        for(let i=0;i<path.length;i++){
+          const [x,z,w] = path[i];
+          const n = path[Math.min(i+1, path.length-1)], pv = path[Math.max(i-1, 0)];
+          let dx = n[0]-pv[0], dz = n[1]-pv[1]; const L = Math.hypot(dx,dz)||1; dx/=L; dz/=L;
+          const px = -dz*(w+widen), pz = dx*(w+widen);
+          const yl = height(x-px, z-pz), yr = height(x+px, z+pz), y = Math.min(yl,yr) - drop;
+          pos.push(x-px, y, z-pz,  x+px, y, z+pz);
+        }
+        for(let i=0;i<path.length-1;i++){ const q=i*2; idx.push(q,q+2,q+1, q+1,q+2,q+3); }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals();
+        const m = new THREE.Mesh(g, opacity < 1
+          ? new THREE.MeshBasicMaterial({color:colour, transparent:true, opacity, depthWrite:false})
+          : toon(colour, {map:TEX.rock}));
+        scene.add(m); return m;
+      };
+      ribbon(1.15, .10, 0x6E7A63, 1);        /* the cut bank: wider, a touch lower, earthy */
+      ribbon(0, .26, 0x7FC9E0, .82);         /* the water, sunk into it */
+      for(let i=2;i<path.length-2;i+=3){     /* stones along both edges */
+        const [x,z,w] = path[i];
+        for(const sgn of [-1,1]){
+          const rx = x + sgn*(w + 1.0 + Math.random()*.7), rz = z + (Math.random()-.5)*1.8;
+          const r = .28 + Math.random()*.34;
+          const st = inked(new THREE.IcosahedronGeometry(r, 0), P.stone, 1.2);
+          st.position.set(rx, height(rx,rz) + r*.34, rz);
+          st.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
+          st.scale.y = .68; scene.add(st);
+        }
+      }
+    })();
     const bridge = inked(new THREE.BoxGeometry(5,.4,3.6), P.wood, 1.6); bridge.position.set(-2.6,1.0,33); bridge.rotation.y=.35; scene.add(bridge);
 
     /* moss-spiral tunnel — a coiled, moss-wrapped branch arch you walk through
@@ -1994,7 +2055,9 @@ function buildIsland(cfg){
   /* creatures */
   if(cfg.creature){ const c = cfg.creature;
     for(let i=0;i<c.n;i++){ const h = makeCreature(c.type);
-      h.userData.a = Math.random()*Math.PI*2; h.userData.r = c.r[0]+Math.random()*(c.r[1]-c.r[0]);
+      let a0 = Math.random()*Math.PI*2, r0 = c.r[0]+Math.random()*(c.r[1]-c.r[0]);
+      if(!c.fly){ const hit = landOnBearing(I, a0, r0); if(hit){ a0 = hit[3]; r0 = hit[2]; h.userData.lx = hit[0]; h.userData.lz = hit[1]; } }
+      h.userData.a = a0; h.userData.r = r0;
       h.userData.sp = c.sp[0]+Math.random()*(c.sp[1]-c.sp[0]); h.userData.fly = !!c.fly; h.userData.ph = Math.random()*6;
       scene.add(h); I.creatures.push(h); } }
 
@@ -2258,7 +2321,16 @@ function islandUpdate(I, dt, t){
     if(R.inkTwins){ const dc = camera.position.distanceTo(g.position), nearInk = dc < 26, midShadow = dc < 42;
       for(const m of R.inkTwins) m.visible = nearInk; for(const m of R.skins) m.castShadow = midShadow; } });
   I.creatures.forEach(h => { const u = h.userData; u.a += u.sp*dt;
-    const x = Math.cos(u.a)*u.r, z = Math.sin(u.a)*u.r;
+    /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
+       radius walks straight into the sea. Pull the radius in until the step lands on land (with a
+       margin so they do not paddle along the waterline) — the herd then follows the shore. */
+    let x = Math.cos(u.a)*u.r, z = Math.sin(u.a)*u.r;
+    if(!u.fly && I.inside && !onLand(I, x, z)){
+      const hit = landOnBearing(I, u.a, u.r);
+      if(hit){ x = hit[0]; z = hit[1]; }
+      else if(u.lx != null){ x = u.lx; z = u.lz; u.sp = -u.sp; }   /* nowhere to go: turn around */
+    }
+    if(!u.fly){ if(onLand(I, x, z)){ u.lx = x; u.lz = z; } else if(u.lx != null){ x = u.lx; z = u.lz; } }
     const base = u.fly ? 5 + Math.sin(t*.9+u.ph)*1.6 : I.height(x,z) + Math.abs(Math.sin(t*5))*.12;
     h.position.set(x, base, z); h.rotation.y = -u.a - Math.PI/2;   /* nose points along the direction of travel */
     if(u.type === "jelly"){ const p = Math.sin(t*2+u.ph); h.scale.set(1 - p*.06, 1 + p*.14, 1 - p*.06);
