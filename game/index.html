@@ -275,7 +275,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-05j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-05l";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -288,6 +288,11 @@ const WORLD = Math.max(1, parseFloat(QS.get("world")) || 4);
    still sit over water at its far end. DOCK_LEN is its length, DOCK_OUT how far past the shore its
    centre sits, DOCK_IN how far inland she lands. */
 const DOCK_LEN = 34, DOCK_OUT = 9, DOCK_IN = 14;
+/* Hand-authored landmark radii (the town square's stalls and lamps, the crowd rings) were pinned
+   while sample()-based scatter scaled with the island, so the square stayed 12 u across while the
+   crowd that rings it was flung out past 70 u — which is why everyone read as tiny and far away.
+   DECOR scales those authored radii: at WORLD 4 the square becomes ~58 m across, a real plaza. */
+const DECOR = 1 + (WORLD - 1) * 0.75;
 renderer.setPixelRatio(PROF.dpr);
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
@@ -386,6 +391,30 @@ function grassGround(){
   return t;
 }
 const TEX = {meadow: grassGround(), rock: mottle(9, 70, 1.6)};
+
+/* CONTACT SHADOW. The cast shadow is switched off past 42 u and the ink outline past 26 u, so a
+   character further away than that stood on flat ground with nothing anchoring it — which reads as
+   floating, however exactly its feet sit on the surface. Every character and creature now carries a
+   cheap always-on shadow decal, at every distance, on every island. */
+function shadowTex(){
+  const S = 64, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const c = cv.getContext("2d");
+  const g = c.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
+  g.addColorStop(0,"rgba(0,0,0,.55)"); g.addColorStop(.55,"rgba(0,0,0,.30)"); g.addColorStop(1,"rgba(0,0,0,0)");
+  c.fillStyle = g; c.fillRect(0,0,S,S);
+  return new THREE.CanvasTexture(cv);
+}
+const SHADOW_TEX = shadowTex();
+const SHADOW_GEO = new THREE.PlaneGeometry(1,1);
+function groundShadow(group, radius){
+  const m = new THREE.Mesh(SHADOW_GEO, new THREE.MeshBasicMaterial({
+    map:SHADOW_TEX, transparent:true, depthWrite:false, opacity:.85 }));
+  m.rotation.x = -Math.PI/2; m.position.y = .035; m.scale.set(radius*2, radius*2, 1);
+  m.renderOrder = -1; m.frustumCulled = false;
+  group.add(m); group.userData.shadowDecal = m;
+  return m;
+}
+
 const outlineBase = new THREE.ShaderMaterial({
   uniforms:{thickness:{value:1.7}, inkColor:{value:new THREE.Color(INK)}},
   vertexShader:`uniform float thickness;
@@ -1948,7 +1977,7 @@ function buildIsland(cfg){
       const fern = inked(new THREE.ConeGeometry(2.2,3.2,5), P.leaf2, 1.5); fern.position.set(s[0],height(s[0],s[1])+1.4,s[1]); fern.rotation.x=Math.PI; scene.add(fern); }
   }
   if(cfg.decor === "lighthouse"){
-    const lhx=-30, lhz=-25, base = height(lhx,lhz);
+    const lhx=-30*WORLD, lhz=-25*WORLD, base = height(lhx,lhz);
     const tower = inked(new THREE.CylinderGeometry(1.6,2.2,11,12), P.stone, 2.0); tower.position.set(lhx, base+5.5, lhz); scene.add(tower);
     I.colliders.push({x:lhx, z:lhz, r:2.6});
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(1.2,12,10), new THREE.MeshBasicMaterial({color:MOON})); lamp.position.set(lhx, base+11.6, lhz); scene.add(lamp);
@@ -1993,11 +2022,12 @@ function buildIsland(cfg){
     /* everyone who ever sang along, gathered at the foot of the rock */
     const order = []; for(let k=0;k<2;k++){ const ids = FANS.map((_,i) => i+1); for(let j=ids.length-1;j>0;j--){ const r = Math.floor(Math.random()*(j+1)); [ids[j],ids[r]] = [ids[r],ids[j]]; } order.push(...ids); }
     for(let i=0;i<20;i++){
-      const a = (i/20)*Math.PI*2 + Math.random()*.2, r = 16 + Math.random()*16;
-      const x = 12 + Math.cos(a)*r, z = 8 + Math.sin(a)*r; if(!inside(x,z)) continue;
+      const a = (i/20)*Math.PI*2 + Math.random()*.2, r = (16 + Math.random()*16)*Math.sqrt(DECOR);
+      const x = 12*WORLD + Math.cos(a)*r, z = 8*WORLD + Math.sin(a)*r; if(!inside(x,z)) continue;
       const g = new THREE.Group(); const R = {group:g, primitive:[]};
       g.scale.setScalar(.98 + Math.random()*.04);
       g.userData = {R, cfg:{name:null, wander:4}, home:new THREE.Vector3(x,0,z), state:"idle", timer:Math.random()*4, target:null, heading:Math.atan2(-6-x, -26-z)};
+      groundShadow(g, .50);
       g.position.set(x, height(x,z), z); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); }
     /* a lantern path up the rock so the climb reads as a route */
     for(let i=0;i<14;i++){ const k = i/13, x = 0 + (-6-0)*k, z = 24 + (-26-24)*k;
@@ -2005,24 +2035,27 @@ function buildIsland(cfg){
         const l = new THREE.Mesh(new THREE.SphereGeometry(.44,10,8), new THREE.MeshBasicMaterial({color:MOON})); l.position.set(x+ox, height(x+ox,z)+3.1, z); scene.add(l); }); }
   }
   if(cfg.decor === "town"){
-    const fountain = inked(new THREE.CylinderGeometry(3,3.4,1,20), P.stone, 1.8); fountain.position.set(0,1.4,0); scene.add(fountain);
-    I.colliders.push({x:0, z:0, r:3.6});
-    const spout = new THREE.Mesh(new THREE.CylinderGeometry(.3,.6,3,8), new THREE.MeshBasicMaterial({color:0x8ED8E8, transparent:true, opacity:.8}));
+    const fr = 3*Math.sqrt(DECOR);
+    const fountain = inked(new THREE.CylinderGeometry(fr,fr*1.13,1,20), P.stone, 1.8); fountain.position.set(0,1.4,0); scene.add(fountain);
+    I.colliders.push({x:0, z:0, r:fr+.6});
+    const spout = new THREE.Mesh(new THREE.CylinderGeometry(.3*Math.sqrt(DECOR),.6*Math.sqrt(DECOR),3,8), new THREE.MeshBasicMaterial({color:0x8ED8E8, transparent:true, opacity:.8}));
     spout.position.set(0,3.2,0); scene.add(spout);
-    const fw = new THREE.Mesh(new THREE.CircleGeometry(2.6,20), new THREE.MeshBasicMaterial({color:0x8ED8E8, transparent:true, opacity:.85}));
+    const fw = new THREE.Mesh(new THREE.CircleGeometry(fr*.87,20), new THREE.MeshBasicMaterial({color:0x8ED8E8, transparent:true, opacity:.85}));
     fw.rotation.x = -Math.PI/2; fw.position.set(0,1.95,0); scene.add(fw);
-    for(let i=0;i<8;i++){ const a = (i/8)*Math.PI*2, x = Math.cos(a)*12, z = Math.sin(a)*12;
+    const NSTALL = Math.round(8*Math.sqrt(DECOR));
+    for(let i=0;i<NSTALL;i++){ const a = (i/NSTALL)*Math.PI*2, x = Math.cos(a)*12*DECOR, z = Math.sin(a)*12*DECOR;
       const stall = inked(new THREE.BoxGeometry(3.8,1.8,2.4), [0xF2A6C8,0xFFD37A,0x9B84DC,0x8ED8E8][i%4], 1.6);
       stall.position.set(x, height(x,z)+.9, z); stall.rotation.y = -a; scene.add(stall);      /* counter at ~1.0 m */
       I.colliders.push({x, z, r:2.3});
       [-1,1].forEach(sx => { const post = inked(new THREE.CylinderGeometry(.12,.14,4.2,5), 0x6B5238, 1.0);
         post.position.set(x + Math.cos(-a)*sx*1.7, height(x,z)+2.1, z - Math.sin(-a)*sx*1.7); scene.add(post); });
       const awn = inked(new THREE.BoxGeometry(4.4,.24,3.2), BONE, 1.3); awn.position.set(x, height(x,z)+4.3, z); awn.rotation.y = -a; scene.add(awn); }
-    for(let i=0;i<10;i++){ const a = (i/10)*Math.PI*2, x = Math.cos(a)*15.5, z = Math.sin(a)*15.5;
+    const NLAMP = Math.round(10*Math.sqrt(DECOR));
+    for(let i=0;i<NLAMP;i++){ const a = (i/NLAMP)*Math.PI*2, x = Math.cos(a)*15.5*DECOR, z = Math.sin(a)*15.5*DECOR;
       const post = inked(new THREE.CylinderGeometry(.14,.18,5,6), P.wood, 1.3); post.position.set(x, height(x,z)+2.5, z); scene.add(post);
-      for(let k=0;k<5;k++){ const b = (i/10 + k/50)*Math.PI*2;
+      for(let k=0;k<5;k++){ const b = (i/NLAMP + k/(NLAMP*5))*Math.PI*2;
         const bulb = new THREE.Mesh(new THREE.SphereGeometry(.16,6,5), new THREE.MeshBasicMaterial({color:[0xFFE59A,0xF2A6C8,0x8ED8E8][k%3]}));
-        bulb.position.set(Math.cos(b)*15.5, height(x,z)+4.6-Math.sin(k/5*Math.PI)*.5, Math.sin(b)*15.5); scene.add(bulb); } }
+        bulb.position.set(Math.cos(b)*15.5*DECOR, height(x,z)+4.6-Math.sin(k/5*Math.PI)*.5, Math.sin(b)*15.5*DECOR); scene.add(bulb); } }
     for(let i=0;i<8;i++){ const s = sample(28,52,true); if(!s) continue;
       const um = inked(new THREE.ConeGeometry(2.6,1.2,10), [0xF2A6C8,0xFFD37A,0x8ED8E8][i%3], 1.5); um.position.set(s[0],height(s[0],s[1])+3,s[1]); scene.add(um);
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,3,5), toon(BONE)); pole.position.set(s[0],height(s[0],s[1])+1.5,s[1]); scene.add(pole); }
@@ -2060,12 +2093,19 @@ function buildIsland(cfg){
       for(let f=1; f*4.2+2.4 < h; f++) for(let k=0;k<3;k++){ const w2 = new THREE.Mesh(new THREE.PlaneGeometry(1.7,1.9), new THREE.MeshBasicMaterial({color:0xBFE6F0})); w2.position.set(x-3.0+k*3.0, height(x,z)+f*4.2+2.4, z+4.02); scene.add(w2); } }
     /* the LUNA-tic crowd on the beach and round the square — twelve different fans, each appearing twice,
        shuffled so the same face never stands next to itself */
-    const order = []; for(let k=0;k<2;k++){ const ids = FANS.map((_,i) => i+1); for(let j=ids.length-1;j>0;j--){ const r = Math.floor(Math.random()*(j+1)); [ids[j],ids[r]] = [ids[r],ids[j]]; } order.push(...ids); }
+    const order = []; for(let k=0;k<3;k++){ const ids = FANS.map((_,i) => i+1); for(let j=ids.length-1;j>0;j--){ const r = Math.floor(Math.random()*(j+1)); [ids[j],ids[r]] = [ids[r],ids[j]]; } order.push(...ids); }
     const clearOf = s => s && !I.colliders.some(c => !c.camOnly && Math.hypot(s[0]-c.x, s[1]-c.z) < c.r + 1.0);
-    for(let i=0;i<24;i++){ const onBeach = i < 16; let s = null; for(let k=0;k<12 && !clearOf(s);k++) s = onBeach ? bsample(3, 20) : sample(18, 26, true); if(!clearOf(s)) continue;
+    /* the square half of the crowd rings the fountain at the plaza's own radius — sample() scales with
+       the island and was throwing them a hundred metres clear of the square they belong to */
+    const sq = (rmin, rmax) => { for(let k=0;k<24;k++){ const a = Math.random()*Math.PI*2,
+        r = (rmin + Math.random()*(rmax-rmin))*DECOR, x = Math.cos(a)*r, z = Math.sin(a)*r;
+        if(inside(x,z)) return [x,z]; } return null; };
+    const NCROWD = 34, NBEACH = 16;
+    for(let i=0;i<NCROWD;i++){ const onBeach = i < NBEACH; let s = null; for(let k=0;k<12 && !clearOf(s);k++) s = onBeach ? bsample(3, 20) : sq(7, 19); if(!clearOf(s)) continue;
       const g = new THREE.Group(); const R = {group:g, primitive:[]};
       g.scale.setScalar(.98 + Math.random()*.04);
       g.userData = {R, cfg:{name:null, wander: onBeach ? 5 : 8}, home:new THREE.Vector3(s[0],0,s[1]), state:"idle", timer:Math.random()*4, target:null, heading:Math.random()*6.3};
+      groundShadow(g, .50);
       g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); }
     if(cfg.gate){
       for(let z = cfg.gate.zMin; z <= cfg.gate.zMax; z += 4){
@@ -2166,6 +2206,7 @@ function buildIsland(cfg){
     const ph = inked(new THREE.CylinderGeometry(.38,.42,2.5,8), 0xC9B8A8, 1.5); ph.position.y = 1.3; g.add(ph);
     const R = {group:g, primitive:[ph]}; g.userData = {R, cfg:n, home:new THREE.Vector3(n.at[0], 0, n.at[1]), state:"idle", timer:1+Math.random()*3, target:null, heading:Math.random()*6.3};
     if(n.h) g.scale.setScalar(n.h*2.95/1.70 / (RIGS[n.rig] ? RIGS[n.rig].height : 2.8));   /* their own height in metres, not the rig's */
+    groundShadow(g, .52);
     g.position.set(n.at[0], height(n.at[0], n.at[1]), n.at[1]); scene.add(g); I.npcs.push(g); wantRig(R, n.rig);
   });
   /* Where grass must NOT grow: off the meadow slab (so it never creeps onto the beach or the sea),
@@ -2187,6 +2228,7 @@ function buildIsland(cfg){
     for(let i=0;i<c.n;i++){ const h = makeCreature(c.type);
       let a0 = Math.random()*Math.PI*2, r0 = c.r[0]+Math.random()*(c.r[1]-c.r[0]);
       if(!c.fly){ const hit = landOnBearing(I, a0, r0); if(hit){ a0 = hit[3]; r0 = hit[2]; h.userData.lx = hit[0]; h.userData.lz = hit[1]; } }
+      if(!c.fly) groundShadow(h, c.type==='horse' ? 1.15 : c.type==='cow' ? 1.10 : c.type==='dino' ? 1.8 : .8);
       h.userData.a = a0; h.userData.r = r0;
       h.userData.sp = c.sp[0]+Math.random()*(c.sp[1]-c.sp[0]); h.userData.fly = !!c.fly; h.userData.ph = Math.random()*6;
       scene.add(h); I.creatures.push(h); } }
@@ -2216,6 +2258,7 @@ function buildIsland(cfg){
 
   /* walker */
   I.W = makeLala(); scene.add(I.W.group);
+  I.W.shadow = groundShadow(I.W.group, .55);
   I.W.x = cfg.spawn[0]; I.W.z = cfg.spawn[1]; I.W.y = height(I.W.x, I.W.z);
   I.W.vy = 0; I.W.grounded = true; I.W.gliding = false; I.W.heading = Math.PI; I.W.camYaw = Math.PI; I.W.active = false; I.W.target = null;
 
@@ -2323,6 +2366,15 @@ function walkerUpdate(I, dt, t){
     if(moving && W.current){ W.current.timeScale = curSpeed / (jog ? STRIDE_JOG : STRIDE_WALK); } else if(W.current) W.current.timeScale = 1;
     W.mixer.update(dt); }
   if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = .34; } } else AU.stepT = 0;
+  /* her shadow stays on the ground and softens as she rises, instead of riding up with her */
+  if(W.shadow){
+    const gy = I.height(W.x, W.z), lift = Math.max(0, W.group.position.y - gy);
+    W.shadow.position.y = .035 - (W.group.position.y - gy);
+    const k = 1 / (1 + lift*.22);
+    W.shadow.scale.set(1.1*(0.55*2)*k, 1.1*(0.55*2)*k, 1);
+    W.shadow.material.opacity = .85 * Math.max(.15, k);
+    W.shadow.visible = !W.mount;                       /* the horse carries its own while she rides */
+  }
   if(W.mount){
     /* she sits the horse: the animal is planted on the ground under her and she rides at saddle height */
     const gy = I.height(W.x, W.z);
