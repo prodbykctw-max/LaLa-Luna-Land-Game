@@ -79,6 +79,7 @@ body.desktop #recenter{display:none}
  text-transform:uppercase;font-family:"DM Mono",monospace;cursor:pointer;display:none}
 #mute{left:50%;transform:translateX(calc(-100% - 5px))}
 #secretsBtn{left:50%;transform:translateX(5px)}
+#travelBtn{left:50%;transform:translateX(92px)}
 body.walk .topbtn{display:block}
 /* liquid-glass surfaces: frosted blur, refracted rim highlight, soft inner glow */
 .glass{background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.05) 45%,rgba(255,255,255,.12));
@@ -183,8 +184,16 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 <button id="jmp" class="rbtn">Jump</button>
 <button id="mute" class="topbtn">Sound on</button>
 <button id="secretsBtn" class="topbtn">Secrets</button>
+<button id="travelBtn" class="topbtn">Travel</button>
 <div id="cap"><div class="q" id="capq"></div></div>
 <div id="toast"><div class="t1" id="toast1"></div><div class="t2" id="toast2"></div></div>
+
+<div class="ov hide" id="ovTravel"><div class="card">
+  <div class="eyebrow">Somewhere you have already been</div>
+  <h1 style="font-size:38px">Travel</h1>
+  <div class="isles" id="travelList"></div>
+  <button class="ghost" id="bTravel">Stay here</button>
+</div></div>
 
 <div class="ov" id="ovTitle"><div class="card">
   <div class="eyebrow">Chapter One</div>
@@ -260,7 +269,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-05e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-05g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -777,7 +786,7 @@ function applyOutfit(ch, key){
 /* ============================================================
    PROGRESS + DOM
    ============================================================ */
-const G = { letters:[false,false,false,false], abilities:{}, notes:{}, moons:0, moonsTaken:{}, finished:false };
+const G = { letters:[false,false,false,false], abilities:{}, notes:{}, moons:0, moonsTaken:{}, finished:false, visited:{} };
 const SAVE_KEY = "lala:v4";
 // Runs both inside a Claude artifact (window.storage) and as a plain static
 // site (GitHub Pages, file://, any host) via localStorage. Neither is assumed
@@ -801,7 +810,7 @@ async function save(){
 }
 const $ = id => document.getElementById(id);
 const glyphs = [...document.querySelectorAll(".glyph")];
-const OVS = ["ovTitle","ovNote","ovCastle","ovDock","ovIntro","ovSecrets","ovEnd"];
+const OVS = ["ovTitle","ovNote","ovCastle","ovDock","ovIntro","ovSecrets","ovEnd","ovTravel"];
 function ov(id){ OVS.forEach(k => $(k).classList.toggle("hide", k !== id)); }
 function ovNone(){ OVS.forEach(k => $(k).classList.add("hide")); }
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -1005,7 +1014,7 @@ const grassPatch = sh => {
         float push = (1.0 - smoothstep(0.0, 2.4, dist)) * (1.0 - smoothstep(1.5, 3.0, abs(io.y - uPlayer.y)));
         transformed.xz += normalize(d + vec2(0.001)) * push * 1.15 * w; transformed.y -= push * .42 * w; }`);
 };
-function grassField(scene, n, sampler, heightFn, cols, skip, inside){
+function grassField(scene, n, origin, heightFn, cols, blocked){
   /* A field that follows her. Scattering a fixed count over the whole island means density falls
      off as the island grows — at WORLD 4 the island has 16x the area, so a static field would be
      16x thinner. Instead a fixed number of clumps live in a disc of radius RING around the player
@@ -1024,8 +1033,7 @@ function grassField(scene, n, sampler, heightFn, cols, skip, inside){
     for(let k=0;k<12;k++){
       const a = Math.random()*6.283, r = Math.sqrt(Math.random())*RING;
       const x = cx + Math.cos(a)*r, z = cz + Math.sin(a)*r;
-      if(inside && !inside(x,z)) continue;
-      if(skip && skip(x,z)) continue;
+      if(blocked(x,z)) continue;
       const jx = x + (Math.random()-.5)*1.7, jz = z + (Math.random()-.5)*1.7;
       px[i] = jx; pz[i] = jz;
       q.setFromAxisAngle(up, Math.random()*Math.PI);
@@ -1043,7 +1051,7 @@ function grassField(scene, n, sampler, heightFn, cols, skip, inside){
     return false;
   };
 
-  for(let i=0;i<n;i++) place(i, 0, 0);
+  for(let i=0;i<n;i++) place(i, origin[0], origin[1]);
   mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false;
   scene.add(mesh);
@@ -1645,7 +1653,7 @@ function buildIsland(cfg){
     }
     return y;
   };
-  const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[]};
+  const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
 
   /* ground */
   if(POLY){
@@ -1820,6 +1828,7 @@ function buildIsland(cfg){
           : toon(colour, {map:TEX.rock}));
         scene.add(m); return m;
       };
+      path.forEach(([x,z,w]) => I.noGrass.push({x, z, r: w + 2.2}));   /* nothing grows in the streambed */
       ribbon(1.15, .10, 0x6E7A63, 1);        /* the cut bank: wider, a touch lower, earthy */
       ribbon(0, .26, 0x7FC9E0, .82);         /* the water, sunk into it */
       for(let i=2;i<path.length-2;i+=3){     /* stones along both edges */
@@ -2111,6 +2120,20 @@ function buildIsland(cfg){
     if(n.h) g.scale.setScalar(n.h*2.95/1.70 / (RIGS[n.rig] ? RIGS[n.rig].height : 2.8));   /* their own height in metres, not the rig's */
     g.position.set(n.at[0], height(n.at[0], n.at[1]), n.at[1]); scene.add(g); I.npcs.push(g); wantRig(R, n.rig);
   });
+  /* Where grass must NOT grow: off the meadow slab (so it never creeps onto the beach or the sea),
+     on the dock deck, in the beach or grotto clearings, up against anything solid, and in any zone
+     decor has reserved (the stream bed, paving). */
+  const GRASS_POLY = POLY ? polyOffset(POLY, -4.5) : null;
+  const noGrass = (x,z) => {
+    if(GRASS_POLY ? !polyInside(GRASS_POLY, x, z) : !inside(x,z)) return true;
+    if(Math.abs(x-cfg.dock[0]) < 5.5 && Math.abs(z-cfg.dock[1]) < 12) return true;      /* the dock and its landing */
+    if(cfg.beach  && Math.hypot(x-cfg.beach.x,  z-cfg.beach.z)  < cfg.beach.r)     return true;
+    if(cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)  return true;
+    for(const c of I.colliders){ const r = c.r + .8; if((x-c.x)*(x-c.x) + (z-c.z)*(z-c.z) < r*r) return true; }
+    for(const q of I.noGrass){   const r = q.r;      if((x-q.x)*(x-q.x) + (z-q.z)*(z-q.z) < r*r) return true; }
+    return false;
+  };
+
   /* creatures */
   if(cfg.creature){ const c = cfg.creature;
     for(let i=0;i<c.n;i++){ const h = makeCreature(c.type);
@@ -2123,7 +2146,7 @@ function buildIsland(cfg){
   /* weather + fx */
   I.fx = {
     foam:I.foam,
-    grass: grassField(scene, GRASS_N, null, height, cfg.grassCols, (x,z) => (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1), inside),
+    grass: grassField(scene, GRASS_N, cfg.spawn, height, cfg.grassCols, noGrass),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
@@ -2167,6 +2190,10 @@ function buildIsland(cfg){
    ============================================================ */
 /* jump apex = JUMPV^2/(2*GRAV) = 3.35 u = 1.90 m — clears a stall counter, the dock deck, the storefront step */
 const GRAV = -26, JUMPV = 13.2, GLIDE_VY = -2.0, SPEED = 8.6, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
+/* riding: the horses are the reason a 4x island is walkable. ?ride= and ?saddle= tune it. */
+const RIDEABLE = {horse:1, cow:1};
+const RIDE_MUL = parseFloat(QS.get("ride")) || 3.2;
+const SADDLE_Y = parseFloat(QS.get("saddle")) || 1.30;
 function abilityOf(I){
   const a = I.cfg.ability; if(!a) return {glide:false, jumpMul:1, lantern:false, gateOpen:false};
   const has = !!G.abilities[a.key];
@@ -2200,7 +2227,7 @@ function walkerUpdate(I, dt, t){
   const mag = Math.min(1, Math.hypot(ix,iz));
   let curSpeed = 0;
   if(mag > .08){
-    const ang = Math.atan2(-ix,-iz) + W.camYaw, boost = W.gliding ? 1.35 : 1;
+    const ang = Math.atan2(-ix,-iz) + W.camYaw, boost = W.gliding ? 1.35 : (W.mount ? RIDE_MUL : 1);
     curSpeed = SPEED*mag*boost;
     const mx = Math.sin(ang)*curSpeed*dt, mz = Math.cos(ang)*curSpeed*dt;
     W.heading = ang;
@@ -2219,6 +2246,13 @@ function walkerUpdate(I, dt, t){
     }
     for(const g of (I.npcs||[])){ const dx = W.x-g.position.x, dz = W.z-g.position.z, d = Math.hypot(dx,dz);
       if(d < 1.1 && d > 1e-4 && Math.abs(W.y - g.position.y) < 2.5){ const px = g.position.x + dx/d*1.1, pz = g.position.z + dz/d*1.1; if(canStand(I,px,pz)){ W.x = px; W.z = pz; } } }
+  }
+  /* reaching a named place unlocks it for travel */
+  for(const q of (I.cfg.places||[])){
+    if(Math.hypot(W.x-q.x, W.z-q.z) < q.r){
+      const k = I.cfg.key+":"+q.name;
+      if(!G.visited[k]){ G.visited[k] = true; save(); toast("Travel unlocked", q.name); }
+    }
   }
   const ground = I.height(W.x,W.z);
   W.vy += GRAV*dt;
@@ -2241,8 +2275,20 @@ function walkerUpdate(I, dt, t){
     if(moving && W.current){ W.current.timeScale = curSpeed / (jog ? STRIDE_JOG : STRIDE_WALK); } else if(W.current) W.current.timeScale = 1;
     W.mixer.update(dt); }
   if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = .34; } } else AU.stepT = 0;
+  if(W.mount){
+    /* she sits the horse: the animal is planted on the ground under her and she rides at saddle height */
+    const gy = I.height(W.x, W.z);
+    W.mount.position.set(W.x, gy + (moving ? Math.abs(Math.sin(t*7))*.09 : 0), W.z);
+    W.mount.rotation.y = W.group.rotation.y + Math.PI/2;          /* the creature model faces along +x */
+    (W.mount.userData.legs||[]).forEach((l,i) => l.rotation.x = moving ? Math.sin(t*9+i*Math.PI/2)*.55 : 0);
+    if(W.mount.userData.R && W.mount.userData.R.mixer) W.mount.userData.R.mixer.update(dt * (moving ? 1.5 : .35));
+    W.group.position.set(W.x, gy + SADDLE_Y, W.z);
+    W.group.rotation.z = 0;
+    if(W.model) applySeated(W);
+  } else {
   W.group.position.set(W.x, W.y + (moving ? Math.abs(Math.sin(t*10))*.07 : 0), W.z);
   W.group.rotation.z = W.gliding ? Math.sin(t*2)*.06 : 0;
+  }
   W.fans.visible = ab.glide; W.fanMeshes.forEach(f => f.visible = ab.glide);
   if(ab.glide) W.fanMeshes.forEach((f,i) => { const s = (W.model ? .62 : 1) * (W.gliding ? 1.6 : .7);
     f.scale.setScalar(f.scale.x + (s - f.scale.x)*Math.min(1, dt*8));
@@ -2379,7 +2425,7 @@ function islandUpdate(I, dt, t){
     /* crowd LOD: ink outline only when close to the camera, shadow only at mid range — halves the skinned triangle load */
     if(R.inkTwins){ const dc = camera.position.distanceTo(g.position), nearInk = dc < 26, midShadow = dc < 42;
       for(const m of R.inkTwins) m.visible = nearInk; for(const m of R.skins) m.castShadow = midShadow; } });
-  I.creatures.forEach(h => { const u = h.userData; u.a += u.sp*dt;
+  I.creatures.forEach(h => { const u = h.userData; if(u.ridden) return; u.a += u.sp*dt;
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
        radius walks straight into the sea. Pull the radius in until the step lands on land (with a
        margin so they do not paddle along the waterline) — the herd then follows the shore. */
@@ -2449,7 +2495,7 @@ function islandUpdate(I, dt, t){
    happens to share the spot, and a note you've already read never blocks anything. */
 function nearest(I){
   const W = I.W, cfg = I.cfg, cands = [];
-  const PRI = {letter:0, ability:1, castle:2, npc:2.5, note:3, dock:4};
+  const PRI = {letter:0, ability:1, castle:2, npc:2.5, note:3, mount:3.5, dock:4};
   const add = (kind, d, extra) => cands.push(Object.assign({kind, d, pri:PRI[kind]}, extra));
   if(I.letterMesh && I.letterMesh.visible){ const d = Math.hypot(W.x-I.letterMesh.position.x, W.z-I.letterMesh.position.z);
     if(d < 4.6 && Math.abs(W.y - cfg.letter.y) < 3.5) add("letter", d, {label:"Take the letter"}); }
@@ -2461,6 +2507,12 @@ function nearest(I){
     if(d < 5.2 && Math.abs(W.y+2-n.position.y) < 4.5){ const read = !!G.notes[cfg.key+":"+n.userData.i];
       add("note", d + (read ? 100 : 0), {obj:n, label: read ? "Read again" : "Read the note"}); } }
   { const d = Math.hypot(W.x-cfg.dock[0], W.z-cfg.dock[1]); if(d < 10) add("dock", d, {label: "Take the boat"}); }
+  if(W.mount) add("mount", 0, {label:"Get down"});
+  else for(const h of (I.creatures||[])){
+    if(h.userData.fly || !RIDEABLE[h.userData.type]) continue;
+    const d = Math.hypot(W.x-h.position.x, W.z-h.position.z);
+    if(d < 5.5 && Math.abs(W.y - h.position.y) < 4) add("mount", d, {obj:h, label:"Ride the "+h.userData.type});
+  }
   if(!cands.length) return null;
   cands.sort((a,b) => (a.pri - b.pri) || (a.d - b.d));
   /* an unread note right at her feet beats a wandering NPC or the castle doors, which otherwise hide it */
@@ -2481,6 +2533,21 @@ function interact(){
     $("castleEye").textContent = all ? "The doors know your name" : "The doors are locked";
     $("castleBody").textContent = all ? "All four letters. The keep is open, and what's inside is the fifth song." : `Four letters open the keep. One waits on each island. ${got} of 4 found.`;
     $("bEnter").classList.toggle("hide", !all); W.active = false; ov("ovCastle");
+  } else if(t.kind === "mount"){
+    if(W.mount){ const h = W.mount; W.mount = null; h.userData.ridden = false;
+      /* step off to her left, onto ground she can actually stand on */
+      for(const a of [Math.PI/2, -Math.PI/2, 0, Math.PI]){
+        const nx = W.x + Math.cos(W.heading+a)*2.2, nz = W.z + Math.sin(W.heading+a)*2.2;
+        if(canStand(I,nx,nz)){ W.x = nx; W.z = nz; break; }
+      }
+      W.y = I.height(W.x,W.z); W.vy = 0; W.grounded = true;
+      if(W.seatBones) W.model && W.model.traverse(o => { if(o.isBone && o.userData.rest) o.quaternion.copy(o.userData.rest); });
+      W.seated = false; toast("Down", "");
+    } else {
+      const h = t.obj; W.mount = h; h.userData.ridden = true;
+      W.x = h.position.x; W.z = h.position.z; W.vy = 0; W.grounded = true; W.seated = true;
+      auChime([392,523,659]); toast("Riding", "Interact again to get down");
+    }
   } else if(t.kind === "dock"){
     renderDock(); W.active = false; ov("ovDock");
   } else if(t.kind === "ability"){
@@ -2626,6 +2693,32 @@ $("bEnter").onclick = goKeep;
 $("bDock").onclick = () => { ovNone(); CUR.W.active = true; };
 $("bIntro").onclick = () => { audioInit(); ovNone(); CUR.W.active = true; };
 $("secretsBtn").onclick = () => { if(!CUR) return; renderSecrets(); CUR.W.active = false; ov("ovSecrets"); };
+function renderTravel(){
+  const I = CUR, list = $("travelList"); list.innerHTML = "";
+  const here = (I.cfg.places||[]).filter(q => G.visited[I.cfg.key+":"+q.name]);
+  if(!here.length){
+    const d = document.createElement("div"); d.className = "isle";
+    d.innerHTML = "<b>Nowhere yet</b><span>Walk to a named place once and it opens up here.</span>";
+    list.appendChild(d); return;
+  }
+  here.forEach(q => {
+    const d = document.createElement("div"); d.className = "isle";
+    const away = Math.round(Math.hypot(I.W.x-q.x, I.W.z-q.z) * 0.576);
+    d.innerHTML = `<b>${q.name}</b><span>${away} m away</span>`;
+    d.onclick = async () => {
+      ovNone(); await toBlack();
+      const W = I.W;
+      if(W.mount){ W.mount.userData.ridden = false; W.mount = null; W.seated = false; }
+      W.x = q.x; W.z = q.z; W.y = I.height(q.x, q.z); W.vy = 0; W.grounded = true;
+      camRig(I, true); placeCamera(I, 1);
+      if(I.fx && I.fx.grass && I.fx.grass.follow) for(let k=0;k<10;k++) I.fx.grass.follow(W.x, W.z);
+      await fromBlack(); W.active = true;
+    };
+    list.appendChild(d);
+  });
+}
+$("travelBtn").onclick = () => { if(!CUR || !CUR.W) return; renderTravel(); CUR.W.active = false; ov("ovTravel"); };
+$("bTravel").onclick = () => { ovNone(); if(CUR) CUR.W.active = true; };
 $("bSecrets").onclick = () => { ovNone(); if(CUR) CUR.W.active = true; };
 $("bEnd").onclick = () => { ovNone(); goIsland(ISL.hub); };
 
