@@ -260,7 +260,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-04p";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-05c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 renderer.setPixelRatio(PROF.dpr);
@@ -332,7 +332,35 @@ function mottle(scale, dark, seedMul){
   }
   const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6,6); return t;
 }
-const TEX = {meadow: mottle(18, 46), rock: mottle(9, 70, 1.6)};
+/* a grass ground texture: fine directional blades over a two-tone mottle, so the meadow between
+   the 3D clumps reads as grass rather than flat plastic. Costs nothing per frame. */
+function grassGround(){
+  const S = 512, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const c = cv.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0,0,S,S);
+  for(let i=0;i<420;i++){                                   /* broad tonal patches */
+    const r = 20+Math.random()*70, x = Math.random()*S, y = Math.random()*S;
+    const v = Math.round(255 - 30*(.3+Math.random()*.7));
+    const g = c.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,`rgba(${v},${v},${v},.75)`); g.addColorStop(1,`rgba(${v},${v},${v},0)`);
+    c.fillStyle = g; c.fillRect(x-r,y-r,r*2,r*2);
+  }
+  c.lineCap = "round";
+  for(let i=0;i<5200;i++){                                  /* the blades themselves */
+    const x = Math.random()*S, y = Math.random()*S;
+    const a = -Math.PI/2 + (Math.random()-.5)*1.5, len = 5+Math.random()*11;
+    const v = Math.round(255 - 78*(.25+Math.random()*.75));
+    c.strokeStyle = `rgba(${v},${v},${v},${.30+Math.random()*.45})`;
+    c.lineWidth = .7+Math.random()*1.1;
+    c.beginPath(); c.moveTo(x,y);
+    c.quadraticCurveTo(x+Math.cos(a)*len*.5 + (Math.random()-.5)*3, y+Math.sin(a)*len*.5, x+Math.cos(a)*len, y+Math.sin(a)*len);
+    c.stroke();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30,30); t.anisotropy = 4;
+  return t;
+}
+const TEX = {meadow: grassGround(), rock: mottle(9, 70, 1.6)};
 const outlineBase = new THREE.ShaderMaterial({
   uniforms:{thickness:{value:1.7}, inkColor:{value:new THREE.Color(INK)}},
   vertexShader:`uniform float thickness;
@@ -649,7 +677,11 @@ function bindAttachments(R, model, s){
   if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, .3, 0); R.crown.rotation.set(Math.PI/2, 0, 0); R.crown.scale.setScalar(.7); } }
   /* her white cowgirl hat — the band takes the island's colour when she wears that island's outfit */
   if(R.wearsHat && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){
-    const hat = cowgirlHat(); hat.position.set(0, .34, -.02); hat.rotation.set(-.06, 0, 0); a.add(hat);
+    /* Full-size brim (56 cm across in game units, 1 u = 0.576 m) seated lower on her head: y .25
+       instead of .34 drops it ~5 cm so it sits on her hair rather than perching above it.
+       ?hs= scales the hat, ?hy= raises/lowers it. */
+    const HS = parseFloat(new URLSearchParams(location.search).get("hs") || "1"), HY = parseFloat(new URLSearchParams(location.search).get("hy") || ".25");
+    const hat = cowgirlHat(); hat.scale.setScalar(HS); hat.position.set(0, HY, -.008*HS/.40); hat.rotation.set(-.06, 0, 0); a.add(hat);
     R.hat = hat; R.hatBandMesh = hat.userData.band;
     if(R.pendingBand != null) R.hatBandMesh.material.color.setHex(R.pendingBand);
   } }
@@ -868,36 +900,82 @@ function foamRing(scene, x, z, r, y){
 /* ---- grass: one instanced draw call per island, clumps that sway in the wind and part around
    whoever walks through them (uPlayer is fed every frame) ---- */
 function clumpGeometry(){
-  const parts = [];
-  for(let k=0;k<2;k++){                                   /* two crossed planes, not three — half the triangles per tuft */
-    const q = new THREE.PlaneGeometry(.30, .52, 1, 3);
-    const pos = q.attributes.position, col = [];
-    for(let i=0;i<pos.count;i++){ const y = pos.getY(i)+.5; pos.setY(i, y);
-      pos.setX(i, pos.getX(i)*(1-y*.75));                 /* taper to a blade tip */
-      const c = .58 + y*.42; col.push(c,c,c); }
-    q.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-    q.rotateY(k*Math.PI/2); parts.push(q);
+  /* A clump is BLADES individual blades, not two crossed cards. Each blade is a narrow tapered
+     strip that arcs outward and over, so one instance reads as a tuft of grass instead of one
+     flat X. 5 blades x 2 segments = 20 tris, against 12 for the old pair of cards. */
+  const BLADES = 5, SEG = 2, P = [], N = [], U = [], C = [], I = [];
+  let off = 0;
+  for(let b=0;b<BLADES;b++){
+    const a  = (b/BLADES)*Math.PI*2 + Math.random()*.9;     /* fan the blades around the clump */
+    const dx = Math.cos(a), dz = Math.sin(a);
+    const lean = .16 + Math.random()*.26;                   /* how far it arcs out from the centre */
+    const h    = .72 + Math.random()*.55;                   /* blades in one clump differ in height */
+    const w0   = .050 + Math.random()*.022;
+    const root = .055;                                      /* blades start slightly off centre */
+    for(let i=0;i<=SEG;i++){
+      const t = i/SEG;
+      const bend = t*t;                                     /* arc: straight at the root, curling at the tip */
+      const cx = dx*(root + lean*bend), cz = dz*(root + lean*bend);
+      const y  = h*(t - .18*bend);
+      const w  = w0*(1-t*t*.92);                            /* taper to a point */
+      const px = -dz*w, pz = dx*w;                          /* blade width runs across its facing */
+      P.push(cx-px, y, cz-pz,  cx+px, y, cz+pz);
+      const nx = dx*.35, ny = 1, nz = dz*.35;
+      N.push(nx,ny,nz, nx,ny,nz);
+      U.push(0,t, 1,t);
+      const sh = .50 + t*.50;                               /* darker at the base, bright at the tip */
+      C.push(sh,sh,sh, sh,sh,sh);
+    }
+    for(let i=0;i<SEG;i++){
+      const q = off + i*2;
+      I.push(q, q+2, q+1,  q+1, q+2, q+3);
+    }
+    off += (SEG+1)*2;
   }
-  const g = parts[0];
-  /* merge manually (no BufferGeometryUtils vendored) */
-  const P=[],N=[],U=[],C=[],I=[]; let off=0;
-  parts.forEach(q => { P.push(...q.attributes.position.array); N.push(...q.attributes.normal.array); U.push(...q.attributes.uv.array); C.push(...q.attributes.color.array);
-    const idx = q.index.array; for(let i=0;i<idx.length;i++) I.push(idx[i]+off); off += q.attributes.position.count; });
   const m = new THREE.BufferGeometry();
-  m.setAttribute("position", new THREE.Float32BufferAttribute(P,3)); m.setAttribute("normal", new THREE.Float32BufferAttribute(N,3));
-  m.setAttribute("uv", new THREE.Float32BufferAttribute(U,2)); m.setAttribute("color", new THREE.Float32BufferAttribute(C,3)); m.setIndex(I);
+  m.setAttribute("position", new THREE.Float32BufferAttribute(P,3));
+  m.setAttribute("normal",   new THREE.Float32BufferAttribute(N,3));
+  m.setAttribute("uv",       new THREE.Float32BufferAttribute(U,2));
+  m.setAttribute("color",    new THREE.Float32BufferAttribute(C,3));
+  m.setIndex(I);
   return m;
 }
 const CLUMP = clumpGeometry();
+/* How much grass to plant. The old field was one clump per 0.90 m, which reads as spikes; 2.4x
+   brings it to roughly one per 0.58 m, which reads as ground cover. Phones get less — ?grass=
+   overrides, ?grass=1 restores the old density. */
+const GRASS_MUL = parseFloat(QS.get("grass")) ||
+  (matchMedia("(pointer:coarse)").matches || innerWidth < 820 ? 1.4 : 2.0);
 const grassPatch = sh => {
   sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3(0,-99,0)}; sh.uniforms.uWind = {value:1};
   sh.vertexShader = sh.vertexShader
     .replace("#include <common>", "#include <common>\nuniform float uTime, uWind; uniform vec3 uPlayer;")
     .replace("#include <begin_vertex>", `#include <begin_vertex>
-      { float w = uv.y * uv.y;
+      { float w = uv.y * uv.y;                                  /* only the tip moves; the root is anchored */
         vec3 io = (modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0)).xyz;
-        transformed.x += (sin(uTime*1.7 + io.x*.45 + io.z*.3) * .16 + sin(uTime*3.1 + io.z*.9)*.05) * w * uWind;
-        transformed.z += cos(uTime*1.3 + io.z*.4 + io.x*.2) * .11 * w * uWind;
+
+        /* Travelling gusts. A wave sweeps across the field along uDir, so the whole meadow ripples
+           together the way real grass does, instead of every blade wobbling on its own timer. */
+        vec2 uDir = normalize(vec2(0.86, 0.51));
+        float phase = dot(io.xz, uDir) * 0.16 - uTime * 1.15;
+        float gust  = sin(phase) * 0.5 + 0.5;
+        gust = gust * gust;                                     /* gusts arrive in pulses, not a sine hum */
+        float amp = (0.055 + 0.20 * gust) * uWind;
+
+        /* a little per-blade chatter so a gust does not look like one rigid sheet */
+        float chatter = sin(uTime * 3.4 + io.x * 1.7 + io.z * 1.1) * 0.035
+                      + sin(uTime * 5.1 + io.z * 2.3) * 0.018;
+
+        transformed.xz += uDir * (amp + chatter * uWind) * w;
+        transformed.y  -= amp * 0.30 * w;                        /* bending shortens the blade */
+
+        /* Fade the field out with distance: beyond ~30 u a clump collapses into the ground, so it
+           costs a vertex but no fill. The island is 66 u across, so most of the field is far away —
+           this is what pays for the density up close; the ground texture carries the far meadow. */
+        float camd = distance(io.xz, cameraPosition.xz);
+        transformed *= 1.0 - smoothstep(20.0, 30.0, camd);
+
+        /* she parts the grass as she walks through it */
         vec2 d = io.xz - uPlayer.xz; float dist = length(d);
         float push = (1.0 - smoothstep(0.0, 2.4, dist)) * (1.0 - smoothstep(1.5, 3.0, abs(io.y - uPlayer.y)));
         transformed.xz += normalize(d + vec2(0.001)) * push * 1.15 * w; transformed.y -= push * .42 * w; }`);
@@ -910,12 +988,14 @@ function grassField(scene, n, sampler, heightFn, cols, skip){
   let k = 0;
   for(let i=0;i<n;i++){
     const s = sampler(); if(!s || (skip && skip(s[0], s[1]))) continue;
-    /* clumps come in patches of 2-5 so density reads as natural grouping, not confetti */
-    const cnt = 4 + (Math.random()*7|0);                  /* dense tufts in patches, so the ground reads as grass, not spikes */
-    const spread = 1.6 + Math.random()*1.4;
+    /* Clumps arrive in tight patches. The old field put one clump every 0.90 m, which is exactly
+       why it read as isolated spikes rather than ground cover — so the patches are now denser and
+       tighter: more clumps, packed into a smaller radius. */
+    const cnt = 9 + (Math.random()*10|0);
+    const spread = 1.05 + Math.random()*.95;
     for(let j=0;j<cnt && k<n;j++){
       const a = Math.random()*6.283, r = Math.sqrt(Math.random())*spread;
-      const x = s[0]+Math.cos(a)*r, z = s[1]+Math.sin(a)*r, h = .75+Math.random()*.55;
+      const x = s[0]+Math.cos(a)*r, z = s[1]+Math.sin(a)*r, h = .62+Math.random()*.50;
       q.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.random()*Math.PI);
       sc.set(.8+Math.random()*.45, h, .8+Math.random()*.45);
       M.compose(new THREE.Vector3(x, heightFn(x,z)+.02, z), q, sc); mesh.setMatrixAt(k, M);
@@ -1921,7 +2001,7 @@ function buildIsland(cfg){
   /* weather + fx */
   I.fx = {
     foam:I.foam,
-    grass: grassField(scene, cfg.key==="sanity"?2600:5600, () => sample(6, 66, true), height, cfg.grassCols, (x,z) => (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)),
+    grass: grassField(scene, Math.round((cfg.key==="sanity"?2600:5600) * GRASS_MUL), () => sample(6, 66, true), height, cfg.grassCols, (x,z) => (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),

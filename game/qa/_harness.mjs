@@ -19,7 +19,11 @@ export function ensureTestBuild(){
   if(existsSync(dst) && statSync(dst).mtimeMs >= statSync(src).mtimeMs) return;
   const hook = "window.__T = {ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat};";
   const txt = readFileSync(src, 'utf8'); if(txt.includes('window.__T = {')) { writeFileSync(dst, txt); return; }
-  const out = txt.replace(/^\}\)\(\);$/m, hook + '\n})();'); if(!out.includes('window.__T')) throw new Error('could not place the __T hook — no top-level "})();" line');
+  /* index.html has more than one top-level "})();" — the hook must go in the LAST one (the game's IIFE),
+     not the first, or it lands in a scope where ISL/goIsland do not exist and __T never appears. */
+  const i = txt.lastIndexOf('\n})();');
+  if(i < 0) throw new Error('could not place the __T hook — no top-level "})();" line');
+  const out = txt.slice(0, i) + '\n' + hook + '\n})();' + txt.slice(i + '\n})();'.length);
   writeFileSync(dst, out);
 }
 ensureTestBuild();
