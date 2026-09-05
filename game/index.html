@@ -260,16 +260,22 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-05d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-05e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
+/* ---- world scale ----
+   The islands were 1:323 against the real places they trace — Green measured 208 m across, about
+   42 seconds to walk end to end. WORLD multiplies every authored POSITION (and landform radius)
+   without touching the size of anything that stands on the ground, so the island grows while
+   Lala, the trees, the buildings and the props stay the size they were. ?world= overrides. */
+const WORLD = Math.max(1, parseFloat(QS.get("world")) || 4);
 renderer.setPixelRatio(PROF.dpr);
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = PROF.shadow; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
 document.body.appendChild(renderer.domElement);
-const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .1, 900);
+const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .1, 900 * (1 + (WORLD - 1) * 0.7));   /* far enough to see across a bigger island */
 /* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
@@ -357,7 +363,7 @@ function grassGround(){
     c.stroke();
   }
   const t = new THREE.CanvasTexture(cv);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30,30); t.anisotropy = 4;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30*WORLD, 30*WORLD); t.anisotropy = 4;   /* keep the blade grain fine as the island grows */
   return t;
 }
 const TEX = {meadow: grassGround(), rock: mottle(9, 70, 1.6)};
@@ -960,11 +966,11 @@ function clumpGeometry(){
   return m;
 }
 const CLUMP = clumpGeometry();
-/* How much grass to plant. The old field was one clump per 0.90 m, which reads as spikes; 2.4x
-   brings it to roughly one per 0.58 m, which reads as ground cover. Phones get less — ?grass=
-   overrides, ?grass=1 restores the old density. */
-const GRASS_MUL = parseFloat(QS.get("grass")) ||
-  (matchMedia("(pointer:coarse)").matches || innerWidth < 820 ? 1.4 : 2.0);
+/* Clumps inside the 44 u ring around her. 11,000 in a 44 u disc is 1.8 per square unit — about one
+   clump every 0.43 m, which is ground cover rather than spikes, and it stays that dense however
+   large the island gets. ?grass= scales it (?grass=0.5 halves it) if an old GPU struggles. */
+const GRASS_N = Math.round((matchMedia("(pointer:coarse)").matches || innerWidth < 820 ? 5200 : 11000)
+                           * (parseFloat(QS.get("grass")) || 1));
 const grassPatch = sh => {
   sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3(0,-99,0)}; sh.uniforms.uWind = {value:1};
   sh.vertexShader = sh.vertexShader
@@ -988,44 +994,72 @@ const grassPatch = sh => {
         transformed.xz += uDir * (amp + chatter * uWind) * w;
         transformed.y  -= amp * 0.30 * w;                        /* bending shortens the blade */
 
-        /* Fade the field out with distance: beyond ~30 u a clump collapses into the ground, so it
+        /* Fade the field out with distance: beyond ~44 u a clump collapses into the ground, so it
            costs a vertex but no fill. The island is 66 u across, so most of the field is far away —
            this is what pays for the density up close; the ground texture carries the far meadow. */
         float camd = distance(io.xz, cameraPosition.xz);
-        transformed *= 1.0 - smoothstep(20.0, 30.0, camd);
+        transformed *= 1.0 - smoothstep(31.0, 44.0, camd);
 
         /* she parts the grass as she walks through it */
         vec2 d = io.xz - uPlayer.xz; float dist = length(d);
         float push = (1.0 - smoothstep(0.0, 2.4, dist)) * (1.0 - smoothstep(1.5, 3.0, abs(io.y - uPlayer.y)));
         transformed.xz += normalize(d + vec2(0.001)) * push * 1.15 * w; transformed.y -= push * .42 * w; }`);
 };
-function grassField(scene, n, sampler, heightFn, cols, skip){
+function grassField(scene, n, sampler, heightFn, cols, skip, inside){
+  /* A field that follows her. Scattering a fixed count over the whole island means density falls
+     off as the island grows — at WORLD 4 the island has 16x the area, so a static field would be
+     16x thinner. Instead a fixed number of clumps live in a disc of radius RING around the player
+     and are recycled as she walks, so density is constant no matter how big the island gets.
+     Recycling is amortised over frames, a slice at a time, so there is no hitch. */
+  const RING = 44;
   const mat = toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide});
   mat.userData.patches = [["grass", sh => { grassPatch(sh); mat.userData.uniforms = sh.uniforms; }]];
   const mesh = new THREE.InstancedMesh(CLUMP, mat, n);
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), c = new THREE.Color();
-  let k = 0;
-  for(let i=0;i<n;i++){
-    const s = sampler(); if(!s || (skip && skip(s[0], s[1]))) continue;
-    /* Clumps arrive in tight patches. The old field put one clump every 0.90 m, which is exactly
-       why it read as isolated spikes rather than ground cover — so the patches are now denser and
-       tighter: more clumps, packed into a smaller radius. */
-    const cnt = 9 + (Math.random()*10|0);
-    const spread = 1.05 + Math.random()*.95;
-    for(let j=0;j<cnt && k<n;j++){
-      const a = Math.random()*6.283, r = Math.sqrt(Math.random())*spread;
-      const x = s[0]+Math.cos(a)*r, z = s[1]+Math.sin(a)*r, h = .62+Math.random()*.50;
-      q.setFromAxisAngle(new THREE.Vector3(0,1,0), Math.random()*Math.PI);
-      sc.set(.8+Math.random()*.45, h, .8+Math.random()*.45);
-      M.compose(new THREE.Vector3(x, heightFn(x,z)+.02, z), q, sc); mesh.setMatrixAt(k, M);
-      c.setHex(cols[(Math.random()*cols.length)|0]); c.offsetHSL(0, (Math.random()-.5)*.08, -.04+(Math.random()-.5)*.08); mesh.setColorAt(k, c);
-      k++;
+  const up = new THREE.Vector3(0,1,0), pos = new THREE.Vector3();
+  const px = new Float32Array(n), pz = new Float32Array(n);
+
+  const place = (i, cx, cz) => {
+    /* clumps arrive in tight patches, not as confetti */
+    for(let k=0;k<12;k++){
+      const a = Math.random()*6.283, r = Math.sqrt(Math.random())*RING;
+      const x = cx + Math.cos(a)*r, z = cz + Math.sin(a)*r;
+      if(inside && !inside(x,z)) continue;
+      if(skip && skip(x,z)) continue;
+      const jx = x + (Math.random()-.5)*1.7, jz = z + (Math.random()-.5)*1.7;
+      px[i] = jx; pz[i] = jz;
+      q.setFromAxisAngle(up, Math.random()*Math.PI);
+      sc.set(.85+Math.random()*.5, .38+Math.random()*.30, .85+Math.random()*.5);   /* shin-high meadow, not a crop field */
+      pos.set(jx, heightFn(jx,jz)+.02, jz);
+      M.compose(pos, q, sc); mesh.setMatrixAt(i, M);
+      c.setHex(cols[(Math.random()*cols.length)|0]);
+      c.offsetHSL(0, (Math.random()-.5)*.07, -.02+(Math.random()-.5)*.06);
+      mesh.setColorAt(i, c);
+      return true;
     }
-  }
-  mesh.count = k; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    /* nowhere valid: park it under the map rather than leave it where she can see it */
+    px[i] = 1e5; pz[i] = 1e5;
+    M.compose(pos.set(1e5, -50, 1e5), q.identity(), sc.set(1,1,1)); mesh.setMatrixAt(i, M);
+    return false;
+  };
+
+  for(let i=0;i<n;i++) place(i, 0, 0);
+  mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false;
   scene.add(mesh);
-  return {mesh, mat};
+
+  let cursor = 0;
+  const SLICE = Math.max(600, Math.ceil(n/8));         /* the whole field is checked every ~8 frames */
+  const follow = (cx, cz) => {
+    let moved = false;
+    for(let k=0;k<SLICE;k++){
+      const i = cursor++ % n;
+      const dx = px[i]-cx, dz = pz[i]-cz;
+      if(dx*dx + dz*dz > RING*RING){ place(i, cx, cz); moved = true; }
+    }
+    if(moved){ mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true; }
+  };
+  return {mesh, mat, follow};
 }
 function flowerField(scene, n, sampler, heightFn, cols){
   const geo = new THREE.IcosahedronGeometry(.16, 0); geo.scale(1, .5, 1);
@@ -1138,7 +1172,8 @@ function cloudPuffs(scene, n, tint){
 function fxUpdate(fx, dt, t, camPos){
   if(fx.puffs) fx.puffs.forEach(c => { c.position.x += c.userData.sp*dt; if(c.position.x > 260) c.position.x = -260; });
   fx.foam.forEach(f => f.material.opacity = .26 + Math.sin(t*.9)*.10);
-  if(fx.grass && fx.grass.mat){ const u = fx.grass.mat.userData.uniforms; if(u){ u.uTime.value = t; u.uWind.value = fx.windMul; if(fx.player) u.uPlayer.value.set(fx.player.x, fx.player.y, fx.player.z); } }
+  if(fx.grass && fx.grass.mat){ const u = fx.grass.mat.userData.uniforms; if(u){ u.uTime.value = t; u.uWind.value = fx.windMul; if(fx.player) u.uPlayer.value.set(fx.player.x, fx.player.y, fx.player.z); }
+    if(fx.grass.follow && fx.player) fx.grass.follow(fx.player.x, fx.player.z); }
   if(fx.canopies) fx.canopies.forEach(c => { c.rotation.z = Math.sin(t*.9+c.userData.ph)*.022*fx.windMul; c.rotation.x = Math.cos(t*.7+c.userData.ph)*.016*fx.windMul; });
   if(fx.bushes && fx.player) fx.bushes.forEach(b => { const d = Math.hypot(b.position.x-fx.player.x, b.position.z-fx.player.z);
     b.userData.k = Math.max(0, (b.userData.k||0) - dt*2.5); if(d < 1.9) b.userData.k = 1;
@@ -1495,7 +1530,28 @@ const COASTS = {
   moon: {name:"Fernando de Noronha, Brazil", km:[8.3,5.4], maxR:109.5, poly:[53.46,-55.52, 59.85,-57.53, 66.24,-59.53, 72.63,-61.53, 79.02,-63.53, 82.94,-59.51, 86.09,-53.59, 89.24,-47.67, 89.57,-41.04, 89.57,-34.33, 89.57,-27.63, 89.57,-20.92, 87.11,-15.41, 81.84,-11.28, 76.57,-7.15, 71.3,-3.02, 66.02,1.12, 60.41,4.62, 54.09,6.84, 47.78,9.07, 41.46,11.3, 35.15,13.52, 28.84,15.75, 22.76,18.53, 16.85,21.66, 10.93,24.79, 5.01,27.92, -0.91,31.05, -6.83,34.18, -12.75,37.31, -18.67,40.44, -24.59,43.57, -30.51,46.7, -36.43,49.83, -42.35,52.96, -48.55,55.23, -55.17,56.27, -61.78,57.3, -68.39,58.34, -74.83,58.14, -80.89,55.29, -86.95,52.44, -93.01,49.6, -99.07,46.75, -95.84,42.42, -90.96,37.83, -86.08,33.24, -81.14,28.72, -75.86,24.59, -70.59,20.46, -65.32,16.33, -60.04,12.19, -54.79,8.04, -50.91,2.57, -47.04,-2.89, -44.02,-8.84, -41.4,-15.01, -38.77,-21.19, -35.21,-26.32, -28.82,-28.32, -22.43,-30.32, -16.05,-32.33, -9.66,-34.32, -3.14,-35.85, 3.38,-37.39, 9.89,-38.92, 16.41,-40.45, 22.92,-41.98, 29.23,-44.13, 35.29,-46.98, 41.35,-49.83, 47.41,-52.68]},
 };
 /* polygon helpers: point-in-polygon for the walkable test, and an outward offset for beach/foam rings */
-function polyOf(cfg){ const f = COASTS[cfg.key]; if(!f) return null; const p = []; for(let i=0;i<f.poly.length;i+=2) p.push([f.poly[i], f.poly[i+1]]); return p; }
+function scaleCfg(cfg){
+  if(cfg.scaled) return cfg; cfg.scaled = true;
+  if(WORLD === 1) return cfg;
+  const W = WORLD, Hh = 1 + (W - 1) * 0.34;      /* landforms get wider fast, taller slowly */
+  const pt = a => { if(a){ a[0] *= W; a[1] *= W; } return a; };
+  (cfg.lobes   ||[]).forEach(l => { l.x*=W; l.z*=W; l.r*=W; });
+  (cfg.features||[]).forEach(f => { f.x*=W; f.z*=W; if(f.r) f.r*=W; if(f.h) f.h*=Hh; });
+  (cfg.notes   ||[]).forEach(n => { n.x*=W; n.z*=W; });
+  (cfg.npcs    ||[]).forEach(n => { pt(n.at); if(n.wander) n.wander *= 1 + (W-1)*0.5; });
+  (cfg.places  ||[]).forEach(q => { q.x*=W; q.z*=W; q.r*=W; });
+  (cfg.stones  ||[]).forEach(pt);
+  pt(cfg.dock); pt(cfg.spawn);
+  if(cfg.ability) pt(cfg.ability.at);
+  if(cfg.letter)  pt(cfg.letter.at);
+  if(cfg.trees){ cfg.trees.min*=W; cfg.trees.max*=W; cfg.trees.n = Math.round(cfg.trees.n * (1 + (W-1)*1.9)); }
+  if(cfg.creature && cfg.creature.r){ cfg.creature.r[0]*=W; cfg.creature.r[1]*=W; }
+  if(cfg.beach) { cfg.beach.x*=W;  cfg.beach.z*=W;  cfg.beach.r  *= 1+(W-1)*0.55; }
+  if(cfg.grotto){ cfg.grotto.x*=W; cfg.grotto.z*=W; cfg.grotto.r *= 1+(W-1)*0.55; }
+  if(cfg.gate)  { cfg.gate.x*=W; cfg.gate.zMin*=W; cfg.gate.zMax*=W; }
+  return cfg;
+}
+function polyOf(cfg){ const f = COASTS[cfg.key]; if(!f) return null; const p = []; for(let i=0;i<f.poly.length;i+=2) p.push([f.poly[i]*WORLD, f.poly[i+1]*WORLD]); return p; }
 function polyInside(p, x, z){ let c = false; for(let i=0, j=p.length-1; i<p.length; j=i++){
   const xi=p[i][0], zi=p[i][1], xj=p[j][0], zj=p[j][1];
   if(((zi>z)!==(zj>z)) && (x < (xj-xi)*(z-zi)/(zj-zi)+xi)) c = !c; } return c; }
@@ -1516,8 +1572,10 @@ function polySlab(p, depth, topY, mat){          /* a shaped slab of land: flat 
   const m = new THREE.Mesh(g, mat); m.receiveShadow = true; return m;
 }
 function buildIsland(cfg){
+  scaleCfg(cfg);
   const P = cfg.pal, scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(P.fog, cfg.key === "sanity" ? 60 : 80, cfg.key === "sanity" ? 220 : 260);
+  const fogK = 1 + (WORLD - 1) * 0.55;   /* a bigger island needs to be visible further out */
+  scene.fog = new THREE.Fog(P.fog, (cfg.key === "sanity" ? 60 : 80) * fogK, (cfg.key === "sanity" ? 220 : 260) * fogK);
   const sky = skyDome(P.skyTop, P.skyMid, P.skyBot); scene.add(sky.mesh);
   const moon = moonPair(new THREE.Vector3(...cfg.moon.pos), cfg.moon.r); scene.add(moon);
   scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, cfg.key === "sanity" ? .38 : .5));
@@ -1527,7 +1585,7 @@ function buildIsland(cfg){
   const POLY = polyOf(cfg); cfg.poly = POLY; if(COASTS[cfg.key]) cfg.coast = COASTS[cfg.key];
   const inside = POLY ? ((x,z) => polyInside(POLY, x, z)) : ((x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r));
   /* decor was scattered inside the old circles — spread it over the real island instead */
-  cfg.spread = POLY ? (COASTS[cfg.key].maxR / Math.max(...cfg.lobes.map(l => l.r))) : 1;
+  cfg.spread = POLY ? (COASTS[cfg.key].maxR * WORLD / Math.max(...cfg.lobes.map(l => l.r))) : 1;
   /* the coastline changed shape, so any hand-placed point that now sits in the sea is walked back onto land
      along the line to the island's centre until it is a comfortable margin inside the shore. */
   if(POLY && !cfg.landified){
@@ -1730,8 +1788,8 @@ function buildIsland(cfg){
   const column = (x,z,h,tilt,col) => { const c = inked(new THREE.CylinderGeometry(.85,1.0,h,12), col||P.stone, 1.9);
     c.position.set(x, height(x,z)+h/2, z); c.rotation.z = tilt||0; scene.add(c); I.colliders.push({x,z,r:1.1}); return c; };
   if(cfg.decor === "ruins"){
-    [[14,18],[20,10],[19,-2],[10,-8],[0,-6],[-7,2],[-4,14],[5,21]].forEach(([x,z],i) => column(x,z,5.5+(i%3)*1.6,(i%4===0)?.16:0));
-    const arch = inked(new THREE.TorusGeometry(4.6,.85,8,20,Math.PI), P.stone, 2.0); arch.position.set(7,height(7,6),6); scene.add(arch);
+    [[14,18],[20,10],[19,-2],[10,-8],[0,-6],[-7,2],[-4,14],[5,21]].forEach(([x,z],i) => column(x*WORLD,z*WORLD,5.5+(i%3)*1.6,(i%4===0)?.16:0));
+    const arch = inked(new THREE.TorusGeometry(4.6,.85,8,20,Math.PI), P.stone, 2.0); arch.position.set(7*WORLD,height(7*WORLD,6*WORLD),6*WORLD); scene.add(arch);
     /* A real stream, not a blue rectangle laid on the grass. The water is a ribbon that follows a
        curved path and sits at the terrain height at every step, sunk slightly into a darker cut
        bank that is drawn a little wider and a little lower, so it reads as a channel in the ground.
@@ -1740,9 +1798,9 @@ function buildIsland(cfg){
       const STEPS = 46, path = [];
       for(let i=0;i<=STEPS;i++){
         const t = i/STEPS;
-        const z = -14 + t*74;                                   /* runs roughly south to north */
-        const x = -10 + Math.sin(t*3.1)*5.2 + Math.sin(t*7.4)*1.6;   /* it meanders */
-        path.push([x, z, 1.35 + Math.sin(t*4.2)*.45]);          /* and its half-width varies */
+        const z = (-14 + t*74) * WORLD;                          /* runs roughly south to north */
+        const x = (-10 + Math.sin(t*3.1)*5.2 + Math.sin(t*7.4)*1.6) * WORLD;   /* it meanders */
+        path.push([x, z, (1.35 + Math.sin(t*4.2)*.45) * Math.sqrt(WORLD)]);    /* a wider river on a bigger island */
       }
       const ribbon = (widen, drop, colour, opacity) => {
         const pos = [], idx = [];
@@ -1776,7 +1834,8 @@ function buildIsland(cfg){
         }
       }
     })();
-    const bridge = inked(new THREE.BoxGeometry(5,.4,3.6), P.wood, 1.6); bridge.position.set(-2.6,1.0,33); bridge.rotation.y=.35; scene.add(bridge);
+    const bw = 5*Math.sqrt(WORLD);
+    const bridge = inked(new THREE.BoxGeometry(bw,.4,3.6), P.wood, 1.6); bridge.position.set(-2.6*WORLD,1.0,33*WORLD); bridge.rotation.y=.35; scene.add(bridge);
 
     /* moss-spiral tunnel — a coiled, moss-wrapped branch arch you walk through
        on the way to the bridge, after the misty-forest reference photo */
@@ -2064,7 +2123,7 @@ function buildIsland(cfg){
   /* weather + fx */
   I.fx = {
     foam:I.foam,
-    grass: grassField(scene, Math.round((cfg.key==="sanity"?2600:5600) * GRASS_MUL), () => sample(6, 66, true), height, cfg.grassCols, (x,z) => (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)),
+    grass: grassField(scene, GRASS_N, null, height, cfg.grassCols, (x,z) => (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1), inside),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
