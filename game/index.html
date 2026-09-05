@@ -275,7 +275,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-05l";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-05m";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -390,7 +390,42 @@ function grassGround(){
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(30*WORLD, 30*WORLD); t.anisotropy = 4;   /* keep the blade grain fine as the island grows */
   return t;
 }
-const TEX = {meadow: grassGround(), rock: mottle(9, 70, 1.6)};
+
+/* SAND. The beach slabs were drawn with no texture at all — a flat cream plane — and the beach
+   patch was using the grass texture. On a 4x island that is an enormous blank void, which is why
+   anyone standing on it read as floating on empty space: the ground genuinely looked like nothing.
+   Grain, wind ripples and a few shell flecks give it a surface to stand on. */
+function sandGround(){
+  const S = 512, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const c = cv.getContext("2d");
+  c.fillStyle = "#fff"; c.fillRect(0,0,S,S);
+  for(let i=0;i<300;i++){                                   /* broad damp/dry patches */
+    const r = 26+Math.random()*90, x = Math.random()*S, y = Math.random()*S;
+    const v = Math.round(255 - 22*(.3+Math.random()*.7));
+    const g = c.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,`rgba(${v},${v},${v},.7)`); g.addColorStop(1,`rgba(${v},${v},${v},0)`);
+    c.fillStyle = g; c.fillRect(x-r,y-r,r*2,r*2);
+  }
+  for(let i=0;i<26;i++){                                    /* wind ripples */
+    const y0 = Math.random()*S, amp = 4+Math.random()*10, v = Math.round(255-30*Math.random());
+    c.strokeStyle = `rgba(${v},${v},${v},${.18+Math.random()*.22})`; c.lineWidth = 1.4+Math.random()*2.6;
+    c.beginPath();
+    for(let x=0;x<=S;x+=8){ const y = y0 + Math.sin(x/S*Math.PI*4 + i)*amp; x ? c.lineTo(x,y) : c.moveTo(x,y); }
+    c.stroke();
+  }
+  const d = c.getImageData(0,0,S,S), px = d.data;           /* fine grain */
+  for(let i=0;i<px.length;i+=4){ const n = (Math.random()-.5)*26; px[i]+=n; px[i+1]+=n; px[i+2]+=n; }
+  c.putImageData(d,0,0);
+  for(let i=0;i<160;i++){                                   /* shell and pebble flecks */
+    const x = Math.random()*S, y = Math.random()*S, r = .6+Math.random()*1.6;
+    c.fillStyle = `rgba(${200+Math.random()*40|0},${190+Math.random()*40|0},${175+Math.random()*40|0},.55)`;
+    c.beginPath(); c.ellipse(x,y,r,r*.7,Math.random()*3,0,6.3); c.fill();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26*WORLD, 26*WORLD); t.anisotropy = 4;
+  return t;
+}
+const TEX = {meadow: grassGround(), sand: sandGround(), rock: mottle(9, 70, 1.6)};
 
 /* CONTACT SHADOW. The cast shadow is switched off past 42 u and the ink outline past 26 u, so a
    character further away than that stood on flat ground with nothing anchoring it — which reads as
@@ -1735,7 +1770,7 @@ function buildIsland(cfg){
   /* ground */
   if(POLY){
     const sandP = polyOffset(POLY, 6), grassP = polyOffset(POLY, -2.5);
-    scene.add(polySlab(sandP, 3.2, -.12, toon(P.sand)));                 /* the beach, a hair below the meadow */
+    scene.add(polySlab(sandP, 3.2, -.12, toon(P.sand, {map:TEX.sand})));   /* the beach, a hair below the meadow */
     scene.add(polySlab(grassP, 3.4, 0, toon(P.grass, {map:TEX.meadow}))); /* top face at y=0 = the walkable height */
     const foamShape = polyShape(polyOffset(POLY, 9.5));
     foamShape.holes.push(new THREE.Path(polyShape(polyOffset(POLY, 4.5)).getPoints().reverse()));
@@ -1743,7 +1778,7 @@ function buildIsland(cfg){
     const foam = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({color:0xFFFFFF, transparent:true, opacity:.30, side:THREE.DoubleSide, depthWrite:false}));
     foam.position.y = -.45; scene.add(foam); I.foam.push(foam);
   } else cfg.lobes.forEach(l => {
-    const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand));
+    const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand, {map:TEX.sand}));
     sand.position.set(l.x,-1.62,l.z); scene.add(sand);
     const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass, {map:TEX.meadow}));
     grass.position.set(l.x,-1.6,l.z); scene.add(grass);
@@ -2061,7 +2096,7 @@ function buildIsland(cfg){
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,3,5), toon(BONE)); pole.position.set(s[0],height(s[0],s[1])+1.5,s[1]); scene.add(pole); }
     /* beach life: towels, balls, a sandcastle, and a promenade of colourful storefronts on the north edge */
     const beach = cfg.beach;
-    const sandPatch = new THREE.Mesh(new THREE.CircleGeometry(beach.r, 40), toon(P.sand, {map:TEX.meadow})); sandPatch.rotation.x = -Math.PI/2; sandPatch.position.set(beach.x, .04, beach.z); sandPatch.receiveShadow = true; scene.add(sandPatch);
+    const sandPatch = new THREE.Mesh(new THREE.CircleGeometry(beach.r, 40), toon(P.sand, {map:TEX.sand})); sandPatch.rotation.x = -Math.PI/2; sandPatch.position.set(beach.x, .04, beach.z); sandPatch.receiveShadow = true; scene.add(sandPatch);
     const wetLine = new THREE.Mesh(new THREE.RingGeometry(beach.r-1.5, beach.r+.5, 40), new THREE.MeshBasicMaterial({color:0xD9C39C, transparent:true, opacity:.5})); wetLine.rotation.x = -Math.PI/2; wetLine.position.set(beach.x, .05, beach.z); scene.add(wetLine);
     const bsample = (rmin, rmax) => { for(let k=0;k<20;k++){ const a = Math.random()*Math.PI*2, r = rmin+Math.random()*(rmax-rmin), x = beach.x+Math.cos(a)*r, z = beach.z+Math.sin(a)*r; if(inside(x,z)) return [x,z]; } return null; };
     for(let i=0;i<14;i++){ const s = bsample(2, 20); if(!s) continue;
