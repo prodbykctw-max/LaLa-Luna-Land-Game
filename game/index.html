@@ -276,7 +276,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-05p";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-06b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -485,6 +485,87 @@ function inked(geo, color, th, extra){
   const o = new THREE.Mesh(geo, outlineBase.clone());
   o.material.uniforms.thickness.value = th ?? 1.7; g.add(o);
   return g;
+}
+/* ---- night sky: stars, and sailboats out on the water ----
+   Sanity is the night island (full moon, black water). Stars scale with how dark the island's sky
+   is, so the daytime islands get a faint scatter and Sanity gets a real field. Sailboats ride
+   offshore beyond the shoreline, bobbing, with a lamp at the masthead — most of them at night. */
+function starField(P, count){
+  const g = new THREE.BufferGeometry(), pos = [], col = [], c = new THREE.Color();
+  for(let i=0;i<count;i++){
+    const a = Math.random()*Math.PI*2, e = Math.acos(1 - Math.random()*0.85), r = 620;
+    const x = Math.sin(e)*Math.cos(a)*r, y = Math.cos(e)*r, z = Math.sin(e)*Math.sin(a)*r;
+    if(y < 40) { i--; continue; }                       /* keep them above the horizon */
+    pos.push(x, y, z);
+    const w = .55 + Math.random()*.45;
+    c.setHSL(.08 + Math.random()*.12, .25*Math.random(), w);
+    col.push(c.r, c.g, c.b);
+  }
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col,3));
+  const m = new THREE.PointsMaterial({size:2.4, sizeAttenuation:false, vertexColors:true,
+    transparent:true, opacity:.95, depthWrite:false});
+  const pts = new THREE.Points(g, m); pts.frustumCulled = false; pts.renderOrder = -2;
+  return pts;
+}
+function sailBoat(hullCol, sailCol, lamp){
+  const g = new THREE.Group();
+  const hull = inked(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI*2, Math.PI*.42, Math.PI*.58), hullCol, 1.2);
+  hull.scale.set(1.05, .62, 2.5); g.add(hull);
+  const deck = new THREE.Mesh(new THREE.CircleGeometry(1, 14), toon(0xC9A277));
+  deck.rotation.x = -Math.PI/2; deck.scale.set(1.0, 2.4, 1); deck.position.y = .06; g.add(deck);
+  const mast = inked(new THREE.CylinderGeometry(.055,.075,4.6,6), hullCol, .9); mast.position.set(0,2.3,.2); g.add(mast);
+  const sg = new THREE.PlaneGeometry(2.2, 3.4, 4, 5), sp = sg.attributes.position;
+  for(let i=0;i<sp.count;i++){ const x = sp.getX(i), y = sp.getY(i);
+    sp.setZ(i, Math.sin((x/2.2+.5)*Math.PI)*.32*(1-(y/3.4+.5)*.3)); }
+  sg.computeVertexNormals();
+  const cloth = inked(sg, sailCol, .9, {side:THREE.DoubleSide});
+  cloth.rotation.y = Math.PI/2; cloth.position.set(.05, 2.5, .5); g.add(cloth);
+  const jib = inked(new THREE.PlaneGeometry(1.2, 2.2), sailCol, .8, {side:THREE.DoubleSide});
+  jib.rotation.y = Math.PI/2; jib.position.set(-.05, 1.9, -1.5); g.add(jib);
+  if(lamp){ const l = new THREE.Mesh(new THREE.SphereGeometry(.13,8,6), new THREE.MeshBasicMaterial({color:MOON}));
+    l.position.set(0,4.5,.2); g.add(l); g.userData.lamp = l; }
+  return g;
+}
+function sailFleet(scene, n, cfg, inside, P, lamps){
+  /* boats hug the coast: march out along a bearing until the ray leaves the land, then sit 25-170 u
+     further out. fog far is ~220-260 * fogK (583-689 at WORLD 4), so anything past that is invisible —
+     placing off a bounding radius put the whole fleet beyond the fog. half the fleet is biased toward
+     the dock so a few are in frame the moment you spawn. */
+  const list = [], hulls = [P.wood, 0x4A3A4E, 0x6B5238], sails = [0xF7F1E6, 0xEFE6D2, 0xE8DCC8];
+  const maxR = (COASTS[cfg.key] ? COASTS[cfg.key].maxR : 90) * WORLD * 1.4;
+  const shoreAt = a => {                                   /* last r on this bearing that is still land */
+    let last = 0;
+    for(let r = 4; r < maxR; r += 3) if(inside(Math.cos(a)*r, Math.sin(a)*r)) last = r;
+    return last;
+  };
+  const clear = (x,z) => !inside(x,z) && !inside(x+9,z) && !inside(x-9,z) && !inside(x,z+9) && !inside(x,z-9);
+  for(let i=0;i<n;i++){
+    let x=0, z=0, ok=false;
+    for(let k=0;k<26;k++){
+      if(i % 2 === 0){
+        /* half the fleet sails out of the harbour: start at the dock head and go seaward (+z, the side
+           the shoreline scan found water on), spreading +-50 deg, until the water is clear. */
+        const a = (Math.random()-.5)*1.75, dx = Math.sin(a), dz = Math.cos(a);
+        let r = 12; while(r < 260 && !clear(cfg.dock[0]+dx*r, cfg.dock[1]+dz*r)) r += 4;
+        r += 8 + Math.random()*120;
+        x = cfg.dock[0]+dx*r; z = cfg.dock[1]+dz*r;
+      } else {
+        const a = Math.random()*Math.PI*2;
+        const r = shoreAt(a) + 25 + Math.random()*145;
+        x = Math.cos(a)*r; z = Math.sin(a)*r;
+      }
+      if(clear(x,z)){ ok = true; break; }
+    }
+    if(!ok) continue;
+    const b = sailBoat(hulls[i%hulls.length], sails[i%sails.length], lamps);
+    const sc = .8 + Math.random()*.7; b.scale.setScalar(sc);
+    b.position.set(x, -.55, z); b.rotation.y = Math.random()*Math.PI*2;
+    b.userData.bob = {ph: Math.random()*6.28, sp: .5 + Math.random()*.5,
+                      drift: .12 + Math.random()*.22, yaw: b.rotation.y};
+    scene.add(b); list.push(b);
+  }
+  return list;
 }
 function skyDome(top, mid, bot){
   const m = new THREE.ShaderMaterial({
@@ -1458,7 +1539,7 @@ const ISLANDS = [
   features:[{type:"hill",x:-30,z:-25,r:12,h:9,name:"Lighthouse Rock"},{type:"mesa",x:64,z:-12,r:8,h:4,name:"The Sea Stack",ink:true,outer:true}],
   trees:{n:26, min:14, max:44, s:[.6,1.1]},
   dock:[0,52], spawn:[0,44],
-  weather:"storm", creature:{type:"jelly", n:9, r:[40,70], sp:[.04,.08], fly:true}, birds:0, bf:null,
+  weather:"storm", creature:{type:"jelly", n:9, r:[40,70], sp:[.04,.08], fly:true}, birds:0, bf:null, sail:22,
   grassCols:[0x3E6A7A,0x2E5262,0x4C7E8C],
   ability:{key:"lantern", at:[-26.6,-21.2], name:"Her lantern", hint:"The stones are there now. Look east.", lantern:true},
   letter:{at:[64,-12], y:4, gate:"lantern"},
@@ -1711,6 +1792,11 @@ function buildIsland(cfg){
   scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, cfg.key === "sanity" ? .38 : .5));
   const key = new THREE.DirectionalLight(P.key, cfg.key === "sanity" ? .55 : .95); key.position.set(-25,40,15); scene.add(key);
   const sea = seaMesh(P.water, P.waterHi); sea.position.y = -1.1; scene.add(sea);
+  /* stars scale with how dark the island's sky is — Sanity (the night song, full moon) gets a real
+     field, the golden-hour islands a faint scatter. */
+  const night = 1 - Math.min(1, ((P.skyTop>>16&255) + (P.skyTop>>8&255) + (P.skyTop&255)) / 300);
+  let starMesh = null;
+  if(night > .12){ starMesh = starField(P, Math.round(140 + night*900)); starMesh.material.opacity = .25 + night*.7; sky.mesh.add(starMesh); }
 
   const POLY = polyOf(cfg); cfg.poly = POLY; if(COASTS[cfg.key]) cfg.coast = COASTS[cfg.key];
   const inside = POLY ? ((x,z) => polyInside(POLY, x, z)) : ((x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r));
@@ -1798,6 +1884,7 @@ function buildIsland(cfg){
     return y;
   };
   const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
+  I.stars = starMesh;
 
   /* ground */
   if(POLY){
@@ -2192,6 +2279,8 @@ function buildIsland(cfg){
     for(let k=0;k<80 && (inside(bx,bz) || inside(bx+2.4,bz) || inside(bx-2.4,bz) || inside(bx,bz+4) || inside(bx,bz-4)); k++){ bz += 1.5; if(k%6===5) bx += .8; }
     boat.position.set(bx,.1,bz); }
   boat.rotation.y=.2; scene.add(boat); I.boat = boat;
+  /* sailboats out past the shore — most of them on the night island, under the full moon */
+  I.fleet = sailFleet(scene, cfg.sail != null ? cfg.sail : (night > .35 ? 14 : 8), cfg, inside, P, night > .35);
   /* lantern path spawn → island heart */
   for(let i=0;i<7;i++){ const k = i/7, x = cfg.spawn[0]*(1-k), z = cfg.spawn[1]*(1-k) + 18*k;
     [-2.6,2.6].forEach(ox => { const p = inked(new THREE.CylinderGeometry(.16,.2,2.4,6), P.wood, 1.4); p.position.set(x+ox, height(x+ox,z)+1.4, z); scene.add(p);
@@ -2349,7 +2438,9 @@ function buildIsland(cfg){
    WALKER PHYSICS
    ============================================================ */
 /* jump apex = JUMPV^2/(2*GRAV) = 3.35 u = 1.90 m — clears a stall counter, the dock deck, the storefront step */
-const GRAV = -26, JUMPV = 13.2, GLIDE_VY = -2.0, SPEED = 8.6, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
+const GRAV = -26, JUMPV = 13.2, GLIDE_VY = -2.0, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
+/* on foot: 12.4 u/s = 7.1 m/s. 1 game unit = 0.576 m (Lala 2.95 u = 1.70 m). ?speed= overrides. */
+const SPEED = parseFloat(QS.get("speed")) || 12.4;
 /* riding: the horses are the reason a 4x island is walkable. ?ride= and ?saddle= tune it. */
 const RIDEABLE = {horse:1, cow:1};
 const RIDE_MUL = parseFloat(QS.get("ride")) || 3.2;
@@ -2548,6 +2639,13 @@ function islandUpdate(I, dt, t){
     if(Math.hypot(W.x-m.position.x, W.z-m.position.z) < 1.7 && Math.abs(W.y+1.2-m.position.y) < 2.2){
       m.visible = false; G.moonsTaken[m.userData.id] = true; G.moons++; syncHUD(); save(); auChime([880,1175],.06,.4); } });
   /* loose props: she kicks them and they roll, bounce, slow down and settle back on the ground */
+  (I.fleet||[]).forEach(b => { const u = b.userData.bob;
+    b.position.y = -.55 + Math.sin(t*u.sp + u.ph)*.22;
+    b.rotation.z = Math.sin(t*u.sp*.8 + u.ph)*.05;
+    b.rotation.x = Math.cos(t*u.sp*.6 + u.ph)*.035;
+    b.rotation.y = u.yaw + Math.sin(t*.18 + u.ph)*u.drift;      /* they swing slowly at anchor */
+    if(u.lampT == null) u.lampT = Math.random()*6;
+    if(b.userData.lamp) b.userData.lamp.material.opacity = 1; });
   I.props.forEach(o => { const p = o.userData.roll; if(!p) return;
     const dx = o.position.x-W.x, dz = o.position.z-W.z, d = Math.hypot(dx,dz), reach = p.r + .85;
     if(d < reach && d > 1e-4 && Math.abs(W.y - o.position.y) < 2.4){
