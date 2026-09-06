@@ -62,6 +62,9 @@ canvas{display:block;position:fixed;inset:0}
  border:2px solid rgba(111,191,146,.85);background:rgba(111,191,146,.28);color:var(--bone);opacity:1;
  box-shadow:0 4px 18px rgba(0,0,0,.35)}
 #jmp:active{background:rgba(111,191,146,.6)}
+#questLine{margin-top:6px;font:600 11px/1.5 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.14em;
+  text-transform:uppercase;color:#FFE08A;opacity:.9;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+#questLine:empty{display:none}
 #build{position:fixed;right:8px;bottom:4px;z-index:6;font:9px/1 "DM Mono",monospace;letter-spacing:.12em;opacity:.28;color:var(--bone);pointer-events:none}
 #cstick{position:fixed;width:156px;height:156px;border-radius:50%;border:2px solid rgba(255,246,214,.35);background:rgba(18,16,28,.28);
  z-index:7;display:none;touch-action:none;pointer-events:none}
@@ -163,6 +166,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
       <div class="lbl" id="lblL">Home Island</div>
       <div class="place" id="valL"></div>
       <div id="weather"></div>
+      <div id="questLine"></div>
     </div>
     <div style="text-align:right">
       <div id="letters">
@@ -276,7 +280,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-06b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-06c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -959,8 +963,10 @@ function playClip(R, name, fade){
   if(R.current) R.current.fadeOut(fade == null ? .18 : fade);
   R.current = a;
 }
-function applyOutfit(ch, key){
-  const o = OUTFITS[key] || OUTFITS.base;
+function applyOutfit(ch, key, extra){
+  /* `extra` is the secret-note reward: one article of clothing swapped on top of the island outfit,
+     so finding the hidden letter reads as a level-up you can see. */
+  const o = Object.assign({}, OUTFITS[key] || OUTFITS.base, extra || null);
   ch.dress.material.color.setHex(o.dress);
   ch.brim.material.color.setHex(o.hat); ch.hatTop.material.color.setHex(o.hat);
   ch.band.material.color.setHex(o.hatBand);
@@ -973,7 +979,7 @@ function applyOutfit(ch, key){
 /* ============================================================
    PROGRESS + DOM
    ============================================================ */
-const G = { letters:[false,false,false,false], abilities:{}, notes:{}, moons:0, moonsTaken:{}, finished:false, visited:{} };
+const G = { letters:[false,false,false,false], abilities:{}, notes:{}, moons:0, moonsTaken:{}, finished:false, visited:{}, quest:{}, wear:{} };
 const SAVE_KEY = "lala:v4";
 // Runs both inside a Claude artifact (window.storage) and as a plain static
 // site (GitHub Pages, file://, any host) via localStorage. Neither is assumed
@@ -1021,6 +1027,8 @@ function syncHUD(){
   const cur = CUR ? CUR.cfg : null;
   $("sub").textContent = cur ? `Notes ${noteCount(cur.key)} / ${cur.notes.length}` : "";
   $("moonsub").textContent = `Moons ${G.moons}`;
+  let ql = ""; try{ const o = CUR ? objectiveOf(CUR) : null; if(o) ql = o.label; }catch(e){}
+  $("questLine").textContent = ql;
 }
 
 /* ============================================================
@@ -1781,8 +1789,188 @@ function polySlab(p, depth, topY, mat){          /* a shaped slab of land: flat 
   g.rotateX(-Math.PI/2); g.translate(0, topY - depth, 0); g.computeVertexNormals();
   const m = new THREE.Mesh(g, mat); m.receiveShadow = true; return m;
 }
+/* ============================================================
+   THE LETTER QUEST  —  pen, then paper, then write it, then hand it to the postman.
+   One hidden note per island on top of that, which changes an article of her clothing.
+   ============================================================ */
+const SECRET_TEXT = {
+  green: {who:"Folded four times, under a stone",
+          text:"Four letters was never about the length of the word. It was the four times I rewrote it before I sent it, and the fourth one is the one you know."},
+  gr:    {who:"Folded four times, in the tall grass",
+          text:"Good Riddance is a thank-you note. I only found that out after I'd already recorded it angry, and I never went back and fixed it."},
+  sanity:{who:"Folded four times, above the tide line",
+          text:"The whole song is one night on this beach, and the second verse is what the water said back. I did not change a word of it."},
+  town:  {who:"Folded four times, behind the stalls",
+          text:"Every name in the last chorus is somebody who was standing in this square when I wrote it. Nobody has ever guessed which is which."}
+};
+const SECRET_WEAR = {                 /* the level-up: one article, visibly different */
+  green: {hatBand:0xF2A6C8, wearName:"a pink ribbon on her hat"},
+  gr:    {boots:0xB4653A,   wearName:"new boots"},
+  sanity:{hat:0xEDE4D2, hatBand:0xFFD37A, wearName:"a moon-pale hat with a gold band"},
+  town:  {dress:0xFFF0D0,   wearName:"the pale dress"}
+};
+function qGet(cfg, step){ return step === "delivered" ? !!G.letters[cfg.idx] : !!G.quest[cfg.key + ":" + step]; }
+function qSet(cfg, step, v){ if(step === "delivered") G.letters[cfg.idx] = v; else G.quest[cfg.key + ":" + step] = v; save(); }
+function wearOf(cfg){ return G.wear[cfg.key] ? SECRET_WEAR[cfg.key] : null; }
+
+function penMesh(){
+  const g = new THREE.Group();
+  const shaft = inked(new THREE.CylinderGeometry(.045,.075,1.5,6), 0xEFE6D2, 1.5); shaft.rotation.z = .38; g.add(shaft);
+  const fg = new THREE.PlaneGeometry(.5, 1.25, 3, 5), fp = fg.attributes.position;
+  for(let i=0;i<fp.count;i++) fp.setZ(i, Math.sin((fp.getY(i)/1.25+.5)*Math.PI)*.10);
+  fg.computeVertexNormals();
+  const feather = inked(fg, 0xF7F1E6, .9, {side:THREE.DoubleSide});
+  feather.position.set(-.28,.72,0); feather.rotation.z = .38; g.add(feather);
+  const nib = inked(new THREE.ConeGeometry(.075,.34,6), 0x2C2A33, 1.3); nib.position.set(.29,-.78,0); nib.rotation.z = Math.PI + .38; g.add(nib);
+  return g;
+}
+function paperMesh(){
+  const g = new THREE.Group();
+  const pg = new THREE.PlaneGeometry(1.05, 1.4, 4, 4), pp = pg.attributes.position;
+  for(let i=0;i<pp.count;i++) pp.setZ(i, Math.sin((pp.getX(i)/1.05+.5)*Math.PI*1.4)*.13);   /* a sheet with a curl in it */
+  pg.computeVertexNormals();
+  g.add(inked(pg, 0xF7F1E6, 1.4, {side:THREE.DoubleSide}));
+  const line = new THREE.Mesh(new THREE.BoxGeometry(.62,.035,.01), new THREE.MeshBasicMaterial({color:0x9C93A8}));
+  for(let i=0;i<4;i++){ const l = line.clone(); l.position.set(0,.36-i*.22,.09); g.add(l); }
+  return g;
+}
+function deskMesh(P){
+  const g = new THREE.Group();
+  const top = inked(new THREE.BoxGeometry(2.3,.16,1.35), P.wood, 1.6); top.position.y = 1.05; g.add(top);
+  [[-.95,-.5],[.95,-.5],[-.95,.5],[.95,.5]].forEach(([x,z]) => {
+    const l = inked(new THREE.CylinderGeometry(.09,.11,1.05,6), P.wood, 1.3); l.position.set(x,.52,z); g.add(l); });
+  const ink = inked(new THREE.CylinderGeometry(.16,.20,.26,8), 0x2C2A33, 1.2); ink.position.set(-.6,1.26,0); g.add(ink);
+  const cs = inked(new THREE.CylinderGeometry(.07,.09,.5,6), 0xF7F1E6, 1.2); cs.position.set(.75,1.38,-.15); g.add(cs);
+  const fl = new THREE.Mesh(new THREE.SphereGeometry(.11,8,6), new THREE.MeshBasicMaterial({color:0xFFD37A}));
+  fl.position.set(.75,1.72,-.15); fl.scale.y = 1.7; g.add(fl); g.userData.flame = fl;
+  const sheet = inked(new THREE.PlaneGeometry(.85,1.05), 0xF7F1E6, 1.0, {side:THREE.DoubleSide});
+  sheet.rotation.x = -Math.PI/2; sheet.position.set(.05,1.15,.1); g.add(sheet);
+  return g;
+}
+/* a fat hand-drawn chevron — the whimsical arrow that points the way */
+function arrowMesh(col){
+  const sh = new THREE.Shape();
+  sh.moveTo(0,.95); sh.lineTo(.82,0); sh.lineTo(.40,0); sh.lineTo(.40,-.85);
+  sh.lineTo(-.40,-.85); sh.lineTo(-.40,0); sh.lineTo(-.82,0); sh.closePath();
+  const geo = new THREE.ExtrudeGeometry(sh, {depth:.22, bevelEnabled:true, bevelSize:.06, bevelThickness:.05, bevelSegments:1});
+  geo.center();
+  const g = inked(geo, col, 1.9);
+  /* Flat on the ground the chevron is seen edge-on from the chase camera and reads as a yellow slab.
+     Stand it up and lean it forward instead, like a signpost planted along the path. */
+  g.rotation.x = -Math.PI*0.30;
+  g.position.y = .45;
+  const halo = new THREE.Mesh(new THREE.RingGeometry(.95,1.25,20), new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:.22, side:THREE.DoubleSide}));
+  halo.rotation.x = -Math.PI/2;
+  const wrap = new THREE.Group(); wrap.add(g); halo.position.y = -.18; wrap.add(halo);
+  wrap.userData.body = g; wrap.userData.halo = halo;
+  return wrap;
+}
+/* the little jellyfish scout: a translucent bell with four ribbons */
+function guideJelly(){
+  const g = new THREE.Group();
+  const bell = new THREE.Mesh(new THREE.SphereGeometry(.52,14,10,0,Math.PI*2,0,Math.PI*.62),
+    new THREE.MeshBasicMaterial({color:0x7FD4EE, transparent:true, opacity:.62, side:THREE.DoubleSide, depthWrite:false}));
+  g.add(bell); g.userData.bell = bell;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(.52,.045,6,18), new THREE.MeshBasicMaterial({color:0x2F6E86, transparent:true, opacity:.8}));
+  rim.rotation.x = Math.PI/2; rim.position.y = -.02; g.add(rim);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(.60,14,10,0,Math.PI*2,0,Math.PI*.5),
+    new THREE.MeshBasicMaterial({color:0xF2A6C8, transparent:true, opacity:.30, side:THREE.BackSide, depthWrite:false}));
+  g.add(cap);
+  const core = new THREE.Mesh(new THREE.SphereGeometry(.19,10,8), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.85}));
+  core.position.y = -.1; g.add(core); g.userData.core = core;
+  for(let i=0;i<4;i++){ const a = i/4*Math.PI*2;
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(.028,.008,.95,4), new THREE.MeshBasicMaterial({color:0xDCF2FA, transparent:true, opacity:.45, depthWrite:false}));
+    t.position.set(Math.cos(a)*.26, -.55, Math.sin(a)*.26); g.add(t); }
+  g.renderOrder = 3;
+  return g;
+}
+function guideInit(I){
+  const grp = new THREE.Group(); grp.frustumCulled = false;
+  const arrows = [], jellies = [];
+  for(let i=0;i<6;i++){ const a = arrowMesh(0xFFE08A); a.visible = false; a.frustumCulled = false; grp.add(a); arrows.push(a); }
+  for(let i=0;i<3;i++){ const j = guideJelly(); j.visible = false; j.frustumCulled = false; grp.add(j); jellies.push(j); }
+  I.scene.add(grp);
+  I.guide = {group:grp, arrows, jellies, label:"", on:true};
+}
+/* what she is looking for right now, in the order the quest goes */
+function objectiveOf(I){
+  const cfg = I.cfg, Q = I.quest;
+  if(cfg.hub) return G.letters.every(Boolean) ? {x:0, z:0, label:"The keep"} : null;
+  if(!Q) return null;
+  if(cfg.ability && !G.abilities[cfg.ability.key] && I.pickup && I.pickup.visible)
+    return {x:I.pickup.position.x, z:I.pickup.position.z, label:cfg.ability.name};
+  if(Q.pen && !qGet(cfg,"pen"))       return {x:Q.pen.position.x, z:Q.pen.position.z, label:"The pen"};
+  if(I.letterMesh && !qGet(cfg,"paper")) return {x:I.letterMesh.position.x, z:I.letterMesh.position.z, label:"The paper"};
+  if(Q.desk && !qGet(cfg,"written"))  return {x:Q.desk.position.x, z:Q.desk.position.z, label:"The writing desk"};
+  if(Q.post && !qGet(cfg,"delivered"))return {x:Q.post.position.x, z:Q.post.position.z, label:"The postman"};
+  if(Q.secret && Q.secret.visible)    return {x:Q.secret.position.x, z:Q.secret.position.z, label:"One more letter out here"};
+  return {x:cfg.dock[0], z:cfg.dock[1], label:"The boat"};
+}
+function guideUpdate(I, dt, t){
+  const g = I.guide; if(!g) return;
+  const W = I.W, o = objectiveOf(I);
+  if(!o || !g.on){ g.arrows.forEach(a => a.visible = false); g.jellies.forEach(j => j.visible = false); g.label = ""; return; }
+  g.label = o.label;
+  const dx = o.x - W.x, dz = o.z - W.z, dist = Math.hypot(dx, dz) || 1;
+  const ux = dx/dist, uz = dz/dist, yaw = Math.atan2(ux, uz);
+  /* arrows walk out along the line to the objective, closest first, and stop short of it */
+  g.arrows.forEach((a, i) => {
+    const along = 11 + i*8.5 + Math.sin(t*1.3 - i*.55)*.7;
+    if(along > dist - 6){ a.visible = false; return; }
+    const px = W.x + ux*along, pz = W.z + uz*along;
+    if(!I.inside(px, pz) && Math.hypot(px-I.cfg.dock[0], pz-I.cfg.dock[1]) > 12){ a.visible = false; return; }
+    a.visible = true;
+    a.position.set(px, I.height(px, pz) + 0.70 + Math.sin(t*2.2 - i*.8)*.18, pz);   /* knee-to-waist height: it marks the ground, it never covers her */
+    a.rotation.y = yaw + Math.PI + Math.sin(t*.9 + i)*.05;          /* +PI: the chevron tip lies on local -z */
+    const fade = Math.max(.12, 1 - i*.16);
+    a.userData.body.userData.main.material.opacity = fade;
+    a.userData.halo.material.opacity = .22*fade;
+    a.userData.body.scale.setScalar((.62 + Math.min(.30, i*.09)) + Math.sin(t*2.2 - i*.8)*.05);   /* the nearest one is smallest, so it never fills the frame */
+  });
+  /* three jellyfish scouts drift ahead of her, along the same line, weaving */
+  g.jellies.forEach((j, i) => {
+    const along = Math.min(dist - 1.4, 3.4 + i*3.1);
+    if(along < 1.2){ j.visible = false; return; }
+    j.visible = true;
+    const side = Math.sin(t*.85 + i*2.1) * (1.5 + i*.35);
+    const px = W.x + ux*along - uz*side, pz = W.z + uz*along + ux*side;
+    j.position.set(px, Math.max(I.height(px,pz), 0) + 3.3 + Math.sin(t*1.5 + i*1.9)*.42, pz);
+    const pulse = Math.sin(t*2.6 + i*1.3);
+    j.scale.set(1 - pulse*.08, 1 + pulse*.15, 1 - pulse*.08);
+    j.userData.core.material.opacity = .55 + .35*(pulse*.5+.5);
+    j.rotation.y = yaw;
+  });
+}
+
 function buildIsland(cfg){
   scaleCfg(cfg);
+  /* The quest anchors are derived, not authored, so they can never be hand-placed into the sea and
+     so every island gets the same shape of journey: the pen sits across the island from the paper,
+     the hidden note in a third quadrant, and the postman waits at the island's first landmark. */
+  if(!cfg.questSeeded && !cfg.hub && cfg.letter && cfg.idx != null && cfg.idx < 4){
+    const L = cfg.letter.at;
+    cfg.pen    = {at:[+(-L[0]*.85).toFixed(1), +(-L[1]*.85).toFixed(1)]};
+    cfg.secret = {at:[+(L[1]*.80).toFixed(1),  +(-L[0]*.80).toFixed(1)]};
+    const pl = (cfg.places||[])[0];
+    /* the letter has to reach somebody, so each island keeps a few fans of its own scattered over
+       its landmarks. Each gets a different outfit wash (nextTint) so a reused sprite doesn't read
+       as the same person four times. */
+    const FAN_LINES = ["I came out on the first ferry. I'd have swum.",
+                       "She played this one twice. Nobody asked her to.",
+                       "My sister has the same tattoo. Don't tell her I told you.",
+                       "If a letter ever came for me out here I'd frame it.",
+                       "There's a note under the arch. I'm not telling you which arch."];
+    const fanRigs = ["fan","crowd","green","fan","crowd"];
+    const spots = (cfg.places||[]).slice(0,5);
+    const fans = spots.map((q,i) => ({rig:fanRigs[i%fanRigs.length], name:["Marisol","Dee","Theo","Nan","Kit"][i],
+      h:[1.62,1.71,1.79,1.58,1.68][i], at:[q.x + (i%2?7:-7), q.z + (i<2?8:-8)], wander:7*WORLD,
+      fan:true, line:FAN_LINES[i%FAN_LINES.length]}));
+    cfg.npcs = (cfg.npcs||[]).concat(fans);
+    cfg.npcs = (cfg.npcs||[]).concat([{rig:"dock", name:"Ollie the postman", h:1.86, post:true,
+      at: pl ? [pl.x, pl.z] : [+(L[1]*.3).toFixed(1), +(-L[0]*.3).toFixed(1)], wander: 9*WORLD,
+      line:"I ride the whole island twice a day. Give me something worth carrying and every fan out here reads it by dark."}]);
+    cfg.questSeeded = true;
+  }
   for(const k in tintSeen) delete tintSeen[k];   /* each island shuffles its own outfit washes */
   const P = cfg.pal, scene = new THREE.Scene();
   const fogK = 1 + (WORLD - 1) * 0.55;   /* a bigger island needs to be visible further out */
@@ -1834,6 +2022,8 @@ function buildIsland(cfg){
       for(let i=0;i<n;i++){ const f = (i+1)/(n+1); cfg.stones[i] = [+(sx+(tx-sx)*f*.86).toFixed(1), +(sz+(tz-sz)*f*.86).toFixed(1)]; }
     } else (cfg.stones||[]).forEach(st => { const [x,z] = land(st[0], st[1], 3); st[0] = x; st[1] = z; });
     if(cfg.ability){ const [x,z] = land(cfg.ability.at[0], cfg.ability.at[1], 5); cfg.ability.at = [x,z]; }
+    if(cfg.pen)   { const [x,z] = land(cfg.pen.at[0],    cfg.pen.at[1],    5); cfg.pen.at    = [x,z]; }
+    if(cfg.secret){ const [x,z] = land(cfg.secret.at[0], cfg.secret.at[1], 5); cfg.secret.at = [x,z]; }
     if(cfg.letter){
       if(outer && Math.hypot(cfg.letter.at[0]-(outer.x-(outer.dx||0)), cfg.letter.at[1]-(outer.z-(outer.dz||0))) < outer.r + 2){
         cfg.letter.at = [+(cfg.letter.at[0]+(outer.dx||0)).toFixed(1), +(cfg.letter.at[1]+(outer.dz||0)).toFixed(1)];   /* rides the sea stack */
@@ -2336,9 +2526,51 @@ function buildIsland(cfg){
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
     const L = cfg.letter;
     if(L.reY || L.y == null) L.y = height(L.at[0], L.at[1]);
-    const lm = inked(new THREE.OctahedronGeometry(.8,0), 0xF0A56D, 2.4); lm.position.set(L.at[0], L.y+2.2, L.at[1]); scene.add(lm); I.letterMesh = lm;
+    const lm = cfg.key === "moon" ? inked(new THREE.OctahedronGeometry(.8,0), 0xF0A56D, 2.4) : paperMesh();
+    lm.position.set(L.at[0], L.y+2.2, L.at[1]); scene.add(lm); I.letterMesh = lm;
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,26,16,1,true), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.10, side:THREE.DoubleSide}));
     beam.position.set(L.at[0], L.y+13, L.at[1]); scene.add(beam); I.letterBeam = beam;
+  }
+  /* pen, desk and hidden note. The letter mesh above is now the PAPER — she needs both before she
+     can sit down and write, and the written letter goes to the postman, not to the keep. */
+  if(cfg.questSeeded){
+    I.quest = {};
+    const pen = penMesh(); pen.position.set(cfg.pen.at[0], height(cfg.pen.at[0], cfg.pen.at[1]) + 2.2, cfg.pen.at[1]);
+    scene.add(pen); I.quest.pen = pen;
+    const pbeam = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,26,14,1,true), new THREE.MeshBasicMaterial({color:0xFFE08A, transparent:true, opacity:.09, side:THREE.DoubleSide}));
+    pbeam.position.set(cfg.pen.at[0], height(cfg.pen.at[0], cfg.pen.at[1]) + 13, cfg.pen.at[1]); scene.add(pbeam); I.quest.penBeam = pbeam;
+    /* The desk waits near the landing — but it has to stand in a CLEARING, or the chase camera ends
+       up inside a tree the moment she walks up to it. Colliders are all placed by this point, so the
+       spot is chosen against them: on land, clear of every trunk and rock, and a short walk from where
+       she comes ashore. */
+    if(!cfg.desk){
+      const far = q => I.colliders.every(c => Math.hypot(q[0]-c.x, q[1]-c.z) > (c.r || 1) + 6);
+      const flat = q => Math.abs(height(q[0],q[1]) - height(cfg.spawn[0],cfg.spawn[1])) < 3;
+      let best = null;
+      outer: for(let r = 12; r <= 46; r += 3){
+        for(let k = 0; k < 20; k++){
+          const a = k/20*Math.PI*2 + r*.31;
+          const q = [+(cfg.spawn[0]+Math.cos(a)*r).toFixed(1), +(cfg.spawn[1]+Math.sin(a)*r).toFixed(1)];
+          if(!inside(q[0],q[1]) || !inside(q[0]+4,q[1]) || !inside(q[0]-4,q[1]) || !inside(q[0],q[1]+4) || !inside(q[0],q[1]-4)) continue;
+          if(!far(q) || !flat(q)) continue;
+          best = q; break outer;
+        }
+      }
+      cfg.desk = {at: best || [cfg.spawn[0]+9, cfg.spawn[1]-9]};
+    }
+    const desk = deskMesh(P); desk.position.set(cfg.desk.at[0], height(cfg.desk.at[0], cfg.desk.at[1]), cfg.desk.at[1]);
+    desk.rotation.y = Math.atan2(cfg.spawn[0]-cfg.desk.at[0], cfg.spawn[1]-cfg.desk.at[1]);
+    scene.add(desk); I.quest.desk = desk; I.colliders.push({x:cfg.desk.at[0], z:cfg.desk.at[1], r:1.7});
+    const sec = paperMesh(); sec.scale.setScalar(.8);
+    sec.position.set(cfg.secret.at[0], height(cfg.secret.at[0], cfg.secret.at[1]) + 1.7, cfg.secret.at[1]);
+    scene.add(sec); I.quest.secret = sec;
+    I.noGrass.push({x:cfg.desk.at[0], z:cfg.desk.at[1], r:2.6});
+    /* the postman rides — his horse is a real rig that tracks him, and he sits it with the same
+       seated pose Lala uses when she is mounted. */
+    const hz = makeCreature("horse");
+    const rh = RIGS.horse ? RIGS.horse.height : 3.6;
+    hz.userData.postHorse = true; scene.add(hz); I.quest.horse = hz;
+    groundShadow(hz, 1.15);
   }
 
   /* moons */
@@ -2431,6 +2663,7 @@ function buildIsland(cfg){
   key.shadow.camera.left = -70; key.shadow.camera.right = 70; key.shadow.camera.top = 70; key.shadow.camera.bottom = -70;
   key.shadow.bias = -0.0008; key.shadow.normalBias = .05;
   scene.add(key.target); I.sun = key;
+  guideInit(I);
   return I;
 }
 
@@ -2634,6 +2867,17 @@ function islandUpdate(I, dt, t){
   I.notes.forEach((n,i) => { n.rotation.z = Math.sin(t*1.5+i)*.09; n.rotation.y = Math.sin(t*.7+i)*.25;   /* swings on its nail */
     n.children[0].material.color.setHex(G.notes[cfg.key+":"+i] ? 0xCFC6B4 : BONE); });
   if(I.pickup && I.pickup.visible){ I.pickup.rotation.y += dt*.8; I.pickup.position.y += Math.sin(t*1.6)*.004; }
+  if(I.quest){
+    const Q = I.quest;
+    if(Q.pen.visible){ Q.pen.rotation.y += dt*.9; Q.pen.position.y += Math.sin(t*1.7)*.005; }
+    if(Q.secret.visible){ Q.secret.rotation.y += dt*.7; Q.secret.position.y += Math.sin(t*2.1)*.006; }
+    if(Q.desk.userData.flame){ const f = Q.desk.userData.flame;
+      f.scale.set(1+Math.sin(t*9)*.12, 1.7+Math.sin(t*13)*.22, 1+Math.cos(t*11)*.12); }
+    (Q.drops||[]).forEach(d => { d.position.y += dt*1.1; d.rotation.y += dt*1.6;
+      d.userData.life -= dt; d.traverse(m => { if(m.material && m.material.transparent !== undefined){ m.material.transparent = true; m.material.opacity = Math.max(0, d.userData.life/3); } });
+      if(d.userData.life <= 0){ I.scene.remove(d); Q.drops.splice(Q.drops.indexOf(d),1); } });
+  }
+  guideUpdate(I, dt, t);
   if(I.letterMesh && I.letterMesh.visible){ I.letterMesh.rotation.y += dt*1.4; I.letterMesh.rotation.x += dt*.6; }
   I.moons.forEach(m => { if(!m.visible) return; m.rotation.y += dt*1.8;
     if(Math.hypot(W.x-m.position.x, W.z-m.position.z) < 1.7 && Math.abs(W.y+1.2-m.position.y) < 2.2){
@@ -2668,6 +2912,30 @@ function islandUpdate(I, dt, t){
     } else { p.vx = 0; p.vz = 0; }
     o.position.y += (I.height(o.position.x, o.position.z) + p.r - o.position.y)*Math.min(1, dt*10); });
   I.npcs.forEach(g => { const u = g.userData, R = u.R;
+    if(u.delivering){
+      /* he works his way round the fans, and each one he reaches gets a copy */
+      const tgt = u.deliverTo[u.deliverI];
+      if(!tgt){ u.delivering = false; u.state = "idle"; u.timer = 2; }
+      else {
+        const dx = tgt.position.x-g.position.x, dz = tgt.position.z-g.position.z, d = Math.hypot(dx,dz);
+        u.state = "walk"; u.heading = Math.atan2(dx,dz);
+        if(d < 2.6){
+          const drop = paperMesh(); drop.scale.setScalar(.3);
+          drop.position.set(tgt.position.x, tgt.position.y + 3.4, tgt.position.z);
+          drop.userData.life = 3; I.scene.add(drop);
+          if(I.quest){ (I.quest.drops = I.quest.drops || []).push(drop); }
+          u.deliverI++; if(u.deliverI >= u.deliverTo.length){ u.delivering = false; toast("Delivered", "Every fan on this island has read it"); }
+        } else {
+          const sp = 5.4*dt, nx = g.position.x + dx/d*sp, nz = g.position.z + dz/d*sp;
+          if(npcStand(I,nx,nz)){ g.position.x = nx; g.position.z = nz; } else u.deliverI++;
+        }
+        g.position.y = I.height(g.position.x, g.position.z);
+        let da2 = u.heading - g.rotation.y; while(da2 > Math.PI) da2 -= Math.PI*2; while(da2 < -Math.PI) da2 += Math.PI*2;
+        g.rotation.y += da2*Math.min(1, dt*6);
+        if(R.mixer){ playClip(R, "walk"); R.mixer.update(dt); }
+        return;
+      }
+    }
     const dp = Math.hypot(W.x-g.position.x, W.z-g.position.z);
     if(dp < 4.5){ u.state = "greet"; u.timer = 1.2; u.heading = Math.atan2(W.x-g.position.x, W.z-g.position.z); }
     else if(u.state === "greet"){ u.timer -= dt; if(u.timer <= 0){ u.state = "idle"; u.timer = 1; } }
@@ -2692,6 +2960,24 @@ function islandUpdate(I, dt, t){
     /* crowd LOD: ink outline only when close to the camera, shadow only at mid range — halves the skinned triangle load */
     if(R.inkTwins){ const dc = camera.position.distanceTo(g.position), nearInk = dc < 26, midShadow = dc < 42;
       for(const m of R.inkTwins) m.visible = nearInk; for(const m of R.skins) m.castShadow = midShadow; } });
+  /* Ollie sits his horse: the horse takes his ground position and heading, he rides at saddle height,
+     and his legs get the same seated pose Lala's do. Done in its own pass so it applies whether he is
+     idling, wandering or out on a delivery run. */
+  if(I.quest && I.quest.horse){
+    const rider = I.npcs.find(g => g.userData.cfg && g.userData.cfg.post);
+    if(rider){
+      const hz = I.quest.horse, u = rider.userData;
+      hz.position.set(rider.position.x, rider.position.y, rider.position.z);
+      hz.rotation.y = rider.rotation.y;
+      const legs = hz.userData.legs || [];
+      if(u.state === "walk" || u.delivering){ hz.userData.gait = (hz.userData.gait||0) + dt*7;
+        legs.forEach(l => { if(l.rotation) l.rotation.x = Math.sin(hz.userData.gait + (l.userData.phase||0))*.4; }); }
+      if(hz.userData.R && hz.userData.R.mixer){ playClip(hz.userData.R, (u.state === "walk" || u.delivering) ? "walk" : "idle"); hz.userData.R.mixer.update(dt); }
+      rider.position.y += SADDLE_Y;
+      if(u.R && u.R.model) applySeated(u.R);
+      if(rider.userData.shadowDecal) rider.userData.shadowDecal.visible = false;
+    }
+  }
   I.creatures.forEach(h => { const u = h.userData; if(u.ridden) return; u.a += u.sp*dt;
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
        radius walks straight into the sea. Pull the radius in until the step lands on land (with a
@@ -2762,14 +3048,28 @@ function islandUpdate(I, dt, t){
    happens to share the spot, and a note you've already read never blocks anything. */
 function nearest(I){
   const W = I.W, cfg = I.cfg, cands = [];
-  const PRI = {letter:0, ability:1, castle:2, npc:2.5, note:3, mount:3.5, dock:4};
+  const PRI = {letter:0, pen:0, secret:0, desk:.5, post:.8, ability:1, castle:2, npc:2.5, note:3, mount:3.5, dock:4};
   const add = (kind, d, extra) => cands.push(Object.assign({kind, d, pri:PRI[kind]}, extra));
   if(I.letterMesh && I.letterMesh.visible){ const d = Math.hypot(W.x-I.letterMesh.position.x, W.z-I.letterMesh.position.z);
-    if(d < 4.6 && Math.abs(W.y - cfg.letter.y) < 3.5) add("letter", d, {label:"Take the letter"}); }
+    if(d < 4.6 && Math.abs(W.y - cfg.letter.y) < 3.5) add("letter", d, {label: cfg.questSeeded ? "Take the paper" : "Take the letter"}); }
+  if(I.quest){
+    const Q = I.quest;
+    if(Q.pen.visible){ const d = Math.hypot(W.x-Q.pen.position.x, W.z-Q.pen.position.z);
+      if(d < 4.6 && Math.abs(W.y+2-Q.pen.position.y) < 5) add("pen", d, {label:"Take the pen"}); }
+    if(Q.secret.visible){ const d = Math.hypot(W.x-Q.secret.position.x, W.z-Q.secret.position.z);
+      if(d < 4.6 && Math.abs(W.y+2-Q.secret.position.y) < 5) add("secret", d, {label:"Read the folded note"}); }
+    { const d = Math.hypot(W.x-Q.desk.position.x, W.z-Q.desk.position.z);
+      if(d < 4.4 && !qGet(cfg,"written")){
+        const ready = qGet(cfg,"pen") && qGet(cfg,"paper");
+        add("desk", d, {label: ready ? "Write the letter" : "The desk — you need the pen and the paper"}); } }
+  }
   if(I.pickup && I.pickup.visible){ const d = Math.hypot(W.x-I.pickup.position.x, W.z-I.pickup.position.z);
     if(d < 4.8 && Math.abs(W.y+2-I.pickup.position.y) < 5) add("ability", d, {label:"Take "+cfg.ability.name.toLowerCase()}); }
   if(cfg.hub){ const d = Math.hypot(W.x,W.z); if(d < 14 && d > 6) add("castle", d, {label: G.letters.every(Boolean) ? "Go inside" : "Try the doors"}); }
-  for(const g of (I.npcs||[])){ if(!g.userData.cfg.name) continue; const d = Math.hypot(W.x-g.position.x, W.z-g.position.z); if(d < 4) add("npc", d, {obj:g, label:"Talk to "+g.userData.cfg.name}); }
+  for(const g of (I.npcs||[])){ const n = g.userData.cfg; if(!n.name) continue;
+    const d = Math.hypot(W.x-g.position.x, W.z-g.position.z); if(d >= 4.4) continue;
+    if(n.post && qGet(cfg,"written") && !qGet(cfg,"delivered")) add("post", d, {obj:g, label:"Give the letter to Ollie"});
+    else if(d < 4) add("npc", d, {obj:g, label:"Talk to "+n.name}); }
   for(const n of I.notes){ const d = Math.hypot(W.x-n.position.x, W.z-n.position.z);
     if(d < 5.2 && Math.abs(W.y+2-n.position.y) < 4.5){ const read = !!G.notes[cfg.key+":"+n.userData.i];
       add("note", d + (read ? 100 : 0), {obj:n, label: read ? "Read again" : "Read the note"}); } }
@@ -2817,6 +3117,35 @@ function interact(){
     }
   } else if(t.kind === "dock"){
     renderDock(); W.active = false; ov("ovDock");
+  } else if(t.kind === "pen"){
+    qSet(cfg, "pen", true); I.quest.pen.visible = false; I.quest.penBeam.visible = false; syncHUD();
+    auChime([523,659,784]); toast("Her pen", qGet(cfg,"paper") ? "Now go and write it" : "Now find something to write on");
+  } else if(t.kind === "desk"){
+    if(!(qGet(cfg,"pen") && qGet(cfg,"paper"))){ toast("Not yet", "The pen and the paper first"); return; }
+    qSet(cfg, "written", true); syncHUD();
+    auChime([392,523,659,784],.14,1.1);
+    $("noteWho").textContent = "Letter " + cfg.glyph + ", written";
+    $("noteBody").textContent = "She writes it in one go, the way she says she always does. Now it needs legs — find Ollie and his horse.";
+    W.active = false; ov("ovNote");
+  } else if(t.kind === "post"){
+    qSet(cfg, "delivered", true); syncHUD();
+    const g = t.obj, u = g.userData;
+    /* he rides the island and hands it round — every fan out here gets a copy */
+    u.deliverTo = (I.npcs||[]).filter(o => o !== g && o.userData.cfg && !o.userData.cfg.post)
+                    .sort((a,b) => a.position.distanceTo(g.position) - b.position.distanceTo(g.position)).slice(0,6);
+    u.deliverI = 0; u.delivering = u.deliverTo.length > 0;
+    auChime([392,523,659,784,1047]);
+    $("noteWho").textContent = "Ollie takes it";
+    $("noteBody").textContent = "He folds it once, puts it inside his coat, and turns the horse toward the far end of the island. Letter " + cfg.glyph + " is out of your hands now.";
+    W.active = false; ov("ovNote");
+  } else if(t.kind === "secret"){
+    const sec = SECRET_TEXT[cfg.key] || {who:"A folded note", text:"..."}, wear = SECRET_WEAR[cfg.key];
+    G.wear[cfg.key] = true; save(); I.quest.secret.visible = false;
+    applyOutfit(W, cfg.outfit && cfg.ability && G.abilities[cfg.ability.key] ? cfg.outfit : "base", wear);
+    auChime([659,784,988,1319],.15,1.3);
+    $("noteWho").textContent = sec.who;
+    $("noteBody").textContent = sec.text + (wear ? "\n\nShe puts it away and comes back wearing " + wear.wearName + "." : "");
+    W.active = false; ov("ovNote");
   } else if(t.kind === "ability"){
     G.abilities[cfg.ability.key] = true; save(); I.pickup.visible = false; applyOutfit(W, cfg.outfit);
     auChime([523,659,784,1047]); toast(cfg.ability.name, cfg.ability.hint);
@@ -2827,8 +3156,14 @@ function interact(){
       $("endBody").textContent = "The fifth song was never hidden. It was waiting for someone who'd found the other four. — L";
       W.active = false; setTimeout(() => ov("ovEnd"), 2400); return;
     }
-    G.letters[cfg.idx] = true; save(); syncHUD(); I.letterMesh.visible = false; I.letterBeam.visible = false;
-    auChime([392,523,659,784,1047]); toast("Letter "+cfg.glyph, "Take it back to the keep");
+    I.letterMesh.visible = false; I.letterBeam.visible = false;
+    if(cfg.questSeeded){
+      qSet(cfg, "paper", true); syncHUD();
+      auChime([392,523,659]); toast("Paper", qGet(cfg,"pen") ? "Now go and write it" : "Now find her pen");
+    } else {
+      G.letters[cfg.idx] = true; save(); syncHUD();
+      auChime([392,523,659,784,1047]); toast("Letter "+cfg.glyph, "Take it back to the keep");
+    }
   }
 }
 
@@ -2914,10 +3249,13 @@ async function goIsland(I, skipFade){
   const W = I.W, cfg = I.cfg;
   W.x = cfg.spawn[0]; W.z = cfg.spawn[1]; W.y = I.height(W.x,W.z); W.vy = 0; W.grounded = true; W.heading = Math.PI; W.camYaw = Math.PI; W.active = false;
   W.camPitch = CAM.pitch; W.lookHold = 0; W.recenter = false; camRig(I, true); W.camDistCur = W.camDist; placeCamera(I, 1);
-  applyOutfit(W, cfg.outfit && cfg.ability && G.abilities[cfg.ability.key] ? cfg.outfit : (cfg.key === "moon" ? "town" : "base"));
+  applyOutfit(W, cfg.outfit && cfg.ability && G.abilities[cfg.ability.key] ? cfg.outfit : (cfg.key === "moon" ? "town" : "base"), wearOf(cfg));
   I.moons.forEach(m => m.visible = !G.moonsTaken[m.userData.id]);
   if(I.pickup && cfg.ability) I.pickup.visible = !G.abilities[cfg.ability.key];
-  if(I.letterMesh){ const got = cfg.key === "moon" ? G.finished : G.letters[cfg.idx]; I.letterMesh.visible = !got; if(I.letterBeam) I.letterBeam.visible = !got; }
+  if(I.letterMesh){ const got = cfg.key === "moon" ? G.finished : (cfg.questSeeded ? qGet(cfg,"paper") : G.letters[cfg.idx]);
+    I.letterMesh.visible = !got; if(I.letterBeam) I.letterBeam.visible = !got; }
+  if(I.quest){ const got = qGet(cfg,"pen"); I.quest.pen.visible = !got; I.quest.penBeam.visible = !got;
+    I.quest.secret.visible = !G.wear[cfg.key]; }
   const roman = ["I","II","III","IV"][cfg.idx];
   $("lblL").textContent = cfg.hub ? "Home Island" : (roman ? `Island ${roman} — ${cfg.name}` : cfg.name);
   $("valL").textContent = cfg.places[0] ? cfg.places[0].name : ""; syncHUD();
