@@ -39,9 +39,41 @@ canvas{display:block;position:fixed;inset:0}
 .hide{display:none!important}
 #prompt{align-self:center;margin-bottom:120px;opacity:0;transition:opacity .25s;text-align:center}
 #prompt.on{opacity:1}
-#prompt .k{display:inline-grid;place-items:center;min-width:30px;height:30px;padding:0 9px;
- border:1px solid rgba(247,241,230,.4);border-radius:4px;font-size:11px;margin-right:10px}
-#prompt .t{font-size:12px;letter-spacing:.1em}
+/* The interact prompt is a star. It has to catch the eye across a meadow at golden hour, so it is
+   a gold five-point star that breathes, sweeps a highlight round itself, and throws four sparks. */
+:root{--star5:polygon(50% 0%,61% 34%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 34%);
+      --star4:polygon(50% 0%,59% 41%,100% 50%,59% 59%,50% 100%,41% 59%,0% 50%,41% 41%)}
+#prompt .k{position:relative;display:inline-grid;place-items:center;width:56px;height:56px;
+ margin-right:14px;vertical-align:middle;font-size:15px;font-weight:700;color:#3A2A18;
+ text-shadow:0 1px 0 rgba(255,255,255,.6);animation:starBreathe 1.5s ease-in-out infinite}
+#prompt .k::before{content:"";position:absolute;inset:0;clip-path:var(--star5);
+ background:radial-gradient(circle at 50% 38%,#FFFBEA 0%,#FFF0B8 34%,#FFD37A 62%,#F0A64E 100%);
+ filter:drop-shadow(0 0 12px rgba(255,211,122,1)) drop-shadow(0 0 30px rgba(255,190,90,.65))}
+/* the glitter: a highlight that sweeps round inside the star */
+#prompt .k::after{content:"";position:absolute;inset:0;clip-path:var(--star5);mix-blend-mode:screen;
+ background:conic-gradient(from 0deg,rgba(255,255,255,0) 0deg,rgba(255,255,255,.85) 42deg,rgba(255,255,255,0) 96deg,
+   rgba(255,255,255,0) 210deg,rgba(255,255,255,.55) 252deg,rgba(255,255,255,0) 300deg);
+ animation:starSweep 2.6s linear infinite}
+#prompt .k b{position:relative;z-index:2}
+/* four little sparks that pop around it, out of step with each other */
+.sp{position:absolute;width:11px;height:11px;clip-path:var(--star4);background:#FFFBEA;
+ filter:drop-shadow(0 0 6px rgba(255,232,160,.95));opacity:0;pointer-events:none;
+ animation:spark 1.9s ease-in-out infinite}
+.sp.s1{top:-9px;left:-6px;animation-delay:0s}
+.sp.s2{top:2px;right:-11px;width:8px;height:8px;animation-delay:.48s}
+.sp.s3{bottom:-6px;left:6px;width:9px;height:9px;animation-delay:.95s}
+.sp.s4{top:-3px;right:2px;width:6px;height:6px;animation-delay:1.4s}
+@keyframes starBreathe{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.13) rotate(-5deg)}}
+@keyframes starSweep{to{transform:rotate(360deg)}}
+@keyframes spark{0%,72%,100%{opacity:0;transform:scale(.3) rotate(0deg)}
+  16%{opacity:1;transform:scale(1.15) rotate(70deg)}
+  40%{opacity:.45;transform:scale(.75) rotate(130deg)}}
+@media (prefers-reduced-motion:reduce){
+  #prompt .k,#prompt .k::after,.sp,#act .astar{animation:none}
+  .sp{opacity:.85}
+}
+#prompt .t{font-size:13px;letter-spacing:.1em;vertical-align:middle;
+ text-shadow:0 0 12px rgba(255,211,122,.55),0 1px 3px rgba(0,0,0,.7)}
 
 #stick{position:fixed;left:22px;bottom:30px;width:156px;height:156px;border-radius:50%;
  border:2px solid rgba(255,246,214,.55);background:rgba(18,16,28,.42);
@@ -55,13 +87,28 @@ canvas{display:block;position:fixed;inset:0}
  box-shadow:0 4px 18px rgba(0,0,0,.35)}
 .rbtn{position:fixed;right:26px;border-radius:50%;z-index:7;display:none;margin:0;
  font-family:"DM Mono",monospace;letter-spacing:.16em;text-transform:uppercase;transition:.2s;cursor:pointer}
-#act{bottom:150px;width:78px;height:78px;font-size:8px;
+#act{bottom:150px;width:78px;height:78px;font-size:8px;position:fixed;
  border:2px solid rgba(255,246,214,.55);background:rgba(18,16,28,.42);color:var(--moon);opacity:.45}
-#act.live{opacity:1;background:rgba(255,246,214,.3);color:var(--ink);box-shadow:0 0 22px rgba(255,246,214,.5)}
+#act.live{opacity:1;background:rgba(255,246,214,.14);color:#3A2A18;border-color:rgba(255,232,160,.9);
+ box-shadow:0 0 26px rgba(255,211,122,.6)}
+#act .astar{position:absolute;left:50%;top:50%;width:74px;height:74px;margin:-37px 0 0 -37px;
+ clip-path:var(--star5);opacity:0;transform:scale(.4);transition:opacity .18s,transform .18s;pointer-events:none;
+ background:radial-gradient(circle at 50% 38%,#FFFBEA 0%,#FFF0B8 34%,#FFD37A 62%,#F0A64E 100%)}
+#act.live .astar{opacity:1;transform:scale(1);animation:starBreathe 1.5s ease-in-out infinite}
+#act .albl{position:relative;z-index:2}
+#act .sp{opacity:0;animation:none}
+#act.live .sp{animation:spark 1.9s ease-in-out infinite}
+#act .sp.s1{top:0;left:2px}
+#act .sp.s2{top:14px;right:0}
+#act .sp.s3{bottom:6px;left:22px}
 #jmp{bottom:40px;width:96px;height:96px;font-size:11px;
  border:2px solid rgba(111,191,146,.85);background:rgba(111,191,146,.28);color:var(--bone);opacity:1;
  box-shadow:0 4px 18px rgba(0,0,0,.35)}
 #jmp:active{background:rgba(111,191,146,.6)}
+#cueLine{align-self:center;margin-bottom:10px;font:700 12px/1 "DM Mono",ui-monospace,monospace;
+ letter-spacing:.22em;text-transform:uppercase;color:#DFF7E6;opacity:0;transition:opacity .18s;
+ text-shadow:0 0 14px rgba(143,227,180,.9),0 1px 4px rgba(0,0,0,.7)}
+#cueLine.on{opacity:1}
 #questLine{margin-top:6px;font:600 11px/1.5 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.14em;
   text-transform:uppercase;color:#FFE08A;opacity:.9;text-shadow:0 1px 3px rgba(0,0,0,.55)}
 #questLine:empty{display:none}
@@ -176,7 +223,8 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
       <div class="sub" id="moonsub"></div>
     </div>
   </div>
-  <div id="prompt"><span class="k" id="pk">E</span><span class="t" id="pt"></span></div>
+  <div id="cueLine"></div>
+  <div id="prompt"><span class="k" id="pk"><i class="sp s1"></i><i class="sp s2"></i><i class="sp s3"></i><i class="sp s4"></i><b id="pkey">E</b></span><span class="t" id="pt"></span></div>
 </div>
 
 <div id="stick"><div id="nub"></div></div>
@@ -184,7 +232,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 <div id="build"></div>
 <button id="recenter" class="rbtn" title="Put the camera behind Lala">⟲</button>
 <div id="khint">WASD / arrows — walk · Q/E turn camera · R/F tilt · C recenter<br>Mouse drag — look · wheel — zoom<br>Space — jump (hold to glide) · E — interact</div>
-<button id="act" class="rbtn">Interact</button>
+<button id="act" class="rbtn"><i class="astar"></i><i class="sp s1"></i><i class="sp s2"></i><i class="sp s3"></i><span class="albl">Interact</span></button>
 <button id="jmp" class="rbtn">Jump</button>
 <button id="mute" class="topbtn">Sound on</button>
 <button id="secretsBtn" class="topbtn">Secrets</button>
@@ -280,7 +328,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-06c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-06d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -1044,7 +1092,7 @@ document.addEventListener("touchend", e => { const now = Date.now(); if(now - la
 document.addEventListener("touchmove", e => { if(e.touches.length > 1) e.preventDefault(); }, {passive:false});
 document.addEventListener("dblclick", e => e.preventDefault(), {passive:false});
 document.body.classList.add(isTouch ? "touch" : "desktop"); $("build").textContent = "build " + BUILD; console.log("[lala] build", BUILD);
-$("pk").textContent = isTouch ? "TAP" : "E";
+$("pkey").textContent = isTouch ? "" : "E";
 let jumpHeld = false;
 addEventListener("keydown", e => {
   if(!keys[e.code] && e.code === "Space") tryJump();
@@ -1855,6 +1903,7 @@ function arrowMesh(col){
   const geo = new THREE.ExtrudeGeometry(sh, {depth:.22, bevelEnabled:true, bevelSize:.06, bevelThickness:.05, bevelSegments:1});
   geo.center();
   const g = inked(geo, col, 1.9);
+  g.userData.main.material.transparent = true;   /* opacity is animated per-arrow; without this it is ignored */
   /* Flat on the ground the chevron is seen edge-on from the chase camera and reads as a yellow slab.
      Stand it up and lean it forward instead, like a signpost planted along the path. */
   g.rotation.x = -Math.PI*0.30;
@@ -1883,6 +1932,82 @@ function guideJelly(){
     t.position.set(Math.cos(a)*.26, -.55, Math.sin(a)*.26); g.add(t); }
   g.renderOrder = 3;
   return g;
+}
+function cueArrow(col){
+  const sh = new THREE.Shape();
+  sh.moveTo(0,.95); sh.lineTo(.82,0); sh.lineTo(.40,0); sh.lineTo(.40,-.85);
+  sh.lineTo(-.40,-.85); sh.lineTo(-.40,0); sh.lineTo(-.82,0); sh.closePath();
+  const geo = new THREE.ExtrudeGeometry(sh, {depth:.18, bevelEnabled:true, bevelSize:.05, bevelThickness:.04, bevelSegments:1});
+  geo.center();
+  const g = inked(geo, col, 1.7);     /* tip stays on +y, so it reads as "up" once it faces the camera */
+  g.userData.main.material.transparent = true; g.userData.main.material.depthWrite = false;
+  return g;
+}
+/* JUMP / GLIDE cues. Three arrows climb in place at the thing she has to get over, and the HUD
+   says which button. Colour tells them apart: mint for a jump, sky for a glide. */
+function cueInit(I){
+  const grp = new THREE.Group(); grp.frustumCulled = false;
+  const arrows = [];
+  for(let i=0;i<3;i++){ const a = cueArrow(0x8FE3B4); a.visible = false; a.frustumCulled = false; grp.add(a); arrows.push(a); }
+  I.scene.add(grp);
+  I.cue = {group:grp, arrows, mode:null};
+}
+const CUE_COL = {jump:0x8FE3B4, glide:0x9AD8F5};
+/* the letter's own gate, but only once she is close enough for it to be the next thing she does */
+function cueGate(I){
+  const g = I.cfg.letter && I.cfg.letter.gate, W = I.W;
+  if(g !== "jump" && g !== "glide") return null;
+  if(!abilityOf(I)[g === "glide" ? "glide" : "jumpMul"]) { if(g === "glide") return null; }
+  const d = Math.hypot(W.x - I.letterMesh.position.x, W.z - I.letterMesh.position.z);
+  return d < 13 ? g : null;
+}
+function cueUpdate(I, dt, t){
+  const C = I.cue; if(!C) return;
+  const W = I.W, ab = abilityOf(I);
+  let mode = null, cx = W.x, cz = W.z, cy = W.y, lift = 0;
+  if(!W.grounded && W.vy < -1.5 && ab.glide && !W.gliding){
+    mode = "glide"; cy = W.y; lift = 2.6;
+  } else if(W.grounded && !W.mount && I.letterMesh && I.letterMesh.visible && cueGate(I)){
+    /* the designed moment: the paper sits somewhere only a jump or a glide reaches, and the cue
+       fires as soon as she is standing under it. */
+    mode = cueGate(I);
+    cx = I.letterMesh.position.x; cz = I.letterMesh.position.z; cy = I.height(cx, cz); lift = 2.2;
+  } else if(W.grounded && !W.mount){
+    /* look along her heading for something she cannot simply walk over: a ledge taller than her
+       step-up limit, or a gap with landable ground on the far side. */
+    const hx = Math.sin(W.heading), hz = Math.cos(W.heading), h0 = I.height(W.x, W.z);
+    for(let d = 1.8; d <= 4.4; d += .5){
+      const px = W.x + hx*d, pz = W.z + hz*d;
+      if(!canStand(I, px, pz)){
+        for(let f = d + 1.6; f <= d + 12.5; f += .8){     /* hang time is ~1.0 s, so she clears about 12 u at a run */
+          if(canStand(I, W.x + hx*f, W.z + hz*f)){ mode = "jump"; cx = px; cz = pz; cy = h0; lift = 1.9; break; }
+        }
+        break;
+      }
+      /* only cue a jump she can actually make: apex = v^2/2g with whatever boots she is wearing */
+      const apex = Math.pow(JUMPV * ab.jumpMul, 2) / (2 * Math.abs(GRAV));
+      const h = I.height(px, pz);
+      if(h - h0 > 2.2 && h - h0 < apex*.92){ mode = "jump"; cx = px; cz = pz; cy = h0; lift = 1.9; break; }
+    }
+  }
+  if(mode !== C.mode){
+    C.mode = mode;
+    const col = CUE_COL[mode];
+    if(col) C.arrows.forEach(a => a.userData.main.material.color.setHex(col));
+    const el = $("cueLine");
+    el.classList.toggle("on", !!mode);
+    el.textContent = mode === "jump"  ? (isTouch ? "Tap jump" : "Space — jump")
+                   : mode === "glide" ? (isTouch ? "Hold jump to glide" : "Hold space to glide") : "";
+  }
+  if(!mode){ C.arrows.forEach(a => a.visible = false); return; }
+  C.arrows.forEach((a, i) => {
+    a.visible = true;
+    const climb = ((t*1.5 + i*.34) % 1);                       /* they rise and fade, over and over */
+    a.position.set(cx, cy + lift + climb*2.4, cz);
+    a.lookAt(camera.position);                                  /* always readable from wherever the camera is */
+    a.scale.setScalar(.62 * (1 - climb*.28));
+    a.userData.main.material.opacity = Math.min(1, (1 - climb) * 1.8) * .95;
+  });
 }
 function guideInit(I){
   const grp = new THREE.Group(); grp.frustumCulled = false;
@@ -2663,7 +2788,7 @@ function buildIsland(cfg){
   key.shadow.camera.left = -70; key.shadow.camera.right = 70; key.shadow.camera.top = 70; key.shadow.camera.bottom = -70;
   key.shadow.bias = -0.0008; key.shadow.normalBias = .05;
   scene.add(key.target); I.sun = key;
-  guideInit(I);
+  guideInit(I); cueInit(I);
   return I;
 }
 
@@ -2878,6 +3003,7 @@ function islandUpdate(I, dt, t){
       if(d.userData.life <= 0){ I.scene.remove(d); Q.drops.splice(Q.drops.indexOf(d),1); } });
   }
   guideUpdate(I, dt, t);
+  cueUpdate(I, dt, t);
   if(I.letterMesh && I.letterMesh.visible){ I.letterMesh.rotation.y += dt*1.4; I.letterMesh.rotation.x += dt*.6; }
   I.moons.forEach(m => { if(!m.visible) return; m.rotation.y += dt*1.8;
     if(Math.hypot(W.x-m.position.x, W.z-m.position.z) < 1.7 && Math.abs(W.y+1.2-m.position.y) < 2.2){
