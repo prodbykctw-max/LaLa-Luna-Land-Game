@@ -202,6 +202,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
      and scattered four letters across four islands — one for every song. Spell her name and the doors
      open. Walk the grounds first. She left notes.</p>
   <button id="bBegin">Step outside</button>
+  <button class="ghost" id="bTitleReset" style="margin-top:10px">Start over</button>
 </div></div>
 
 <div class="ov hide" id="ovNote"><div class="card">
@@ -275,7 +276,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-05n";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-05p";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -2860,7 +2861,16 @@ $("bCastle").onclick = () => { ovNone(); CUR.W.active = true; };
 $("bEnter").onclick = goKeep;
 $("bDock").onclick = () => { ovNone(); CUR.W.active = true; };
 $("bIntro").onclick = () => { audioInit(); ovNone(); CUR.W.active = true; };
-$("secretsBtn").onclick = () => { if(!CUR) return; renderSecrets(); $("resetWrap").classList.add("hide"); $("bReset").classList.remove("hide"); CUR.W.active = false; ov("ovSecrets"); };
+/* Open the panel FIRST, then fill it. The old handler bailed out entirely if CUR was null and did
+   its rendering before showing anything, so any hiccup meant tapping Secrets did nothing at all --
+   and Start over lives inside this panel, so that also made the game unrestartable. */
+$("secretsBtn").onclick = () => {
+  try{ if(CUR && CUR.W) CUR.W.active = false; }catch(e){}
+  $("resetWrap").classList.add("hide"); $("bReset").classList.remove("hide");
+  ov("ovSecrets");
+  try{ renderSecrets(); }
+  catch(e){ $("secretsList").innerHTML = '<div style="opacity:.75">Couldn\'t list your secrets, but Start over below still works.</div>'; }
+};
 function renderTravel(){
   const I = CUR, list = $("travelList"); list.innerHTML = "";
   const here = (I.cfg.places||[]).filter(q => G.visited[I.cfg.key+":"+q.name]);
@@ -2885,10 +2895,19 @@ function renderTravel(){
     list.appendChild(d);
   });
 }
-$("travelBtn").onclick = () => { if(!CUR || !CUR.W) return; renderTravel(); CUR.W.active = false; ov("ovTravel"); };
+$("travelBtn").onclick = () => {
+  try{ if(CUR && CUR.W) CUR.W.active = false; }catch(e){}
+  ov("ovTravel");
+  try{ renderTravel(); }catch(e){ $("travelList").innerHTML = '<div style="opacity:.75">Travel is unavailable here.</div>'; }
+};
 $("bReset").onclick = () => { $("resetWrap").classList.remove("hide"); $("bReset").classList.add("hide"); };
 $("bResetNo").onclick = () => { $("resetWrap").classList.add("hide"); $("bReset").classList.remove("hide"); };
 $("bResetYes").onclick = async () => { await wipeSave(); location.href = location.pathname; };
+/* the title card carries its own restart, so a save can never be trapped behind an in-game menu */
+$("bTitleReset").onclick = async () => {
+  if($("bTitleReset").dataset.armed){ await wipeSave(); location.href = location.pathname; return; }
+  $("bTitleReset").dataset.armed = "1"; $("bTitleReset").textContent = "Tap again to erase everything";
+};
 $("bTravel").onclick = () => { ovNone(); if(CUR) CUR.W.active = true; };
 $("bSecrets").onclick = () => { ovNone(); if(CUR) CUR.W.active = true; };
 $("bEnd").onclick = () => { ovNone(); goIsland(ISL.hub); };
