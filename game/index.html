@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -994,6 +994,48 @@ function loadProxy(name){
     DBG("proxy ready", name, geo.attributes.position.count/3, "tris");
   }, undefined, e => DBG("proxy failed", name, e));
 }
+/* ---- skin tone ----
+   Lala is Colombian and was reading too dark. Done at load rather than by rewriting the GLB: the
+   asset stays untouched and reversible, the file does not grow (re-exporting through Blender turned
+   a 3.2MB GLB into 6.6MB by re-encoding the atlas), and ?skin= tunes it without a rebuild.
+
+   Skin is selected by hue, saturation and lightness, not by a fixed colour, so the green top, the
+   dark hair and the brown boots painted into the same atlas are left alone. The band was chosen by
+   rendering the mask over the real texture — and note the trap that cost a pass: an atlas dumped
+   out of Blender goes through its view transform, so thresholds judged on that image do not match
+   the raw pixels. These are measured against the texture as the browser sees it. */
+const SKIN_LIFT = parseFloat(QS.get("skin")) != null && !isNaN(parseFloat(QS.get("skin"))) ? parseFloat(QS.get("skin")) : 0.18;
+function lightenSkin(tex){
+  try{
+    const img = tex && tex.image; if(!img || !(img.width || img.naturalWidth) || SKIN_LIFT <= 0) return tex;
+    const w = img.width || img.naturalWidth, h = img.height || img.naturalHeight;
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, w, h), p = d.data;
+    let hit = 0;
+    for(let i=0;i<p.length;i+=4){
+      const r = p[i]/255, g = p[i+1]/255, b = p[i+2]/255;
+      const mx = Math.max(r,g,b), mn = Math.min(r,g,b), L = (mx+mn)/2, dd = mx-mn;
+      if(dd < 1e-6) continue;
+      const S = L < .5 ? dd/(mx+mn) : dd/(2-mx-mn);
+      let H = mx === r ? ((g-b)/dd)%6 : mx === g ? ((b-r)/dd)+2 : ((r-g)/dd)+4;
+      H *= 60; if(H < 0) H += 360;
+      if(!(H >= 15 && H <= 38 && S >= .20 && S <= .62 && L >= .28 && L <= .75)) continue;
+      hit++;
+      const nl = Math.min(.97, L + (1 - L)*SKIN_LIFT), ns = S*(1 - .10*SKIN_LIFT);
+      const c = (1 - Math.abs(2*nl - 1))*ns, x = c*(1 - Math.abs(((H/60)%2) - 1)), m2 = nl - c/2;
+      let R,G,B;
+      if(H < 60){ R=c; G=x; B=0; } else if(H < 120){ R=x; G=c; B=0; } else { R=0; G=c; B=x; }
+      p[i] = Math.round((R+m2)*255); p[i+1] = Math.round((G+m2)*255); p[i+2] = Math.round((B+m2)*255);
+    }
+    cx.putImageData(d, 0, 0);
+    const out = new THREE.CanvasTexture(cv);
+    out.flipY = tex.flipY; out.encoding = tex.encoding; out.wrapS = tex.wrapS; out.wrapT = tex.wrapT;
+    out.needsUpdate = true;
+    DBG("skin lifted", (hit/(w*h)*100).toFixed(1) + "% of atlas by", SKIN_LIFT);
+    return out;
+  }catch(e){ DBG("skin lift skipped", e); return tex; }
+}
 function loadRig(name){
   const rig = RIGS[name]; if(!rig || rig.loading || rig.gltf || !THREE.GLTFLoader || !THREE.SkeletonUtils) return;
   rig.loading = true;
@@ -1013,7 +1055,9 @@ function loadRig(name){
         if(o.material){ o.material.side = THREE.FrontSide; o.material.envMapIntensity = 1; }
         return; }
       const old = o.material;
-      o.material = toonRim(stdMat({map: old && old.map || null, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
+      let srcMap = old && old.map || null;
+      if(srcMap && (name === "lala" || rig.skin)) srcMap = lightenSkin(srcMap);
+      o.material = toonRim(stdMat({map: srcMap, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
       /* ink outline: an inflated back-face twin sharing the skeleton, so rigged models match the inked world */
       if(!PROF.ink || rig.ink === 0 || rig.pbr) return;
       const om = new THREE.MeshBasicMaterial({color: INK, side: THREE.BackSide, skinning: !!o.isSkinnedMesh, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4});
@@ -3244,9 +3288,17 @@ function buildIsland(cfg){
   /* Where grass must NOT grow: off the meadow slab (so it never creeps onto the beach or the sea),
      on the dock deck, in the beach or grotto clearings, up against anything solid, and in any zone
      decor has reserved (the stream bed, paving). */
-  const GRASS_POLY = POLY ? polyOffset(POLY, -4.5) : null;
+  /* ---- the grass line ----
+     One hard border around the whole island: grass belongs on the meadow slab and nowhere else.
+     The slab is polyOffset(POLY, -2.5), so the blades are held one unit inside its edge — close
+     enough that the meadow runs right up to the sand, far enough that no blade stands in it. The
+     old margin was 4.5, which kept grass off the sand but left a bald ring all the way round.
+     Both rings are tested, so the rule cannot be lost if either offset is ever retuned. */
+  const MEADOW_POLY = POLY ? polyOffset(POLY, -2.5) : null;      /* exactly the slab that is drawn */
+  const GRASS_POLY  = POLY ? polyOffset(POLY, -3.5) : null;      /* one unit of tolerance inside it */
   const noGrass = (x,z) => {
-    if(GRASS_POLY ? !polyInside(GRASS_POLY, x, z) : !inside(x,z)) return true;
+    if(POLY){ if(!polyInside(GRASS_POLY, x, z) || !polyInside(MEADOW_POLY, x, z)) return true; }
+    else if(!inside(x,z)) return true;
     if(Math.abs(x-cfg.dock[0]) < 5.5 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2+3) return true;   /* the dock and its landing */
     if(cfg.beach  && Math.hypot(x-cfg.beach.x,  z-cfg.beach.z)  < cfg.beach.r)     return true;
     if(cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)  return true;
