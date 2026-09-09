@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09s";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09w";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1171,6 +1171,47 @@ function attachRig(R, name){
   (R.primitive||[]).forEach(m => m.visible = false);
   bindAttachments(R, model, gltf.scene.scale.x);
   R.mixer = new THREE.AnimationMixer(model); R.actions = {}; R.current = null;
+  /* ===================  HER HEAD WAS PERMANENTLY COCKED  ===================
+     qa/headrot.mjs sampled the idle clip across its whole 2.54 s: her head sits at yaw 11.1-11.3
+     deg and pitch 7.5-11.6 deg on EVERY frame, against a bind pose of yaw 0.0 / pitch 5.7. That is
+     not a sway, it is a baked-in offset from whoever the clip was captured on, and the variation
+     across the clip is 0.2 deg of yaw - there is no motion there to protect.
+
+     That one fact is what he was looking at for days. A face turned eleven degrees and tilted ten
+     degrees down is not a front-on face any more: the nose swings across the cheek behind it, one
+     nostril rotates out of sight while the other opens, and the far ala stacks against the cheek
+     as a separate lobe. It reads as a long crooked nose with an extra piece hanging off it - and
+     it is exactly why every render he approved (bind pose, or dead front) looked right while every
+     in-game shot looked wrong. I spent the day on the atlas, the bake, the cheek, the lighting and
+     the polygon count. It was the pose.
+
+     Correcting the TRACKS did not work: averaging each bone's keys independently and re-basing to
+     bind fixed the yaw but left the pitch 12 deg out, because composing two independently-averaged
+     quaternions is not the average of the composition. So the correction is applied after the
+     mixer instead, where it is exact and measurable: slerp neck and head back toward their bind
+     rotations. ?headfix=0 turns it off, ?headfix=0.5 does half. */
+  R.headFixBones = [];
+  model.traverse(o => { if(o.isBone && /(neck|head)$/i.test(o.name.replace(/[^a-z]/gi,""))){
+    o.userData.bindQuat = o.quaternion.clone(); R.headFixBones.push(o); } });
+  /* Hygiene, not a fix: these clips carry position AND scale tracks on every bone. Here they are
+     no-ops (constant values equal to the bind offsets, scale exactly 1) - I checked, and stripping
+     them changes nothing measurable, so it is NOT what fixed her face. It stays because on a
+     retargeted rig only the root may translate, and a stray non-1 bone scale would deform the mesh
+     silently. The real cause of the deformed face is in levelHead(), below. */
+  const IS_ROOT = /(hips|root|armature)$/i;
+  let stripped = 0;
+  for(const clip of (QS.get("keeptracks") ? [] : (gltf.animations || []))){
+    const before = clip.tracks.length;
+    clip.tracks = clip.tracks.filter(t => {
+      const m = t.name.match(/^(.*)\.(position|scale)$/);
+      if(!m) return true;                       /* quaternion: always keep */
+      if(m[2] === "scale") return false;        /* never animate bone scale on a skinned rig */
+      return IS_ROOT.test(m[1]);                /* only the root may translate */
+    });
+    stripped += before - clip.tracks.length;
+    clip.resetDuration();
+  }
+  if(stripped) DBG("stripped", stripped, "position/scale tracks from", name);
   const find = (...names) => gltf.animations.find(c => names.some(n => c.name.toLowerCase().includes(n)));
   const map = {idle: find("idle","breath","stand"), walk: find("walk"), run: find("run","jog","sprint"), jump: find("jump","fall"), dance: find("dance","celebrat")};
   for(const k in map) if(map[k]){ R.actions[k] = R.mixer.clipAction(map[k]); }
@@ -1421,6 +1462,25 @@ function landOnBearing(I, a, rMax){
     }
   }
   return null;
+}
+const HEADFIX = (() => { const v = parseFloat(QS.get("headfix")); return isNaN(v) ? 1 : Math.max(0, Math.min(1, v)); })();
+/* Pull the neck and head back toward the rotation the model was built with, after the mixer has
+   written the clip's own values. Call it every frame a rig is updated. */
+const _lhA = new THREE.Quaternion(), _lhB = new THREE.Quaternion(), _lhE = new THREE.Euler(0,0,0,"YXZ");
+function levelHead(R){
+  if(!(HEADFIX > 0) || !R || !R.headFixBones) return;
+  for(const b of R.headFixBones){
+    const bind = b.userData.bindQuat; if(!bind) continue;
+    /* Only the YAW is the baked-in error. Slerping the whole rotation back to bind also drags her
+       chin down, because the bind pose itself looks slightly down - it made her worse, not better.
+       So: take the clip's rotation as a delta from bind, express it YXZ, cancel the Y term by
+       HEADFIX, and put it back. Pitch and roll - the parts the animator actually meant - survive. */
+    _lhA.copy(bind).invert().multiply(b.quaternion);
+    _lhE.setFromQuaternion(_lhA, "YXZ");
+    _lhE.y *= (1 - HEADFIX);
+    _lhB.setFromEuler(_lhE);
+    b.quaternion.copy(bind).multiply(_lhB);
+  }
 }
 function playClip(R, name, fade){
   if(!R.actions) return;
@@ -3851,7 +3911,7 @@ function walkerUpdate(I, dt, t){
     const jog = curSpeed > SPEED*.62;
     playClip(W, !W.grounded ? "jump" : (moving ? (jog ? "run" : "walk") : "idle"));
     if(moving && W.current){ W.current.timeScale = curSpeed / (jog ? STRIDE_JOG : STRIDE_WALK); } else if(W.current) W.current.timeScale = 1;
-    W.mixer.update(dt); }
+    W.mixer.update(dt); levelHead(W); }
   if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ if(W.wet) auWade(); else auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = W.wet ? .40 : .34; } } else AU.stepT = 0;
   /* her shadow stays on the ground and softens as she rises, instead of riding up with her */
   if(W.shadow){
