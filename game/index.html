@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -359,6 +359,19 @@ const WORLD = Math.max(1, parseFloat(QS.get("world")) || 4);
    still sit over water at its far end. DOCK_LEN is its length, DOCK_OUT how far past the shore its
    centre sits, DOCK_IN how far inland she lands. */
 const DOCK_LEN = 34, DOCK_OUT = 9, DOCK_IN = 14;
+/* the shore. The beach is flat sand for SHELF_FLAT u outside the coastline, then the shelf slopes down
+   SHELF_DROP u over the next (SHELF_EDGE - SHELF_FLAT) u and runs on under the sea. She can wade out to
+   WADE_MAX u from the coast - about waist deep at the wave crests - and no further. SHORE_BLEND is the
+   strip just inside the coastline where the meadow (y=0) eases down onto the sand (y=-.12). */
+const SHELF_FLAT = 6, SHELF_EDGE = 13, SHELF_DROP = 2.3, WADE_MAX = 11.5, SHORE_BLEND = 2.5;
+const SEA_Y = -1.1;
+/* the sea surface at a point, in world units - the same wave the sea shader displaces its vertices by,
+   so splashes, rings and floating things sit ON the water instead of somewhere near it */
+function seaHeight(x, z, t){
+  const py = -z;   /* the sea plane is rotated -90 deg about x, so its local y runs along world -z */
+  return SEA_Y + Math.sin(x*.055 + t*1.05)*.5 + Math.sin(py*.07 - t*.8)*.4 + Math.sin((x+py)*.11 + t*1.6)*.22;
+}
+const shelfGround = d => d <= SHELF_FLAT ? -.12 : -.12 - Math.min(1.4, (d - SHELF_FLAT)/(SHELF_EDGE - SHELF_FLAT))*SHELF_DROP;
 /* Hand-authored landmark radii (the town square's stalls and lamps, the crowd rings) were pinned
    while sample()-based scatter scaled with the island, so the square stayed 12 u across while the
    crowd that rings it was flung out past 70 u — which is why everyone read as tiny and far away.
@@ -690,16 +703,30 @@ function moonPair(pos, r){
 function seaMesh(a, b){
   const mat = new THREE.ShaderMaterial({
     uniforms:{t:{value:0}, a:{value:new THREE.Color(a)}, b:{value:new THREE.Color(b)}, m:{value:new THREE.Color(MOON)}},
-    vertexShader:`uniform float t; varying float vW; varying vec2 vP;
+    vertexShader:`uniform float t; varying float vW; varying vec2 vP; varying vec3 vV;
       void main(){ vec3 p=position; float w=sin(p.x*.055+t*1.05)*.5+sin(p.y*.07-t*.8)*.4+sin((p.x+p.y)*.11+t*1.6)*.22;
-        p.z+=w; vW=w; vP=p.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
-    fragmentShader:`uniform vec3 a,b,m; uniform float t; varying float vW; varying vec2 vP;
+        p.z+=w; vW=w; vP=p.xy; vV = cameraPosition - (modelMatrix*vec4(p,1.0)).xyz; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
+    fragmentShader:`uniform vec3 a,b,m; uniform float t; varying float vW; varying vec2 vP; varying vec3 vV;
       void main(){ vec3 c=mix(a,b,smoothstep(-.2,.6,vW));
         float sp = sin(vP.x*1.9+t*2.3)*sin(vP.y*2.3-t*1.7)*sin(vP.x*.37-vP.y*.53+t*.7); sp = smoothstep(.72,1.0,sp);      /* glints */
         c=mix(c,m,step(.92,vW)*.35 + sp*.4);
-        gl_FragColor=vec4(c,1.0); }`});
-  const s = new THREE.Mesh(new THREE.PlaneGeometry(1600,1600,60,60), mat);
-  s.rotation.x = -Math.PI/2; s.userData.mat = mat; return s;
+        /* Real water is clear when you look down into it and a mirror when you look across it. Looking
+           down shows the sand shelf (pale, shallow) or the dark seabed (deep); at grazing angles it goes
+           opaque, which is what makes the far sea read as a surface instead of a blue sheet. */
+        float fr = 1.0 - abs(normalize(vV).y);
+        float al = mix(.62, .97, pow(fr, 2.2));
+        gl_FragColor=vec4(c, al); }`,
+    transparent:true, depthWrite:true});
+  /* 160 x 160 = 10 u between vertices, so the analytic seaHeight() used for splashes and floating
+     things matches the rendered surface to within a few centimetres (60 x 60 was 27 u and off by up to .3) */
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(1600,1600,160,160), mat);
+  s.rotation.x = -Math.PI/2; s.userData.mat = mat; s.renderOrder = 1; return s;
+}
+/* the dark floor under the sea: seen through the water it is what makes deep water look deep */
+function seaBed(col){
+  const c = new THREE.Color(col).multiplyScalar(.40);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1600,1600), new THREE.MeshBasicMaterial({color:c}));
+  m.rotation.x = -Math.PI/2; m.position.y = -7; return m;
 }
 function lerpAngle(a, b, t){
   let d = b - a; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2;
@@ -778,6 +805,8 @@ function burst(buf, type, freq, q, peak, dur){
   s.connect(f); f.connect(g); g.connect(AU.master); s.start(t); s.stop(t+dur+.05);
 }
 const auStep   = (soft) => burst(AU.white, "bandpass", 380+Math.random()*260, 1.3, soft ? .06 : .10, .15);
+const auWade   = () => burst(AU.white, "lowpass", 620+Math.random()*360, .7, .09, .26);                       /* a foot through shallow water */
+const auSplash = (big) => burst(AU.white, "lowpass", big ? 480 : 760, .6, big ? .20 : .10, big ? .55 : .30);   /* landing in it, or a ball going in */
 const auThunder = () => { if(!AU.ready||!AU.on) return;
   const ctx = AU.ctx, t = ctx.currentTime + .6 + Math.random()*1.4;
   const s = ctx.createBufferSource(); s.buffer = AU.brown;
@@ -1226,6 +1255,95 @@ $("mute").onclick = () => { AU.on = !AU.on; if(AU.master) AU.master.gain.value =
 /* ============================================================
    FX
    ============================================================ */
+/* a band of ground between two offset rings of the coastline. Used for the shelf that carries the
+   beach on under the water (sloped) and for the wet-sand strip at the waterline (flat). UVs are world
+   x / -z, the same mapping ExtrudeGeometry gives the beach slab, so the sand grain lines up. */
+function ringBand(inner, outer, yIn, yOut){
+  const n = inner.length, P = [], U = [], E = [], idx = [];
+  for(let i=0;i<n;i++){ P.push(inner[i][0], yIn, inner[i][1], outer[i][0], yOut, outer[i][1]); U.push(inner[i][0], -inner[i][1], outer[i][0], -outer[i][1]); E.push(0, 1); }
+  for(let i=0;i<n;i++){ const j = (i+1)%n, a = i*2, b = i*2+1, c = j*2, d = j*2+1; idx.push(a, c, b,  b, c, d); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2));
+  g.setAttribute("aEdge", new THREE.Float32BufferAttribute(E, 1));      /* 0 at the inner ring, 1 at the outer */
+  g.setIndex(idx); g.computeVertexNormals();
+  /* the coastline may wind either way; make the band face up whichever it is */
+  const nr = g.attributes.normal; let up = 0; for(let i=0;i<nr.count;i++) up += nr.getY(i);
+  if(up < 0){ const a = g.index.array; for(let i=0;i<a.length;i+=3){ const t = a[i+1]; a[i+1] = a[i+2]; a[i+2] = t; } g.computeVertexNormals(); }
+  return g;
+}
+/* Surf that moves. The old foam was a flat white ring at 30% that pulsed. This one is a shader over the
+   same band: a wash line rolls up the beach and drains back, with a second finer lace line running the
+   other way, and the whole thing arrives unevenly along the shore. The band is a quad strip between two
+   offset rings (ringBand), not a ShapeGeometry: earcut triangulates a ring with triangles whose three
+   corners all sit on the same edge, so the across-the-band axis never interpolated and whole panels lit
+   up solid white. aEdge is 0 at the landward edge and 1 at the seaward edge. */
+function shoreFoam(scene, POLY){
+  const g = ringBand(polyOffset(POLY, 5.0), polyOffset(POLY, 11.5), 0, 0);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {t:{value:0}, uOp:{value:1}}]),
+    vertexShader:`attribute float aEdge; varying float vE; varying vec2 vXZ;
+      #include <fog_pars_vertex>
+      void main(){ vE = aEdge; vXZ = position.xz; vec4 mvPosition = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader:`uniform float t, uOp; varying float vE; varying vec2 vXZ;
+      #include <fog_pars_fragment>
+      void main(){
+        float ph = sin(vXZ.x*.11 + vXZ.y*.07)*1.4 + sin(vXZ.x*.031 - vXZ.y*.052)*2.0;
+        float b1 = sin(vE*7.5 - t*1.35 + ph)*.5+.5; b1 = smoothstep(.38,.78,b1);
+        float b2 = sin(vE*13.0 + t*.9 + ph*1.7)*.5+.5; b2 = smoothstep(.55,.95,b2)*.5;
+        float edge = smoothstep(0.0,.18,vE) * (1.0 - smoothstep(.40,1.0,vE));
+        float a = min(.55, (.08 + b1*.42 + b2*.6) * edge * uOp);     /* capped: pure white at full alpha blooms into a glowing bar */
+        gl_FragColor = vec4(.93,.97,1.0,a);
+        #include <fog_fragment>
+      }`,
+    transparent:true, depthWrite:false, side:THREE.DoubleSide, fog:true});
+  const m = new THREE.Mesh(g, mat); m.position.y = -.06; m.renderOrder = 2; scene.add(m); return m;
+}
+/* Splashes and rings. A pool of ring meshes that ride the actual wave height as they spread and fade,
+   and one Points cloud of droplets thrown up with real gravity that die when they fall back through the
+   surface. Everything that touches the water - her feet, a horse, a kicked ball, the moored boat -
+   asks this for a ripple() or a splash(). */
+function waterFx(scene){
+  const RIP = 28, rings = [];
+  const rg = new THREE.RingGeometry(.55, .95, 30); rg.rotateX(-Math.PI/2);
+  for(let i=0;i<RIP;i++){
+    const m = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({color:0xFFFFFF, transparent:true, opacity:0, depthWrite:false}));
+    m.visible = false; m.renderOrder = 4; m.userData = {life:0, s0:1, x:0, z:0}; scene.add(m); rings.push(m);
+  }
+  const N = 240, pos = new Float32Array(N*3), vel = new Float32Array(N*3), life = new Float32Array(N);
+  for(let i=0;i<N;i++) pos[i*3+1] = -100;
+  const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  /* a soft round drop, not a square point */
+  const dc = document.createElement("canvas"); dc.width = dc.height = 32; { const c = dc.getContext("2d"), g = c.createRadialGradient(16,16,0,16,16,16);
+    g.addColorStop(0,"rgba(255,255,255,1)"); g.addColorStop(.45,"rgba(255,255,255,.85)"); g.addColorStop(1,"rgba(255,255,255,0)"); c.fillStyle = g; c.fillRect(0,0,32,32); }
+  const pts = new THREE.Points(pg, new THREE.PointsMaterial({color:0xF4FBFF, size:.42, map:new THREE.CanvasTexture(dc), transparent:true, opacity:.9, depthWrite:false, alphaTest:.05}));
+  pts.frustumCulled = false; pts.renderOrder = 5; scene.add(pts);
+  let rc = 0, pc = 0, dirty = false;
+  const ripple = (x, z, s) => { const m = rings[rc++ % RIP]; const u = m.userData; m.visible = true; u.life = 1; u.s0 = s; u.x = x; u.z = z; m.position.set(x, SEA_Y, z); };
+  const splash = (x, y, z, n, k) => {
+    for(let j=0;j<n;j++){ const i = pc++ % N; const a = Math.random()*6.283, r = Math.random();
+      pos[i*3] = x + Math.cos(a)*r*.45; pos[i*3+1] = y + .05; pos[i*3+2] = z + Math.sin(a)*r*.45;
+      const h = (1.0 + Math.random()*2.4)*k;
+      vel[i*3] = Math.cos(a)*h; vel[i*3+1] = (2.6 + Math.random()*4.2)*k; vel[i*3+2] = Math.sin(a)*h;
+      life[i] = .45 + Math.random()*.45; }
+    dirty = true;
+  };
+  const update = (dt, t, seaY) => {
+    for(const m of rings){ const u = m.userData; if(!u.life) continue;
+      u.life -= dt*.85; if(u.life <= 0){ u.life = 0; m.visible = false; continue; }
+      const k = 1 - u.life, s = u.s0*(1 + k*2.6);
+      m.position.y = seaY(u.x, u.z, t) + .07; m.scale.set(s, 1, s); m.material.opacity = .55*u.life*u.life; }
+    let any = false;
+    for(let i=0;i<N;i++){ if(life[i] <= 0) continue; any = true;
+      life[i] -= dt; vel[i*3+1] -= 14*dt;
+      pos[i*3] += vel[i*3]*dt; pos[i*3+1] += vel[i*3+1]*dt; pos[i*3+2] += vel[i*3+2]*dt;
+      if(life[i] <= 0 || (vel[i*3+1] < 0 && pos[i*3+1] < seaY(pos[i*3], pos[i*3+2], t) - .1)){ life[i] = 0; pos[i*3+1] = -100; } }   /* dies when it falls back through the surface */
+    if(any || dirty){ pg.attributes.position.needsUpdate = true; dirty = any; }
+  };
+  return {ripple, splash, update, rings, pts};
+}
 function foamRing(scene, x, z, r, y){
   const m = new THREE.Mesh(new THREE.RingGeometry(r-1.6, r+2.4, 72),
     new THREE.MeshBasicMaterial({color:0xFFFFFF, transparent:true, opacity:.34, side:THREE.DoubleSide, depthWrite:false}));
@@ -1282,8 +1400,11 @@ const GRASS_N = Math.round((matchMedia("(pointer:coarse)").matches || innerWidth
                            * (parseFloat(QS.get("grass")) || 1));
 const grassPatch = sh => {
   sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3(0,-99,0)}; sh.uniforms.uWind = {value:1};
+  /* who is standing in the grass right now (xyz + radius), and where she has just walked (xyz + how flattened it still is) */
+  sh.uniforms.uPush  = {value: Array.from({length:6},  () => new THREE.Vector4(0,-99,0,0))};
+  sh.uniforms.uTrail = {value: Array.from({length:12}, () => new THREE.Vector4(0,-99,0,0))};
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nuniform float uTime, uWind; uniform vec3 uPlayer;")
+    .replace("#include <common>", "#include <common>\nuniform float uTime, uWind; uniform vec3 uPlayer; uniform vec4 uPush[6]; uniform vec4 uTrail[12];")
     .replace("#include <begin_vertex>", `#include <begin_vertex>
       { float w = uv.y * uv.y;                                  /* only the tip moves; the root is anchored */
         vec3 io = (modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0)).xyz;
@@ -1309,10 +1430,26 @@ const grassPatch = sh => {
         float camd = distance(io.xz, cameraPosition.xz);
         transformed *= 1.0 - smoothstep(31.0, 44.0, camd);
 
-        /* she parts the grass as she walks through it */
-        vec2 d = io.xz - uPlayer.xz; float dist = length(d);
-        float push = (1.0 - smoothstep(0.0, 2.4, dist)) * (1.0 - smoothstep(1.5, 3.0, abs(io.y - uPlayer.y)));
-        transformed.xz += normalize(d + vec2(0.001)) * push * 1.15 * w; transformed.y -= push * .42 * w; }`);
+        /* The grass parts around whoever is in it - her, her horse, a wandering cow, a fan, a rolling
+           ball - each with its own radius, and it stays flattened along the line she has just walked,
+           springing back over a couple of seconds. The strongest influence wins so blades never tear
+           in two directions at once. */
+        float push = 0.0; vec2 pdir = vec2(0.0, 1.0);
+        for(int i = 0; i < 6; i++){
+          vec4 q = uPush[i];
+          if(q.w > 0.0){
+            vec2 d = io.xz - q.xz; float dist = length(d);
+            float k = (1.0 - smoothstep(0.0, q.w, dist)) * (1.0 - smoothstep(1.5, 3.0, abs(io.y - q.y)));
+            if(k > push){ push = k; pdir = d; } } }
+        float trod = 0.0;
+        for(int i = 0; i < 12; i++){
+          vec4 q = uTrail[i];
+          if(q.w > 0.0){
+            vec2 d = io.xz - q.xz; float dist = length(d);
+            float k = (1.0 - smoothstep(0.0, 1.9, dist)) * q.w * (1.0 - smoothstep(1.5, 3.0, abs(io.y - q.y)));
+            if(k > trod){ trod = k; if(k > push) pdir = d; } } }
+        push = max(push, trod);
+        transformed.xz += normalize(pdir + vec2(0.001)) * push * 1.15 * w; transformed.y -= push * .48 * w; }`);
 };
 function grassField(scene, n, origin, heightFn, cols, blocked){
   /* A field that follows her. Scattering a fixed count over the whole island means density falls
@@ -1479,8 +1616,11 @@ function cloudPuffs(scene, n, tint){
 }
 function fxUpdate(fx, dt, t, camPos){
   if(fx.puffs) fx.puffs.forEach(c => { c.position.x += c.userData.sp*dt; if(c.position.x > 260) c.position.x = -260; });
-  fx.foam.forEach(f => f.material.opacity = .26 + Math.sin(t*.9)*.10);
-  if(fx.grass && fx.grass.mat){ const u = fx.grass.mat.userData.uniforms; if(u){ u.uTime.value = t; u.uWind.value = fx.windMul; if(fx.player) u.uPlayer.value.set(fx.player.x, fx.player.y, fx.player.z); }
+  fx.foam.forEach(f => { if(f.material.uniforms) f.material.uniforms.t.value = t; else f.material.opacity = .26 + Math.sin(t*.9)*.10; });
+  if(fx.wet) fx.wet.material.opacity = .15 + (Math.sin(t*.45)*.5+.5)*.09;      /* the wet line breathes with the swell */
+  if(fx.grass && fx.grass.mat){ const u = fx.grass.mat.userData.uniforms; if(u){ u.uTime.value = t; u.uWind.value = fx.windMul; if(fx.player) u.uPlayer.value.set(fx.player.x, fx.player.y, fx.player.z);
+      const PS = fx.pushers || [], PU = u.uPush.value; for(let i=0;i<PU.length;i++){ const p = PS[i]; if(p) PU[i].set(p.x, p.y, p.z, p.r); else PU[i].set(0,-99,0,0); }
+      const TP = (fx.trail && fx.trail.pts) || [], TU = u.uTrail.value; for(let i=0;i<TU.length;i++){ const q = TP[i]; if(q && q.w > 0) TU[i].set(q.x, q.y, q.z, q.w); else TU[i].set(0,-99,0,0); } }
     if(fx.grass.follow && fx.player) fx.grass.follow(fx.player.x, fx.player.z); }
   if(fx.canopies) fx.canopies.forEach(c => { c.rotation.z = Math.sin(t*.9+c.userData.ph)*.022*fx.windMul; c.rotation.x = Math.cos(t*.7+c.userData.ph)*.016*fx.windMul; });
   if(fx.bushes && fx.player) fx.bushes.forEach(b => { const d = Math.hypot(b.position.x-fx.player.x, b.position.z-fx.player.z);
@@ -2338,7 +2478,7 @@ function buildIsland(cfg){
   scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, hemi));
   const keyI = REAL ? (cfg.key === "sanity" ? .95 : 2.0) : (cfg.key === "sanity" ? .55 : .95);
   const key = new THREE.DirectionalLight(P.key, keyI); key.position.set(-25,40,15); scene.add(key);
-  const sea = seaMesh(P.water, P.waterHi); sea.position.y = -1.1; scene.add(sea);
+  const sea = seaMesh(P.water, P.waterHi); sea.position.y = SEA_Y; scene.add(sea); scene.add(seaBed(P.water));
   /* stars scale with how dark the island's sky is — Sanity (the night song, full moon) gets a real
      field, the golden-hour islands a faint scatter. */
   const night = 1 - Math.min(1, ((P.skyTop>>16&255) + (P.skyTop>>8&255) + (P.skyTop&255)) / 300);
@@ -2347,6 +2487,15 @@ function buildIsland(cfg){
 
   const POLY = polyOf(cfg); cfg.poly = POLY; if(COASTS[cfg.key]) cfg.coast = COASTS[cfg.key];
   const inside = POLY ? ((x,z) => polyInside(POLY, x, z)) : ((x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r));
+  /* distance to the waterline (unsigned), and how far out to sea a point is (0 on land) */
+  const coastDist = POLY
+    ? ((x,z) => { let best = 1e18; for(let i=0, j=POLY.length-1; i<POLY.length; j=i++){
+          const ax = POLY[j][0], az = POLY[j][1], ex = POLY[i][0]-ax, ez = POLY[i][1]-az, L = ex*ex+ez*ez || 1;
+          let u = ((x-ax)*ex + (z-az)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
+          const dx = x-(ax+ex*u), dz = z-(az+ez*u), d = dx*dx+dz*dz; if(d < best) best = d; }
+        return Math.sqrt(best); })
+    : ((x,z) => Math.min(...cfg.lobes.map(l => Math.abs(Math.hypot(x-l.x, z-l.z) - l.r))));
+  const shoreOut = (x,z) => inside(x,z) ? 0 : coastDist(x,z);
   /* decor was scattered inside the old circles — spread it over the real island instead */
   cfg.spread = POLY ? (COASTS[cfg.key].maxR * WORLD / Math.max(...cfg.lobes.map(l => l.r))) : 1;
   /* the coastline changed shape, so any hand-placed point that now sits in the sea is walked back onto land
@@ -2419,8 +2568,14 @@ function buildIsland(cfg){
       cfg.spawn = [sx, sz];
     } }
   const TMAX = (COASTS[cfg.key] ? COASTS[cfg.key].maxR : 90) * WORLD;
+  const stoneXZ = cfg.stones || [];
   const height = (x,z) => {
-    let y = terrainAt(cfg.key, x, z, TMAX);      /* the real ground under everything else */
+    /* The real ground under everything else - but only on land. The elevation grid is a square over
+       the whole island and reads a few centimetres above zero out over the sea near the coast, which
+       was enough to stand her on the water. terrainMesh() itself stops 2.5 u inside the coastline, so
+       the sampled height fades to nothing over that same strip and she matches what is drawn. */
+    const inn = inside(x, z), cd = coastDist(x, z);
+    let y = inn ? terrainAt(cfg.key, x, z, TMAX) * Math.min(1, cd/SHORE_BLEND) : 0;
     if(Math.abs(x-cfg.dock[0]) < 3 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2) y = Math.max(y, .75);   /* the dock planks are a deck, not a decal */
     for(const f of cfg.features){
       const d = Math.hypot(x-f.x, z-f.z);
@@ -2431,9 +2586,16 @@ function buildIsland(cfg){
       }
       if(f.type === "mesa" && d < f.r) y = Math.max(y, f.h);
     }
-    return y;
+    if(y > 0) return y;
+    /* The shore. Used to return 0 everywhere, so anything off the island stood in the air over the
+       sea. Now the meadow eases down onto the sand over the last SHORE_BLEND u, the sand runs on at
+       -.12 for SHELF_FLAT u past the waterline, and then the shelf drops away under the water. The
+       stepping stones (lantern path) keep their old flat 0. */
+    if(inn) return cd < SHORE_BLEND ? -.12*(1 - cd/SHORE_BLEND) : 0;
+    for(const s of stoneXZ) if(Math.hypot(x-s[0], z-s[1]) < 3.3) return 0;
+    return shelfGround(cd);
   };
-  const I = {cfg, scene, sky, moon, key, sea, inside, height, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
+  const I = {cfg, scene, sky, moon, key, sea, inside, height, coastDist, shoreOut, seaY:seaHeight, water:null, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
   I.stars = starMesh;
 
   /* ground */
@@ -2442,11 +2604,16 @@ function buildIsland(cfg){
     scene.add(polySlab(sandP, 3.2, -.12, toon(P.sand, {map:TEX.sand, roughness:1, envMapIntensity:.16})));   /* the beach, a hair below the meadow */
     scene.add(polySlab(grassP, 3.4, 0, toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}))); /* top face at y=0 = the walkable height */
     { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ scene.add(tm); I.terrainMesh = tm; } }
-    const foamShape = polyShape(polyOffset(POLY, 9.5));
-    foamShape.holes.push(new THREE.Path(polyShape(polyOffset(POLY, 4.5)).getPoints().reverse()));
-    const fg = new THREE.ShapeGeometry(foamShape); fg.rotateX(-Math.PI/2);
-    const foam = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({color:0xFFFFFF, transparent:true, opacity:.30, side:THREE.DoubleSide, depthWrite:false}));
-    foam.position.y = -.45; scene.add(foam); I.foam.push(foam);
+    /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
+       down through the shallows shows real ground under her feet instead of a blue plane on nothing */
+    const shelf = new THREE.Mesh(ringBand(polyOffset(POLY, SHELF_FLAT), polyOffset(POLY, 15), shelfGround(SHELF_FLAT) - .01, shelfGround(15) - .01),
+                                 toon(new THREE.Color(P.sand).multiplyScalar(.70), {map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}));
+    shelf.receiveShadow = true; scene.add(shelf);
+    /* the wet line: a dark, breathing strip of sand where the swash reaches */
+    I.wetBand = new THREE.Mesh(ringBand(polyOffset(POLY, 2.6), polyOffset(POLY, 6.3), -.085, -.085),
+                               new THREE.MeshBasicMaterial({color:0x1E2C3A, transparent:true, opacity:.18, depthWrite:false}));
+    I.wetBand.renderOrder = 1; scene.add(I.wetBand);
+    I.foam.push(shoreFoam(scene, POLY));
   } else cfg.lobes.forEach(l => {
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand, {map:TEX.sand}));
     sand.position.set(l.x,-1.62,l.z); scene.add(sand);
@@ -2824,10 +2991,16 @@ function buildIsland(cfg){
   /* dock + boat */
   const [dx,dz] = cfg.dock;
   const planks = inked(new THREE.BoxGeometry(6,.5,DOCK_LEN), P.wood, 1.9); planks.position.set(dx,.5,dz); scene.add(planks);
+  /* pilings: a pier stands on posts driven into the seabed, and now that the water is clear you can see them go down */
+  { const pileCol = new THREE.Color(P.wood).multiplyScalar(.62);
+    for(let pz = dz - DOCK_LEN/2 + 1.5; pz <= dz + DOCK_LEN/2 - .5; pz += 5.4){
+      for(const sx of [-2.75, 2.75]){ const px = dx + sx, floor = Math.min(height(px, pz), shelfGround(shoreOut(px, pz))) - .6, top = .95;
+        const pile = inked(new THREE.CylinderGeometry(.24, .28, top - floor, 8), pileCol, 1.4); pile.position.set(px, (top + floor)/2, pz); scene.add(pile);
+        I.colliders.push({x:px, z:pz, r:.32, camOnly:false}); } } }
   const boat = makeBoat(P.wood, MOON, .9);
   /* moor the boat in real water: start beside the dock's outer end and walk out until nothing is under it */
   { let bx = dx+5.2, bz = dz + DOCK_LEN/2 - 2;
-    for(let k=0;k<80 && (inside(bx,bz) || inside(bx+2.4,bz) || inside(bx-2.4,bz) || inside(bx,bz+4) || inside(bx,bz-4)); k++){ bz += 1.5; if(k%6===5) bx += .8; }
+    for(let k=0;k<80 && (inside(bx,bz) || inside(bx+2.4,bz) || inside(bx-2.4,bz) || inside(bx,bz+4) || inside(bx,bz-4) || shoreOut(bx,bz) < 9.5); k++){ bz += 1.5; if(k%6===5) bx += .8; }   /* ...and until the shelf is deep enough under the hull */
     boat.position.set(bx,.1,bz); }
   boat.rotation.y=.2; scene.add(boat); I.boat = boat;
   /* sailboats out past the shore — most of them on the night island, under the full moon */
@@ -2985,8 +3158,9 @@ function buildIsland(cfg){
       scene.add(h); I.creatures.push(h); } }
 
   /* weather + fx */
+  I.water = waterFx(scene);
   I.fx = {
-    foam:I.foam,
+    foam:I.foam, wet:I.wetBand,
     grass: grassField(scene, GRASS_N, cfg.spawn, height, cfg.grassCols, noGrass),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
@@ -3061,6 +3235,7 @@ function canStand(I, x, z){
   if(abilityOf(I).lantern && I.stones.some(s => Math.hypot(x-s.x, z-s.z) < 3.3)) return true;
   if(abilityOf(I).lantern) { const f = I.cfg.features.find(f => f.outer); if(f && Math.hypot(x-f.x,z-f.z) < f.r) return true; }
   if(Math.hypot(x - I.cfg.dock[0], z - I.cfg.dock[1]) < 4 || (Math.abs(x - I.cfg.dock[0]) < 3.2 && z > I.cfg.dock[1]-DOCK_LEN/2 && z < I.cfg.dock[1]+DOCK_LEN/2)) return true;
+  if(I.shoreOut && I.shoreOut(x, z) <= WADE_MAX) return true;   /* the shallows: she can wade out to about waist depth */
   return false;
 }
 function walkerUpdate(I, dt, t){
@@ -3073,7 +3248,7 @@ function walkerUpdate(I, dt, t){
   let curSpeed = 0;
   if(mag > .08){
     const ang = Math.atan2(-ix,-iz) + W.camYaw, boost = W.gliding ? 1.35 : (W.mount ? RIDE_MUL : 1);
-    curSpeed = SPEED*mag*boost;
+    curSpeed = SPEED*mag*boost*(1 - .55*Math.min(1, (W.depth||0)/1.0));      /* water drags at her legs: waist-deep is about half speed */
     const mx = Math.sin(ang)*curSpeed*dt, mz = Math.cos(ang)*curSpeed*dt;
     W.heading = ang;
     const hNow = I.height(W.x,W.z);
@@ -3099,19 +3274,37 @@ function walkerUpdate(I, dt, t){
       if(!G.visited[k]){ G.visited[k] = true; save(); toast("Travel unlocked", q.name); }
     }
   }
-  const ground = I.height(W.x,W.z);
+  const ground = I.height(W.x,W.z), wasGrounded = W.grounded;
   W.vy += GRAV*dt;
   if(!W.grounded && jumpHeld && ab.glide && W.vy < GLIDE_VY){ W.vy = GLIDE_VY; W.gliding = true; }
   else if(W.grounded || !jumpHeld) W.gliding = false;
   if(!Number.isFinite(W.vy)) W.vy = 0;
   W.y += W.vy*dt;
   if(!Number.isFinite(W.y)) W.y = ground;
-  if(W.y <= ground){ if(!W.grounded && W.vy < -8) auStep(false); W.y = ground; W.vy = 0; W.grounded = true; W.gliding = false; }
+  if(W.y <= ground){ if(!W.grounded){ W.landVy = W.vy; if(W.vy < -8) auStep(false); } W.y = ground; W.vy = 0; W.grounded = true; W.gliding = false; }
   else W.grounded = false;
 
   let da = W.heading - W.group.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2;
   W.group.rotation.y += da*Math.min(1, dt*15);
   const moving = mag > .08 && W.grounded;
+  /* Water. Depth is the real sea surface (same wave as the shader) over the ground under her. Every
+     stride in it throws a ring and a handful of drops sized to how fast and how deep; landing in it from
+     a jump throws a proper splash; standing still in it, the swash rings around her legs. */
+  { const seaY = I.seaY ? I.seaY(W.x, W.z, t) : -99, depth = W.grounded ? Math.max(0, seaY - W.y) : 0;
+    const wasWet = !!W.wet; W.depth = depth; W.wet = depth > .05;
+    if(I.water && W.wet){
+      const px = W.x, pz = W.z, big = W.grounded && !wasGrounded && (W.landVy || 0) < -6;
+      if(moving !== !!W.wadeMoving){ W.rippleT = 0; W.wadeMoving = moving; }   /* the slow standing rhythm must not hold back the first stride's splash */
+      W.rippleT = (W.rippleT || 0) - dt;
+      if(big || (W.wet && !wasWet && !W.grounded)){ I.water.splash(px, seaY, pz, 36, 1.5); I.water.ripple(px, pz, 2.2); I.water.ripple(px, pz, 1.2); auSplash(true); W.rippleT = .2; }
+      else if(moving && W.rippleT <= 0){
+        const k = Math.min(1.3, curSpeed/SPEED), horse = !!W.mount;
+        I.water.ripple(px + (Math.random()-.5)*.5, pz + (Math.random()-.5)*.5, .8 + Math.min(1, depth)*.7 + (horse ? .9 : 0));
+        I.water.splash(px, seaY, pz, horse ? 12 : 4 + Math.round(depth*6), .55 + k*.55 + (horse ? .35 : 0));
+        W.rippleT = horse ? .10 : .15; }
+      else if(!moving && W.rippleT <= 0){ I.water.ripple(px, pz, .6 + depth*.4); W.rippleT = 1.2 + Math.random()*.6; }
+    }
+    W.landVy = 0; }
   W.legs.forEach((l,i) => l.position.z = moving ? Math.sin(t*10+i*Math.PI)*.3 : 0);
   if(W.mixer){
     /* feet match the ground: clip speed is tied to distance covered per stride, and the jog takes over above a brisk walk */
@@ -3119,7 +3312,7 @@ function walkerUpdate(I, dt, t){
     playClip(W, !W.grounded ? "jump" : (moving ? (jog ? "run" : "walk") : "idle"));
     if(moving && W.current){ W.current.timeScale = curSpeed / (jog ? STRIDE_JOG : STRIDE_WALK); } else if(W.current) W.current.timeScale = 1;
     W.mixer.update(dt); }
-  if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = .34; } } else AU.stepT = 0;
+  if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ if(W.wet) auWade(); else auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = W.wet ? .40 : .34; } } else AU.stepT = 0;
   /* her shadow stays on the ground and softens as she rises, instead of riding up with her */
   if(W.shadow){
     const gy = I.height(W.x, W.z), lift = Math.max(0, W.group.position.y - gy);
@@ -3205,7 +3398,8 @@ function placeCamera(I, dt){
   /* pull in fast, ease back out slowly */
   W.camDistCur += (arm - W.camDistCur)*Math.min(1, dt*(arm < W.camDistCur ? 14 : 3));
   camera.position.copy(W.look).addScaledVector(dir, W.camDistCur);
-  const gy = I.inside(camera.position.x, camera.position.z) ? I.height(camera.position.x, camera.position.z) + 1.0 : -Infinity;
+  const gy = I.inside(camera.position.x, camera.position.z) ? I.height(camera.position.x, camera.position.z) + 1.0
+           : (I.shoreOut ? Math.max(SEA_Y + 2.0, I.height(camera.position.x, camera.position.z) + 1.0) : -Infinity);   /* over the sea: stay above the swell */
   if(camera.position.y < gy) camera.position.y = gy;
   camera.lookAt(W.look);
 }
@@ -3225,6 +3419,10 @@ function islandUpdate(I, dt, t){
   I.sea.userData.mat.uniforms.t.value = t;
   I.moon.userData.halo.lookAt(camera.position);
   I.boat.position.y = .1 + Math.sin(t*1.3)*.18; I.boat.rotation.z = Math.sin(t*.9)*.04;
+  if(I.water){ I.water.update(dt, t, I.seaY);
+    /* the moored boat works at its line: a slow ring spreads from the hull every couple of seconds */
+    I.boatRipT = (I.boatRipT == null ? 1 : I.boatRipT) - dt;
+    if(I.boatRipT <= 0){ I.water.ripple(I.boat.position.x + (Math.random()-.5)*1.5, I.boat.position.z + (Math.random()-.5)*3, 2.6); I.boatRipT = 1.8 + Math.random()*1.4; } }
   I.notes.forEach((n,i) => { n.rotation.z = Math.sin(t*1.5+i)*.09; n.rotation.y = Math.sin(t*.7+i)*.25;   /* swings on its nail */
     n.children[0].material.color.setHex(G.notes[cfg.key+":"+i] ? 0xCFC6B4 : BONE); });
   if(I.pickup && I.pickup.visible){ I.pickup.rotation.y += dt*.8; I.pickup.position.y += Math.sin(t*1.6)*.004; }
@@ -3263,16 +3461,22 @@ function islandUpdate(I, dt, t){
     const sp = Math.hypot(p.vx, p.vz);
     if(sp > .01){
       const nx = o.position.x + p.vx*dt, nz = o.position.z + p.vz*dt;
-      if(I.inside(nx,nz)){ o.position.x = nx; o.position.z = nz; }
-      else { p.vx *= -.45; p.vz *= -.45; }                                    /* the surf turns it back */
+      if(I.inside(nx,nz) || (I.shoreOut && I.shoreOut(nx,nz) <= WADE_MAX + 4)){ o.position.x = nx; o.position.z = nz; }   /* it can roll into the shallows */
+      else { p.vx *= -.45; p.vz *= -.45; }                                    /* past that the surf turns it back */
       for(const c of I.colliders){ if(c.camOnly) continue; const cd = Math.hypot(o.position.x-c.x, o.position.z-c.z);
         if(cd < c.r + p.r && cd > 1e-4){ const ux=(o.position.x-c.x)/cd, uz=(o.position.z-c.z)/cd;
           o.position.x = c.x + ux*(c.r+p.r); o.position.z = c.z + uz*(c.r+p.r);
           const dot = p.vx*ux + p.vz*uz; p.vx -= 2*dot*ux*.55; p.vz -= 2*dot*uz*.55; } }
-      const damp = Math.exp(-dt*1.5); p.vx *= damp; p.vz *= damp;
+      const damp = Math.exp(-dt*(p.wet ? 3.4 : 1.5)); p.vx *= damp; p.vz *= damp;           /* water stops it far sooner than grass */
       o.rotation.z -= p.vx*dt/p.r; o.rotation.x += p.vz*dt/p.r;               /* rolls the distance it travels */
     } else { p.vx = 0; p.vz = 0; }
-    o.position.y += (I.height(o.position.x, o.position.z) + p.r - o.position.y)*Math.min(1, dt*10); });
+    /* in the water it floats: it rides the swell about a third under, splashes going in and leaves rings while it moves */
+    { const ox = o.position.x, oz = o.position.z, gy = I.height(ox, oz) + p.r, sy = I.seaY ? I.seaY(ox, oz, t) + p.r*.35 : -99, wet = sy > gy;
+      if(I.water){
+        if(wet && !p.wet && sp > 1.2){ I.water.splash(ox, sy - p.r*.35, oz, 16 + Math.round(sp), .9 + Math.min(1, sp/8)); I.water.ripple(ox, oz, 1.5); auSplash(false); p.rT = .3; }
+        else if(wet && sp > .6){ p.rT = (p.rT || 0) - dt; if(p.rT <= 0){ I.water.ripple(ox, oz, .9); p.rT = .32; } } }
+      p.wet = wet;
+      o.position.y += ((wet ? sy : gy) - o.position.y)*Math.min(1, dt*(wet ? 4 : 10)); } });
   I.npcs.forEach(g => { const u = g.userData, R = u.R;
     if(u.delivering){
       /* he works his way round the fans, and each one he reaches gets a copy */
@@ -3392,6 +3596,19 @@ function islandUpdate(I, dt, t){
   if(cfg.weather !== "storm" && AU.surfG) AU.surfG.gain.value = .16 + storm*.07;
   I.sky.mat.uniforms.blend.value = storm; I.fx.windMul = 1 + storm*2.2 + (cfg.weather==="storm" ? 1.2 : 0);
   $("weather").textContent = label;
+  /* what parts the grass this frame: her (or the horse under her), the nearest animals, fans and rolling
+     balls - the six closest win - plus the track she has just walked, which stays flat and recovers */
+  { const PS = I.fx.pushers || (I.fx.pushers = []); PS.length = 0;
+    const add = (x, y, z, r) => PS.push({x, y, z, r, d:Math.hypot(x-W.x, z-W.z)});
+    add(W.x, W.y, W.z, W.mount ? 3.0 : 2.4);
+    for(const h of I.creatures){ const u = h.userData; if(u.fly || u.ridden || Math.abs(h.position.x-W.x) > 60 || Math.abs(h.position.z-W.z) > 60) continue; add(h.position.x, h.position.y, h.position.z, u.type === "dino" ? 3.4 : 2.6); }
+    for(const g of I.npcs){ if(Math.abs(g.position.x-W.x) > 60 || Math.abs(g.position.z-W.z) > 60) continue; add(g.position.x, g.position.y, g.position.z, g.userData.cfg && g.userData.cfg.post ? 2.6 : 1.7); }
+    for(const o of I.props){ const p = o.userData.roll; if(p && !p.wet && (p.vx*p.vx + p.vz*p.vz) > .2) add(o.position.x, o.position.y - p.r, o.position.z, p.r + .7); }
+    PS.sort((a, b) => a.d - b.d);
+    const TR = I.fx.trail || (I.fx.trail = {pts:[], last:null});
+    if(W.grounded && !W.wet){ const l = TR.last;
+      if(!l || Math.hypot(W.x-l.x, W.z-l.z) > .8){ TR.pts.unshift({x:W.x, y:W.y, z:W.z, w:1}); TR.last = {x:W.x, z:W.z}; if(TR.pts.length > 12) TR.pts.length = 12; } }
+    for(const q of TR.pts) q.w = Math.max(0, q.w - dt/2.2); }
   I.fx.player = W; fxUpdate(I.fx, dt, t, camera.position);
   AU.birdT -= dt;
   if(AU.birdT <= 0){ if(cfg.birds > 0 && storm < .2) auChirp(); AU.birdT = 1.4 + Math.random()*4; }
@@ -3544,7 +3761,7 @@ const sSky = skyDome(0x4A3A63, 0xF0A56D, 0xA8DCD8); sail.add(sSky.mesh);
 const sMoon = moonPair(new THREE.Vector3(-90,70,-260), 18); sail.add(sMoon);
 sail.add(new THREE.HemisphereLight(0xA8DCD8, 0x5AA0C8, .92));
 { const k = new THREE.DirectionalLight(0xFFE9CC, 1.0); k.position.set(-20,40,10); sail.add(k); }
-const sSea = seaMesh(0x5AA0C8, 0x86C4E0); sail.add(sSea);
+const sSea = seaMesh(0x5AA0C8, 0x86C4E0); sail.add(sSea); sail.add(seaBed(0x5AA0C8));
 const sBoat = makeBoat(0x8D6141, MOON, 1.0); const sRider = makeLala();
 { sRider.group.scale.setScalar(.85); sRider.group.position.set(0, sBoat.userData.benchY - .72, sBoat.userData.benchZ + .15); sRider.group.rotation.y = 0;   /* origin is her feet: on the deck, hips on the thwart */
   sRider.seated = true; sRider.fans.visible = false; sRider.fanMeshes.forEach(f => f.visible = false); sRider.lantern.visible = false; sBoat.add(sRider.group); sail.add(sBoat); }
