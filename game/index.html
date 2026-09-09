@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09i";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1129,76 +1129,132 @@ function bindAttachments(R, model, s){
        wide it reads; ?hs= and ?hy= remain for experiments but default to no change. */
     const QSH = new URLSearchParams(location.search);
     const HS = parseFloat(QSH.get("hs") || "1"), HY = parseFloat(QSH.get("hy") || String(HAT_SEAT));
-    const BRIM = parseFloat(QSH.get("brim") || "0.315");
-    const hat = cowgirlHat(BRIM); hat.scale.setScalar(HS); hat.position.set(0, HY, -.006); hat.rotation.set(-.05, 0, 0); a.add(hat);
+    const BRIM = parseFloat(QSH.get("brim") || String(HAT_BRIM));
+    const hat = cowgirlHat(BRIM); hat.scale.setScalar(HS); hat.position.set(0, HY, .016); hat.rotation.set(-.045, 0, 0); a.add(hat);   /* forward a little: her bun sits behind the crown */
     R.hat = hat; R.hatBandMesh = hat.userData.band;
     if(R.pendingBand != null) R.hatBandMesh.material.color.setHex(R.pendingBand);
   } }
 }
+/* ---- her head, measured ----
+   tools/head_measure.py, in game units in the head bone's own space:
+       crown of her head          0.270 above the bone
+       radius at the seat, right  0.138      left  0.109      back  0.194
+       shoulder span              0.693  (39.9 cm)
+   That 0.194 at the back is her HAIR, piled behind — not her skull. Fitting the crown to the widest
+   point anywhere built a drum around her hairstyle, and no brim can look right against a crown as
+   wide as the hat. A real hat sits on the skull and lets the hair out behind, so the crown is
+   fitted to the sides and the bun sits behind it. */
+const HEAD_CROWN = 0.270, HEAD_SIDE = 0.138;
+/* Fitting the crown to the skull alone (0.150) went too far the other way: her hair has volume on
+   top as well as behind, so it simply swallowed the crown. Real felt compresses hair; a game mesh
+   cannot, so the hat RIDES the hair instead — seated higher, with a crown between skull width and
+   hair width. The hair then spills below and behind the brim, which is what it does in life. */
+const HAT_SEAT   = 0.256;                       /* rides clear of the hair volume on top */
+const HAT_FIT    = 0.183;                       /* between skull (0.138) and hair (0.194) */
+const HAT_BRIM   = 0.270;                       /* 0.78 of half her shoulder span = 31 cm across */
+const HAT_CROWN_H = 0.178;                      /* tall enough that no hair comes through the top */
+const HAT_PHYS = (() => { const v = parseFloat(QS.get("hatphys")); return isNaN(v) ? 1 : v; })();
+/* ---- hat physics ----
+   The hat is parented to the head bone, so nothing she does can move it. This gives it a two-axis
+   angular spring pivoting at the brim seat, which is where a hat actually rocks on a head: her
+   head's own acceleration drives it, a spring pulls it back to level, damping settles it.
+
+   The clamp is not a taste value. HAT_CLEAR is the gap between the crown's inner radius and her
+   skull at the seat. Tilting by theta drops the low edge of that hole by roughly HAT_FIT*sin(theta),
+   so theta must stay under asin(HAT_CLEAR/HAT_FIT) or the brim cuts into her head again — the exact
+   failure this hat was rebuilt to fix. ?hatphys=0 turns it off. */
+const HAT_K = 46, HAT_DAMP = 6.4, HAT_DRIVE = 0.18;   /* 0.058 was so weak the hat never visibly moved */
+const HAT_CLEAR = Math.max(0.008, HAT_FIT - HEAD_SIDE);   /* room to tilt before the brim reaches her skull */
+const HAT_TILT_MAX = Math.min(0.095, Math.asin(Math.max(.001, Math.min(.99, HAT_CLEAR/HAT_FIT))) * 0.75);
+const HAT_BASE_X = -0.045;                      /* rest tilt: worn a touch forward */
+try{ window.HAT_TILT_MAX = HAT_TILT_MAX; window.HAT_CLEAR = HAT_CLEAR; window.HAT_FIT = HAT_FIT; }catch(e){}
+const _hpW = new THREE.Vector3(), _hpQ = new THREE.Quaternion(), _hpV = new THREE.Vector3();
+function hatPhysics(R, dt){
+  const hat = R && R.hat; if(!hat || !hat.parent || !(dt > 0)) return;
+  if(HAT_PHYS <= 0){ hat.rotation.set(HAT_BASE_X, 0, 0); return; }
+  const s = R.hatDyn || (R.hatDyn = {p:new THREE.Vector3(), v:new THREE.Vector3(),
+                                     ax:0, az:0, wx:0, wz:0, ready:false});
+  hat.parent.updateMatrixWorld(true);
+  hat.parent.getWorldPosition(_hpW);
+  const h = Math.max(1/240, Math.min(dt, 1/24));          /* a long frame must not explode the spring */
+  if(!s.ready){ s.p.copy(_hpW); s.ready = true; return; }
+  _hpV.copy(_hpW).sub(s.p).divideScalar(h);
+  const acc = _hpV.clone().sub(s.v).divideScalar(h);
+  s.p.copy(_hpW); s.v.copy(_hpV);
+  hat.parent.getWorldQuaternion(_hpQ);
+  acc.applyQuaternion(_hpQ.invert());                     /* into her own frame */
+  const cap = a => Math.max(-9, Math.min(9, a));
+  const driveX =  cap(acc.z)*HAT_DRIVE + cap(acc.y)*HAT_DRIVE*0.22;   /* forward/back, plus the landing nod */
+  const driveZ = -cap(acc.x)*HAT_DRIVE;                                /* side to side */
+  s.wx += (-HAT_K*s.ax - HAT_DAMP*s.wx + driveX) * h;
+  s.wz += (-HAT_K*s.az - HAT_DAMP*s.wz + driveZ) * h;
+  s.ax += s.wx*h; s.az += s.wz*h;
+  const clamp = (v, w) => v >  HAT_TILT_MAX ? [ HAT_TILT_MAX, Math.min(0, w)]
+                        : v < -HAT_TILT_MAX ? [-HAT_TILT_MAX, Math.max(0, w)] : [v, w];
+  [s.ax, s.wx] = clamp(s.ax, s.wx);
+  [s.az, s.wz] = clamp(s.az, s.wz);
+  hat.rotation.set(HAT_BASE_X + s.ax, 0, s.az);
+  R.hatTilt = Math.hypot(s.ax, s.az);
+}
 /* ---- her white cowgirl hat ----
-   Sized from her actual head, not by eye. tools/head_measure.py reads the mesh weighted to
-   mixamorig:Head and reports, in game units, in the head bone's own space:
+   Shape from a reference photograph, scale from her own measurements.
 
-       crown of her head   0.270 above the bone
-       radius at the crown 0.137
-       radius 0.055 below  0.195
-       radius 0.123 below  0.207   <- widest, hair included
+   Reference: "Felthat.jpg" on Wikimedia Commons — a beige felt cowboy hat on a white background,
+   by Ealdgyth. Read off it: the brim is about 2.6x the crown across, the crown is roughly as tall
+   as it is wide, the brim stays flat where it leaves the crown and only sweeps up towards its edge,
+   and the crown carries a cattleman crease — one long channel down the centre with a dent pinched
+   into each side near the front.
 
-   Two things follow. The brim has to sit where the head is about 0.20 across, so SEAT is 0.20 and
-   the brim's inner hole and the crown must both clear 0.207 or her head passes through the hat.
-   That is exactly what went wrong: the hat was uniformly scaled by 0.80 to make it look smaller,
-   which took the crown radius from 0.228 down to 0.182 — narrower than her head — so the brim cut
-   a band across her forehead. Uniform scale is the wrong knob.
-
-   So the head-fitting parts (inner hole, crown, band) are fixed to her measurements, and only the
-   brim's OUTER edge is styled. ?brim= changes how wide the hat reads without ever breaking the fit;
-   ?hs= still scales the whole thing for experiments, default 1. */
-const HEAD_R = 0.207, HEAD_CROWN = 0.270;          /* measured, game units, head-bone space */
-const HAT_SEAT = 0.216;                            /* brim plane: sits above the brow, not across her eyes */
-const HAT_FIT  = HEAD_R + 0.010;                   /* inner hole: clears the head with a little air */
+   2.6x against a crown fitted to her head would put the brim wider than her shoulders, so the ratio
+   is not copied blindly: the brim is sized to HER, at 0.78 of half her shoulder span, giving 1.8x.
+   The photograph decides the shape; she decides the scale. */
 function cowgirlHat(brimOuter){
-  const HATC = 0xF6F2EA, SEG = 44;
-  const R0 = HAT_FIT;                              /* brim inner = crown base, never styled */
-  const R1 = Math.max(R0 + 0.03, brimOuter || 0.315);
+  const HATC = 0xF6F2EA, SEG = 48;
+  const R0 = HAT_FIT;
+  const R1 = Math.max(R0 + .05, brimOuter || HAT_BRIM);
   const g = new THREE.Group();
-  /* brim: flat where it meets the crown, rolling up at the sides and dipping at the front */
-  { const RINGS = 5, pos = [], idx = [];
-    for(let i=0;i<=RINGS;i++){ const t = i/RINGS, r = R0 + (R1-R0)*t;
+  /* ---- brim ---- */
+  { const RINGS = 6, pos = [], idx = [], W = (R1 - R0);
+    for(let i=0;i<=RINGS;i++){ const t = i/RINGS, r = R0 + W*t;
       for(let j=0;j<=SEG;j++){ const a = j/SEG*Math.PI*2, cx = Math.cos(a), sz = Math.sin(a);
         const side = Math.abs(cx), front = Math.max(0, sz), back = Math.max(0, -sz);
-        const w = (R1 - R0) / 0.19;                /* curl scales with how wide the brim actually is */
-        const y = .115*w*Math.pow(t,2.1)*Math.pow(side,2.3)
-                - .038*w*Math.pow(t,2.3)*front                  /* front dip: shades the eyes without hiding them */
-                - .018*w*Math.pow(t,2.3)*back;
+        const flat = Math.max(0, (t - .30)/.70);        /* dead flat for the first third, as in the photo */
+        const y = W*( .62*Math.pow(flat,1.9)*Math.pow(side,2.0)    /* sides sweep up */
+                    - .30*Math.pow(flat,2.0)*front                  /* front dips over the eyes */
+                    + .10*Math.pow(flat,2.0)*back );                /* back lifts a little */
         pos.push(cx*r, y, sz*r); } }
-    for(let i=0;i<RINGS;i++) for(let j=0;j<SEG;j++){ const a = i*(SEG+1)+j, b2 = a+1, c = a+SEG+1, d = c+1;
-      idx.push(a,c,b2, b2,c,d); }
+    for(let i=0;i<RINGS;i++) for(let j=0;j<SEG;j++){ const p0 = i*(SEG+1)+j, p1 = p0+1, p2 = p0+SEG+1, p3 = p2+1;
+      idx.push(p0,p2,p1, p1,p2,p3); }
     const bg = new THREE.BufferGeometry();
     bg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); bg.setIndex(idx); bg.computeVertexNormals();
     g.add(inked(bg, HATC, 1.0, {side:THREE.DoubleSide})); }
-  /* crown: tall enough to clear the top of her head, with a centre crease and two front pinches */
-  { const H = (HEAD_CROWN - HAT_SEAT) + 0.085, CR = 7, pos = [], idx = [];
-    const crease = (x, z, u) => { if(u < .45) return 0;
-      const k = (u-.45)/.55;
-      const dip = .085*k*Math.exp(-Math.pow(x/.070, 2));
-      const pinch = .045*k*Math.exp(-Math.pow((Math.abs(x)-.10)/.055, 2))*Math.max(0, (z+.05)/.19);
-      return -(dip + pinch); };
-    for(let i=0;i<=CR;i++){ const u = i/CR, r = R0 + .006 - .038*u;   /* base clears the head, tapers in */
+  /* ---- crown: a cattleman crease ---- */
+  { const H = HAT_CROWN_H, CR = 10, pos = [], idx = [];
+    const shape = (x, z, u) => {
+      if(u < .40) return 0;
+      const k = Math.pow((u - .40)/.60, 1.35);
+      const crease = .120*k*Math.exp(-Math.pow(x/(R0*.34), 2));
+      const dent   = .075*k*Math.exp(-Math.pow((Math.abs(x) - R0*.72)/(R0*.30), 2))
+                          *Math.max(0, (z + R0*.30)/(R0*1.2));
+      return -(crease + dent)*R0;
+    };
+    for(let i=0;i<=CR;i++){ const u = i/CR;
+      const r = R0*(1 + .055*Math.sin(u*Math.PI*0.9)) - R0*.10*Math.pow(u,1.8);   /* felt bows out, then eases in */
       for(let j=0;j<=SEG;j++){ const a = j/SEG*Math.PI*2, x = Math.cos(a)*r, z = Math.sin(a)*r;
-        pos.push(x, u*H + crease(x,z,u), z); } }
-    for(let i=0;i<CR;i++) for(let j=0;j<SEG;j++){ const a = i*(SEG+1)+j, b2 = a+1, c = a+SEG+1, d = c+1;
-      idx.push(a,c,b2, b2,c,d); }
+        pos.push(x, u*H + shape(x,z,u), z); } }
+    for(let i=0;i<CR;i++) for(let j=0;j<SEG;j++){ const p0 = i*(SEG+1)+j, p1 = p0+1, p2 = p0+SEG+1, p3 = p2+1;
+      idx.push(p0,p2,p1, p1,p2,p3); }
     const topRing = CR*(SEG+1), centre = pos.length/3;
-    pos.push(0, H + crease(0,0,1), 0);
+    pos.push(0, H + shape(0,0,1), 0);
     for(let j=0;j<SEG;j++) idx.push(topRing+j+1, topRing+j, centre);
     const cg = new THREE.BufferGeometry();
     cg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); cg.setIndex(idx); cg.computeVertexNormals();
-    const crown = inked(cg, HATC, 1.0); crown.position.y = .012; g.add(crown); }
-  /* the band, sitting on the crown just above the brim */
-  { const br = R0 + .009;
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(br, br + .004, .045, SEG, 1, true),
+    const crown = inked(cg, HATC, 1.0); crown.position.y = .008; g.add(crown); }
+  /* ---- the band, low on the crown where the reference wears it ---- */
+  { const br = R0*1.045;
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(br, br*1.012, R0*.30, SEG, 1, true),
       stdMat({color:0x6FBF92, gradientMap:GRAD, side:THREE.DoubleSide}));
-    band.position.y = .043; g.add(band); g.userData.band = band; }
+    band.position.y = R0*.20; g.add(band); g.userData.band = band; }
   return g;
 }
 /* inside the coastline with a margin, so wandering animals keep clear of the waterline */
@@ -3578,6 +3634,7 @@ function updateCamera(I, dt, speed){
   while(W.camYaw > Math.PI) W.camYaw -= Math.PI*2; while(W.camYaw < -Math.PI) W.camYaw += Math.PI*2;
   /* the look point trails her a touch so steps and jumps don't jolt the frame */
   if(W.look.distanceTo(look) > 10) W.look.copy(look); else W.look.lerp(look, Math.min(1, dt*12));   /* a teleport snaps, a step trails */
+  hatPhysics(W, dt);
   placeCamera(I, dt);
 }
 function placeCamera(I, dt){
@@ -4170,6 +4227,7 @@ function tick(){
     sailT += dt; sSea.userData.mat.uniforms.t.value = T; sMoon.userData.halo.lookAt(camera.position);
     sBoat.position.z -= 15*dt; sBoat.position.y = Math.sin(T*1.4)*.3; sBoat.rotation.z = Math.sin(T*.95)*.05;
     if(sRider.mixer){ sRider.mixer.update(dt); applySeated(sRider); }
+    hatPhysics(sRider, dt);
     if(sBoat.userData.sail) sBoat.userData.sail.rotation.y = Math.PI/2 + .3 + Math.sin(T*1.1)*.05;
     const k = sailT/SAIL_DUR;
     if(!window.__T || !window.__T.__freeze){ camera.position.set(sBoat.position.x+9+k*14, 5.5+k*9, sBoat.position.z+15+k*10);

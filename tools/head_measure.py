@@ -79,3 +79,46 @@ for frac in [0.0,0.05,0.10,0.15,0.20,0.30,0.45]:
     if not band: continue
     r = max(math.hypot(v.x, v.z) for v in band)
     print(f"      {(crown-yy)*S:8.4f}      {r*S:8.4f}")
+
+
+# --- shoulder width, for sizing the brim ---
+# A hat reads right against the shoulders, not against the skull. Her head carries a lot of stylised
+# hair (half-width 0.207 game units = 24 cm across), so applying the reference photo's brim:crown
+# ratio of 2.6 to THAT gives a sombrero. Shoulder width is the honest yardstick.
+sh = []
+for o in meshes:
+    for name in ("LeftShoulder","RightShoulder","LeftArm","RightArm"):
+        vg = o.vertex_groups.get("mixamorig:" + name)
+        if not vg: continue
+        idx = vg.index
+        for v in o.data.vertices:
+            for g in v.groups:
+                if g.group == idx and g.weight > 0.6:
+                    sh.append(o.matrix_world @ v.co)
+if sh:
+    xs = [p.x for p in sh]
+    print(f"SHOULDER span {(max(xs)-min(xs)):.4f} raw -> {(max(xs)-min(xs))*S:.4f} game units"
+          f"  ({(max(xs)-min(xs))*S*0.576*100:.1f} cm)")
+else:
+    print("SHOULDER no arm/shoulder groups found")
+
+
+# --- directional radii at the brim seat ---
+# A real hat crown is an ellipse: deeper front-to-back than side-to-side, and the hair spills out
+# behind it rather than being swallowed. Sizing a circular crown to the widest point (the hair)
+# forces a drum, which is why the brim can never look right against it.
+SEAT_BELOW = 0.054 / S          # 0.054 game units below the crown, in raw units
+yy = crown - SEAT_BELOW
+band = [v for v in verts if abs(v.y - yy) < 0.010/S]
+print(f"SEAT band at {0.054:.3f} below crown: {len(band)} verts")
+import math as _m
+sectors = {"front(+z)":(-45,45), "right(+x)":(45,135), "back(-z)":(135,225), "left(-x)":(225,315)}
+for nm,(a0,a1) in sectors.items():
+    rs = []
+    for v in band:
+        ang = (_m.degrees(_m.atan2(v.x, v.z)) + 360) % 360
+        inside = (a0 <= ang <= a1) if a0 < a1 else (ang >= a0 or ang <= a1)
+        if a0 < 0:
+            inside = ang >= (360+a0) or ang <= a1
+        if inside: rs.append(_m.hypot(v.x, v.z))
+    if rs: print(f"   {nm:10} max {max(rs)*S:.4f}  mean {sum(rs)/len(rs)*S:.4f}  ({len(rs)} verts)")
