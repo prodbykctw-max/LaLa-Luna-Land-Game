@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-10f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-10j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1200,6 +1200,7 @@ function attachRig(R, name){
      mixer instead, where it is exact and measurable: slerp neck and head back toward their bind
      rotations. ?headfix=0 turns it off, ?headfix=0.5 does half. */
   levelClipHeads(model, gltf.animations, name);
+  if(name === "lala") tameJumpClips(model, gltf.animations);
   /* Hygiene, not a fix: these clips carry position AND scale tracks on every bone. Here they are
      no-ops (constant values equal to the bind offsets, scale exactly 1) - I checked, and stripping
      them changes nothing measurable, so it is NOT what fixed her face. It stays because on a
@@ -1569,6 +1570,48 @@ const HEADPITCH = (() => { const v = parseFloat(QS.get("headpitch")); return isN
    camera sees forehead. Yaw alone is what removes the pointed nose and squares her to the view.
    ?headpitch=1 turns it on if the pose ever needs it. */
 const HEAD_BONE_RE = /(neck|head)$/i;
+/* =====================  THE STAR JUMP  =====================
+   Her jump clip is a spread-eagle: arms straight out sideways, legs splayed wide. From behind, at
+   the apex, the hip-to-thigh junction opens into a hard wide angle and reads as a deformed thigh -
+   which is what he saw. The mesh is fine; the POSE is a star jump where a hop belongs.
+
+   Same treatment as the head: take each limb bone's rotation as a delta from bind and scale that
+   delta down, so the timing and the shape of the motion survive but the extremity comes off. Only
+   the jump clip, only the arm and upper-leg chains. ?jumptame=1 leaves the clip untouched. */
+const JUMP_TAME = (() => { const v = parseFloat(QS.get("jumptame")); return isNaN(v) ? 0.52 : Math.max(0, Math.min(1, v)); })();
+const LIMB_BONE_RE = /(shoulder|arm|forearm|upleg|leg)$/i;
+function tameJumpClips(model, clips){
+  if(!(JUMP_TAME < 1) || !clips || !clips.length) return;
+  const bind = {};
+  model.traverse(o => { if(o.isBone && LIMB_BONE_RE.test(o.name.replace(/[^a-z]/gi,""))) bind[o.name] = o.quaternion.clone(); });
+  /* The ARMS cannot be relaxed toward bind: a humanoid rig binds in a T-pose, so "toward bind"
+     puts them straighter out sideways, not down. The first pass did exactly that - the legs came
+     together and the arms stayed pinned horizontal. Arms relax toward the IDLE clip instead,
+     where they hang; legs keep bind, where they are straight down, which already worked. */
+  const idle = clips.find(c => /idle|breath|stand/i.test(c.name));
+  const rest = Object.assign({}, bind);
+  if(idle) for(const t of idle.tracks){
+    const m = t.name.match(/^(.*)\.quaternion$/); if(!m || !bind[m[1]]) continue;
+    if(!/(shoulder|arm|forearm)$/i.test(m[1].replace(/[^a-z]/gi,""))) continue;
+    const v = t.values; if(v.length >= 4) rest[m[1]] = new THREE.Quaternion(v[0], v[1], v[2], v[3]);
+  }
+  const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
+  for(const clip of clips){
+    if(!/jump|fall/i.test(clip.name)) continue;
+    if(clip.userData && clip.userData.jumpTamed) continue;
+    for(const t of clip.tracks){
+      const m = t.name.match(/^(.*)\.quaternion$/); if(!m) continue;
+      const b = rest[m[1]]; if(!b) continue;
+      const v = t.values, n = v.length/4;
+      for(let i=0;i<n;i++){
+        qa.set(v[i*4], v[i*4+1], v[i*4+2], v[i*4+3]);
+        qb.copy(b).slerp(qa, JUMP_TAME);          /* part way from the rest pose toward the star */
+        v[i*4]=qb.x; v[i*4+1]=qb.y; v[i*4+2]=qb.z; v[i*4+3]=qb.w;
+      }
+    }
+    (clip.userData = clip.userData || {}).jumpTamed = true;
+  }
+}
 const _hqA = new THREE.Quaternion(), _hqB = new THREE.Quaternion(), _hqC = new THREE.Quaternion();
 const _heA = new THREE.Euler(0,0,0,"YXZ"), _heB = new THREE.Euler(0,0,0,"YXZ");
 function levelClipHeads(model, clips, tag){
@@ -4059,7 +4102,21 @@ function walkerUpdate(I, dt, t){
   if(!Number.isFinite(W.vy)) W.vy = 0;
   W.y += W.vy*dt;
   if(!Number.isFinite(W.y)) W.y = ground;
+  /* ===================  WALKING DOWNHILL  ===================
+     She "jumped" down every slope and jerked all the way. Order of operations: her x,z move first,
+     THEN the ground is sampled at the new spot. On a descent that ground is below the W.y she is
+     still carrying from the last frame, so W.y > ground, she is flagged airborne, gravity pulls
+     her down, she lands - and it repeats every single frame. The clip is chosen by !W.grounded,
+     so the jump animation played the whole way down too.
+
+     There was a 2.2-unit step-UP tolerance and nothing for stepping DOWN. This is that: while she
+     is already on her feet and not rising, a drop she could stride down is absorbed by planting her
+     on it instead of letting go. The allowance scales with how fast she is travelling, because a
+     sprint covers more ground per frame and meets a bigger drop; a fall past that is a real ledge
+     and still becomes a fall. qa/downhill.mjs walks the steepest descent on every island. */
+  const stepDown = Math.max(0.75, (curSpeed || 0) * dt * 3.2);
   if(W.y <= ground){ if(!W.grounded){ W.landVy = W.vy; if(W.vy < -8) auStep(false); } W.y = ground; W.vy = 0; W.grounded = true; W.gliding = false; }
+  else if(wasGrounded && W.vy <= 0 && (W.y - ground) <= stepDown){ W.y = ground; W.vy = 0; W.grounded = true; W.gliding = false; }
   else W.grounded = false;
 
   let da = W.heading - W.group.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2;
@@ -4378,8 +4435,22 @@ function islandUpdate(I, dt, t){
     }
     u.px0 = x; u.pz0 = z;
     const base = u.fly ? 5 + Math.sin(t*.9+u.ph)*1.6 : I.height(x,z) + Math.abs(Math.sin(t*5))*.12;
-    h.position.set(x, base, z); h.rotation.y = -u.a - Math.PI/2;   /* nose points along the direction of travel */
-    if(u.sp < 0) h.rotation.y += Math.PI;                          /* one that turned around walks forwards, not in reverse */
+    /* Face where you are ACTUALLY going, not where the orbit parameter says you should be.
+       Deriving the yaw from u.a was right until the herd-separation push started nudging animals
+       sideways: qa/animdir.mjs then caught a cow travelling 35 degrees off its own nose. Velocity
+       is the only honest source, and it is immune to whatever else moves them later.
+       A Y-rotation of theta maps the model's local +x to (cos theta, -sin theta), so aligning +x
+       with a velocity (vx, vz) means theta = atan2(-vz, vx). */
+    const pvx = x - (u.ox != null ? u.ox : x), pvz = z - (u.oz != null ? u.oz : z);
+    u.ox = x; u.oz = z;
+    h.position.set(x, base, z);
+    if(pvx*pvx + pvz*pvz > 1e-6){
+      const want = Math.atan2(-pvz, pvx);
+      let da3 = want - h.rotation.y;
+      while(da3 >  Math.PI) da3 -= Math.PI*2;
+      while(da3 < -Math.PI) da3 += Math.PI*2;
+      h.rotation.y += da3 * Math.min(1, dt*6);                     /* they turn, they do not snap */
+    }
     if(u.type === "jelly"){ const p = Math.sin(t*2+u.ph); h.scale.set(1 - p*.06, 1 + p*.14, 1 - p*.06);
       u.legs.forEach(l => { l.rotation.x = Math.sin(t*2+l.userData.phase)*.3; l.rotation.z = Math.cos(t*1.6+l.userData.phase)*.25; l.userData.child.rotation.x = Math.sin(t*2.4+l.userData.phase+1)*.45; }); }
     else u.legs.forEach(l => l.rotation.x = Math.sin(t*(u.type==="dino"?2.2:5) + l.userData.phase)*.45);
