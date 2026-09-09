@@ -85,8 +85,17 @@ canvas{display:block;position:fixed;inset:0}
 #nub{position:absolute;left:50%;top:50%;width:68px;height:68px;margin:-34px 0 0 -34px;
  border-radius:50%;background:rgba(255,246,214,.55);border:2px solid rgba(255,246,214,.9);
  box-shadow:0 4px 18px rgba(0,0,0,.35)}
-.rbtn{position:fixed;right:26px;border-radius:50%;z-index:7;display:none;margin:0;
- font-family:"DM Mono",monospace;letter-spacing:.16em;text-transform:uppercase;transition:.2s;cursor:pointer}
+/* The round HUD buttons inherit the title-screen button rule above, which carries padding:14px 32px.
+   With box-sizing:border-box on a 78px circle that leaves a 12px content box, so a 49px "Interact"
+   label had nowhere to go but rightwards and straight over the edge - measured at 18.4px off centre
+   and overflowing by 3.8px. Zero the padding and centre with grid rather than text flow.
+   The trailing letter-space is compensated too: letter-spacing adds a gap AFTER the last glyph,
+   which the centring counts as part of the label, so every uppercase label sits half a space off.
+   qa/uicenter.mjs measures all of this and fails past 1.5px. */
+.rbtn{position:fixed;right:26px;border-radius:50%;z-index:7;display:none;margin:0;padding:0;
+ place-items:center;font-family:"DM Mono",monospace;letter-spacing:.16em;text-transform:uppercase;
+ transition:.2s;cursor:pointer}
+.rbtn > span,.rbtn > .albl{grid-area:1/1;text-indent:.16em}
 #act{bottom:150px;width:78px;height:78px;font-size:8px;position:fixed;
  border:2px solid rgba(255,246,214,.55);background:rgba(18,16,28,.42);color:var(--moon);opacity:.45}
 #act.live{opacity:1;background:rgba(255,246,214,.14);color:#3A2A18;border-color:rgba(255,232,160,.9);
@@ -122,7 +131,7 @@ canvas{display:block;position:fixed;inset:0}
 #cnub{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;
  background:rgba(255,246,214,.4);border:2px solid rgba(255,246,214,.8)}
 #recenter{bottom:250px;width:44px;height:44px;right:43px;padding:0;font-size:18px;line-height:44px;border:1px solid rgba(255,246,214,.45);background:rgba(18,16,28,.42);color:var(--moon);opacity:.7}
-body.walk .rbtn,body.walk #stick{display:block}
+body.walk .rbtn{display:grid} body.walk #stick{display:block}
 body.desktop #recenter{display:none}
 .topbtn{position:fixed;top:16px;z-index:7;background:none;border:1px solid rgba(247,241,230,.22);
  color:var(--bone);opacity:.5;border-radius:999px;padding:7px 14px;font-size:9px;letter-spacing:.2em;margin:0;
@@ -334,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09z";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-10c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1216,6 +1225,65 @@ function attachRig(R, name){
   if(!R.actions.run) R.actions.run = R.actions.walk;
   playClip(R, "idle", 0);
 }
+/* =====================  HAIR UNDER THE HAT  =====================
+   A lock of her hair came through the crown WALL just above the band - visible in the render, and
+   confirmed by hiding her body and watching it disappear. The crown cannot simply be widened (it
+   becomes a bucket) or raised (it becomes a stovepipe): her hair is genuinely wider than any
+   cowboy hat that would look right on her.
+
+   Felt compresses hair. A game mesh does not, so this does it explicitly: a MORPH TARGET that
+   pulls the head mesh radially inward above the brim seat, ramped in from nothing at the seat so
+   there is no crease at the hairline. Influence goes to 1 only on a rig that wears the hat, so
+   Sanity's bare-headed outfit is untouched.
+
+   Bind space is upright, so bind y is world y; the only conversion needed is the rig's fit scale,
+   since HAT_SEAT and HEAD_TOP are expressed in world units. */
+const HAT_SQUASH = (() => { const v = parseFloat(QS.get("hatsquash")); return isNaN(v) ? 0.38 : Math.max(0, Math.min(0.5, v)); })();
+function hatHairSquash(model, s){
+  if(!(HAT_SQUASH > 0)) return;
+  model.traverse(o => {
+    if(!o.isSkinnedMesh || o.userData.hairSquashed) return;
+    const g = o.geometry, pos = g.attributes.position;
+    const si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
+    if(!si || !sw) return;
+    let head = null; model.traverse(b => { if(b.isBone && /head$/i.test(b.name.replace(/[^a-z0-9]/gi,""))) head = b; });
+    if(!head) return;
+    const hi = o.skeleton.bones.indexOf(head); if(hi < 0) return;
+    const idx = [];
+    for(let i=0;i<pos.count;i++){
+      let w=0;
+      if(si.getX(i)===hi) w+=sw.getX(i); if(si.getY(i)===hi) w+=sw.getY(i);
+      if(si.getZ(i)===hi) w+=sw.getZ(i); if(si.getW(i)===hi) w+=sw.getW(i);
+      if(w >= 0.5) idx.push(i);
+    }
+    if(idx.length < 200) return;
+    let topY = -Infinity;
+    for(const i of idx) topY = Math.max(topY, pos.getY(i));
+    const seatY = topY - (HEAD_TOP - HAT_SEAT) / s;            /* the brim line, in bind units */
+    const span  = Math.max(1e-5, topY - seatY);
+    /* the axis is the centre of what sits under the crown, not of the whole head - her hair is
+       swept to one side and a whole-head centroid would pull the squash off to that side */
+    let ax=0, az=0, n=0;
+    for(const i of idx){ if(pos.getY(i) < seatY) continue; ax+=pos.getX(i); az+=pos.getZ(i); n++; }
+    if(!n) return; ax/=n; az/=n;
+    const disp = new Float32Array(pos.count*3);
+    for(const i of idx){
+      const y = pos.getY(i); if(y < seatY) continue;
+      let t = (y - seatY)/span; t = Math.max(0, Math.min(1, t)); t = t*t*(3-2*t);   /* smooth at the hairline */
+      const k = HAT_SQUASH * t;
+      disp[i*3]     = -(pos.getX(i) - ax) * k;
+      disp[i*3 + 2] = -(pos.getZ(i) - az) * k;
+      disp[i*3 + 1] = -(y - seatY) * k * 0.35;                 /* settle it down a little too */
+    }
+    g.morphAttributes.position = [new THREE.BufferAttribute(disp, 3)];
+    g.morphTargetsRelative = true;
+    o.updateMorphTargets();
+    o.morphTargetInfluences = [1];
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach(m => { if(m){ m.morphTargets = true; m.needsUpdate = true; } });
+    o.userData.hairSquashed = true;
+  });
+}
 /* outfit pieces ride on the skeleton: fans in both hands, lantern in the right hand, crown on the head.
    Anchors are scaled back to world units so the props keep their size inside the bone's space. */
 function bindAttachments(R, model, s){
@@ -1231,7 +1299,7 @@ function bindAttachments(R, model, s){
   if(R.lantern && RH){ const a = anchor(RH, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.lantern); R.lantern.position.set(0, .4, 0); R.lantern.rotation.set(0, 0, 0); } }
   if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, .3, 0); R.crown.rotation.set(Math.PI/2, 0, 0); R.crown.scale.setScalar(.7); } }
   /* her white cowgirl hat — the band takes the island's colour when she wears that island's outfit */
-  if(R.wearsHat && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){
+  if(R.wearsHat && HD){ hatHairSquash(model, s); const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){
     /* Full-size brim (56 cm across in game units, 1 u = 0.576 m) seated lower on her head: y .25
        instead of .34 drops it ~5 cm so it sits on her hair rather than perching above it.
        ?hs= scales the hat, ?hy= raises/lowers it. */
@@ -1314,9 +1382,18 @@ const HAT_SEAT   = 0.275;
 const HAT_RX     = 0.212;
 const HAT_RZ     = 0.228;
 const HAT_FIT    = (HAT_RX + HAT_RZ) / 2;       /* mean crown radius; geometry is built at this */
-const HAT_TOP_R  = 0.80;                        /* taper; the cattleman crease does the rest */
+/* 0.80 read as a fedora, and he was right: the Stetson reference measures 143px across the top
+   against 224px at the base, which is 0.64. A crown that barely draws in is a fedora crown no
+   matter how western the brim is. */
+const HAT_TOP_R  = 0.64;
 const HAT_BRIM   = HAT_FIT * 1.43;              /* the measured Stetson ratio: 320px brim / 224px crown */
-const HAT_CROWN_H = 0.215;                      /* 12.4 cm at 1u = 0.576 m - a cattleman crown */
+/* THE HAIR THROUGH THE TOP, measured rather than eyeballed. The cattleman crease is not a texture,
+   it cuts the crown's top surface DOWN by 0.28*R0 = 0.062 along the centre channel. At the old
+   height the crown's top sat at 0.275 + 0.215 = 0.490, but the creased channel sat at 0.428 -
+   and her hair tops out at 0.4672. So her hair came through the CREASE, which is why checking the
+   crown walls (they always cleared) never found it. The crown has to be tall enough that even the
+   bottom of the crease clears her hair:  seat + H - 0.062 > 0.4672 + margin  ->  H > 0.272. */
+const HAT_CROWN_H = 0.280;                      /* 16 cm; her hair has real volume and it has to fit */
 /* kept so the physics clamp below still reads in the old names */
 const HEAD_CROWN = HEAD_TOP, HEAD_SIDE = Math.max(HEAD_HALF_X, HEAD_HALF_Z);
 const HAT_PHYS = (() => { const v = parseFloat(QS.get("hatphys")); return isNaN(v) ? 1 : v; })();
