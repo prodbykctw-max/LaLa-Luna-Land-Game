@@ -7,3 +7,12 @@ node_modules/
 game/assets/fans-raw/
 game/qa/out/
 game/index_test.html
+
+# Stale copies of the game have been committed twice now - game/index-1.html,
+# game/index_2.html and "Claude outputs/index.html" - and each time the next
+# session could not tell which file was the live one. The sail-flutter work sat
+# unshipped in index_2.html for a day because of it. There is exactly one game
+# file: game/index.html. The root index.html is the Pages redirect and stays.
+game/index-*.html
+game/index_*.html
+"Claude outputs/*.html"
