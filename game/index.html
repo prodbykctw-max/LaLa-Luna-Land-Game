@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09l";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -367,9 +367,9 @@ const SHELF_FLAT = 6, SHELF_EDGE = 13, SHELF_DROP = 2.3, WADE_MAX = 11.5, SHORE_
 const SEA_Y = -1.1;
 /* the sea surface at a point, in world units - the same wave the sea shader displaces its vertices by,
    so splashes, rings and floating things sit ON the water instead of somewhere near it */
-function seaHeight(x, z, t){
+function seaHeight(x, z, t, base){
   const py = -z;   /* the sea plane is rotated -90 deg about x, so its local y runs along world -z */
-  return SEA_Y + Math.sin(x*.055 + t*1.05)*.5 + Math.sin(py*.07 - t*.8)*.4 + Math.sin((x+py)*.11 + t*1.6)*.22;
+  return (base == null ? SEA_Y : base) + Math.sin(x*.055 + t*1.05)*.5 + Math.sin(py*.07 - t*.8)*.4 + Math.sin((x+py)*.11 + t*1.6)*.22;
 }
 const shelfGround = d => d <= SHELF_FLAT ? -.12 : -.12 - Math.min(1.4, (d - SHELF_FLAT)/(SHELF_EDGE - SHELF_FLAT))*SHELF_DROP;
 /* Hand-authored landmark radii (the town square's stalls and lamps, the crowd rings) were pinned
@@ -805,7 +805,8 @@ function burst(buf, type, freq, q, peak, dur){
   s.connect(f); f.connect(g); g.connect(AU.master); s.start(t); s.stop(t+dur+.05);
 }
 const auStep   = (soft) => burst(AU.white, "bandpass", 380+Math.random()*260, 1.3, soft ? .06 : .10, .15);
-const auWade   = () => burst(AU.white, "lowpass", 620+Math.random()*360, .7, .09, .26);                       /* a foot through shallow water */
+const auWade   = () => burst(AU.white, "lowpass", 620+Math.random()*360, .7, .09, .26);
+const auFlutter = () => { burst(AU.white, "bandpass", 1400+Math.random()*900, 2.4, .05, .16); if(Math.random() < .6) auChirp(); };   /* a bird going up */                       /* a foot through shallow water */
 const auSplash = (big) => burst(AU.white, "lowpass", big ? 480 : 760, .6, big ? .20 : .10, big ? .55 : .30);   /* landing in it, or a ball going in */
 const auThunder = () => { if(!AU.ready||!AU.on) return;
   const ctx = AU.ctx, t = ctx.currentTime + .6 + Math.random()*1.4;
@@ -1539,6 +1540,144 @@ function waterFx(scene){
     if(any || dirty){ pg.attributes.position.needsUpdate = true; dirty = any; }
   };
   return {ripple, splash, update, rings, pts};
+}
+/* The wake of a moving boat. A ribbon of LEN x WID on the water behind the stern: two arms that
+   diverge from the quarters and a churned centre line, all fading with distance, with streaks that
+   scroll aft at the boat's speed so the foam is left behind rather than dragged along. The ribbon's
+   vertices are re-laid on the real sea surface every frame, so the swell passes through it instead
+   of hiding it. update(x, z, heading, speed, t): heading is the direction the boat is moving in. */
+function boatWake(scene, LEN, WID, baseY){
+  const NX = 9, NZ = 26;
+  const g = new THREE.PlaneGeometry(WID, LEN, NX-1, NZ-1); g.rotateX(-Math.PI/2);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {t:{value:0}, uSpeed:{value:1}}]),
+    vertexShader:`varying vec2 vUv;
+      #include <fog_pars_vertex>
+      void main(){ vUv = uv; vec4 mvPosition = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader:`uniform float t, uSpeed; varying vec2 vUv;
+      #include <fog_pars_fragment>
+      void main(){
+        float v = vUv.y;                                        /* 0 at the stern (last grid row), 1 at the far end (row 0) */
+        float u = vUv.x - 0.5;
+        float w = 0.09 + v*0.34;                                /* the arms open out behind the boat */
+        float arm = 1.0 - smoothstep(0.0, 0.045 + v*0.07, abs(abs(u) - w));
+        float churn = 1.0 - smoothstep(0.0, 0.13*(1.0 - v*0.6), abs(u));
+        float streak = sin(v*46.0 - t*uSpeed*3.0 + u*14.0)*0.5 + 0.5;
+        float lace   = sin(v*23.0 - t*uSpeed*2.1 - u*31.0)*0.5 + 0.5;
+        float a = (arm*0.70 + churn*0.60) * (1.0 - v) * (1.0 - v) * (0.45 + 0.35*streak + 0.20*lace);
+        gl_FragColor = vec4(0.94, 0.97, 1.0, min(0.7, a));
+        #include <fog_fragment>
+      }`,
+    transparent:true, depthWrite:false, side:THREE.DoubleSide, fog:true});
+  const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.renderOrder = 3; scene.add(m);
+  const pos = g.attributes.position;
+  const update = (x, z, heading, speed, t) => {
+    /* lay the grid from the stern back along -heading, each vertex on the water */
+    const hx = Math.sin(heading), hz = Math.cos(heading), rx = hz, rz = -hx;
+    let i = 0;
+    for(let j=0;j<NZ;j++){ const back = 1.2 + (1 - j/(NZ-1))*LEN;      /* row 0 is the far end (uv.y = 0), last row is the stern */
+      for(let k=0;k<NX;k++){ const side = (k/(NX-1) - .5)*WID;
+        const px = x - hx*back + rx*side, pz = z - hz*back + rz*side;
+        pos.setXYZ(i++, px, seaHeight(px, pz, t, baseY) + .06, pz); } }
+    pos.needsUpdate = true; mat.uniforms.t.value = t; mat.uniforms.uSpeed.value = speed;
+  };
+  return {mesh:m, update};
+}
+/* ---- shore birds: waders on the wet sand that flush when she runs at them ----
+   Small birds stand along the waterline, peck, and take a few steps. Anything coming at them fast -
+   her, the horse under her, a kicked ball - puts them up: a flutter, an arc away from whatever
+   scared them, and a glide down to a new spot on the sand a little way along the shore. One going
+   up puts up its neighbours a beat later. It is the cheapest "the world knows you are here" cue
+   there is, and beaches without it read as painted. */
+function makeWader(col){
+  const g = new THREE.Group(), m = toon(col), dk = toon(0x3A3230);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(.22, 8, 6), m); body.scale.set(1.7, .85, .9); body.position.y = .42; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.11, 7, 6), m); head.position.set(.36, .62, 0); g.add(head);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(.03, .34, 5), dk); beak.rotation.z = -Math.PI/2; beak.position.set(.58, .60, 0); g.add(beak);
+  const legs = [-1, 1].map(sd => { const l = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .36, 4), dk); l.position.set(-.02, .18, sd*.08); g.add(l); return l; });
+  const wings = [-1, 1].map(sd => { const sh = new THREE.Shape(); sh.moveTo(.15, 0); sh.lineTo(.05, -.55*sd); sh.lineTo(-.28, -.48*sd); sh.lineTo(-.22, 0); sh.closePath();
+    const wg = new THREE.ShapeGeometry(sh); wg.rotateX(-Math.PI/2);
+    const w = new THREE.Mesh(wg, toon(col, {side:THREE.DoubleSide})); w.position.set(.02, .50, sd*.12); w.userData.s = sd; g.add(w); return w; });
+  groundShadow(g, .3);
+  g.userData = {head, legs, wings, state:"stand", timer:Math.random()*2, ph:Math.random()*6.3, face:Math.random()*6.3, tx:null, tz:null, dyn:1};
+  g.traverse(o => { o.userData.dyn = 1; });                    /* never baked into the static mesh: they move */
+  return g;
+}
+function shoreBirds(scene, POLY, cfg, heightFn, shoreOutFn, n, col){
+  /* stand on the sand just past the waterline, near where she arrives so they get seen */
+  const ring = polyOffset(POLY, 3.0).map(p => ({x:p[0], z:p[1], d:Math.hypot(p[0]-cfg.spawn[0], p[1]-cfg.spawn[1])}))
+    .filter(p => !(Math.abs(p.x-cfg.dock[0]) < 12 && Math.abs(p.z-cfg.dock[1]) < DOCK_LEN/2 + 12))
+    .sort((a,b) => a.d-b.d).slice(0, 24);
+  /* in small groups of two or three, so one going up takes the others with it */
+  const list = [], spots = [];
+  for(let k=0;k<Math.ceil(n/2.5) && ring.length;k++) spots.push(ring.splice((Math.random()*Math.min(10, ring.length))|0, 1)[0]);
+  for(let i=0;i<n && spots.length;i++){
+    const p = spots[i % spots.length];
+    const g = makeWader(col); g.scale.setScalar(.85);
+    g.position.set(p.x + (Math.random()-.5)*5, heightFn(p.x, p.z), p.z + (Math.random()-.5)*5);
+    g.rotation.y = g.userData.face - Math.PI/2;
+    scene.add(g); list.push(g);
+  }
+  list.ring = polyOffset(POLY, 3.0);
+  return list;
+}
+function wadersUpdate(I, dt, t){
+  const list = I.fx.waders; if(!list || !list.length) return;
+  const W = I.W;
+  const threats = [{x:W.x, z:W.z, sp:W.speedNow || 0, r:W.mount ? 9.5 : 6.5}];
+  for(const o of I.props){ const p = o.userData.roll; if(p && (p.vx*p.vx + p.vz*p.vz) > 4) threats.push({x:o.position.x, z:o.position.z, sp:9, r:4}); }
+  const flush = (g, from) => {
+    const u = g.userData; u.state = "fly"; u.flushAt = null;
+    /* away from the threat, veering up to 40 degrees either way, 18-36 u along; land on the sand ring nearest that point */
+    const ax = g.position.x - from.x, az = g.position.z - from.z, al = Math.hypot(ax, az) || 1;
+    const veer = (Math.random()-.5)*1.4, ca = Math.cos(veer), sa = Math.sin(veer);
+    const dx = (ax*ca - az*sa)/al, dz = (ax*sa + az*ca)/al, dist = 18 + Math.random()*18;
+    const cx = g.position.x + dx*dist, cz = g.position.z + dz*dist;
+    let best = null, bd = 1e9; for(const p of list.ring){ const d = (p[0]-cx)*(p[0]-cx) + (p[1]-cz)*(p[1]-cz); if(d < bd){ bd = d; best = p; } }
+    u.p0 = {x:g.position.x, y:g.position.y, z:g.position.z};
+    u.p2 = {x:best[0] + (Math.random()-.5)*2, z:best[1] + (Math.random()-.5)*2}; u.p2.y = I.height(u.p2.x, u.p2.z);
+    u.p1 = {x:(u.p0.x + u.p2.x)/2 + dx*6, y:Math.max(u.p0.y, u.p2.y) + 7 + Math.random()*4, z:(u.p0.z + u.p2.z)/2 + dz*6};
+    u.flyDur = 2.6 + Math.random()*1.2; u.timer = u.flyDur; u.tx = null;
+    auFlutter();
+    for(const o of list){ const v = o.userData; if(o !== g && v.state === "stand" && !v.flushAt && Math.hypot(o.position.x-g.position.x, o.position.z-g.position.z) < 9){ v.flushAt = t + .08 + Math.random()*.3; v.flushFrom = from; } }
+  };
+  for(const g of list){ const u = g.userData;
+    if(u.state === "stand"){
+      let scare = null;
+      for(const th of threats){ if(th.sp > 3 && Math.hypot(g.position.x-th.x, g.position.z-th.z) < th.r){ scare = th; break; } }
+      if(!scare && u.flushAt && t >= u.flushAt) scare = u.flushFrom;
+      if(scare){ flush(g, scare); continue; }
+      u.head.position.y = .62 - (Math.sin(t*5 + u.ph) > .55 ? .22 : 0);          /* pecking */
+      u.timer -= dt;
+      if(u.timer <= 0){
+        const a = u.face + (Math.random()-.5)*1.6, sd = .8 + Math.random()*1.8;
+        const nx = g.position.x + Math.sin(a)*sd, nz = g.position.z + Math.cos(a)*sd, o = I.shoreOut(nx, nz);
+        if(o > 1.0 && o < SHELF_FLAT - .5){ u.tx = nx; u.tz = nz; u.face = a; }
+        u.timer = 1 + Math.random()*2.5;
+      }
+      if(u.tx != null){ const dx = u.tx-g.position.x, dz = u.tz-g.position.z, d = Math.hypot(dx, dz);
+        if(d > .05){ const st = Math.min(d, 2.4*dt); g.position.x += dx/d*st; g.position.z += dz/d*st; u.legs.forEach((l,i) => l.rotation.z = Math.sin(t*22 + i*Math.PI)*.5); }
+        else { u.tx = null; u.legs.forEach(l => l.rotation.z = 0); } }
+      g.position.y = I.height(g.position.x, g.position.z);
+      g.rotation.y = lerpAngle(g.rotation.y, u.face - Math.PI/2, Math.min(1, dt*6));
+      u.wings.forEach(w => w.rotation.x = 0);
+    } else {
+      u.timer -= dt;
+      const k = Math.min(1, 1 - u.timer/u.flyDur), q = 1-k;
+      const px = q*q*u.p0.x + 2*q*k*u.p1.x + k*k*u.p2.x, py = q*q*u.p0.y + 2*q*k*u.p1.y + k*k*u.p2.y, pz = q*q*u.p0.z + 2*q*k*u.p1.z + k*k*u.p2.z;
+      const vx = px - g.position.x, vz = pz - g.position.z;
+      if(vx*vx + vz*vz > 1e-6) u.face = Math.atan2(vx, vz);
+      g.position.set(px, py + (k < .9 ? Math.abs(Math.sin(t*26 + u.ph))*.08 : 0), pz);
+      g.rotation.y = u.face - Math.PI/2;
+      const flap = k > .75 ? Math.sin(t*9 + u.ph)*.25 + .35 : Math.sin(t*26 + u.ph);   /* beats hard going up, sets its wings to glide in */
+      u.wings.forEach(w => w.rotation.x = w.userData.s * flap * .95);
+      u.legs.forEach(l => l.rotation.z = -1.2);                              /* tucked up */
+      if(u.timer <= 0){ u.state = "stand"; u.timer = 1.5 + Math.random()*2; g.position.y = u.p2.y; u.legs.forEach(l => l.rotation.z = 0); }
+    }
+    if(g.userData.shadowDecal){ const lift = g.position.y - I.height(g.position.x, g.position.z); g.userData.shadowDecal.position.y = .035 - lift; g.userData.shadowDecal.material.opacity = .7/(1 + lift*.3); }
+  }
 }
 function foamRing(scene, x, z, r, y){
   const m = new THREE.Mesh(new THREE.RingGeometry(r-1.6, r+2.4, 72),
@@ -3414,6 +3553,7 @@ function buildIsland(cfg){
   I.water = waterFx(scene);
   I.fx = {
     foam:I.foam, wet:I.wetBand,
+    waders: POLY ? shoreBirds(scene, POLY, cfg, height, shoreOut, cfg.key === "sanity" ? 4 : 7, cfg.key === "sanity" ? 0x9AA0B4 : 0xE2D8C6) : [],
     grass: grassField(scene, GRASS_N, cfg.spawn, height, cfg.grassCols, noGrass),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
@@ -3540,6 +3680,7 @@ function walkerUpdate(I, dt, t){
   let da = W.heading - W.group.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2;
   W.group.rotation.y += da*Math.min(1, dt*15);
   const moving = mag > .08 && W.grounded;
+  W.speedNow = mag > .08 ? curSpeed : 0;                     /* what the shore birds judge her by */
   /* Water. Depth is the real sea surface (same wave as the shader) over the ground under her. Every
      stride in it throws a ring and a handful of drops sized to how fast and how deep; landing in it from
      a jump throws a proper splash; standing still in it, the swash rings around her legs. */
@@ -3673,6 +3814,7 @@ function islandUpdate(I, dt, t){
   I.sea.userData.mat.uniforms.t.value = t;
   I.moon.userData.halo.lookAt(camera.position);
   I.boat.position.y = .1 + Math.sin(t*1.3)*.18; I.boat.rotation.z = Math.sin(t*.9)*.04;
+  wadersUpdate(I, dt, t);
   if(I.water){ I.water.update(dt, t, I.seaY);
     /* the moored boat works at its line: a slow ring spreads from the hull every couple of seconds */
     I.boatRipT = (I.boatRipT == null ? 1 : I.boatRipT) - dt;
@@ -4018,6 +4160,8 @@ const sMoon = moonPair(new THREE.Vector3(-90,70,-260), 18); sail.add(sMoon);
 sail.add(new THREE.HemisphereLight(0xA8DCD8, 0x5AA0C8, .92));
 { const k = new THREE.DirectionalLight(0xFFE9CC, 1.0); k.position.set(-20,40,10); sail.add(k); }
 const sSea = seaMesh(0x5AA0C8, 0x86C4E0); sail.add(sSea); sail.add(seaBed(0x5AA0C8));
+/* the sail scene's sea sits at y=0, not the islands' SEA_Y, so everything laid on it says so */
+const sWake = boatWake(sail, 46, 9, 0), sWater = waterFx(sail), sSeaAt = (x, z, t) => seaHeight(x, z, t, 0);
 const sBoat = makeBoat(0x8D6141, MOON, 1.0); const sRider = makeLala();
 { sRider.group.scale.setScalar(.85); sRider.group.position.set(0, sBoat.userData.benchY - .72, sBoat.userData.benchZ + .15); sRider.group.rotation.y = 0;   /* origin is her feet: on the deck, hips on the thwart */
   sRider.seated = true; sRider.fans.visible = false; sRider.fanMeshes.forEach(f => f.visible = false); sRider.lantern.visible = false; sBoat.add(sRider.group); sail.add(sBoat); }
@@ -4226,6 +4370,13 @@ function tick(){
   } else {
     sailT += dt; sSea.userData.mat.uniforms.t.value = T; sMoon.userData.halo.lookAt(camera.position);
     sBoat.position.z -= 15*dt; sBoat.position.y = Math.sin(T*1.4)*.3; sBoat.rotation.z = Math.sin(T*.95)*.05;
+    /* she is sailing at 15 u/s: the stern trails a wake laid on the swell, and the bow throws spray
+       every time it comes down - more when the hull is dropping, none as it lifts */
+    sWake.update(sBoat.position.x, sBoat.position.z, Math.PI, 15, T);
+    { const bx = sBoat.position.x, bz = sBoat.position.z - 4.4, sy = sSeaAt(bx, bz, T);
+      const fall = -Math.cos(T*1.4)*1.4*.3;                      /* d/dt of the bob: negative while the bow is coming down */
+      sWater.splash(bx + (Math.random()-.5)*.9, sy, bz, fall < 0 ? 5 : 2, 1.0 + Math.max(0, -fall)*2.4);
+      sWater.update(dt, T, sSeaAt); }
     if(sRider.mixer){ sRider.mixer.update(dt); applySeated(sRider); }
     hatPhysics(sRider, dt);
     if(sBoat.userData.sail) sBoat.userData.sail.rotation.y = Math.PI/2 + .3 + Math.sin(T*1.1)*.05;
