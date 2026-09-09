@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09h";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1004,7 +1004,11 @@ function loadProxy(name){
    rendering the mask over the real texture — and note the trap that cost a pass: an atlas dumped
    out of Blender goes through its view transform, so thresholds judged on that image do not match
    the raw pixels. These are measured against the texture as the browser sees it. */
-const SKIN_LIFT = parseFloat(QS.get("skin")) != null && !isNaN(parseFloat(QS.get("skin"))) ? parseFloat(QS.get("skin")) : 0.18;
+/* OFF. Tried at 0.18 and it looked bad — the lift washes the shading out rather than reading as a
+   different complexion, because it moves every skin pixel toward white by the same proportion
+   instead of shifting the tone. Left in place behind ?skin= so a value can be tried without a
+   rebuild, but the default renders her exactly as the texture was painted. */
+const SKIN_LIFT = (() => { const v = parseFloat(QS.get("skin")); return isNaN(v) ? 0 : v; })();
 function lightenSkin(tex){
   try{
     const img = tex && tex.image; if(!img || !(img.width || img.naturalWidth) || SKIN_LIFT <= 0) return tex;
@@ -1120,7 +1124,10 @@ function bindAttachments(R, model, s){
     /* Full-size brim (56 cm across in game units, 1 u = 0.576 m) seated lower on her head: y .25
        instead of .34 drops it ~5 cm so it sits on her hair rather than perching above it.
        ?hs= scales the hat, ?hy= raises/lowers it. */
-    const HS = parseFloat(new URLSearchParams(location.search).get("hs") || "1"), HY = parseFloat(new URLSearchParams(location.search).get("hy") || ".25");
+    /* Brim was 0.71 u across — 41 cm at 1 u = 0.576 m, which is a real wide-brim western hat and
+       still read as too big on her. Art direction wins over the tape measure: 0.80 puts it at
+       33 cm, comfortably above the 19 cm version that was called too small. ?hs= and ?hy= tune it. */
+    const HS = parseFloat(new URLSearchParams(location.search).get("hs") || ".80"), HY = parseFloat(new URLSearchParams(location.search).get("hy") || ".22");
     const hat = cowgirlHat(); hat.scale.setScalar(HS); hat.position.set(0, HY, -.008*HS/.40); hat.rotation.set(-.06, 0, 0); a.add(hat);
     R.hat = hat; R.hatBandMesh = hat.userData.band;
     if(R.pendingBand != null) R.hatBandMesh.material.color.setHex(R.pendingBand);
@@ -3289,15 +3296,22 @@ function buildIsland(cfg){
      on the dock deck, in the beach or grotto clearings, up against anything solid, and in any zone
      decor has reserved (the stream bed, paving). */
   /* ---- the grass line ----
-     One hard border around the whole island: grass belongs on the meadow slab and nowhere else.
-     The slab is polyOffset(POLY, -2.5), so the blades are held one unit inside its edge — close
-     enough that the meadow runs right up to the sand, far enough that no blade stands in it. The
-     old margin was 4.5, which kept grass off the sand but left a bald ring all the way round.
-     Both rings are tested, so the rule cannot be lost if either offset is ever retuned. */
-  const MEADOW_POLY = POLY ? polyOffset(POLY, -2.5) : null;      /* exactly the slab that is drawn */
-  const GRASS_POLY  = POLY ? polyOffset(POLY, -3.5) : null;      /* one unit of tolerance inside it */
+     Grass is allowed to run a little way onto the sand and then thin out, rather than stopping dead
+     at the meadow edge — a hard cut reads as a mown lawn, and a bald ring reads worse. GRASS_EDGE
+     is the hard stop, two units past the meadow slab; over the last GRASS_FADE units the odds of a
+     blade surviving fall to nothing, so the meadow feathers into the beach the way real dune grass
+     does. Nothing reaches the waterline: the sand runs out to +6 and the stop is at -0.5. */
+  const GRASS_FADE = 4.0;
+  const GRASS_EDGE = POLY ? polyOffset(POLY, -0.5) : null;      /* the hard stop, out in the sand */
+  const GRASS_SOFT = POLY ? polyOffset(POLY, -0.5 - GRASS_FADE) : null;   /* full density inside this */
   const noGrass = (x,z) => {
-    if(POLY){ if(!polyInside(GRASS_POLY, x, z) || !polyInside(MEADOW_POLY, x, z)) return true; }
+    if(POLY){
+      if(!polyInside(GRASS_EDGE, x, z)) return true;
+      if(!polyInside(GRASS_SOFT, x, z)){
+        /* in the fade band: keep roughly a third of the blades, thinning outward */
+        if(Math.random() > .34) return true;
+      }
+    }
     else if(!inside(x,z)) return true;
     if(Math.abs(x-cfg.dock[0]) < 5.5 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2+3) return true;   /* the dock and its landing */
     if(cfg.beach  && Math.hypot(x-cfg.beach.x,  z-cfg.beach.z)  < cfg.beach.r)     return true;
