@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-10l";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-10p";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -391,13 +391,13 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = PROF.shadow; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = REAL ? 1.0 : 1.05;   /* the environment map adds real light, so pull the exposure back */
+renderer.toneMappingExposure = (QS.get("look") || "toon3d") !== "real" ? 1.12 : (REAL ? 1.0 : 1.05);   /* the environment map adds real light, so pull the exposure back */
 document.body.appendChild(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .1, 900 * (1 + (WORLD - 1) * 0.7));   /* far enough to see across a bigger island */
 /* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
-const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .42, .55, .82); if(PROF.bloom) composer.addPass(bloomPass);
+const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .30, .75, .86); if(PROF.bloom) composer.addPass(bloomPass);
 const gradePass = new THREE.ShaderPass({
   uniforms:{tDiffuse:{value:null}, vig:{value:.42}, sat:{value:1.08}, lift:{value:new THREE.Vector3(.006,.004,.012)}},
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
@@ -457,13 +457,31 @@ function stdMat(opts){
      albedo anything real has: grass is about 0.18-0.25 reflectance, not 0.55. Without this the
      meadow goes to milk and the island loses all its contrast. Emissive surfaces are left alone,
      since their brightness is the point. */
-  if(!o.emissive) m.color.multiplyScalar(0.55);
+  /* 0.55 was right for a physical sun on real grass. Under the film look it just makes everything
+     muddy - Disney colour is saturated and the shadows are lifted instead. */
+  if(!o.emissive) m.color.multiplyScalar(TOON3D ? 0.76 : 0.55);
   return m;
 }
 /* How much of a pbr rig is its own painted texture (emissive) rather than re-lit albedo.
    ?pbrflat= and ?pbrenv= sweep them. 0 restores the old flood. */
-const PBR_FLAT = (() => { const v = parseFloat(QS.get("pbrflat")); return isNaN(v) ? 1.0 : Math.max(0, Math.min(1, v)); })();
-const PBR_ENV  = (() => { const v = parseFloat(QS.get("pbrenv"));  return isNaN(v) ? 0.30 : v; })();
+/* =====================  DISNEY / PIXAR LIGHTING  =====================
+   The realism target (Where Winds Meet) is retired. The reference is now the Autosprite v2 render
+   itself and the films it looks like - Encanto, and Disney/Pixar generally. That is a different
+   lighting philosophy, not a different amount of the same one:
+
+     - shadows are LIFTED, never black: a big soft sky fill carries them
+       (first pass put that fill at 0.95 and the scenery went to flat pale slabs - the fill has to
+        lift the shadows, not erase the form; 0.52 against a 1.35 key is the balance)
+     - one warm key for shape, at a fraction of the contrast a physical sun would give
+     - a cool bounce from below and behind, standing in for the ground and sky
+     - albedo stays SATURATED - the 0.55 crush that suited physical grass makes cel colours muddy
+     - highlights roll off gently rather than clipping
+
+   ?look=real restores the old physically-lit direction for comparison. */
+const LOOK = QS.get("look") || "toon3d";
+const TOON3D = LOOK !== "real";
+const PBR_FLAT = (() => { const v = parseFloat(QS.get("pbrflat")); return isNaN(v) ? (TOON3D ? 0.58 : 1.0) : Math.max(0, Math.min(1, v)); })();
+const PBR_ENV  = (() => { const v = parseFloat(QS.get("pbrenv"));  return isNaN(v) ? (TOON3D ? 0.85 : 0.30) : v; })();
 /* Every material shaded this way, so the island can re-tint them when she travels. */
 const PBR_MATS = [];
 /* At PBR_FLAT = 1 she is drawn straight from her own painted atlas with no normal-based shading at
@@ -3322,10 +3340,23 @@ function buildIsland(cfg){
     const rt = skyEnv(P);
     if(rt){ scene.environment = rt.texture; I_ENV.push(rt); }
   }
-  const hemi = REAL ? (cfg.key === "sanity" ? .08 : .12) : (cfg.key === "sanity" ? .38 : .5);
+  const isNight = cfg.key === "sanity";
+  /* A film rig, not a sun. The hemisphere IS the light here - it carries the shadows so they never
+     go black - and the key only has enough contrast left to describe shape. */
+  const hemi = TOON3D ? (isNight ? .30 : .44)
+             : REAL   ? (isNight ? .08 : .12) : (isNight ? .38 : .5);
   scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, hemi));
-  const keyI = REAL ? (cfg.key === "sanity" ? .95 : 2.0) : (cfg.key === "sanity" ? .55 : .95);
+  const keyI = TOON3D ? (isNight ? .78 : 1.35)
+             : REAL   ? (isNight ? .95 : 2.0) : (isNight ? .55 : .95);
   const key = new THREE.DirectionalLight(P.key, keyI); key.position.set(-25,40,15); scene.add(key);
+  if(TOON3D){
+    /* cool bounce from the opposite side and slightly below - the ground and sky answering the key */
+    const bounce = new THREE.DirectionalLight(P.waterHi || P.skyBot, isNight ? .22 : .38);
+    bounce.position.set(28, -6, -18); scene.add(bounce);
+    /* a soft rim from behind, which is what separates a character from a background in these films */
+    const rim = new THREE.DirectionalLight(0xFFF4E2, isNight ? .28 : .42);
+    rim.position.set(10, 22, -36); scene.add(rim);
+  }
   PBR_TINT = pbrTint(P.key, keyI); applyPbrTint();   /* she travels; her tint travels with her */
   const sea = seaMesh(P.water, P.waterHi); sea.position.y = SEA_Y; scene.add(sea); scene.add(seaBed(P.water));
   /* stars scale with how dark the island's sky is — Sanity (the night song, full moon) gets a real
