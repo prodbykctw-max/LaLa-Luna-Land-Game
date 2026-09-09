@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09p";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09q";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -896,9 +896,22 @@ const DBG = (...a) => console.log("[lala]", (performance.now()/1000).toFixed(2)+
 /* metres -> world units. Lala is 1.70 m = 2.95 u, so 1 m = 1.735 u. */
 const M = m => m*2.95/1.70;
 const RIGS = {
-  /* Her head is rebuilt: Autosprite's image->3D step melted the face (gouged mesh + a shredded UV atlas),
-     so the clean 2D portrait is re-projected onto the mesh and the reconstruction noise is smoothed out.
-     ?old=1 loads the previous head for comparison.
+  /* Her head geometry is rebuilt - Autosprite's image->3D step left reconstruction noise, and the
+     Taubin smoothing pass fixed it (v2 had triangular notches under the lower lip; this does not).
+     ?old=1 loads the v2 head for comparison.
+
+     THE TEXTURE REPROJECTION IS REVERTED (2026-09-09). The premise behind it - "the atlas is
+     shredded" - was wrong for this character. Rendered unlit at full zoom, Autosprite's own atlas
+     is even and clean, and my re-projected bake was the thing smearing her: a dark blotch under
+     the nose, streaks across the cheek, and a hard line through the corner of her mouth. He
+     described it as "wearing somebody else's skin", which is exactly what a misregistered
+     front-ortho bake looks like. assets/lala.glb now carries the repaired MESH with Autosprite's
+     ORIGINAL 1024 atlas; the baked version is kept at work/lala-bakedtex-2026-09-05.glb.
+     Verified: bboxMin.y unchanged, all four clips intact, UV layout identical.
+
+     Lesson, since I got this backwards twice in one turn: judge a face at full zoom in three
+     separate renders - texture-only, clay, normals - and read them one at a time. Clay and normals
+     smooth + texture ugly means the ATLAS is at fault, and no amount of mesh work will touch it.
 
      pbr DEFAULTS ON for Lala, and that is the fix for "her nose and facial area look wrong".
      qa/facediag.mjs rendered her head three ways off assets/lala.glb - texture only, clay, and
