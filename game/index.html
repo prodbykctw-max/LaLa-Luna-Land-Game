@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -464,10 +464,11 @@ function mottle(scale, dark, seedMul){
 function grassGround(){
   const S = 512, cv = document.createElement("canvas"); cv.width = cv.height = S;
   const c = cv.getContext("2d");
-  c.fillStyle = "#fff"; c.fillRect(0,0,S,S);
+  const BASE = REAL ? 232 : 255, PATCH = REAL ? 78 : 30, BLADE = REAL ? 150 : 78;
+  c.fillStyle = `rgb(${BASE},${BASE},${BASE})`; c.fillRect(0,0,S,S);
   for(let i=0;i<420;i++){                                   /* broad tonal patches */
     const r = 20+Math.random()*70, x = Math.random()*S, y = Math.random()*S;
-    const v = Math.round(255 - 30*(.3+Math.random()*.7));
+    const v = Math.round(BASE - PATCH*(.3+Math.random()*.7));
     const g = c.createRadialGradient(x,y,0,x,y,r);
     g.addColorStop(0,`rgba(${v},${v},${v},.75)`); g.addColorStop(1,`rgba(${v},${v},${v},0)`);
     c.fillStyle = g; c.fillRect(x-r,y-r,r*2,r*2);
@@ -476,7 +477,7 @@ function grassGround(){
   for(let i=0;i<5200;i++){                                  /* the blades themselves */
     const x = Math.random()*S, y = Math.random()*S;
     const a = -Math.PI/2 + (Math.random()-.5)*1.5, len = 5+Math.random()*11;
-    const v = Math.round(255 - 78*(.25+Math.random()*.75));
+    const v = Math.round(BASE - BLADE*(.25+Math.random()*.75));
     c.strokeStyle = `rgba(${v},${v},${v},${.30+Math.random()*.45})`;
     c.lineWidth = .7+Math.random()*1.1;
     c.beginPath(); c.moveTo(x,y);
@@ -2344,8 +2345,8 @@ function buildIsland(cfg){
   /* ground */
   if(POLY){
     const sandP = polyOffset(POLY, 6), grassP = polyOffset(POLY, -2.5);
-    scene.add(polySlab(sandP, 3.2, -.12, toon(P.sand, {map:TEX.sand})));   /* the beach, a hair below the meadow */
-    scene.add(polySlab(grassP, 3.4, 0, toon(P.grass, {map:TEX.meadow}))); /* top face at y=0 = the walkable height */
+    scene.add(polySlab(sandP, 3.2, -.12, toon(P.sand, {map:TEX.sand, roughness:1, envMapIntensity:.16})));   /* the beach, a hair below the meadow */
+    scene.add(polySlab(grassP, 3.4, 0, toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}))); /* top face at y=0 = the walkable height */
     const foamShape = polyShape(polyOffset(POLY, 9.5));
     foamShape.holes.push(new THREE.Path(polyShape(polyOffset(POLY, 4.5)).getPoints().reverse()));
     const fg = new THREE.ShapeGeometry(foamShape); fg.rotateX(-Math.PI/2);
@@ -2354,7 +2355,7 @@ function buildIsland(cfg){
   } else cfg.lobes.forEach(l => {
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand, {map:TEX.sand}));
     sand.position.set(l.x,-1.62,l.z); scene.add(sand);
-    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass, {map:TEX.meadow}));
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}));
     grass.position.set(l.x,-1.6,l.z); scene.add(grass);
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
