@@ -334,8 +334,20 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
-const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
+const BUILD = "2026-09-09b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const QS = new URLSearchParams(location.search);
+/* ---- art direction ----
+   "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
+   ink outlines, no stepped ramp. "toon" is the original cel look, kept so the two can be compared
+   from the same frame — ?art=toon. Note what the reference actually is: Where Winds Meet is not
+   photoreal (Messiah engine, fully dynamic lighting, no ray-traced GI, and its own character models
+   are not especially dense). What carries it is lighting, atmosphere and world density — which is
+   exactly what a browser can afford. */
+const ART = (QS.get("art") || "real").toLowerCase();
+const REAL = ART !== "toon";
+const PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"),
+              ink: !QS.get("noink") && !REAL,          /* the outline shell is the loudest cel tell */
+              dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
    The islands were 1:323 against the real places they trace — Green measured 208 m across, about
@@ -356,7 +368,8 @@ renderer.setPixelRatio(PROF.dpr);
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.shadowMap.enabled = PROF.shadow; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = REAL ? 1.0 : 1.05;   /* the environment map adds real light, so pull the exposure back */
 document.body.appendChild(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .1, 900 * (1 + (WORLD - 1) * 0.7));   /* far enough to see across a bigger island */
 /* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
@@ -392,7 +405,7 @@ function ramp(n){
   return t;
 }
 const GRAD = ramp(5);
-const RIM = {color:new THREE.Color(0xFFF1D8), strength:0.28};
+const RIM = {color:new THREE.Color(0xFFF1D8), strength: REAL ? 0.10 : 0.28};
 /* every toon material gets a soft rim light (fresnel) so silhouettes lift off the background */
 const rimPatch = sh => {
   sh.uniforms.rimColor = {value: RIM.color}; sh.uniforms.rimStrength = {value: RIM.strength};
@@ -400,13 +413,38 @@ const rimPatch = sh => {
     .replace("#include <common>", "#include <common>\nuniform vec3 rimColor; uniform float rimStrength;")
     .replace("gl_FragColor = vec4( outgoingLight, diffuseColor.a );", "{ vec3 rn = normalize(vNormal); vec3 rv = normalize(vViewPosition); float rim = pow(1.0 - max(dot(rn, rv), 0.0), 3.2); vec3 wn = inverseTransformDirection(rn, viewMatrix); rim *= 1.0 - clamp(wn.y, 0.0, 1.0) * 0.9; outgoingLight += rim * rimColor * rimStrength * diffuseColor.rgb * 2.2; }\ngl_FragColor = vec4( outgoingLight, diffuseColor.a );");
 };
+/* Every surface in the game is built through this. In toon mode it is MeshToonMaterial with the
+   5-step ramp, as before; in real mode it is MeshStandardMaterial with a roughness appropriate to
+   what it is, lit by the environment map built from the island's own sky. Callers pass the same
+   options either way — gradientMap is simply dropped, and roughness/metalness are only added where
+   the caller did not ask for something else. */
+function stdMat(opts){
+  const o = Object.assign({}, opts || {});
+  if(!REAL) return new THREE.MeshToonMaterial(o);
+  delete o.gradientMap;
+  if(o.roughness == null)  o.roughness = 0.86;
+  if(o.metalness == null)  o.metalness = 0.0;
+  /* The sky is a big soft source. At full strength it floods every surface and the whole island
+     goes milky and contrast-free — the hills stop reading as hills. It is a fill light, not the
+     key: a third of it is enough to tint the shadows with sky colour, which is the part that
+     actually makes things sit in a place. */
+  if(o.envMapIntensity == null) o.envMapIntensity = 0.34;
+  const m = new THREE.MeshStandardMaterial(o);
+  /* Cel colours are authored bright because the 5-step ramp darkened them on the way out — the
+     ramp's own floor is 0.40. Fed straight into a physical shader they read as roughly double the
+     albedo anything real has: grass is about 0.18-0.25 reflectance, not 0.55. Without this the
+     meadow goes to milk and the island loses all its contrast. Emissive surfaces are left alone,
+     since their brightness is the point. */
+  if(!o.emissive) m.color.multiplyScalar(0.55);
+  return m;
+}
 function toonRim(mat){
   mat.userData.patches = [["rim", rimPatch]];
   mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));
   mat.customProgramCacheKey = () => mat.userData.patches.map(([n]) => n).join("_");
   return mat;
 }
-const toon = (c, extra) => toonRim(new THREE.MeshToonMaterial(Object.assign({color:c, gradientMap:GRAD}, extra||{})));
+const toon = (c, extra) => toonRim(stdMat(Object.assign({color:c, gradientMap:GRAD}, extra||{})));
 /* soft mottled surface texture (multiplies the material colour) so big flat surfaces —
    meadows, hills, mesas — stop reading as untextured plastic */
 function mottle(scale, dark, seedMul){
@@ -879,7 +917,7 @@ function loadRig(name){
         if(o.material){ o.material.side = THREE.FrontSide; o.material.envMapIntensity = 1; }
         return; }
       const old = o.material;
-      o.material = toonRim(new THREE.MeshToonMaterial({map: old && old.map || null, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
+      o.material = toonRim(stdMat({map: old && old.map || null, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
       /* ink outline: an inflated back-face twin sharing the skeleton, so rigged models match the inked world */
       if(!PROF.ink || rig.ink === 0 || rig.pbr) return;
       const om = new THREE.MeshBasicMaterial({color: INK, side: THREE.BackSide, skinning: !!o.isSkinnedMesh, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4});
@@ -989,7 +1027,7 @@ function cowgirlHat(){
     const crown = inked(cg, HATC, 1.0); crown.position.y = .012; g.add(crown); }
   /* the band — takes the island's colour */
   { const band = new THREE.Mesh(new THREE.CylinderGeometry(.233,.237,.045,SEG,1,true),
-      new THREE.MeshToonMaterial({color:0x6FBF92, gradientMap:GRAD, side:THREE.DoubleSide}));
+      stdMat({color:0x6FBF92, gradientMap:GRAD, side:THREE.DoubleSide}));
     band.position.y = .043; g.add(band); g.userData.band = band; }
   return g;
 }
@@ -1390,17 +1428,17 @@ function birdFlock(scene, n, col){
     const beak = new THREE.Mesh(new THREE.ConeGeometry(.055,.28,5), new THREE.MeshBasicMaterial({color:0xF0A56D})); beak.rotation.z = -Math.PI/2; beak.position.set(.86,.11,0); g.add(beak);
     { const tg = new THREE.Shape(); tg.moveTo(0,-.18); tg.lineTo(-.62,-.30); tg.lineTo(-.44,0); tg.lineTo(-.62,.30); tg.lineTo(0,.18); tg.closePath();
       const t2 = new THREE.ShapeGeometry(tg); t2.rotateX(-Math.PI/2);
-      const tail = new THREE.Mesh(t2, new THREE.MeshToonMaterial({color:low ? 0xE8E0D2 : col, gradientMap:GRAD, side:THREE.DoubleSide}));
+      const tail = new THREE.Mesh(t2, stdMat({color:low ? 0xE8E0D2 : col, gradientMap:GRAD, side:THREE.DoubleSide}));
       tail.position.set(-.58, .02, 0); g.add(tail); }
     [-1,1].forEach(s => {
       const piv = new THREE.Group(); piv.position.set(.02, .10, s*.16); piv.userData.s = s;
       const inner = new THREE.Shape(); inner.moveTo(.18,0); inner.lineTo(.10,.52); inner.lineTo(-.30,.50); inner.lineTo(-.22,0); inner.closePath();
       const ig = new THREE.ShapeGeometry(inner); ig.rotateX(-Math.PI/2); if(s<0) ig.scale(1,1,-1);
-      const iw = new THREE.Mesh(ig, new THREE.MeshToonMaterial({color:low ? 0xE8E0D2 : col, gradientMap:GRAD, side:THREE.DoubleSide})); piv.add(iw);
+      const iw = new THREE.Mesh(ig, stdMat({color:low ? 0xE8E0D2 : col, gradientMap:GRAD, side:THREE.DoubleSide})); piv.add(iw);
       const elbow = new THREE.Group(); elbow.position.set(-.02, 0, s*.5); elbow.userData.tip = true;
       const outer = new THREE.Shape(); outer.moveTo(.10,0); outer.lineTo(-.02,.46); outer.lineTo(-.34,.34); outer.lineTo(-.24,0); outer.closePath();
       const og = new THREE.ShapeGeometry(outer); og.rotateX(-Math.PI/2); if(s<0) og.scale(1,1,-1);
-      const ow = new THREE.Mesh(og, new THREE.MeshToonMaterial({color:low ? 0xD9CFBE : col, gradientMap:GRAD, side:THREE.DoubleSide})); elbow.add(ow);
+      const ow = new THREE.Mesh(og, stdMat({color:low ? 0xD9CFBE : col, gradientMap:GRAD, side:THREE.DoubleSide})); elbow.add(ow);
       piv.add(elbow); g.add(piv); });
     g.userData = {a:Math.random()*6.3, r: low ? 30+Math.random()*34 : 90+Math.random()*70, sp: low ? .12+Math.random()*.06 : .05+Math.random()*.04, y: low ? 7+Math.random()*9 : 44+Math.random()*26, ph:Math.random()*6.3};
     scene.add(g); list.push(g);
@@ -1490,7 +1528,7 @@ function makeCreature(type){
     const pts = []; for(let k=0;k<=14;k++){ const t = k/14, ang = t*Math.PI/2; pts.push(new THREE.Vector2(Math.sin(ang)*1.45*(1 + (k===14 ? .08*Math.sin(t*40) : 0)), Math.cos(ang)*1.2 - .3)); }
     pts.push(new THREE.Vector2(1.35,-.55), new THREE.Vector2(1.1,-.35));
     const dome = new THREE.Mesh(new THREE.LatheGeometry(pts, 28),
-      new THREE.MeshToonMaterial({color:0xA8DCF4, gradientMap:GRAD, transparent:true, opacity:.6, emissive:0x6FB4E8, emissiveIntensity:.6, side:THREE.DoubleSide, depthWrite:false}));
+      stdMat({color:0xA8DCF4, gradientMap:GRAD, transparent:true, opacity:.6, emissive:0x6FB4E8, emissiveIntensity:.6, side:THREE.DoubleSide, depthWrite:false}));
     h.add(dome);
     const core = new THREE.Mesh(new THREE.SphereGeometry(.5,10,8), new THREE.MeshBasicMaterial({color:0xE8F6FF})); core.position.y = .25; core.scale.y = .7; h.add(core);
     for(let k=0;k<8;k++){ const a = (k/8)*Math.PI*2, r = .55+.35*(k%2);
@@ -1772,7 +1810,9 @@ function mergeStatics(I, scene){
   I.camBlobs = (I.canopies||[]).map(c => { const b = new THREE.Box3().setFromObject(c); if(b.isEmpty()) return null; const sp = b.getBoundingSphere(new THREE.Sphere()); return {x:sp.center.x, y:sp.center.y, z:sp.center.z, r:sp.radius*.8}; }).filter(Boolean); (I.notes||[]).forEach(n => skip.add(n)); (I.mist||[]).forEach(m => skip.add(m));
   const fx = I.fx || {}; for(const [k, v] of Object.entries(fx)){ if(k === "canopies" || k === "bushes") continue; const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null); if(arr) arr.forEach(o => { if(o && o.isObject3D) skip.add(o); }); }   /* birds, clouds, butterflies, foam… all move */
   scene.updateMatrixWorld(true);
-  const plainToon = m => m && m.isMeshToonMaterial && !m.map && !m.transparent && m.opacity === 1 && m.side === THREE.FrontSide && !m.emissiveMap;
+  /* This gate used to test isMeshToonMaterial, so in real mode nothing matched and the whole static
+     batch quietly stopped merging — every prop stayed its own draw call. Test for either family. */
+  const plainToon = m => m && (m.isMeshToonMaterial || m.isMeshStandardMaterial) && !m.map && !m.transparent && m.opacity === 1 && m.side === THREE.FrontSide && !m.emissiveMap;
   const mains = [], inks = []; let tris = 0;
   const stock = m => m.material.userData.patches && m.material.userData.patches.length === 1;   /* rim only — no wind/grass patch */
   const visit = o => {
@@ -1805,7 +1845,7 @@ function mergeStatics(I, scene){
     if(col.length) geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); if(withTh) geo.setAttribute("th", new THREE.Float32BufferAttribute(th, 1)); geo.setAttribute("sway", new THREE.Float32BufferAttribute(sw, 1));
     tris += pos.length/9; return geo;
   };
-  const mainMesh = new THREE.Mesh(bake(mains, false), swayPatch(toonRim(new THREE.MeshToonMaterial({color:0xffffff, vertexColors:true, gradientMap:GRAD}))));
+  const mainMesh = new THREE.Mesh(bake(mains, false), swayPatch(toonRim(stdMat({color:0xffffff, vertexColors:true, gradientMap:GRAD}))));
   mainMesh.castShadow = true; mainMesh.receiveShadow = true; scene.add(mainMesh); I.staticMesh = mainMesh; I.windMats = [mainMesh.material];
   if(inks.length){ const inkMesh = new THREE.Mesh(bake(inks, true), inkMergedMat()); scene.add(inkMesh); I.staticInk = inkMesh; I.windMats.push(inkMesh.material); }
   DBG("static batch", I.cfg.key, mains.length, "props +", inks.length, "inks →", Math.round(tris), "tris");
@@ -2094,6 +2134,39 @@ function guideUpdate(I, dt, t){
   });
 }
 
+const I_ENV = [];
+/* ---- the sky as a light source ----
+   An equirectangular strip of the island's own sky colours — zenith, horizon band, and the ground
+   bounce below it — prefiltered into an environment map. Every surface then picks up the real colour
+   of the air around it instead of one flat hemisphere term, which is most of what separates "object
+   sitting on a background" from "object in a place".
+
+   Built from a canvas gradient rather than PMREMGenerator.fromScene() on the sky dome: fromScene on
+   that BackSide ShaderMaterial returned an environment that zeroed the shading on every
+   MeshStandardMaterial in the scene — the entire world rendered black while unlit MeshBasic objects
+   were unaffected. fromEquirectangular on a plain texture is predictable and costs nothing. */
+function skyEnv(P){
+  try{
+    const c = document.createElement("canvas"); c.width = 256; c.height = 128;
+    const x = c.getContext("2d");
+    const hex = v => "#" + (v & 0xFFFFFF).toString(16).padStart(6, "0");
+    const g = x.createLinearGradient(0, 0, 0, 128);
+    g.addColorStop(0.00, hex(P.skyTop));
+    g.addColorStop(0.34, hex(P.skyMid));
+    g.addColorStop(0.50, hex(P.skyBot));
+    g.addColorStop(0.52, hex(P.sand || P.fog));     /* the horizon line: light bouncing off the island */
+    g.addColorStop(1.00, hex(P.grassDk));           /* and the ground under her feet */
+    x.fillStyle = g; x.fillRect(0, 0, 256, 128);
+    const tex = new THREE.CanvasTexture(c);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.encoding = THREE.sRGBEncoding;
+    const pm = new THREE.PMREMGenerator(renderer);
+    pm.compileEquirectangularShader();
+    const rt = pm.fromEquirectangular(tex);
+    pm.dispose(); tex.dispose();
+    return rt;
+  }catch(e){ DBG("skyEnv failed, falling back to lights only", e); return null; }
+}
 function buildIsland(cfg){
   scaleCfg(cfg);
   /* The quest anchors are derived, not authored, so they can never be hand-placed into the sea and
@@ -2156,8 +2229,21 @@ function buildIsland(cfg){
   scene.fog = new THREE.Fog(P.fog, (cfg.key === "sanity" ? 60 : 80) * fogK, (cfg.key === "sanity" ? 220 : 260) * fogK);
   const sky = skyDome(P.skyTop, P.skyMid, P.skyBot); scene.add(sky.mesh);
   const moon = moonPair(new THREE.Vector3(...cfg.moon.pos), cfg.moon.r); scene.add(moon);
-  scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, cfg.key === "sanity" ? .38 : .5));
-  const key = new THREE.DirectionalLight(P.key, cfg.key === "sanity" ? .55 : .95); key.position.set(-25,40,15); scene.add(key);
+  /* ---- lighting ----
+     In real mode the island is lit by its own sky: the dome is rendered into a prefiltered
+     environment map, so every surface picks up the actual colour of the air above it — warm from
+     the horizon, cool from overhead — instead of one flat hemisphere term. That is what stops
+     objects reading as cut-outs sitting on a background. The hemisphere light then drops right
+     back, because the environment is already doing its job and doubling the two washes everything
+     out. */
+  if(REAL){
+    const rt = skyEnv(P);
+    if(rt){ scene.environment = rt.texture; I_ENV.push(rt); }
+  }
+  const hemi = REAL ? (cfg.key === "sanity" ? .08 : .12) : (cfg.key === "sanity" ? .38 : .5);
+  scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, hemi));
+  const keyI = REAL ? (cfg.key === "sanity" ? .95 : 2.0) : (cfg.key === "sanity" ? .55 : .95);
+  const key = new THREE.DirectionalLight(P.key, keyI); key.position.set(-25,40,15); scene.add(key);
   const sea = seaMesh(P.water, P.waterHi); sea.position.y = -1.1; scene.add(sea);
   /* stars scale with how dark the island's sky is — Sanity (the night song, full moon) gets a real
      field, the golden-hour islands a faint scatter. */
@@ -2483,7 +2569,7 @@ function buildIsland(cfg){
       for(let i=0;i<arcCount;i++){ const t = i/(arcCount-1), rad = 7.2 - t*5.0, cy = height(spC.x, spC.z) + 1.2 + t*3.6, cz = spC.z - 7 + t*13;
         for(let k=0;k<5;k++){ const a = Math.PI*.2 + Math.random()*Math.PI*.6; const mx = spC.x + Math.cos(a)*rad*.98, my = cy + Math.sin(a)*rad*.98*.42, mz = cz + (Math.random()-.5)*.6;
           const cushion = inked(new THREE.SphereGeometry(.28+Math.random()*.3, 7, 5), Math.random()<.5?mossDk:mossLt, 1.1); cushion.scale.set(1.4,.6,1); cushion.position.set(mx, my, mz); scene.add(cushion);
-          if(Math.random()<.6){ const lf = new THREE.Mesh(new THREE.PlaneGeometry(.5,.34), new THREE.MeshToonMaterial({color:0x4F8A5C, gradientMap:GRAD, side:THREE.DoubleSide})); lf.position.set(mx, my-.35, mz); lf.rotation.set(.4, Math.random()*6, 0); scene.add(lf); } } }
+          if(Math.random()<.6){ const lf = new THREE.Mesh(new THREE.PlaneGeometry(.5,.34), stdMat({color:0x4F8A5C, gradientMap:GRAD, side:THREE.DoubleSide})); lf.position.set(mx, my-.35, mz); lf.rotation.set(.4, Math.random()*6, 0); scene.add(lf); } } }
       const mistTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const ctx = cv.getContext("2d"); const g = ctx.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,"rgba(255,255,255,.55)"); g.addColorStop(1,"rgba(255,255,255,0)"); ctx.fillStyle = g; ctx.fillRect(0,0,128,128); return new THREE.CanvasTexture(cv); })();
       I.mist = [];
       for(let k=0;k<7;k++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(9+Math.random()*6, 4+Math.random()*3), new THREE.MeshBasicMaterial({map:mistTex, transparent:true, opacity:.28, depthWrite:false, side:THREE.DoubleSide}));
@@ -2533,7 +2619,7 @@ function buildIsland(cfg){
       const pool = new THREE.Mesh(new THREE.CircleGeometry(3.2, 24), new THREE.MeshBasicMaterial({color:0x1FA39A, transparent:true, opacity:.85}));
       const px = gx + Math.cos(ga+Math.PI)*4.2, pz = gz + Math.sin(ga+Math.PI)*4.2; pool.rotation.x = -Math.PI/2; pool.position.set(px, .06, pz); scene.add(pool);
       const glow = new THREE.PointLight(0x3FE0D0, 1.6, 12); glow.position.set(px, 1.2, pz); scene.add(glow);
-      const coinG = new THREE.CylinderGeometry(.14,.14,.03,10), coinM = new THREE.MeshToonMaterial({color:0xE8C24A, gradientMap:GRAD, emissive:0x6A4A08, emissiveIntensity:.5});
+      const coinG = new THREE.CylinderGeometry(.14,.14,.03,10), coinM = stdMat({color:0xE8C24A, gradientMap:GRAD, emissive:0x6A4A08, emissiveIntensity:.5});
       const coins = new THREE.InstancedMesh(coinG, coinM, 90); const M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(1,1,1);
       for(let k=0;k<90;k++){ const a = Math.random()*Math.PI*2, r = Math.random()*3.0; q.setFromEuler(e.set((Math.random()-.5)*.6, Math.random()*6, (Math.random()-.5)*.6)); M.compose(new THREE.Vector3(px+Math.cos(a)*r, .08+Math.random()*.08, pz+Math.sin(a)*r), q, sc); coins.setMatrixAt(k, M); }
       scene.add(coins);
@@ -3398,16 +3484,16 @@ let sailT = 0, sailDone = null, SAIL_LINES = []; const SAIL_DUR = 7.2;
 const keep = new THREE.Scene(); keep.fog = new THREE.Fog(0x1A1430, 20, 90);
 keep.add(new THREE.HemisphereLight(0x9B84DC, 0x1A1430, .7));
 { const floor = new THREE.Mesh(new THREE.CircleGeometry(22,40), toon(0x2A2140)); floor.rotation.x = -Math.PI/2; keep.add(floor);
-  const wall = new THREE.Mesh(new THREE.CylinderGeometry(22,22,30,40,1,true), new THREE.MeshToonMaterial({color:0x342A52, gradientMap:GRAD, side:THREE.BackSide})); wall.position.y = 15; keep.add(wall);
+  const wall = new THREE.Mesh(new THREE.CylinderGeometry(22,22,30,40,1,true), stdMat({color:0x342A52, gradientMap:GRAD, side:THREE.BackSide})); wall.position.y = 15; keep.add(wall);
   for(let i=0;i<12;i++){ const a = (i/12)*Math.PI*2; const l = new THREE.Mesh(new THREE.SphereGeometry(.5,10,8), new THREE.MeshBasicMaterial({color:MOON})); l.position.set(Math.cos(a)*20,6+Math.sin(i)*2,Math.sin(a)*20); keep.add(l);
     const pl = new THREE.PointLight(0xFFE2A8, .5, 30); pl.position.copy(l.position); keep.add(pl); }
   const bigMoon = new THREE.Mesh(new THREE.SphereGeometry(6,24,18), new THREE.MeshBasicMaterial({color:MOON})); bigMoon.position.set(0,24,0); keep.add(bigMoon); }
 const bubbles = [];
 { const geo = new THREE.SphereGeometry(1,16,12);
-  for(let i=0;i<24;i++){ const m = new THREE.Mesh(geo, new THREE.MeshToonMaterial({color:[0xA8DCF4,0xF2A6C8,0xFFE59A,0xB9A4F4][i%4], gradientMap:GRAD, transparent:true, opacity:.55, emissive:0xFFFFFF, emissiveIntensity:.15}));
+  for(let i=0;i<24;i++){ const m = new THREE.Mesh(geo, stdMat({color:[0xA8DCF4,0xF2A6C8,0xFFE59A,0xB9A4F4][i%4], gradientMap:GRAD, transparent:true, opacity:.55, emissive:0xFFFFFF, emissiveIntensity:.15}));
     m.userData = {a:Math.random()*6.3, r:4+Math.random()*14, sp:.3+Math.random()*.5, rise:.6+Math.random()*.8, y:Math.random()*12, s:.8+Math.random()*.9, popped:false};
     m.scale.setScalar(m.userData.s); keep.add(m); bubbles.push(m); }
-  const fin = new THREE.Mesh(geo, new THREE.MeshToonMaterial({color:MOON, gradientMap:GRAD, transparent:true, opacity:.7, emissive:MOON, emissiveIntensity:.3}));
+  const fin = new THREE.Mesh(geo, stdMat({color:MOON, gradientMap:GRAD, transparent:true, opacity:.7, emissive:MOON, emissiveIntensity:.3}));
   fin.scale.setScalar(3); fin.position.set(0,4,0); fin.visible = false; keep.add(fin); keep.userData.fin = fin; }
 const KW = makeLala(); keep.add(KW.group);
 const keepI = {cfg:{key:"keep", hub:false, notes:[], places:[], fallback:"The Keep", dock:[999,999], spawn:[0,16], features:[], lobes:[{x:0,z:0,r:20}], weather:"clear"},
