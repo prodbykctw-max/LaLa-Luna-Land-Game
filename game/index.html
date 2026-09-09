@@ -154,10 +154,16 @@ body.walk .topbtn{display:block}
 .pick{border-radius:14px}
 .glyph.on{box-shadow:0 0 20px rgba(255,246,214,.45), inset 0 1px 0 rgba(255,255,255,.9)}
 @media (max-width:640px){
-  .topbtn{top:calc(96px + env(safe-area-inset-top));font-size:8px;padding:9px 12px;min-height:32px}
+  .topbtn{top:calc(96px + env(safe-area-inset-top));font-size:8px;padding:9px 12px;min-height:44px}
   #prompt{margin-bottom:calc(214px + env(safe-area-inset-bottom))} .place{font-size:19px}
   #stick{bottom:calc(30px + env(safe-area-inset-bottom));left:calc(22px + env(safe-area-inset-left))}
   .rbtn{right:calc(26px + env(safe-area-inset-right))} #jmp{bottom:calc(40px + env(safe-area-inset-bottom))} #act{bottom:calc(150px + env(safe-area-inset-bottom))} #recenter{bottom:calc(250px + env(safe-area-inset-bottom))}
+}
+/* A phone in landscape is 844x390 — wider than 640, so it fell through the portrait rule above
+   and got the desktop pill's ~26px height. Scope this one to touch devices by viewport HEIGHT so
+   a small desktop window is unaffected. */
+@media (max-height:480px){
+  body.touch .topbtn{min-height:44px;padding:9px 12px;font-size:8px}
 }
 #khint{position:fixed;left:26px;bottom:200px;z-index:7;font-size:9px;letter-spacing:.16em;
  text-transform:uppercase;opacity:.32;display:none;line-height:1.9}
@@ -328,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-08w";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search), PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"), ink: !QS.get("noink"), dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
 const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
 /* ---- world scale ----
@@ -586,8 +592,10 @@ function sailBoat(hullCol, sailCol, lamp){
   sg.computeVertexNormals();
   const cloth = inked(sg, sailCol, .9, {side:THREE.DoubleSide});
   cloth.rotation.y = Math.PI/2; cloth.position.set(.05, 2.5, .5); g.add(cloth);
+  sailPatch(2.2)(cloth.userData.main.material);
   const jib = inked(new THREE.PlaneGeometry(1.2, 2.2), sailCol, .8, {side:THREE.DoubleSide});
   jib.rotation.y = Math.PI/2; jib.position.set(-.05, 1.9, -1.5); g.add(jib);
+  sailPatch(1.2)(jib.userData.main.material);
   if(lamp){ const l = new THREE.Mesh(new THREE.SphereGeometry(.13,8,6), new THREE.MeshBasicMaterial({color:MOON}));
     l.position.set(0,4.5,.2); g.add(l); g.userData.lamp = l; }
   return g;
@@ -1622,7 +1630,7 @@ function makeCreature(type){
     const pts = []; for(let k=0;k<=14;k++){ const t = k/14, ang = t*Math.PI/2; pts.push(new THREE.Vector2(Math.sin(ang)*1.45*(1 + (k===14 ? .08*Math.sin(t*40) : 0)), Math.cos(ang)*1.2 - .3)); }
     pts.push(new THREE.Vector2(1.35,-.55), new THREE.Vector2(1.1,-.35));
     const dome = new THREE.Mesh(new THREE.LatheGeometry(pts, 28),
-      new THREE.MeshToonMaterial({color:0xA8DCF4, gradientMap:GRAD, transparent:true, opacity:.6, emissive:0x6FB4E8, emissiveIntensity:.45, side:THREE.DoubleSide, depthWrite:false}));
+      new THREE.MeshToonMaterial({color:0xA8DCF4, gradientMap:GRAD, transparent:true, opacity:.6, emissive:0x6FB4E8, emissiveIntensity:.6, side:THREE.DoubleSide, depthWrite:false}));
     h.add(dome);
     const core = new THREE.Mesh(new THREE.SphereGeometry(.5,10,8), new THREE.MeshBasicMaterial({color:0xE8F6FF})); core.position.y = .25; core.scale.y = .7; h.add(core);
     for(let k=0;k<8;k++){ const a = (k/8)*Math.PI*2, r = .55+.35*(k%2);
@@ -1630,7 +1638,9 @@ function makeCreature(type){
       const t1 = new THREE.Mesh(new THREE.CylinderGeometry(.06,.035,1.5,5), new THREE.MeshBasicMaterial({color:0xC8E8FA, transparent:true, opacity:.65})); t1.position.y = -.75; seg.add(t1);
       const seg2 = new THREE.Group(); seg2.position.y = -1.5; const t2 = new THREE.Mesh(new THREE.CylinderGeometry(.035,.012,1.6,5), t1.material); t2.position.y = -.8; seg2.add(t2); seg.add(seg2);
       seg.userData.phase = k*.8; seg.userData.child = seg2; h.add(seg); legs.push(seg); }
-    const glow = new THREE.PointLight(0x8FD0F4, .8, 14); h.add(glow);
+    /* Each jelly used to carry its own PointLight, which put Sanity at 16 scene lights against
+       4-5 everywhere else — for a dome that is already emissive. The glow comes from the material
+       now; the lights are gone. */
   } else if(type === "cow"){
     const body = inked(new THREE.BoxGeometry(2.4,1.3,1.2), BONE, 1.9); body.position.y=1.5; h.add(body);
     [[.5,1.9,.61],[-.6,1.4,-.61],[.1,1.2,.61],[-.4,2.0,.3]].forEach(([x,y,z]) => {
@@ -1829,6 +1839,7 @@ function makeBoat(wood, sailCol, scale){
   const sailG = new THREE.PlaneGeometry(3.9, 5.4, 6, 8); const sp = sailG.attributes.position;
   for(let i=0;i<sp.count;i++){ const x = sp.getX(i), y = sp.getY(i); sp.setZ(i, Math.sin((x/3.9+.5)*Math.PI)*.45*(1-(y/5.4+.5)*.3)); } sailG.computeVertexNormals();
   const cloth = inked(sailG, sailCol, 1.5, {side:THREE.DoubleSide}); cloth.rotation.y = Math.PI/2 + .3; cloth.position.set(.75, 5.0, 2.4); g.add(cloth); g.userData.sail = cloth;
+  sailPatch(3.9)(cloth.userData.main.material);
   const sig = new THREE.Mesh(new THREE.TorusGeometry(.55,.12,6,18,Math.PI*1.4), new THREE.MeshBasicMaterial({color:0x9B84DC})); sig.rotation.set(0, Math.PI/2 + .3, 1.1); sig.position.set(1.15, 5.2, 2.5); g.add(sig);
   [[0,8.2,.6,0,1.9,-4.2],[0,8.2,.6,1.2,2.3,4.4]].forEach(([x1,y1,z1,x2,y2,z2]) => { const a = new THREE.Vector3(x1,y1,z1), b = new THREE.Vector3(x2,y2,z2), d = b.clone().sub(a);
     const rope = new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,d.length(),4), new THREE.MeshBasicMaterial({color:0x3A2E24}));
@@ -1872,6 +1883,22 @@ const NEARFADE_GLSL = `{ float dCam = length(vViewPosition); if(dCam < 4.5){ flo
   float m = mod(floor(gl_FragCoord.x), 2.0) + 2.0*mod(floor(gl_FragCoord.y), 2.0);
   float jit = fract(sin(dot(floor(gl_FragCoord.xy*0.5), vec2(12.9898, 78.233)))*43758.5453);
   if(a < (m + jit*0.9 + 0.05)/4.9) discard; } }`;
+/* sail cloth is never baked into the static batch (boats stay dynamic), so unlike grass and canopies
+   it can carry its own live per-vertex flutter instead of a shared attribute. The billow already
+   baked into each sail's geometry peaks at local x=0 and pinches to ~0 at both x extremes (see
+   sailBoat/makeBoat) — reusing that same envelope for the flutter keeps the luff/boom edges still
+   and only ripples the belly, without needing to know which edge is which. */
+const SAIL_MATS = [];
+const sailPatch = width => mat => { mat.userData.patches.push(["sail", sh => {
+  sh.uniforms.uTime = {value:0}; sh.uniforms.uWind = {value:1}; mat.userData.uniforms = sh.uniforms;
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nuniform float uTime, uWind;")
+    .replace("#include <begin_vertex>", `#include <begin_vertex>
+      { float env = sin(clamp(position.x/${width.toFixed(3)} + .5, 0.0, 1.0) * 3.14159265);
+        float ripple = sin(uTime*2.1 + position.y*1.6)*0.05 + sin(uTime*3.4 + position.y*2.7)*0.025;
+        transformed.z += ripple * env * uWind; }`); }]);
+  SAIL_MATS.push(mat); return mat; };
+
 function mergeStatics(I, scene){
   const skip = new Set([I.pickup, I.letterMesh, I.boat, I.door, I.W && I.W.group, I.sea, I.moon, I.rain, I.bow, I.beam && I.beam.target].filter(Boolean));
   (I.gateMeshes||[]).forEach(m => skip.add(m)); (I.stones||[]).forEach(s => skip.add(s.mesh)); (I.moons||[]).forEach(m => skip.add(m));
@@ -2216,7 +2243,6 @@ function buildIsland(cfg){
     const L = cfg.letter.at;
     cfg.pen    = {at:[+(-L[0]*.85).toFixed(1), +(-L[1]*.85).toFixed(1)]};
     cfg.secret = {at:[+(L[1]*.80).toFixed(1),  +(-L[0]*.80).toFixed(1)]};
-    const pl = (cfg.places||[])[0];
     /* the letter has to reach somebody, so each island keeps a few fans of its own scattered over
        its landmarks. Each gets a different outfit wash (nextTint) so a reused sprite doesn't read
        as the same person four times. */
@@ -2226,13 +2252,41 @@ function buildIsland(cfg){
                        "If a letter ever came for me out here I'd frame it.",
                        "There's a note under the arch. I'm not telling you which arch."];
     const fanRigs = ["fan","crowd","green","fan","crowd"];
-    const spots = (cfg.places||[]).slice(0,5);
+    /* Never build on the island centre: on Town, places[0] is "The Square" at (0,0), which is also
+       where the crown pickup and the fountain collider sit. Anyone seeded there is standing inside
+       solid scenery — that was the real cause of Town's Ollie coming back UNREACHABLE in
+       qa/reach.mjs, not rig-attach timing. Rank the places by how far they are from the island
+       centre and from the ability pickup, and take the roomiest. */
+    /* Distance from the island centre AND from the two things that outrank an NPC in nearest():
+       the ability pickup and the paper. Ranking only against the centre moved Town's Ollie onto
+       The Point, which is where the paper sits — nearest() then returned "Take the paper" from
+       every approach angle and he was unreachable all over again. */
+    const away = q => Math.hypot(q.x, q.z)
+      + (cfg.ability ? Math.hypot(q.x - cfg.ability.at[0], q.z - cfg.ability.at[1]) : 0)
+      + Math.hypot(q.x - L[0], q.z - L[1]);
+    const ranked = (cfg.places||[]).slice().sort((a,b) => away(b) - away(a));
+    const pl = ranked[0];
+    const spots = ranked.slice(0,5);
+    /* Keep a fan off a note. An unread note at your feet deliberately outranks an NPC (the
+       closeNote override in nearest()), so a fan standing on one can only be talked to from the
+       far side — qa/reach.mjs reported exactly that for Dee. Push the spot away from the nearest
+       note until it clears the note's own 5.2 interaction radius. */
+    const fanSpot = (q, i) => {
+      let x = q.x + (i%2 ? 7 : -7), z = q.z + (i<2 ? 8 : -8);
+      for(let k = 0; k < 8; k++){
+        const n = (cfg.notes||[]).map(n => ({n, d:Math.hypot(x-n.x, z-n.z)})).sort((a,b)=>a.d-b.d)[0];
+        if(!n || n.d > 7) break;
+        const dx = x - n.n.x, dz = z - n.n.z, d = Math.hypot(dx,dz) || 1;
+        x += dx/d * 3; z += dz/d * 3;
+      }
+      return [+x.toFixed(1), +z.toFixed(1)];
+    };
     const fans = spots.map((q,i) => ({rig:fanRigs[i%fanRigs.length], name:["Marisol","Dee","Theo","Nan","Kit"][i],
-      h:[1.62,1.71,1.79,1.58,1.68][i], at:[q.x + (i%2?7:-7), q.z + (i<2?8:-8)], wander:7*WORLD,
+      h:[1.62,1.71,1.79,1.58,1.68][i], at:fanSpot(q,i), wander:7*WORLD,
       fan:true, line:FAN_LINES[i%FAN_LINES.length]}));
     cfg.npcs = (cfg.npcs||[]).concat(fans);
     cfg.npcs = (cfg.npcs||[]).concat([{rig:"dock", name:"Ollie the postman", h:1.86, post:true,
-      at: pl ? [pl.x, pl.z] : [+(L[1]*.3).toFixed(1), +(-L[0]*.3).toFixed(1)], wander: 9*WORLD,
+      at: pl ? [pl.x, pl.z] : [+(L[1]*.3).toFixed(1), +(-L[0]*.3).toFixed(1)], wander: 5*WORLD,
       line:"I ride the whole island twice a day. Give me something worth carrying and every fan out here reads it by dark."}]);
     cfg.questSeeded = true;
   }
@@ -3424,6 +3478,13 @@ function nearest(I){
   /* an unread note right at her feet beats a wandering NPC or the castle doors, which otherwise hide it */
   const closeNote = cands.find(c => c.kind === "note" && c.d < 3);
   if(closeNote && (cands[0].kind === "npc" || cands[0].kind === "castle")) return closeNote;
+  /* Same idea the other way round: the priority table always put a not-yet-taken ability pickup
+     above an NPC, so on Green the fans pedestal shadowed Theo whenever he wandered near it and he
+     could never be talked to. Closer wins between those two. */
+  if(cands[0].kind === "ability"){
+    const closerNpc = cands.find(c => c.kind === "npc" && c.d < cands[0].d);
+    if(closerNpc) return closerNpc;
+  }
   return cands[0];
 }
 function interact(){
@@ -3698,6 +3759,8 @@ if(FPS_EL) renderer.info.autoReset = false;
 function tick(){
   requestAnimationFrame(tick);
   const dt = Math.min(clock.getDelta(), .05); T += dt;
+  { const wnd = (CUR && CUR.fx && CUR.fx.windMul) || 1;
+    SAIL_MATS.forEach(m => { const u = m.userData.uniforms; if(u){ u.uTime.value = T; u.uWind.value = wnd; } }); }
   FRAMES++; if(FRAMES < 4 || FRAMES % 300 === 0) DBG("frame", FRAMES, "dt", dt.toFixed(3));
   if(FPS_EL){ const now = performance.now(); if(!fpsT0) fpsT0 = now; fpsAcc = (now - fpsT0)/1000; fpsN++; if(fpsAcc >= .5){ FPS_EL.textContent = Math.round(fpsN/fpsAcc) + " fps · " + Math.round(renderer.info.render.triangles/fpsN).toLocaleString() + " tris · " + Math.round(renderer.info.render.calls/fpsN) + " calls"; fpsAcc = 0; fpsN = 0; fpsT0 = now; renderer.info.reset(); } }
   if(toastT > 0){ toastT -= dt; if(toastT <= 0) $("toast").classList.remove("on"); }
