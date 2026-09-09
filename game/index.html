@@ -965,14 +965,31 @@ function loadProxy(name){
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
     if(nor.length) geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor,3)); else geo.computeVertexNormals();
-    if(uv.length)  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv,2));
+    /* uv deliberately dropped: the proxy is untextured, so it is bytes for nothing */
     /* normalise exactly the way loadRig does, so a member does not change size when it swaps */
     geo.computeBoundingBox();
     const b = geo.boundingBox, size = b.getSize(new THREE.Vector3());
     const sc = rig.height / Math.max(size.y, 1e-3);
     geo.translate(-(b.min.x+b.max.x)/2, -b.min.y, -(b.min.z+b.max.z)/2);
     geo.scale(sc, sc, sc);
-    const m = toonRim(stdMat({map: mat && mat.map || null, color: 0xffffff, gradientMap: GRAD, side: THREE.FrontSide}));
+    /* No texture on the proxy. Decimating a painted atlas to a fifth of its triangles smears the
+       UVs, and the result reads as crumpled foil rather than a person — that was the first two
+       attempts, and neither the pose nor the triangle budget was the cause. At 46+ units the
+       texture buys nothing anyway, so the proxy wears the average colour of its own atlas instead:
+       one flat, plausible tone per variant, and a clean silhouette. */
+    let avg = 0xC9B8A8;
+    try{
+      const img = mat && mat.map && mat.map.image;
+      if(img && (img.width || img.naturalWidth)){
+        const cw = 32, cv = document.createElement("canvas"); cv.width = cv.height = cw;
+        const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0, cw, cw);
+        const px = cx.getImageData(0, 0, cw, cw).data;
+        let r=0,g2=0,b2=0,n2=0;
+        for(let i=0;i<px.length;i+=4){ if(px[i+3] < 200) continue; r+=px[i]; g2+=px[i+1]; b2+=px[i+2]; n2++; }
+        if(n2){ avg = (Math.round(r/n2)<<16) | (Math.round(g2/n2)<<8) | Math.round(b2/n2); }
+      }
+    }catch(e){}
+    const m = toonRim(stdMat({color: avg, gradientMap: GRAD, side: THREE.FrontSide, roughness: .92}));
     PROXIES[name] = {geo, mat: m};
     DBG("proxy ready", name, geo.attributes.position.count/3, "tris");
   }, undefined, e => DBG("proxy failed", name, e));
