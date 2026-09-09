@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-10c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-10f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -2948,10 +2948,59 @@ function objectiveOf(I){
   if(Q.secret && Q.secret.visible)    return {x:Q.secret.position.x, z:Q.secret.position.z, label:"One more letter out here"};
   return {x:cfg.dock[0], z:cfg.dock[1], label:"The boat"};
 }
+/* =====================  THE GUIDE IS A HINT, NOT A HUD  =====================
+   The arrows and the jellyfish scouts were built permanently on, which turned a whimsical helper
+   into a corridor she walks down - his words: they are "not supposed to be pointing her the whole
+   way", they should "pop up when she's near something or moving away from something".
+
+   So the guide now earns its screen time. It surfaces when one of three things is true, holds for
+   a few seconds, fades, and then will not come back for a cooldown:
+     - she is CLOSE (inside GUIDE_NEAR) and has not taken the thing yet - help her find the spot
+     - she has been walking AWAY from it for GUIDE_AWAY_T seconds
+     - she has been moving for GUIDE_LOST_T seconds without getting meaningfully closer
+   ?guide=always restores the old always-on behaviour, ?guide=off silences it entirely. */
+const GUIDE_MODE   = QS.get("guide") || "auto";
+const GUIDE_NEAR   = 24;      /* close enough that finding the exact spot is the hard part */
+const GUIDE_AWAY_T = 2.6;     /* seconds of walking away before it speaks up */
+const GUIDE_LOST_T = 11;      /* seconds of moving without progress */
+const GUIDE_SHOW_T = 4.5;     /* how long it stays once it does */
+const GUIDE_COOL_T = 9;       /* and how long it then keeps quiet */
+const GUIDE_FADE   = 0.6;
+function guideShould(I, g, o, dt){
+  if(GUIDE_MODE === "always") return 1;
+  if(GUIDE_MODE === "off")    return 0;
+  const W = I.W;
+  const dist = Math.hypot(o.x - W.x, o.z - W.z);
+  const s = g.st || (g.st = {last:dist, away:0, lost:0, show:0, cool:0, best:dist, key:""});
+  const key = o.label + "|" + Math.round(o.x) + "," + Math.round(o.z);
+  if(key !== s.key){ s.key = key; s.best = dist; s.away = 0; s.lost = 0; s.show = GUIDE_SHOW_T; s.cool = 0; }
+  const moving = (W.speedNow || 0) > 0.6 || Math.abs(dist - s.last) > 0.02;   /* speedNow is what the game actually sets */
+  if(dist < s.best - 0.5) s.best = dist;
+  s.away = (moving && dist > s.last + 0.004) ? s.away + dt : 0;
+  s.lost = moving ? s.lost + dt : Math.max(0, s.lost - dt*2);
+  if(dist < s.best + 0.5 && dist < s.last) s.lost = 0;         /* she is making progress: no nagging */
+  s.last = dist;
+  /* Being NEAR is not a nag, it is the moment she actually needs it - so proximity is exempt from
+     the cooldown. Without that exemption the hint fires at the edge of the radius, times out, and
+     is still cooling down when she arrives, which is precisely backwards. */
+  const near = dist < GUIDE_NEAR;
+  if(near){ s.show = Math.max(s.show, GUIDE_FADE + 0.05); s.cool = 0; s.away = 0; s.lost = 0; }
+  else if(s.cool > 0){ s.cool -= dt; }
+  else if(s.show <= 0 && (s.away > GUIDE_AWAY_T || s.lost > GUIDE_LOST_T)){
+    s.show = GUIDE_SHOW_T; s.away = 0; s.lost = 0;
+  }
+  if(s.show > 0 && !near){ s.show -= dt; if(s.show <= 0) s.cool = GUIDE_COOL_T; }
+  /* a soft in and out so it never snaps */
+  const t = s.show > 0 ? (near ? 1 : Math.min(1, (GUIDE_SHOW_T - s.show)/GUIDE_FADE, s.show/GUIDE_FADE)) : 0;
+  return Math.max(0, Math.min(1, t));
+}
 function guideUpdate(I, dt, t){
   const g = I.guide; if(!g) return;
   const W = I.W, o = objectiveOf(I);
   if(!o || !g.on){ g.arrows.forEach(a => a.visible = false); g.jellies.forEach(j => j.visible = false); g.label = ""; return; }
+  const amt = guideShould(I, g, o, dt);
+  g.amt = amt;
+  if(amt <= 0.001){ g.arrows.forEach(a => a.visible = false); g.jellies.forEach(j => j.visible = false); g.label = ""; return; }
   g.label = o.label;
   const dx = o.x - W.x, dz = o.z - W.z, dist = Math.hypot(dx, dz) || 1;
   const ux = dx/dist, uz = dz/dist, yaw = Math.atan2(ux, uz);
@@ -2964,22 +3013,24 @@ function guideUpdate(I, dt, t){
     a.visible = true;
     a.position.set(px, I.height(px, pz) + 0.70 + Math.sin(t*2.2 - i*.8)*.18, pz);   /* knee-to-waist height: it marks the ground, it never covers her */
     a.rotation.y = yaw + Math.PI + Math.sin(t*.9 + i)*.05;          /* +PI: the chevron tip lies on local -z */
-    const fade = Math.max(.12, 1 - i*.16);
+    const fade = Math.max(.12, 1 - i*.16) * amt;
     a.userData.body.userData.main.material.opacity = fade;
     a.userData.halo.material.opacity = .22*fade;
     a.userData.body.scale.setScalar((.62 + Math.min(.30, i*.09)) + Math.sin(t*2.2 - i*.8)*.05);   /* the nearest one is smallest, so it never fills the frame */
   });
-  /* three jellyfish scouts drift ahead of her, along the same line, weaving */
+  /* Two scouts, not three, and they keep their distance. At 3.4 units ahead the lead one sat
+     practically on her shoulder, which is what made them feel aggressive rather than helpful. */
   g.jellies.forEach((j, i) => {
-    const along = Math.min(dist - 1.4, 3.4 + i*3.1);
-    if(along < 1.2){ j.visible = false; return; }
+    if(i >= 2){ j.visible = false; return; }
+    const along = Math.min(dist - 1.4, 7.5 + i*4.5);
+    if(along < 4){ j.visible = false; return; }
     j.visible = true;
     const side = Math.sin(t*.85 + i*2.1) * (1.5 + i*.35);
     const px = W.x + ux*along - uz*side, pz = W.z + uz*along + ux*side;
     j.position.set(px, Math.max(I.height(px,pz), 0) + 3.3 + Math.sin(t*1.5 + i*1.9)*.42, pz);
     const pulse = Math.sin(t*2.6 + i*1.3);
     j.scale.set(1 - pulse*.08, 1 + pulse*.15, 1 - pulse*.08);
-    j.userData.core.material.opacity = .55 + .35*(pulse*.5+.5);
+    j.userData.core.material.opacity = (.42 + .28*(pulse*.5+.5)) * amt;
     j.rotation.y = yaw;
   });
 }
@@ -4054,7 +4105,15 @@ function walkerUpdate(I, dt, t){
     /* she sits the horse: the animal is planted on the ground under her and she rides at saddle height */
     const gy = I.height(W.x, W.z);
     W.mount.position.set(W.x, gy + (moving ? Math.abs(Math.sin(t*7))*.09 : 0), W.z);
-    W.mount.rotation.y = W.group.rotation.y + Math.PI/2;          /* the creature model faces along +x */
+    /* She rode backwards, and so did the animal, because this said +PI/2.
+       Worked through rather than guessed: a Y-rotation of theta maps the model's local +x to world
+       (cos theta, -sin theta). The animals do face local +x - measured, hips-to-head, in
+       qa/facing.mjs: the cow reads [1.000, -0.001]. Her heading g sends her travelling along
+       (sin g, cos g). At theta = g + PI/2 the animal's nose lands on (-sin g, -cos g), which is
+       exactly the negative of where she is going. theta = g - PI/2 puts it right, and matches what
+       the loose creatures already do (h.rotation.y = -a - PI/2 against a velocity of
+       (-sin a, cos a)). qa/mountdir.mjs asserts nose and travel agree. */
+    W.mount.rotation.y = W.group.rotation.y - Math.PI/2;
     (W.mount.userData.legs||[]).forEach((l,i) => l.rotation.x = moving ? Math.sin(t*9+i*Math.PI/2)*.55 : 0);
     if(W.mount.userData.R && W.mount.userData.R.mixer) W.mount.userData.R.mixer.update(dt * (moving ? 1.5 : .35));
     W.group.position.set(W.x, gy + SADDLE_Y, W.z);
@@ -4276,19 +4335,51 @@ function islandUpdate(I, dt, t){
       if(rider.userData.shadowDecal) rider.userData.shadowDecal.visible = false;
     }
   }
-  I.creatures.forEach(h => { const u = h.userData; if(u.ridden) return; u.a += u.sp*dt;
+  /* Cows stacked into each other and popped in and out. Two causes, both here:
+     every animal of a type was seeded on the same orbit radius, so they queued up nose to tail;
+     and when a step left the land polygon they were snapped to their last good spot, which reads
+     as a teleport. Now each carries its own radius offset, they push apart when they get too
+     close, and a blocked step just stops them instead of moving them somewhere else. */
+  const HERD_SEP = 3.2;
+  I.creatures.forEach((h, hi) => { const u = h.userData; if(u.ridden) return; u.a += u.sp*dt;
+    if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
        radius walks straight into the sea. Pull the radius in until the step lands on land (with a
        margin so they do not paddle along the waterline) — the herd then follows the shore. */
-    let x = Math.cos(u.a)*u.r, z = Math.sin(u.a)*u.r;
+    const rr = Math.max(6, u.r + u.rOff);
+    let x = Math.cos(u.a)*rr, z = Math.sin(u.a)*rr;
     if(!u.fly && I.inside && !onLand(I, x, z)){
-      const hit = landOnBearing(I, u.a, u.r);
+      const hit = landOnBearing(I, u.a, rr);
       if(hit){ x = hit[0]; z = hit[1]; }
       else if(u.lx != null){ x = u.lx; z = u.lz; u.sp = -u.sp; }   /* nowhere to go: turn around */
     }
     if(!u.fly){ if(onLand(I, x, z)){ u.lx = x; u.lz = z; } else if(u.lx != null){ x = u.lx; z = u.lz; } }
+    /* keep the herd out of each other: a soft push, not a hard collision, so they still amble */
+    if(!u.fly) for(const o of I.creatures){
+      if(o === h || o.userData.fly || o.userData.ridden) continue;
+      const ddx = x - o.position.x, ddz = z - o.position.z, dd = Math.hypot(ddx, ddz);
+      if(dd > 1e-3 && dd < HERD_SEP){
+        const push = (HERD_SEP - dd) * 0.5;
+        const nx2 = x + ddx/dd*push, nz2 = z + ddz/dd*push;
+        if(u.fly || onLand(I, nx2, nz2)){ x = nx2; z = nz2; }
+      }
+    }
+    /* No teleports. When a step leaves the land polygon, landOnBearing sweeps up to +-3 radians to
+       find somewhere valid, which can be most of the way round the island - measured at a 15.6 unit
+       jump in one frame, which is exactly the "cows appearing out of nowhere" he saw. Cap what an
+       animal can cover in a frame at a walk; anything further is refused and it turns instead. */
+    if(!u.fly && u.lx != null){
+      const cap = (Math.abs(u.sp) * u.r + 6) * dt;
+      const jx = x - u.px0, jz = z - u.pz0, jd = Math.hypot(jx, jz);
+      if(u.px0 != null && jd > cap){
+        x = u.px0 + jx/jd*cap; z = u.pz0 + jz/jd*cap;
+        if(jd > cap*4) u.sp = -u.sp;                    /* it was being flung: turn it round */
+      }
+    }
+    u.px0 = x; u.pz0 = z;
     const base = u.fly ? 5 + Math.sin(t*.9+u.ph)*1.6 : I.height(x,z) + Math.abs(Math.sin(t*5))*.12;
     h.position.set(x, base, z); h.rotation.y = -u.a - Math.PI/2;   /* nose points along the direction of travel */
+    if(u.sp < 0) h.rotation.y += Math.PI;                          /* one that turned around walks forwards, not in reverse */
     if(u.type === "jelly"){ const p = Math.sin(t*2+u.ph); h.scale.set(1 - p*.06, 1 + p*.14, 1 - p*.06);
       u.legs.forEach(l => { l.rotation.x = Math.sin(t*2+l.userData.phase)*.3; l.rotation.z = Math.cos(t*1.6+l.userData.phase)*.25; l.userData.child.rotation.x = Math.sin(t*2.4+l.userData.phase+1)*.45; }); }
     else u.legs.forEach(l => l.rotation.x = Math.sin(t*(u.type==="dino"?2.2:5) + l.userData.phase)*.45);
