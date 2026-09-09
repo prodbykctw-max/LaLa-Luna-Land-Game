@@ -403,6 +403,48 @@ in *that*.
 three builds while the profile, taper, crease and brim curl were all retuned. `HAT_FIT` was 0.158
 against a head half-width of 0.197. Check fit before shape, every time.
 
+**A thumbnail is not evidence about a face.** On 2026-09-09 I rendered the three-way diagnostic at
+420x520, looked at it, and told him the model was clean. He zoomed in and was immediately right:
+the texture was smeared around the eyes and mouth - "it looks like she's wearing somebody else's
+skin." **Frame on the nose tip, not the head box, and read one mode at a time at full zoom.**
+`qa/facediag.mjs` now finds the nose tip from the posed head vertices and frames on it.
+
+**If the isolated renders look right and the GAME render looks wrong, the fault is in the game.**
+Render the same camera in-engine four ways - as the game draws her, texture-only, clay, normals -
+and compare. `qa/samecam.mjs` and `qa/isolate.mjs` do this. `qa/isolate.mjs` also hides every mesh
+in her group except the body, which is what proved the thing on her nose was not an attachment.
+
+**Take his description literally and go find that exact object.** "An extra chunk of flesh hiding
+her nostril", traced in pen, was not a metaphor and not a texture smear: her nose is built from a
+handful of large flat polygons, and under a directional light one of them shades as a hard-edged
+plate with a straight boundary across the ala. I spent an hour on textures, cheeks and mirror
+symmetry while he kept pointing at the same square centimetre.
+
+**Do not diagnose asymmetry under a raking key light.** My clay renders used a hard side key, which
+invented a swollen lobe on one side and sent me off building a mirror-repair tool. With equal light
+on both sides (`window.__sym(true)` in `qa/facediag.html`) the mesh is close to symmetric, and the
+mirror repair made it worse - it introduced faceting and a spike at the ala.
+
+**A painted-portrait atlas plus any normal-based shading equals visible facets.** Autosprite's atlas
+already contains the modelling: nostril shadow, cheekbone, the shading under the lip. Lighting it
+again both washes that out AND exposes the low-poly normals underneath. `PBR_FLAT` defaults to 1:
+she is drawn straight from her own atlas as emissive, with `color` at zero, and the island's key
+colour and intensity become a flat multiply via `pbrTint()` / `applyPbrTint()` so she still belongs
+to each place and still darkens at night. No normal term means no facet, at any polygon count.
+
+**Read the three modes as a decision table, not as a vibe.** Clay and normals smooth + texture ugly
+means the ATLAS is at fault and no mesh work will touch it. Gouged clay + clean texture is the
+reverse. I got this exactly backwards for an hour and went looking for a geometry defect that was
+not there.
+
+**Do not assume the service's atlas is shredded - render it unlit at full zoom first.** That
+assumption is what justified the front-orthographic reprojection bake, and the bake is what
+smeared her: its registration was off, so portrait detail landed beside the features it belonged
+to. Autosprite's own 1024 atlas is even and clean on this character. The bake was reverted on
+2026-09-09; `assets/lala.glb` now carries the repaired MESH with the ORIGINAL texture, and the
+baked version is kept at `work/lala-bakedtex-2026-09-05.glb`. **The mesh repair was worth keeping
+and the texture repair was not - they are separate decisions and should be judged separately.**
+
 **`stdMat()` is written for cel-authored scenery, not for photographic character atlases.** It
 rebuilds the material as MeshStandardMaterial roughness .86, drops `envMapIntensity` to .34, and
 runs `color.multiplyScalar(0.55)`. On a skin texture baked from a portrait that is a straight

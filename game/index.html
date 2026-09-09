@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09q";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09s";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -451,6 +451,26 @@ function stdMat(opts){
   if(!o.emissive) m.color.multiplyScalar(0.55);
   return m;
 }
+/* How much of a pbr rig is its own painted texture (emissive) rather than re-lit albedo.
+   ?pbrflat= and ?pbrenv= sweep them. 0 restores the old flood. */
+const PBR_FLAT = (() => { const v = parseFloat(QS.get("pbrflat")); return isNaN(v) ? 1.0 : Math.max(0, Math.min(1, v)); })();
+const PBR_ENV  = (() => { const v = parseFloat(QS.get("pbrenv"));  return isNaN(v) ? 0.30 : v; })();
+/* Every material shaded this way, so the island can re-tint them when she travels. */
+const PBR_MATS = [];
+/* At PBR_FLAT = 1 she is drawn straight from her own painted atlas with no normal-based shading at
+   all - which is the render he called perfect - and the island's light becomes a flat multiply
+   instead. That is the whole point: her nose is built from a handful of large flat polygons, and
+   ANY normal-based term turns one of them into the hard-edged plate he traced over her nostril.
+   Remove the normal from the equation and the plate cannot exist. The tint keeps her belonging to
+   the place: warm and near-full on the golden-hour islands, dimmer and cooler on Sanity at night. */
+function pbrTint(keyHex, keyI){
+  const c = new THREE.Color(keyHex);
+  c.lerp(new THREE.Color(0xffffff), 0.55);
+  c.multiplyScalar(Math.max(0.35, Math.min(1.12, 0.55 + 0.22 * (keyI || 1))));
+  return c;
+}
+let PBR_TINT = pbrTint(0xFFE9CC, 2.0);
+function applyPbrTint(){ for(const m of PBR_MATS){ if(m.emissive) m.emissive.copy(PBR_TINT); } }
 function toonRim(mat){
   mat.userData.patches = [["rim", rimPatch]];
   mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));
@@ -1083,8 +1103,32 @@ function loadRig(name){
     const meshes = []; gltf.scene.traverse(o => { if(o.isMesh) meshes.push(o); });
     meshes.forEach(o => {
       o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
-      if(rig.pbr){                                   /* keep the model's own material and texture: exactly what Autosprite shows */
-        if(o.material){ o.material.side = THREE.FrontSide; o.material.envMapIntensity = 1; }
+      if(rig.pbr){
+        /* Keep the model's own material and texture - but do NOT light it as if the texture were
+           raw albedo. Autosprite's atlas is a PAINTED portrait: the nostril shadow, the cheekbone,
+           the shading under the lip are already in the pixels. Lighting that a second time floods
+           it, and her cheek turns into one flat pale slab with no form at all - which is exactly
+           what he saw and called "a big blotch of skin on her face". Side by side, texture-only
+           versus in-game, every bit of painted modelling had been washed out.
+
+           So the map is fed in twice: as emissive (the painted shading, immune to the key light)
+           and as albedo at the remaining share (so she still darkens at night and picks up each
+           island's colour). PBR_FLAT is how much of her is her own painting; the diffuse half is
+           scaled by 1-PBR_FLAT so the two together still sum to roughly her own values in daylight
+           instead of over-brightening her. envMapIntensity comes down from 1 to match: at
+           roughness 1 the sky PMREM is a flood, and a flood is the thing we are removing. */
+        if(o.material){
+          o.material.side = THREE.FrontSide;
+          o.material.envMapIntensity = PBR_ENV * (1 - PBR_FLAT);
+          if(o.material.map && PBR_FLAT > 0){
+            o.material.emissiveMap = o.material.map;
+            o.material.emissive = PBR_TINT.clone();
+            o.material.emissiveIntensity = PBR_FLAT;
+            o.material.color.multiplyScalar(1 - PBR_FLAT);
+            o.material.needsUpdate = true;
+            PBR_MATS.push(o.material);
+          }
+        }
         return; }
       const old = o.material;
       let srcMap = old && old.map || null;
@@ -2955,6 +2999,7 @@ function buildIsland(cfg){
   scene.add(new THREE.HemisphereLight(P.skyBot, P.grassDk, hemi));
   const keyI = REAL ? (cfg.key === "sanity" ? .95 : 2.0) : (cfg.key === "sanity" ? .55 : .95);
   const key = new THREE.DirectionalLight(P.key, keyI); key.position.set(-25,40,15); scene.add(key);
+  PBR_TINT = pbrTint(P.key, keyI); applyPbrTint();   /* she travels; her tint travels with her */
   const sea = seaMesh(P.water, P.waterHi); sea.position.y = SEA_Y; scene.add(sea); scene.add(seaBed(P.water));
   /* stars scale with how dark the island's sky is — Sanity (the night song, full moon) gets a real
      field, the golden-hour islands a faint scatter. */
