@@ -43,6 +43,11 @@ for (const isl of argIslands()) {
         for (let rad = 1; rad <= 5; rad += .5) for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, x = t.x + Math.cos(a) * rad, z = t.z + Math.sin(a) * rad; if (!T.canStand(I, x, z)) continue;
           W.x = x; W.z = z; W.y = I.height(x, z); const n = T.nearest(I); if (n && n.kind === t.kind) wins.push([+x.toFixed(1), +z.toFixed(1)]); }
         row.reachableFrom = wins.length; row.reachableSample = wins.slice(0, 4); if (!wins.length) row.result = 'UNREACHABLE'; }
+      /* Two NPCs standing near each other is not a defect: nearest() picks whichever is closer and
+         the player walks the last two steps. Only report SHADOWED when something that OUTRANKS an
+         NPC hides them, or when they cannot be reached from anywhere at all. */
+      if (row.result === 'SHADOWED' && t.kind === 'npc' && String(row.nearest || '').startsWith('npc:') && row.reachableFrom > 0)
+        row.result = 'OK_OTHER_NPC_CLOSER';
       rows.push(row); G.abilities = JSON.parse(before);
     }
     // shadow scan: NPC wander circles vs note positions — an NPC (pri 2.5) beats an unread note (pri 3) whenever both are in range (index.html:1843)
