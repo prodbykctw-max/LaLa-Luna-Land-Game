@@ -170,6 +170,12 @@ object.**
 7. **When he says "that's not the answer" — change approach.** Do not re-run the same check with more
    decimal places.
 8. **Look at what he sends you.** Then believe it.
+9. **Put the render next to his reference before you show him anything.** Every wrong hat shipped
+   because I judged it against my own description of the reference instead of the reference itself.
+10. **Fit before shape, and space before number.** Two of the three hat rebuilds were spent styling
+   a part that was simply the wrong size, in the wrong units.
+11. **Suspect the shading before the asset.** Twice now the "broken model" was a clean model being
+   mistreated downstream.
 
 Across this entire session, **every time we disagreed, he was right and I was wrong.** He reports
 symptoms precisely and he is patient far longer than he should be. Believe him earlier than I did.
@@ -380,6 +386,31 @@ ground renders it half-size and floating. **Diff `bboxMin.y` before and after ev
 **`Box3.setFromObject` lies about skinned meshes.** It reads the bind-pose geometry box and ignores
 skinning. Wrong tool for "how tall is this on screen" — and the root of nearly every bug here.
 
+**So does `geometry.attributes.position`, and for the same reason.** On a SkinnedMesh that array is
+the BIND POSE. Reading it — in three.js *or* in Blender — answers a question about a T-posed model
+nobody sees. On 2026-09-09 this cost three rebuilds of the hat: Blender said her head was 0.270
+tall and 0.138 wide, an in-game read of the same array said 0.191 and 0.146, and the render agreed
+with neither. **To measure a posed skinned mesh, call `SkinnedMesh.boneTransform(i, v)`** (r128;
+`applyBoneTransform` from r151), then `localToWorld`. `qa/headskin.mjs` is the worked example.
+
+**Measure in the space the thing will actually live in.** Props hang off `bindAttachments`'s anchor,
+which does `scale.setScalar(1/s)` — so anchor-local units are WORLD units, while the head bone's own
+local space is world/2.634. Measuring in bone-local and setting a constant that is consumed in
+anchor space is a silent 2.6× error. Decompose the bone's world matrix, drop the scale, and measure
+in *that*.
+
+**A crown narrower than the skull cannot be fixed by styling it.** The hat let her head through for
+three builds while the profile, taper, crease and brim curl were all retuned. `HAT_FIT` was 0.158
+against a head half-width of 0.197. Check fit before shape, every time.
+
+**`stdMat()` is written for cel-authored scenery, not for photographic character atlases.** It
+rebuilds the material as MeshStandardMaterial roughness .86, drops `envMapIntensity` to .34, and
+runs `color.multiplyScalar(0.55)`. On a skin texture baked from a portrait that is a straight
+halving of her skin value, and it is why her nose read as a flat wedge for weeks. Rigs that carry
+their own PBR material should set `pbr: true` and keep it. **Before blaming a mesh, render it three
+ways — texture-only, clay, normals (`qa/facediag.mjs`).** All three were clean here; the model was
+never the problem.
+
 **Autosprite exports carry a stray 42-vertex icosphere** of radius 1 at the origin, spanning −1 to
 +1, beside the real body. three.js appears not to load it; Blender does. `diag/dequant.py` drops it.
 
@@ -399,6 +430,27 @@ uses the last one.
 
 **Hidden Chrome tabs freeze `requestAnimationFrame`.** A "0 fps" reading from a background tab is not
 a crash. I reported one as a crash earlier in the project.
+
+---
+
+## 4.1 Tooling traps that ate real time on 2026-09-09
+
+**Never `pkill -f <pattern>` where the pattern appears in your own command line.** `pkill -f facediag`
+run from a shell whose command line contains "facediag" kills the shell. Two batches were lost to
+this. Match on something the caller does not contain, or filter by PID.
+
+**Never pipe `git` output through PowerShell `Out-File`.** PowerShell decodes the process's UTF-8
+bytes using the console OEM codepage (CP437) and re-encodes, so every em dash becomes `ΓÇö` — a patch
+made this way silently corrupts every non-ASCII line it adds. Use `cmd` redirection (`git show
+rev:path > file`, byte-safe) and move the file, or `git diff --binary`.
+
+**`device_bash` can lose the mount** ("no Plan9 drive shares mounted"). The folder is still reachable
+through `device_list_dir` / `device_stage_files` / `device_commit_files`, and Desktop Commander still
+runs commands on the machine — `git` included. Don't report the computer as unreachable.
+
+**Pull before you push.** A second agent works the same repo; `main` was three commits ahead on
+2026-09-09. Merge with `git merge-file mine base theirs` against the two blobs from `git show`,
+rather than overwriting.
 
 ---
 
