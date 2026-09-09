@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09l";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09p";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -898,9 +898,23 @@ const M = m => m*2.95/1.70;
 const RIGS = {
   /* Her head is rebuilt: Autosprite's image->3D step melted the face (gouged mesh + a shredded UV atlas),
      so the clean 2D portrait is re-projected onto the mesh and the reconstruction noise is smoothed out.
-     ?old=1 loads the previous head for comparison. */
+     ?old=1 loads the previous head for comparison.
+
+     pbr DEFAULTS ON for Lala, and that is the fix for "her nose and facial area look wrong".
+     qa/facediag.mjs rendered her head three ways off assets/lala.glb - texture only, clay, and
+     normals - and all three are clean: a properly formed nose with ala and philtrum, smooth
+     geometry, no craters, no asymmetry. The face repair already worked. What was wrong was what
+     the GAME did to her afterwards: every rig went through stdMat(), which
+        - threw away her Autosprite material and rebuilt it as MeshStandardMaterial roughness .86,
+        - ran m.color.multiplyScalar(0.55) - an albedo crush meant for cel-authored SCENERY colours,
+          not for a photographic skin atlas - so her skin lost half its value and went muddy,
+        - dropped envMapIntensity to .34 and added the rim patch on top.
+     The nose then read as a hard flat wedge because it was being lit like matte clay in a
+     half-lit scene. Keeping her own material (?flat=1 restores the old path) puts the face back
+     to what Autosprite renders, and lifts her skin tone without touching a single texel - which
+     is also the honest version of the skin-lightening pass that looked bad when it was faked. */
   lala: {url: new URLSearchParams(location.search).get("old") ? "assets/lala-v2-original.glb" : "assets/lala.glb", height:2.95, ink:.009,
-         pbr: !!new URLSearchParams(location.search).get("pbr")},
+         pbr: !new URLSearchParams(location.search).get("flat")},
   /* TRUE SCALE. rig.height is the model's TOTAL height (crown of the head, or poll on an animal),
      because that is what loadRig fits the bounding box to. The old numbers used withers/shoulder
      figures for the animals, which made a horse hoof-to-poll only 1.65 m — shorter than a man — and
@@ -1131,7 +1145,8 @@ function bindAttachments(R, model, s){
     const QSH = new URLSearchParams(location.search);
     const HS = parseFloat(QSH.get("hs") || "1"), HY = parseFloat(QSH.get("hy") || String(HAT_SEAT));
     const BRIM = parseFloat(QSH.get("brim") || String(HAT_BRIM));
-    const hat = cowgirlHat(BRIM); hat.scale.setScalar(HS); hat.position.set(0, HY, .016); hat.rotation.set(-.045, 0, 0); a.add(hat);   /* forward a little: her bun sits behind the crown */
+    const hat = cowgirlHat(BRIM); hat.scale.multiplyScalar(HS);   /* multiply: cowgirlHat already set the oval */
+    hat.position.set(0, HY, 0); hat.rotation.set(HAT_BASE_X, 0, 0); a.add(hat);
     R.hat = hat; R.hatBandMesh = hat.userData.band;
     if(R.pendingBand != null) R.hatBandMesh.material.color.setHex(R.pendingBand);
   } }
@@ -1145,15 +1160,69 @@ function bindAttachments(R, model, s){
    point anywhere built a drum around her hairstyle, and no brim can look right against a crown as
    wide as the hat. A real hat sits on the skull and lets the hair out behind, so the crown is
    fitted to the sides and the bun sits behind it. */
-const HEAD_CROWN = 0.270, HEAD_SIDE = 0.138;
-/* Fitting the crown to the skull alone (0.150) went too far the other way: her hair has volume on
-   top as well as behind, so it simply swallowed the crown. Real felt compresses hair; a game mesh
-   cannot, so the hat RIDES the hair instead — seated higher, with a crown between skull width and
-   hair width. The hair then spills below and behind the brim, which is what it does in life. */
-const HAT_SEAT   = 0.256;                       /* rides clear of the hair volume on top */
-const HAT_FIT    = 0.183;                       /* between skull (0.138) and hair (0.194) */
-const HAT_BRIM   = 0.270;                       /* 0.78 of half her shoulder span = 31 cm across */
-const HAT_CROWN_H = 0.178;                      /* tall enough that no hair comes through the top */
+/* MEASURED IN THE RUNNING GAME, in the head bone's own space — not in Blender's bind pose, which
+   gave numbers ~40% larger and sent every previous attempt astray:
+
+       height   maxRadius            height   maxRadius
+       0.020     0.1222              0.120     0.1462
+       0.060     0.1391              0.160     0.1354
+       0.100     0.1463  <- widest   0.180     0.1216
+                                     top of head + hair: 0.1914
+
+   The seat had been at 0.243 — five centimetres ABOVE the top of her head — with a crown radius of
+   0.205 against a widest point of 0.146. The hat was floating clear of her, forty percent too wide.
+   That is why it read as a visor, and why nothing done to the crown profile ever helped. */
+/* =========================  HEAD, MEASURED PROPERLY  =========================
+   Every earlier number in this block was wrong, and both were wrong the SAME way: they read
+   `geometry.attributes.position` (Blender's, then the game's), and her body is a SkinnedMesh, so
+   that array is the BIND POSE, not what is on screen. The project's own handoff warns about this
+   trap and I walked into it twice.
+
+   qa/headskin.mjs measures the posed mesh: for every vertex whose skin weight to the Head bone is
+   >= 0.35 it calls SkinnedMesh.boneTransform(), converts to world, then into the head bone's frame
+   WITH THE BONE SCALE REMOVED - which is exactly the space the hat anchor lives in (bindAttachments
+   does scale.setScalar(1/s)), so these are game units. 22,108 vertices, bone scale 2.634.
+
+     y (above head bone)   halfX    halfZ
+        -0.132  chin        -        -
+         0.018              0.188    0.189
+         0.086              0.167    0.198
+         0.110              0.162    0.219
+         0.156              0.195    0.210
+         0.179  temples     0.199    0.204   <- widest across, i.e. ear level
+         0.225              0.197    0.200
+         0.271              0.198    0.210
+         0.294              0.194    0.212
+         0.317              0.186    0.212
+         0.363              0.186    0.202
+         0.410              0.135    0.172
+         0.467  top of hair  -        -
+
+   Against these, the constants the last three builds shipped were not slightly off:
+       HAT_SEAT 0.145  - that is BELOW her ear line, i.e. across her eyes
+       HAT_FIT  0.158  - her head is 0.197 x 0.201 there, so the crown was NARROWER THAN HER HEAD
+   A crown narrower than the skull it sits on cannot do anything but let the head through, which is
+   what he has been pointing at in every render. No amount of profile tuning was ever going to fix
+   it, because the fault was the fit, not the shape. */
+const HEAD_HALF_X = 0.199, HEAD_HALF_Z = 0.219;   /* widest measured, any height */
+const HEAD_TOP    = 0.467;                        /* top of her hair */
+const HEAD_EAR    = 0.179;                        /* widest row = temples/ears */
+
+/* A brim rests above the ears, not on them. Her hair carries a lot of volume on top, so the seat
+   also has to leave a crown tall enough to contain it: seat 0.275 + crown 0.215 = 0.490, clear of
+   0.467. Seating lower would need a 14 cm crown to cover the same hair. */
+const HAT_SEAT   = 0.275;
+/* Real hats are OVAL - longer front-to-back than side-to-side - and so is her head (0.197 x 0.201
+   at the seat, 0.186 x 0.212 higher up). A circular crown big enough for the depth stands off her
+   temples by 3 cm. So the hat is built round and scaled to an ellipse. */
+const HAT_RX     = 0.212;
+const HAT_RZ     = 0.228;
+const HAT_FIT    = (HAT_RX + HAT_RZ) / 2;       /* mean crown radius; geometry is built at this */
+const HAT_TOP_R  = 0.80;                        /* taper; the cattleman crease does the rest */
+const HAT_BRIM   = HAT_FIT * 1.43;              /* the measured Stetson ratio: 320px brim / 224px crown */
+const HAT_CROWN_H = 0.215;                      /* 12.4 cm at 1u = 0.576 m - a cattleman crown */
+/* kept so the physics clamp below still reads in the old names */
+const HEAD_CROWN = HEAD_TOP, HEAD_SIDE = Math.max(HEAD_HALF_X, HEAD_HALF_Z);
 const HAT_PHYS = (() => { const v = parseFloat(QS.get("hatphys")); return isNaN(v) ? 1 : v; })();
 /* ---- hat physics ----
    The hat is parented to the head bone, so nothing she does can move it. This gives it a two-axis
@@ -1165,10 +1234,10 @@ const HAT_PHYS = (() => { const v = parseFloat(QS.get("hatphys")); return isNaN(
    so theta must stay under asin(HAT_CLEAR/HAT_FIT) or the brim cuts into her head again — the exact
    failure this hat was rebuilt to fix. ?hatphys=0 turns it off. */
 const HAT_K = 46, HAT_DAMP = 6.4, HAT_DRIVE = 0.18;   /* 0.058 was so weak the hat never visibly moved */
-const HAT_CLEAR = Math.max(0.008, HAT_FIT - HEAD_SIDE);   /* room to tilt before the brim reaches her skull */
+const HAT_CLEAR = Math.max(0.006, Math.min(HAT_RX - 0.197, HAT_RZ - 0.201));  /* gap at the seat, measured */
 const HAT_TILT_MAX = Math.min(0.095, Math.asin(Math.max(.001, Math.min(.99, HAT_CLEAR/HAT_FIT))) * 0.75);
 const HAT_BASE_X = -0.045;                      /* rest tilt: worn a touch forward */
-try{ window.HAT_TILT_MAX = HAT_TILT_MAX; window.HAT_CLEAR = HAT_CLEAR; window.HAT_FIT = HAT_FIT; }catch(e){}
+try{ window.HAT_SEAT = HAT_SEAT; window.HAT_TILT_MAX = HAT_TILT_MAX; window.HAT_CLEAR = HAT_CLEAR; window.HAT_FIT = HAT_FIT; }catch(e){}
 const _hpW = new THREE.Vector3(), _hpQ = new THREE.Quaternion(), _hpV = new THREE.Vector3();
 function hatPhysics(R, dt){
   const hat = R && R.hat; if(!hat || !hat.parent || !(dt > 0)) return;
@@ -1198,49 +1267,65 @@ function hatPhysics(R, dt){
   R.hatTilt = Math.hypot(s.ax, s.az);
 }
 /* ---- her white cowgirl hat ----
-   Shape from a reference photograph, scale from her own measurements.
+   Shape from reference photographs of women's western hats; scale from her own measurements.
 
-   Reference: "Felthat.jpg" on Wikimedia Commons — a beige felt cowboy hat on a white background,
-   by Ealdgyth. Read off it: the brim is about 2.6x the crown across, the crown is roughly as tall
-   as it is wide, the brim stays flat where it leaves the crown and only sweeps up towards its edge,
-   and the crown carries a cattleman crease — one long channel down the centre with a dent pinched
-   into each side near the front.
+   The previous version had the size right and the SHAPE wrong: a nearly flat brim with a gentle
+   lift, which reads as a boater or a sun hat, not a cowgirl hat. What makes the silhouette western
+   is the taco — the brim curls hard UP at both sides, rising to around a third of the crown's
+   height at the edge, while the front and back turn DOWN. From the front you see the underside of
+   the brim on the left and right and the two tips sit near temple height. The crown is tall with a
+   deep centre crease and a real pinch either side at the front, not a shallow dimple.
 
-   2.6x against a crown fitted to her head would put the brim wider than her shoulders, so the ratio
-   is not copied blindly: the brim is sized to HER, at 0.78 of half her shoulder span, giving 1.8x.
-   The photograph decides the shape; she decides the scale. */
+   Sizing still comes from her, not from a photo: brim 0.78 of half her shoulder span, crown fitted
+   between skull width (0.138) and hair width (0.194) so the hat rides her hair and the hair spills
+   out below and behind it. */
 function cowgirlHat(brimOuter){
-  const HATC = 0xF6F2EA, SEG = 48;
+  const HATC = 0xF6F2EA, SEG = 52;
   const R0 = HAT_FIT;
   const R1 = Math.max(R0 + .05, brimOuter || HAT_BRIM);
   const g = new THREE.Group();
-  /* ---- brim ---- */
-  { const RINGS = 6, pos = [], idx = [], W = (R1 - R0);
-    for(let i=0;i<=RINGS;i++){ const t = i/RINGS, r = R0 + W*t;
+  /* ---- brim: the taco ----
+     `flat` keeps the first quarter dead level where it leaves the crown, then the curl comes on
+     fast. SIDE_UP is what makes it western; FRONT_DN and BACK_DN turn the ends down so the brim
+     reads as a saddle rather than a bowl. */
+  /* Tuned against front-on photographs of women's western hats rather than the three-quarter men's
+     cattleman I first found: the sides sweep up hard, the back turns down further than the front,
+     and the front only drops enough to shade the eyes. Dropping the front as far as the sides rise
+     turned it into a beak. */
+  const SIDE_UP = 1.52, FRONT_DN = 0.40, BACK_DN = 0.46;
+  const brimY = (t, cx, sz) => {
+    const W = (R1 - R0);
+    const flat = Math.max(0, (t - .24)/.76);
+    const c = Math.pow(flat, 2.2);
+    const side  = Math.pow(Math.abs(cx), 2.2);
+    const front = Math.pow(Math.max(0, sz), 1.7);
+    const back  = Math.pow(Math.max(0, -sz), 1.7);
+    return W*( SIDE_UP*c*side - FRONT_DN*c*front - BACK_DN*c*back );
+  };
+  { const RINGS = 8, pos = [], idx = [];
+    for(let i=0;i<=RINGS;i++){ const t = i/RINGS, r = R0 + (R1-R0)*t;
       for(let j=0;j<=SEG;j++){ const a = j/SEG*Math.PI*2, cx = Math.cos(a), sz = Math.sin(a);
-        const side = Math.abs(cx), front = Math.max(0, sz), back = Math.max(0, -sz);
-        const flat = Math.max(0, (t - .30)/.70);        /* dead flat for the first third, as in the photo */
-        const y = W*( .62*Math.pow(flat,1.9)*Math.pow(side,2.0)    /* sides sweep up */
-                    - .30*Math.pow(flat,2.0)*front                  /* front dips over the eyes */
-                    + .10*Math.pow(flat,2.0)*back );                /* back lifts a little */
-        pos.push(cx*r, y, sz*r); } }
+        pos.push(cx*r, brimY(t, cx, sz), sz*r); } }
     for(let i=0;i<RINGS;i++) for(let j=0;j<SEG;j++){ const p0 = i*(SEG+1)+j, p1 = p0+1, p2 = p0+SEG+1, p3 = p2+1;
       idx.push(p0,p2,p1, p1,p2,p3); }
     const bg = new THREE.BufferGeometry();
     bg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); bg.setIndex(idx); bg.computeVertexNormals();
     g.add(inked(bg, HATC, 1.0, {side:THREE.DoubleSide})); }
-  /* ---- crown: a cattleman crease ---- */
-  { const H = HAT_CROWN_H, CR = 10, pos = [], idx = [];
+  /* ---- crown: tall, deep centre crease, a real pinch either side at the front ---- */
+  { const H = HAT_CROWN_H, CR = 14, pos = [], idx = [];
     const shape = (x, z, u) => {
-      if(u < .40) return 0;
-      const k = Math.pow((u - .40)/.60, 1.35);
-      const crease = .120*k*Math.exp(-Math.pow(x/(R0*.34), 2));
-      const dent   = .075*k*Math.exp(-Math.pow((Math.abs(x) - R0*.72)/(R0*.30), 2))
-                          *Math.max(0, (z + R0*.30)/(R0*1.2));
-      return -(crease + dent)*R0;
+      if(u < .34) return 0;
+      const k = Math.pow((u - .34)/.66, 1.25);
+      const crease = .28*k*Math.exp(-Math.pow(x/(R0*.32), 2));                   /* the channel down the top */
+      const pinch  = .22*k*Math.exp(-Math.pow((Math.abs(x) - R0*.64)/(R0*.28), 2))
+                        *Math.max(0, Math.min(1, (z + R0*.10)/(R0*.95)));        /* a dent each side, forward */
+      return -(crease + pinch)*R0;
     };
     for(let i=0;i<=CR;i++){ const u = i/CR;
-      const r = R0*(1 + .055*Math.sin(u*Math.PI*0.9)) - R0*.10*Math.pow(u,1.8);   /* felt bows out, then eases in */
+      /* Straight-ish taper from the measured base to the measured top, with a slight outward bow
+         just above the band the way blocked felt sits. Previously this drew in by only 11% over the
+         whole crown; the reference draws in by 36%. */
+      const r = R0*((1 - (1 - HAT_TOP_R)*Math.pow(u, 1.15)) + .045*Math.sin(u*Math.PI*0.8));
       for(let j=0;j<=SEG;j++){ const a = j/SEG*Math.PI*2, x = Math.cos(a)*r, z = Math.sin(a)*r;
         pos.push(x, u*H + shape(x,z,u), z); } }
     for(let i=0;i<CR;i++) for(let j=0;j<SEG;j++){ const p0 = i*(SEG+1)+j, p1 = p0+1, p2 = p0+SEG+1, p3 = p2+1;
@@ -1250,12 +1335,15 @@ function cowgirlHat(brimOuter){
     for(let j=0;j<SEG;j++) idx.push(topRing+j+1, topRing+j, centre);
     const cg = new THREE.BufferGeometry();
     cg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); cg.setIndex(idx); cg.computeVertexNormals();
-    const crown = inked(cg, HATC, 1.0); crown.position.y = .008; g.add(crown); }
-  /* ---- the band, low on the crown where the reference wears it ---- */
-  { const br = R0*1.045;
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(br, br*1.012, R0*.30, SEG, 1, true),
+    const crown = inked(cg, HATC, 1.0); crown.position.y = .006; g.add(crown); }
+  /* ---- the band, sitting in the hollow just above the brim ---- */
+  { const br = R0*1.055;
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(br, br*1.02, R0*.26, SEG, 1, true),
       stdMat({color:0x6FBF92, gradientMap:GRAD, side:THREE.DoubleSide}));
-    band.position.y = R0*.20; g.add(band); g.userData.band = band; }
+    band.position.y = R0*.17; g.add(band); g.userData.band = band; }
+  /* Built round at the mean radius, then squeezed into the oval a real hat block has. Doing it here
+     rather than in the vertex loops keeps the brim curl and the crease sitting where they should. */
+  g.scale.set(HAT_RX/R0, 1, HAT_RZ/R0);
   return g;
 }
 /* inside the coastline with a margin, so wandering animals keep clear of the waterline */
