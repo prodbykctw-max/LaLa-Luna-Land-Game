@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09k";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -367,9 +367,9 @@ const SHELF_FLAT = 6, SHELF_EDGE = 13, SHELF_DROP = 2.3, WADE_MAX = 11.5, SHORE_
 const SEA_Y = -1.1;
 /* the sea surface at a point, in world units - the same wave the sea shader displaces its vertices by,
    so splashes, rings and floating things sit ON the water instead of somewhere near it */
-function seaHeight(x, z, t){
+function seaHeight(x, z, t, base){
   const py = -z;   /* the sea plane is rotated -90 deg about x, so its local y runs along world -z */
-  return SEA_Y + Math.sin(x*.055 + t*1.05)*.5 + Math.sin(py*.07 - t*.8)*.4 + Math.sin((x+py)*.11 + t*1.6)*.22;
+  return (base == null ? SEA_Y : base) + Math.sin(x*.055 + t*1.05)*.5 + Math.sin(py*.07 - t*.8)*.4 + Math.sin((x+py)*.11 + t*1.6)*.22;
 }
 const shelfGround = d => d <= SHELF_FLAT ? -.12 : -.12 - Math.min(1.4, (d - SHELF_FLAT)/(SHELF_EDGE - SHELF_FLAT))*SHELF_DROP;
 /* Hand-authored landmark radii (the town square's stalls and lamps, the crowd rings) were pinned
@@ -1539,6 +1539,50 @@ function waterFx(scene){
     if(any || dirty){ pg.attributes.position.needsUpdate = true; dirty = any; }
   };
   return {ripple, splash, update, rings, pts};
+}
+/* The wake of a moving boat. A ribbon of LEN x WID on the water behind the stern: two arms that
+   diverge from the quarters and a churned centre line, all fading with distance, with streaks that
+   scroll aft at the boat's speed so the foam is left behind rather than dragged along. The ribbon's
+   vertices are re-laid on the real sea surface every frame, so the swell passes through it instead
+   of hiding it. update(x, z, heading, speed, t): heading is the direction the boat is moving in. */
+function boatWake(scene, LEN, WID, baseY){
+  const NX = 9, NZ = 26;
+  const g = new THREE.PlaneGeometry(WID, LEN, NX-1, NZ-1); g.rotateX(-Math.PI/2);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {t:{value:0}, uSpeed:{value:1}}]),
+    vertexShader:`varying vec2 vUv;
+      #include <fog_pars_vertex>
+      void main(){ vUv = uv; vec4 mvPosition = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader:`uniform float t, uSpeed; varying vec2 vUv;
+      #include <fog_pars_fragment>
+      void main(){
+        float v = vUv.y;                                        /* 0 at the stern (last grid row), 1 at the far end (row 0) */
+        float u = vUv.x - 0.5;
+        float w = 0.09 + v*0.34;                                /* the arms open out behind the boat */
+        float arm = 1.0 - smoothstep(0.0, 0.045 + v*0.07, abs(abs(u) - w));
+        float churn = 1.0 - smoothstep(0.0, 0.13*(1.0 - v*0.6), abs(u));
+        float streak = sin(v*46.0 - t*uSpeed*3.0 + u*14.0)*0.5 + 0.5;
+        float lace   = sin(v*23.0 - t*uSpeed*2.1 - u*31.0)*0.5 + 0.5;
+        float a = (arm*0.70 + churn*0.60) * (1.0 - v) * (1.0 - v) * (0.45 + 0.35*streak + 0.20*lace);
+        gl_FragColor = vec4(0.94, 0.97, 1.0, min(0.7, a));
+        #include <fog_fragment>
+      }`,
+    transparent:true, depthWrite:false, side:THREE.DoubleSide, fog:true});
+  const m = new THREE.Mesh(g, mat); m.frustumCulled = false; m.renderOrder = 3; scene.add(m);
+  const pos = g.attributes.position;
+  const update = (x, z, heading, speed, t) => {
+    /* lay the grid from the stern back along -heading, each vertex on the water */
+    const hx = Math.sin(heading), hz = Math.cos(heading), rx = hz, rz = -hx;
+    let i = 0;
+    for(let j=0;j<NZ;j++){ const back = 1.2 + (1 - j/(NZ-1))*LEN;      /* row 0 is the far end (uv.y = 0), last row is the stern */
+      for(let k=0;k<NX;k++){ const side = (k/(NX-1) - .5)*WID;
+        const px = x - hx*back + rx*side, pz = z - hz*back + rz*side;
+        pos.setXYZ(i++, px, seaHeight(px, pz, t, baseY) + .06, pz); } }
+    pos.needsUpdate = true; mat.uniforms.t.value = t; mat.uniforms.uSpeed.value = speed;
+  };
+  return {mesh:m, update};
 }
 function foamRing(scene, x, z, r, y){
   const m = new THREE.Mesh(new THREE.RingGeometry(r-1.6, r+2.4, 72),
@@ -4018,6 +4062,8 @@ const sMoon = moonPair(new THREE.Vector3(-90,70,-260), 18); sail.add(sMoon);
 sail.add(new THREE.HemisphereLight(0xA8DCD8, 0x5AA0C8, .92));
 { const k = new THREE.DirectionalLight(0xFFE9CC, 1.0); k.position.set(-20,40,10); sail.add(k); }
 const sSea = seaMesh(0x5AA0C8, 0x86C4E0); sail.add(sSea); sail.add(seaBed(0x5AA0C8));
+/* the sail scene's sea sits at y=0, not the islands' SEA_Y, so everything laid on it says so */
+const sWake = boatWake(sail, 46, 9, 0), sWater = waterFx(sail), sSeaAt = (x, z, t) => seaHeight(x, z, t, 0);
 const sBoat = makeBoat(0x8D6141, MOON, 1.0); const sRider = makeLala();
 { sRider.group.scale.setScalar(.85); sRider.group.position.set(0, sBoat.userData.benchY - .72, sBoat.userData.benchZ + .15); sRider.group.rotation.y = 0;   /* origin is her feet: on the deck, hips on the thwart */
   sRider.seated = true; sRider.fans.visible = false; sRider.fanMeshes.forEach(f => f.visible = false); sRider.lantern.visible = false; sBoat.add(sRider.group); sail.add(sBoat); }
@@ -4226,6 +4272,13 @@ function tick(){
   } else {
     sailT += dt; sSea.userData.mat.uniforms.t.value = T; sMoon.userData.halo.lookAt(camera.position);
     sBoat.position.z -= 15*dt; sBoat.position.y = Math.sin(T*1.4)*.3; sBoat.rotation.z = Math.sin(T*.95)*.05;
+    /* she is sailing at 15 u/s: the stern trails a wake laid on the swell, and the bow throws spray
+       every time it comes down - more when the hull is dropping, none as it lifts */
+    sWake.update(sBoat.position.x, sBoat.position.z, Math.PI, 15, T);
+    { const bx = sBoat.position.x, bz = sBoat.position.z - 4.4, sy = sSeaAt(bx, bz, T);
+      const fall = -Math.cos(T*1.4)*1.4*.3;                      /* d/dt of the bob: negative while the bow is coming down */
+      sWater.splash(bx + (Math.random()-.5)*.9, sy, bz, fall < 0 ? 5 : 2, 1.0 + Math.max(0, -fall)*2.4);
+      sWater.update(dt, T, sSeaAt); }
     if(sRider.mixer){ sRider.mixer.update(dt); applySeated(sRider); }
     hatPhysics(sRider, dt);
     if(sBoat.userData.sail) sBoat.userData.sail.rotation.y = Math.PI/2 + .3 + Math.sin(T*1.1)*.05;
