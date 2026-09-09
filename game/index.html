@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -928,6 +928,55 @@ const FANS = [[1.96*M2U,"tall man, locs, cow-print bucket hat"],[1.55*M2U,"petit
   [1.94*M2U,"big man, bun, moon floral shirt"],[1.76*M2U,"teen, blue mullet, cow-print overalls"],[1.61*M2U,"teen girl, space buns, tie-dye"],[1.84*M2U,"older man, grey beard, LUNA tee"]];
 FANS.forEach((f,i) => { RIGS["fan"+(i+1)] = {url:`assets/fans/fan${String(i+1).padStart(2,"0")}.glb`, height:f[0], ink:.010, fallback:"crowd"}; });
 for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false, loading:false});
+/* ---- crowd LOD ----
+   Town's crowd was 34 full skinned rigs: 591k skinned triangles across 68 meshes and 713 draw calls
+   at the spawn point, the largest line item in the scene. Three.js cannot instance a skinned mesh —
+   InstancedMesh carries no skeleton — so the only way to move that number is for distant crowd
+   members to stop being skinned at all. tools/fan_proxies.py bakes each rig at a frame of its idle
+   animation (a rest-pose proxy reads as a shop mannequin), joins it, decimates 10,578 tris to 700
+   and strips the skin. Beyond CROWD_FAR the rig hides and one InstancedMesh per variant draws the
+   rest: twelve draw calls instead of thirty-four, at a fifteenth of the triangles. */
+const CROWD_FAR = parseFloat(QS.get("crowdfar")) || 46;
+const PROXIES = {};
+function loadProxy(name){
+  if(name in PROXIES) return; PROXIES[name] = null;
+  const rig = RIGS[name]; if(!rig || !THREE.GLTFLoader) return;
+  const n = name.replace("fan", "");
+  new THREE.GLTFLoader().load(`assets/fans/proxy/fan${String(n).padStart(2,"0")}.glb`, gltf => {
+    const parts = []; let mat = null;
+    gltf.scene.updateMatrixWorld(true);
+    gltf.scene.traverse(o => { if(o.isMesh && o.geometry){ parts.push(o); if(!mat) mat = o.material; } });
+    if(!parts.length){ DBG("proxy empty", name); return; }
+    /* the export splits into two primitives sharing one material — merge them so the variant is
+       a single instanced draw */
+    const pos = [], nor = [], uv = [];
+    const v = new THREE.Vector3(), nm = new THREE.Matrix3();
+    for(const o of parts){
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry;
+      const P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
+      nm.getNormalMatrix(o.matrixWorld);
+      for(let i=0;i<P.count;i++){
+        v.fromBufferAttribute(P,i).applyMatrix4(o.matrixWorld); pos.push(v.x,v.y,v.z);
+        if(N){ v.fromBufferAttribute(N,i).applyMatrix3(nm).normalize(); nor.push(v.x,v.y,v.z); }
+        if(U) uv.push(U.getX(i), U.getY(i));
+      }
+      if(g !== o.geometry) g.dispose();
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
+    if(nor.length) geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor,3)); else geo.computeVertexNormals();
+    if(uv.length)  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv,2));
+    /* normalise exactly the way loadRig does, so a member does not change size when it swaps */
+    geo.computeBoundingBox();
+    const b = geo.boundingBox, size = b.getSize(new THREE.Vector3());
+    const sc = rig.height / Math.max(size.y, 1e-3);
+    geo.translate(-(b.min.x+b.max.x)/2, -b.min.y, -(b.min.z+b.max.z)/2);
+    geo.scale(sc, sc, sc);
+    const m = toonRim(stdMat({map: mat && mat.map || null, color: 0xffffff, gradientMap: GRAD, side: THREE.FrontSide}));
+    PROXIES[name] = {geo, mat: m};
+    DBG("proxy ready", name, geo.attributes.position.count/3, "tris");
+  }, undefined, e => DBG("proxy failed", name, e));
+}
 function loadRig(name){
   const rig = RIGS[name]; if(!rig || rig.loading || rig.gltf || !THREE.GLTFLoader || !THREE.SkeletonUtils) return;
   rig.loading = true;
@@ -2141,6 +2190,47 @@ function guideJelly(){
   g.renderOrder = 3;
   return g;
 }
+const _lodM = new THREE.Matrix4(), _lodQ = new THREE.Quaternion(), _lodE = new THREE.Euler(), _lodS = new THREE.Vector3();
+function crowdLOD(I, dt){
+  const members = I.crowdMembers || (I.crowdMembers = (I.npcs||[]).filter(g => g.userData.crowd));
+  if(!members.length) return;
+  I.lodT = (I.lodT || 0) + dt;
+  if(I.lodT < 0.12) return;                        /* four times a second is plenty for a swap at 46 u */
+  I.lodT = 0;
+  const banks = I.crowdBanks || (I.crowdBanks = {});
+  const far = {};
+  for(const g of members){
+    const name = g.userData.crowd, P = PROXIES[name];
+    const d = camera.position.distanceTo(g.position);
+    const isFar = !!P && d > CROWD_FAR;
+    if(g.visible === isFar) g.visible = !isFar;     /* only touch it when it actually changes */
+    if(!isFar) continue;
+    (far[name] = far[name] || []).push(g);
+  }
+  for(const name in PROXIES){
+    const P = PROXIES[name]; if(!P) continue;
+    const list = far[name] || [];
+    let bank = banks[name];
+    if(!bank && list.length){
+      bank = banks[name] = new THREE.InstancedMesh(P.geo, P.mat, 40);
+      bank.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      bank.frustumCulled = false; bank.castShadow = false; bank.receiveShadow = false;
+      bank.userData.dyn = 1; I.scene.add(bank);
+    }
+    if(!bank) continue;
+    const n = Math.min(list.length, bank.count === undefined ? 40 : 40);
+    for(let i=0;i<n;i++){
+      const g = list[i];
+      _lodQ.setFromEuler(_lodE.set(0, g.rotation.y, 0));
+      _lodS.copy(g.scale);
+      _lodM.compose(g.position, _lodQ, _lodS);
+      bank.setMatrixAt(i, _lodM);
+    }
+    bank.count = n;
+    bank.instanceMatrix.needsUpdate = true;
+    bank.visible = n > 0;
+  }
+}
 function cueArrow(col){
   const sh = new THREE.Shape();
   sh.moveTo(0,.95); sh.lineTo(.82,0); sh.lineTo(.40,0); sh.lineTo(.40,-.85);
@@ -2980,7 +3070,8 @@ function buildIsland(cfg){
       g.userData = {R, cfg:{name:null, wander: onBeach ? 5 : 8}, home:new THREE.Vector3(s[0],0,s[1]), state:"idle", timer:Math.random()*4, target:null, heading:Math.random()*6.3};
       groundShadow(g, .50);
       R.tint = nextTint("fan"+order[i]);
-      g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); }
+      g.userData.crowd = "fan"+order[i];
+      g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); loadProxy("fan"+order[i]); }
     if(cfg.gate){
       for(let z = cfg.gate.zMin; z <= cfg.gate.zMax; z += 4){
         const post = inked(new THREE.CylinderGeometry(.35,.4,3.6,8), BONE, 1.6); post.position.set(cfg.gate.x, height(cfg.gate.x,z)+1.8, z); scene.add(post); I.gateMeshes.push(post);
@@ -3526,6 +3617,8 @@ function islandUpdate(I, dt, t){
     /* crowd LOD: ink outline only when close to the camera, shadow only at mid range — halves the skinned triangle load */
     if(R.inkTwins){ const dc = camera.position.distanceTo(g.position), nearInk = dc < 26, midShadow = dc < 42;
       for(const m of R.inkTwins) m.visible = nearInk; for(const m of R.skins) m.castShadow = midShadow; } });
+  /* crowd LOD: anything past CROWD_FAR hides its rig and is drawn by its variant's InstancedMesh */
+  crowdLOD(I, dt);
   /* Ollie sits his horse: the horse takes his ground position and heading, he rides at saddle height,
      and his legs get the same seated pose Lala's do. Done in its own pass so it applies whether he is
      idling, wandering or out on a delivery run. */
