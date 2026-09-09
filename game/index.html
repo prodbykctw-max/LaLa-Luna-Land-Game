@@ -334,7 +334,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-09w";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-09z";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1190,9 +1190,7 @@ function attachRig(R, name){
      quaternions is not the average of the composition. So the correction is applied after the
      mixer instead, where it is exact and measurable: slerp neck and head back toward their bind
      rotations. ?headfix=0 turns it off, ?headfix=0.5 does half. */
-  R.headFixBones = [];
-  model.traverse(o => { if(o.isBone && /(neck|head)$/i.test(o.name.replace(/[^a-z]/gi,""))){
-    o.userData.bindQuat = o.quaternion.clone(); R.headFixBones.push(o); } });
+  levelClipHeads(model, gltf.animations, name);
   /* Hygiene, not a fix: these clips carry position AND scale tracks on every bone. Here they are
      no-ops (constant values equal to the bind offsets, scale exactly 1) - I checked, and stripping
      them changes nothing measurable, so it is NOT what fixed her face. It stays because on a
@@ -1463,25 +1461,78 @@ function landOnBearing(I, a, rMax){
   }
   return null;
 }
-const HEADFIX = (() => { const v = parseFloat(QS.get("headfix")); return isNaN(v) ? 1 : Math.max(0, Math.min(1, v)); })();
-/* Pull the neck and head back toward the rotation the model was built with, after the mixer has
-   written the clip's own values. Call it every frame a rig is updated. */
-const _lhA = new THREE.Quaternion(), _lhB = new THREE.Quaternion(), _lhE = new THREE.Euler(0,0,0,"YXZ");
-function levelHead(R){
-  if(!(HEADFIX > 0) || !R || !R.headFixBones) return;
-  for(const b of R.headFixBones){
-    const bind = b.userData.bindQuat; if(!bind) continue;
-    /* Only the YAW is the baked-in error. Slerping the whole rotation back to bind also drags her
-       chin down, because the bind pose itself looks slightly down - it made her worse, not better.
-       So: take the clip's rotation as a delta from bind, express it YXZ, cancel the Y term by
-       HEADFIX, and put it back. Pitch and roll - the parts the animator actually meant - survive. */
-    _lhA.copy(bind).invert().multiply(b.quaternion);
-    _lhE.setFromQuaternion(_lhA, "YXZ");
-    _lhE.y *= (1 - HEADFIX);
-    _lhB.setFromEuler(_lhE);
-    b.quaternion.copy(bind).multiply(_lhB);
+/* =====================  HEADS THAT SIT CROOKED  =====================
+   Every animation on these rigs is retargeted, and retargeting bakes the capture subject's own
+   posture into the clip. Lala's idle held her head at yaw 10.84-10.92 deg on EVERY frame against a
+   bind pose of 0.01 - not a sway, a constant. The variation across the whole 2.54 s clip is under
+   a tenth of a degree.
+
+   Eleven degrees is enough to stop a face being front-on. The nose swings across the cheek behind
+   it, the near nostril rotates out of sight, and the far nostril wing stacks against the cheek as
+   a separate mass with its own hard edge - which reads, correctly, as an extra piece of flesh
+   stuck on the nose. It cost days, because every render made outside the game (bind pose, or a
+   camera placed dead front) looked right.
+
+   This is baked into the CLIPS at load, for every rig, so there is no per-frame call site anyone
+   can forget and no rig that quietly misses out. Only the MEAN yaw is removed: whatever head
+   turning the animator actually authored still plays, and pitch and roll are untouched. Snapping
+   the whole rotation to bind was tried and is wrong - the bind pose itself looks slightly down, so
+   it drags the chin with it.
+
+   qa/headyaw.mjs asserts this across every rig in the game and fails if any head drifts back.
+   ?headfix=0 disables it; ?headfix=0.5 halves it. */
+const HEADFIX   = (() => { const v = parseFloat(QS.get("headfix"));   return isNaN(v) ? 1 : Math.max(0, Math.min(1, v)); })();
+/* The clip also LIFTS her chin about 9 deg off bind, and a lifted chin is what makes a nose read
+   pointed - you start seeing up the underside of it. Levelled on the same principle as the yaw:
+   remove the clip's mean pitch bias, keep the motion. ?headpitch= sweeps it. */
+const HEADPITCH = (() => { const v = parseFloat(QS.get("headpitch")); return isNaN(v) ? 0 : Math.max(0, Math.min(1, v)); })();
+/* Pitch levelling defaults OFF, and that is a judgement made from renders, not from the numbers.
+   Levelling it too puts her head at exactly the bind angles (yaw 0.2, pitch 7.5 against a bind of
+   0.01 / 7.48) - but the bind pose itself looks slightly down, so she ends up chin-tucked and the
+   camera sees forehead. Yaw alone is what removes the pointed nose and squares her to the view.
+   ?headpitch=1 turns it on if the pose ever needs it. */
+const HEAD_BONE_RE = /(neck|head)$/i;
+const _hqA = new THREE.Quaternion(), _hqB = new THREE.Quaternion(), _hqC = new THREE.Quaternion();
+const _heA = new THREE.Euler(0,0,0,"YXZ"), _heB = new THREE.Euler(0,0,0,"YXZ");
+function levelClipHeads(model, clips, tag){
+  if(!(HEADFIX > 0) || !clips || !clips.length) return 0;
+  const bind = {};
+  model.traverse(o => { if(o.isBone && HEAD_BONE_RE.test(o.name.replace(/[^a-z]/gi,""))) bind[o.name] = o.quaternion.clone(); });
+  let worst = 0;
+  for(const clip of clips){
+    if(clip.userData && clip.userData.headLevelled) continue;   /* clips are shared between clones */
+    for(const t of clip.tracks){
+      const m = t.name.match(/^(.*)\.quaternion$/); if(!m) continue;
+      const b = bind[m[1]]; if(!b) continue;
+      const v = t.values, n = v.length / 4; if(n < 1) continue;
+      /* mean yaw of the clip's rotation as a delta from bind */
+      let sumY = 0, sumX = 0;
+      for(let i=0;i<n;i++){
+        _hqA.set(v[i*4], v[i*4+1], v[i*4+2], v[i*4+3]);
+        _hqB.copy(b).invert().multiply(_hqA);
+        _heA.setFromQuaternion(_hqB, "YXZ");
+        sumY += _heA.y; sumX += _heA.x;
+      }
+      const meanYaw = (sumY / n) * HEADFIX, meanPitch = (sumX / n) * HEADPITCH;
+      if(Math.abs(meanYaw) < 1e-4 && Math.abs(meanPitch) < 1e-4) continue;
+      if(Math.abs(meanYaw) > worst) worst = Math.abs(meanYaw);
+      for(let i=0;i<n;i++){
+        _hqA.set(v[i*4], v[i*4+1], v[i*4+2], v[i*4+3]);
+        _hqB.copy(b).invert().multiply(_hqA);
+        _heA.setFromQuaternion(_hqB, "YXZ");
+        _heB.set(_heA.x - meanPitch, _heA.y - meanYaw, _heA.z, "YXZ");   /* the MOTION survives -
+                                                                  only the constant bias goes */
+        _hqC.setFromEuler(_heB);
+        _hqA.copy(b).multiply(_hqC);
+        v[i*4]=_hqA.x; v[i*4+1]=_hqA.y; v[i*4+2]=_hqA.z; v[i*4+3]=_hqA.w;
+      }
+    }
+    (clip.userData = clip.userData || {}).headLevelled = true;
   }
+  if(worst > 0.01) DBG("head levelled", tag, (worst*180/Math.PI).toFixed(1) + " deg");
+  return worst;
 }
+try{ window.levelClipHeads = levelClipHeads; }catch(e){}
 function playClip(R, name, fade){
   if(!R.actions) return;
   const a = R.actions[name] || R.actions.idle || R.actions.walk; if(!a || R.current === a) return;
@@ -3911,7 +3962,7 @@ function walkerUpdate(I, dt, t){
     const jog = curSpeed > SPEED*.62;
     playClip(W, !W.grounded ? "jump" : (moving ? (jog ? "run" : "walk") : "idle"));
     if(moving && W.current){ W.current.timeScale = curSpeed / (jog ? STRIDE_JOG : STRIDE_WALK); } else if(W.current) W.current.timeScale = 1;
-    W.mixer.update(dt); levelHead(W); }
+    W.mixer.update(dt); }
   if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ if(W.wet) auWade(); else auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = W.wet ? .40 : .34; } } else AU.stepT = 0;
   /* her shadow stays on the ground and softens as she rises, instead of riding up with her */
   if(W.shadow){
