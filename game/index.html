@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-10q";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-10s";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -973,7 +973,7 @@ const RIGS = {
      half-lit scene. Keeping her own material (?flat=1 restores the old path) puts the face back
      to what Autosprite renders, and lifts her skin tone without touching a single texel - which
      is also the honest version of the skin-lightening pass that looked bad when it was faked. */
-  lala: {url: new URLSearchParams(location.search).get("old") ? "assets/lala-v2-original.glb" : "assets/lala.glb", height:2.95, ink:.009,
+  lala: {url: new URLSearchParams(location.search).get("old") ? "assets/lala-v2-original.glb" : "assets/lala.glb", height:3.00, ink:.009,   /* he states Lala is 5 ft 8 in real life: 1.7272 m / 0.576 m per unit = 2.999 u */
          pbr: !new URLSearchParams(location.search).get("flat")},
   /* TRUE SCALE. rig.height is the model's TOTAL height (crown of the head, or poll on an animal),
      because that is what loadRig fits the bounding box to. The old numbers used withers/shoulder
@@ -1654,9 +1654,10 @@ function tameJumpClips(model, clips){
    It has to be applied to the CLIPS as well as the bind pose: retargeted clips store absolute local
    rotations per bone, so a bind-pose change alone is overwritten the moment a clip plays.
    ?stance=0 reverts. */
-const STANCE = (() => { const v = parseFloat(QS.get("stance")); return isNaN(v) ? 2.0 : v; })();
-/* A constant offset alone cannot fix this. The BIND pose only needs 2 degrees per leg to match the
-   reference, but the IDLE clip splays her about 11 degrees per leg wider than bind on top of that -
+const STANCE = (() => { const v = parseFloat(QS.get("stance")); return isNaN(v) ? 3.0 : v; })();
+/* A constant offset alone cannot fix this. The bind pose alone measures a 4 degree optimum, but 3 is what stands correctly once the knee
+   hinge fix below is doing its half of the work (it was 2 before the 2026-09-10 rebuild - re-sweep
+   after any rebuild), but the IDLE clip splays her about 11 degrees per leg wider than bind on top of that -
    a static offset baked into the capture, not motion. So the idle clip's upper-leg keys are pulled
    part way back toward bind, the same slerp-toward-rest trick that already tames the jump.
 
@@ -1667,13 +1668,44 @@ const STANCE = (() => { const v = parseFloat(QS.get("stance")); return isNaN(v) 
    idle-type clips are touched, so walk and run keep their full stride. ?splay=1 leaves them alone. */
 const SPLAY = (() => { const v = parseFloat(QS.get("splay")); return isNaN(v) ? 0.30 : Math.max(0, Math.min(1, v)); })();
 const UPLEG_RE = /(Left|Right)UpLeg$/i;
+const KNEE_RE  = /(Left|Right)Leg$/i;
+/* Swinging the thigh in at the hip is only half of it. The captured clips also carry a sideways
+   lean at the KNEE, so when the thigh comes in the shin leans back out: the knees close, the feet
+   stay apart, and she reads knock-kneed - "bendy", as he put it, and not how anyone stands.
+
+   A knee is a hinge. In a real leg it flexes fore and aft and barely abducts at all, so the
+   sideways component in these clips is retarget noise, and removing it is anatomy rather than a
+   compromise. KNEE scales only that component: the leg then pivots at the HIP as one straight line,
+   which is what standing with your feet together actually looks like. Flexion (the fore/aft swing
+   that walking is made of) and the twist of the shin are both left alone, so stride survives.
+   ?knee=1 leaves the clips as captured. */
+const KNEE = (() => { const v = parseFloat(QS.get("knee")); return isNaN(v) ? 0.25 : Math.max(0, Math.min(1, v)); })();
+const _knE = new THREE.Euler(0, 0, 0, "ZXY");
+const _knA = new THREE.Quaternion(), _knB = new THREE.Quaternion();
+/* Scale the world-Z (frontal-plane) part of a parent-frame rotation. Conjugating by the parent's
+   bind world rotation re-expresses it on WORLD axes first, so "sideways" means sideways in the
+   room and not in whatever frame the exporter happened to leave the bone in. */
+function dampSideways(q, pw, pwi, k){
+  _knA.copy(pw).multiply(q).multiply(pwi);
+  _knE.setFromQuaternion(_knA, "ZXY");
+  _knE.z *= k;
+  _knB.setFromEuler(_knE);
+  return q.copy(pwi).multiply(_knB).multiply(pw);
+}
 function narrowStance(model, clips){
-  if(!STANCE) return 0;
+  if(!STANCE && !(KNEE < 1)) return 0;
   model.updateMatrixWorld(true);
   const fix = {};                      /* bone name -> constant left-multiply in its PARENT's space */
   const bindQ = {};                    /* each upper leg's bind rotation, for the idle relax */
+  const knee = {};                     /* knee bone -> {bind, bindInv, pw, pwi} for the hinge fix */
   const pw = new THREE.Quaternion(), ax = new THREE.Vector3(0, 0, 1);
   model.traverse(o => {
+    if(o.isBone && KNEE_RE.test(o.name) && KNEE < 1){
+      const p = new THREE.Quaternion();
+      if(o.parent) o.parent.getWorldQuaternion(p); else p.identity();
+      knee[o.name] = {bind: o.quaternion.clone(), bindInv: o.quaternion.clone().invert(),
+                      pw: p.clone(), pwi: p.clone().invert()};
+    }
     if(!(o.isBone && UPLEG_RE.test(o.name))) return;
     const sgn = /Left/i.test(o.name) ? -1 : 1;
     const R = new THREE.Quaternion().setFromAxisAngle(ax, sgn * STANCE * Math.PI / 180);
@@ -1694,6 +1726,16 @@ function narrowStance(model, clips){
     const relax = (SPLAY < 1) && /idle|breath|stand/i.test(clip.name);
     for(const t of clip.tracks){
       const m = t.name.match(/^(.*)\.quaternion$/); if(!m) continue;
+      const kn = knee[m[1]];
+      if(kn){                                  /* the knee is a hinge: take its sideways lean out */
+        const v2 = t.values, n2 = v2.length / 4;
+        for(let i = 0; i < n2; i++){
+          q.set(v2[i*4], v2[i*4+1], v2[i*4+2], v2[i*4+3]).multiply(kn.bindInv);
+          dampSideways(q, kn.pw, kn.pwi, KNEE).multiply(kn.bind);
+          v2[i*4] = q.x; v2[i*4+1] = q.y; v2[i*4+2] = q.z; v2[i*4+3] = q.w;
+        }
+        continue;
+      }
       const f = fix[m[1]]; if(!f) continue;
       const b = bindQ[m[1]];
       const v = t.values, k = v.length / 4;
@@ -4183,7 +4225,7 @@ function buildIsland(cfg){
    ============================================================ */
 /* jump apex = JUMPV^2/(2*GRAV) = 3.35 u = 1.90 m — clears a stall counter, the dock deck, the storefront step */
 const GRAV = -26, JUMPV = 13.2, GLIDE_VY = -2.0, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
-/* on foot: 12.4 u/s = 7.1 m/s. 1 game unit = 0.576 m (Lala 2.95 u = 1.70 m). ?speed= overrides. */
+/* on foot: 12.4 u/s = 7.1 m/s. 1 game unit = 0.576 m (Lala 3.00 u = 1.727 m = 5 ft 8). ?speed= overrides. */
 const SPEED = parseFloat(QS.get("speed")) || 12.4;
 /* riding: the horses are the reason a 4x island is walkable. ?ride= and ?saddle= tune it. */
 const RIDEABLE = {horse:1, cow:1};

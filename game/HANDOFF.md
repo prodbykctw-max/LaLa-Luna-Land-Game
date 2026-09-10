@@ -539,6 +539,49 @@ measured against world X stops being a frontal-plane angle and the numbers flip 
 reason. `qa/silo.html` (orthographic, single largest mesh, optional clip + time + view + narrow) and
 `qa/legcmp.mjs` (in game, clay and textured, front and rear) are the tools for this.
 
+## 4.3 The 2026-09-10 v2 rebuild — what it settled, and two more rules
+
+**Her hair was never a mesh problem.** The in-game hair measured pixel-identical to Autosprite's
+original v2 3D build (17,359 vs 17,438 px in the head band, 0.5% apart), so nothing our pipeline did
+degraded it. Autosprite's image-to-3D simply collapsed her curls into a slick bun when it built v2.
+The geometry was never generated, and no mesh edit can bring back geometry that does not exist.
+Rebuilding the same character through the same service produced the curls on the second try, so a
+disappointing image-to-3D result is worth ONE rebuild before anyone starts modelling by hand.
+
+**The Autosprite REST 3D API, since the MCP connector is still unauthorized:**
+```
+GET  /api/v1/3d/animations                     catalog + costs (model 50, animation 5)
+GET  /api/v1/characters/{id}/3d-model          status, modelUrl, riggedModelUrl, unlocked list
+POST /api/v1/characters/{id}/3d-model          REBUILDS the model. 50 credits. No dry run.
+POST /api/v1/characters/{id}/3d-animations     {"animationIds":[...]}, 5 credits each
+GET  /api/v1/jobs/{jobId}                      poll; 3D builds take 2-5 minutes
+```
+A rebuild resets every unlocked animation except idle, so budget 15 more credits to get walk_loop,
+jog_fwd_loop and jump_loop back. The rigged GLB ships at ~19.6 MB; `gltf-transform resize 1024` then
+`webp --quality 90` takes it to 7.0 MB with no visible loss.
+
+**RULE — a probe that can create is not a probe.** Endpoint discovery was done by POSTing
+`{"dryRun":true}`, which is not a parameter Autosprite accepts. It ignored the flag, rebuilt the
+model, and spent 50 credits that were not authorised for that moment. Discover routes with GET, or
+with a dry-run the API documents; never send a speculative POST to a route that might create, charge,
+publish, or send. If a POST is genuinely required, aim it only at a route whose worst case is the
+thing you already intended to do.
+
+**RULE — a knee is a hinge, so pivot the leg at the HIP.** Rotating only the thigh in at the hip
+leaves the captured sideways lean at the knee, so the shin swings back out: knees close, feet stay
+apart, and she reads knock-kneed. He caught this immediately - *"that's not how humans walk... a
+pivot where her hips are... they bring their feet together, but it's straight, solid, firm line."*
+`narrowStance` now also scales the world-Z (frontal-plane) component of each knee's rotation
+(`KNEE`, default 0.25), leaving flexion and twist alone so stride survives.
+
+**RULE — re-sweep every pose constant after a model rebuild.** The stance optimum moved from 2 to 4
+degrees on the bind pose between the old build and the rebuild, and landed at 3 once the knee fix
+was carrying half the correction. Constants tuned against one mesh are not facts about the next one.
+
+**Her height is 3.00 units.** He states Lala is 5 ft 8 in real life: 1.7272 m / 0.576 m per unit =
+2.999. It was 2.95 (1.70 m). Note the rig scales TOTAL height including hair, and the rebuild has
+more hair than the old model, so her body is a touch shorter than the number alone suggests.
+
 ---
 
 # 5. Tooling
