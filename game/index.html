@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-10s";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-10t";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no

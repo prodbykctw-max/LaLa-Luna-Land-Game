@@ -582,6 +582,31 @@ was carrying half the correction. Constants tuned against one mesh are not facts
 2.999. It was 2.95 (1.70 m). Note the rig scales TOTAL height including hair, and the rebuild has
 more hair than the old model, so her body is a touch shorter than the number alone suggests.
 
+## 4.4 The hourglass — and a claim I made that was wrong
+
+**Her hips were 7-9% too wide; her waist already matched.** Measured against v2 in a torso-local
+frame (neck to crotch, so hair above and boots below cannot move the landmarks), the waist band sat
+within 2% of the reference the whole way, while the hip flare ran 10-20% wide. `tools/torso_fit.py`
+scales that band radially, two passes: mean waist+hip width error 0.03574 -> 0.00312 leg-lengths
+(91% closer), ratio 0.9315 -> 0.9984, for a maximum vertex move of 1.02% of body height. The leg
+fit is untouched by it (0.00382 before and after).
+
+**Scale the torso about the body MIDLINE - the opposite of the leg rule in 4.2.** The torso is one
+mass, so a row's outer width really is the body's width there. In the leg band the same number is
+the gap between her legs, which is why `leg_fit` scales each leg about its own axis. The two tools
+meet at the crotch and both feather, so the seam is not a step.
+
+**RULE - the narrowest row is not the neck.** `torso_fit` first found its own landmarks on the mesh
+and locked onto her WAIST, which is also a narrow core row and much nearer the crotch. That put the
+whole correction in a band a third of the right size and it barely converged. The frame is now
+measured once on the render, carried in the fit JSON as fractions of body height, and reused by
+`apply` - so the measurement and the edit are guaranteed to be in the same frame.
+
+**I told him the boots were too bulky. They are not.** That claim came from eyeballing the OLD
+model's silhouette and I never measured it. On the rebuild with the leg fit applied, the boot band
+sits at a mean ratio of 1.0204 - within 2% of the reference. Reported deviations get measured before
+they are reported, the same as any other factual claim.
+
 ---
 
 # 5. Tooling
