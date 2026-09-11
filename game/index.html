@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-11j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-11k";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1199,6 +1199,13 @@ function preloadRigs(I){
   (I.npcs||[]).forEach(g => g.userData.R && names.add(g.userData.R.rigName));
   (I.creatures||[]).forEach(h => h.userData.R && names.add(h.userData.R.rigName));
   names.forEach(n => { if(n && RIGS[n] && !RIGS[n].gltf) loadRig(n); });
+  /* ===================  TOWN'S CROWD PROXIES LOADED ON EVERY ISLAND  ===================
+     Every island is built at boot (ISLANDS.forEach(buildIsland)), so a loadProxy() call sitting in
+     Town's crowd-spawn loop fired on the hub too: twelve proxy GLBs, 1.87 MB, fetched before the
+     hub's first frame for a crowd the player cannot see. Same class of bug as the eager rig fetch
+     wantRig() was rewritten to avoid on Sept 8 — build time is not load time. Proxies now come down
+     with the rigs, when the island is about to be played. */
+  (I.npcs||[]).forEach(g => { if(g.userData.crowd) loadProxy(g.userData.crowd); });
 }
 function attachRig(R, name){
   const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
@@ -4556,7 +4563,7 @@ function buildIsland(cfg){
       groundShadow(g, .50);
       R.tint = nextTint("fan"+order[i]);
       g.userData.crowd = "fan"+order[i];
-      g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); loadProxy("fan"+order[i]); }
+      g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); }
     if(cfg.gate){
       for(let z = cfg.gate.zMin; z <= cfg.gate.zMax; z += 4){
         const post = inked(new THREE.CylinderGeometry(.35,.4,3.6,8), BONE, 1.6); post.position.set(cfg.gate.x, height(cfg.gate.x,z)+1.8, z); scene.add(post); I.gateMeshes.push(post);
