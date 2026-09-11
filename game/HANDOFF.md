@@ -680,6 +680,28 @@ turtle rather than sitting in it - approximate, and known; the turtle itself is 
 NPC mounts are a list now (`I.mounts`, `npc.mount`/`mountScale`/`mountHue`/`saddle`) rather than the
 postman's horse being a second bespoke block, so the next rider is a config line.
 
+## 4.7 The grounding layer, and the two-stage outfit
+
+The build plan's "real-world grounding layer" is in: capuchins and the blue anole on Good Riddance
+(Gorgona has that anole and nowhere else on Earth does), and the troupial over A Place for Me.
+Every island's wildlife list is now what the plan asked for, with one deliberate exception below.
+
+**The capuchins wander the forest floor, not the canopy.** The plan asks for canopy monkeys. The
+creature system walks the ground or flies, and a monkey floating at canopy height with no branch
+under it reads as a bug, so they wander instead - which capuchins do. A perching system is what the
+canopy version needs, and it does not exist yet.
+
+**Item 7, the two-stage outfit, is built as a MECHANIC and half-visible.** `outfitFor(cfg)` decides
+in one place what was inlined at five call sites, and A Place for Me is the only island with an
+`outfit2` - reached on quest progress rather than on wearing the ability item. Verified base ->
+town -> town2. The WET HAIR works: it runs the same hair morph the hat uses, pushed past 1 so her
+hair packs flat to her skull. The CLOTHING half does not show, for the reason in 4.5 - outfit
+colours only ever repaint the primitive stand-in.
+
+So the hair morph now carries three states off one dial: 1 packs it under the hat, 0 is as built,
+negative is Sanity's wild hair, and past 1 is wet. Worth remembering before anyone builds a second
+morph for a hair change.
+
 ---
 
 # 5. Tooling

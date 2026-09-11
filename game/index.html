@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-11i";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-11j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1572,7 +1572,7 @@ function cowgirlHat(brimOuter){
   return g;
 }
 const CREATURE_SHADOW = {horse:1.15, cow:1.10, dino:1.8, jelly:.8, armadillo:.34, iguana:.30, chicken:.22,
-                         raptor:.62, crab:.22, gator:.75};
+                         raptor:.62, crab:.22, gator:.75, monkey:.28, anole:.14};
 /* Every species on an island, whether the config uses the old singular `creature` or the list.
    Kept as one accessor so no call site has to care which spelling an island happens to use. */
 function creaturesOf(cfg){
@@ -2676,6 +2676,51 @@ function makeCreature(type){
     const tail = inked(new THREE.ConeGeometry(.09,.62,7), 0x8A7B69, .7); tail.rotation.z = Math.PI/2; tail.position.set(-.86,.26,0); h.add(tail);
     for(let k=0;k<4;k++){ const l = inked(new THREE.CylinderGeometry(.055,.05,.30,6), 0x6E6153, .6);
       l.position.set(k<2?.30:-.30,.15,k%2?.20:-.20); l.userData.phase=k*1.5; h.add(l); legs.push(l); }
+  } else if(type === "monkey"){
+    /* Isla Gorgona's capuchin. The plan asks for them in the canopy; the creature system walks the
+       ground or flies, and a monkey floating at canopy height with no branch under it reads as a
+       bug, so these wander the forest floor - which capuchins do - and the canopy version waits for
+       a system that can perch. Small, pale face, long curling tail: the tail is the read. */
+    const C1 = 0x6B5342, C2 = 0x4A3A2E, FACE = 0xE4CBA8;
+    const body = inked(new THREE.SphereGeometry(.30,10,8), C1, .7); body.scale.set(1.15,1.25,.95); body.position.y=.52; h.add(body);
+    const head = inked(new THREE.SphereGeometry(.21,10,8), C1, .6); head.position.set(.16,.92,0); h.add(head);
+    const face = inked(new THREE.SphereGeometry(.14,9,7), FACE, .45); face.scale.set(.85,1,.7); face.position.set(.28,.90,0); h.add(face);
+    const cap  = inked(new THREE.SphereGeometry(.19,9,6,0,Math.PI*2,0,Math.PI*0.55), C2, .5); cap.position.set(.14,.96,0); h.add(cap);
+    [-1,1].forEach(sd => { const e = inked(new THREE.SphereGeometry(.075,6,5), C2, .35); e.position.set(.12,.96,sd*.19); h.add(e); });
+    /* the tail curls up and over - built as a short chain so the curve is real, not a bent cone */
+    let px = -.30, py = .55, ang = 0;
+    for(let k=0;k<5;k++){
+      const seg = inked(new THREE.CylinderGeometry(.055 - k*.007, .065 - k*.007, .30, 6), C2, .4);
+      ang += 0.55; px -= Math.cos(ang)*.16; py += Math.sin(ang)*.20;
+      seg.position.set(px, py, 0); seg.rotation.z = ang + Math.PI/2; h.add(seg);
+    }
+    for(let k=0;k<4;k++){ const l = inked(new THREE.CylinderGeometry(.052,.045,.42,6), C1, .45);
+      l.position.set(k<2?.18:-.18,.26,k%2?.16:-.16); l.userData.phase=k*1.5; h.add(l); legs.push(l); }
+  } else if(type === "anole"){
+    /* Gorgona's blue anole, found nowhere else on Earth. Tiny - the whole animal is about a hand -
+       so it is the COLOUR that has to carry it, not the detail. */
+    const C1 = 0x3E6FC4, C2 = 0x2A4E93, THROAT = 0xE8A0C0;
+    const body = inked(new THREE.SphereGeometry(.13,9,7), C1, .35); body.scale.set(1.8,.66,.78); body.position.y=.10; h.add(body);
+    const head = inked(new THREE.ConeGeometry(.07,.19,6), C1, .3); head.rotation.z=-Math.PI/2; head.position.set(.26,.11,0); h.add(head);
+    const dew  = inked(new THREE.SphereGeometry(.05,7,6), THROAT, .25); dew.scale.set(1,.7,.5); dew.position.set(.20,.055,0); h.add(dew);
+    const tail = inked(new THREE.ConeGeometry(.045,.78,6), C2, .3); tail.rotation.z=Math.PI/2; tail.position.set(-.58,.09,0); h.add(tail);
+    for(let k=0;k<4;k++){ const l = inked(new THREE.CylinderGeometry(.018,.015,.13,5), C2, .2);
+      l.position.set(k<2?.11:-.11,.045,k%2?.09:-.09); l.rotation.x=(k%2?1:-1)*.7; l.userData.phase=k*1.5; h.add(l); legs.push(l); }
+  } else if(type === "troupial"){
+    /* Curacao's national bird: orange body, black head and wings, a white flash on the wing. Flies,
+       so it uses the same loose path the jellyfish do but lower and quicker. */
+    const OR = 0xF08A2A, BK = 0x241E22, WH = 0xF4EEE2;
+    const body = inked(new THREE.SphereGeometry(.17,9,7), OR, .4); body.scale.set(1.55,.92,.85); h.add(body);
+    const head = inked(new THREE.SphereGeometry(.115,8,7), BK, .35); head.position.set(.24,.06,0); h.add(head);
+    const beak = inked(new THREE.ConeGeometry(.04,.16,5), 0x9A9088, .25); beak.rotation.z=-Math.PI/2; beak.position.set(.38,.04,0); h.add(beak);
+    const tail = inked(new THREE.ConeGeometry(.075,.42,5), BK, .35); tail.rotation.z=Math.PI/2; tail.scale.z=.45; tail.position.set(-.38,.02,0); h.add(tail);
+    [-1,1].forEach((sd,i) => {
+      const w = inked(new THREE.SphereGeometry(.24,8,5), BK, .35);
+      w.scale.set(1.1,.13,.44); w.position.set(-.02,.06,sd*.16);
+      h.add(w); legs.push(w); w.userData.phase = i*Math.PI;
+      const flash = inked(new THREE.SphereGeometry(.10,6,4), WH, .2);
+      flash.scale.set(1.0,.16,.42); flash.position.set(-.16,.07,sd*.20); h.add(flash);
+    });
   } else if(type === "gator"){
     /* Cumberland Island's third animal, and the build plan notes it was in the very first brief and
        never got made. An alligator is read almost entirely from ABOVE - a long dark line with a
@@ -2895,7 +2940,11 @@ const ISLANDS = [
      the first fixed-wing animal in the game. */
   weather:"embers", creatures:[{type:"dino",   n:2, r:[34,46], sp:[.05,.07]},
                                {type:"raptor", n:5, r:[18,40], sp:[.11,.17]},
-                               {type:"ptero",  n:3, r:[30,62], sp:[.05,.08], soar:true, alt:26}],
+                               {type:"ptero",  n:3, r:[30,62], sp:[.05,.08], soar:true, alt:26},
+                               /* and the real Isla Gorgona, under the spectacle: capuchins, and the
+                                  blue anole that lives on that island and nowhere else on Earth */
+                               {type:"monkey", n:4, r:[16,38], sp:[.08,.13]},
+                               {type:"anole",  n:6, r:[14,34], sp:[.05,.09]}],
   birds:4, bf:{n:8, cols:[0xFFB36B,0xFFE08A,0xE8907E]},
   grassCols:[0x6FA56A,0x4F8A4C,0x8AC07A],
   ability:{key:"boots", at:[-22,26], y:1.6, name:"Her boots", hint:"Jump higher than anything here", jumpMul:1.95},
@@ -2952,7 +3001,9 @@ const ISLANDS = [
   weather:"glitter", creatures:[{type:"cow", n:5, r:[26,44], sp:[.05,.09]},
                                 /* a beach town square: chickens near the cows, iguanas on the warm ground */
                                 {type:"chicken", n:7, r:[16,34], sp:[.07,.13]},
-                                {type:"iguana",  n:4, r:[24,46], sp:[.04,.07]}], birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
+                                {type:"iguana",  n:4, r:[24,46], sp:[.04,.07]},
+                                /* Curacao's national bird, over the square */
+                                {type:"troupial", n:4, r:[20,44], sp:[.10,.16], fly:true}], birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
   npcs:[{rig:"fan", name:"Bea", h:1.64, at:[20,-6], wander:9, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
         /* mountScale 2.1 made a bus, and a saddle of 1.05 left her perched on the shell with her feet on
        it rather than sitting in it - the rig's origin is at her feet, so the lift has to put her
@@ -5301,7 +5352,15 @@ function islandUpdate(I, dt, t){
       while(da3 < -Math.PI) da3 += Math.PI*2;
       h.rotation.y += da3 * Math.min(1, dt*6);                     /* they turn, they do not snap */
     }
-    if(u.type === "ptero"){
+    if(u.type === "troupial"){
+      (u.legs||[]).forEach((w,i) => { w.rotation.x = Math.sin(t*9 + u.ph + (i?Math.PI:0))*.75; });
+      h.rotation.z = Math.sin(t*1.4+u.ph)*.12;
+    } else if(u.type === "monkey"){
+      (u.legs||[]).forEach(l => { l.rotation.x = Math.sin(t*6.5 + l.userData.phase)*.5; });
+    } else if(u.type === "anole"){
+      (u.legs||[]).forEach(l => { l.rotation.z = Math.sin(t*7 + l.userData.phase)*.35; });
+      h.rotation.y += Math.sin(t*0.7 + u.ph) * 0.004;            /* the little head-flick of a lizard */
+    } else if(u.type === "ptero"){
       /* a fixed wing SWEEPS and the body banks into the turn; flapping it like a bird would make a
          two-metre animal look like a sparrow */
       const sweep = Math.sin(t*1.25 + u.ph)*.30;
