@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-10v";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-11i";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -902,7 +902,16 @@ const OUTFITS = {
   /* Sanity is her bare-headed look: white dress, hair out and wild, no hat. `hat:null` is the
      signal for no headwear at all - a colour here would just paint one on. */
   sanity:{dress:0xF4F2ED, hat:null,     boots:0x1C1C2C, hatBand:0x8FB8E8, patches:false, crown:false, wild:true},
-  town:  {dress:0xF7F1E6, hat:0xF2A6C8, boots:0xF7F1E6, hatBand:0xFFD37A, patches:true,  crown:true}
+  town:  {dress:0xF7F1E6, hat:0xF2A6C8, boots:0xF7F1E6, hatBand:0xFFD37A, patches:true,  crown:true},
+  /* Build-plan item 7: A Place for Me is the only island with a SECOND stage. She starts in shorts
+     and a tee and changes once the island's quest has moved - a dark crop top, shorts, and wet hair.
+     Every other island swaps its outfit once, when its ability item is worn; this one swaps again on
+     quest progress, which nothing else did.
+     The clothing half of this is not visible yet: outfit colours only ever repaint the primitive
+     stand-in, and on the real model her clothes are baked into the atlas (see HANDOFF 4.5). The WET
+     HAIR is real and works, because it runs the same hair morph the hat uses, forward instead of
+     back - a positive influence packs her hair flat to her head, which is what wet hair is. */
+  town2: {dress:0x2A2A30, hat:0xF2A6C8, boots:0x3A3038, hatBand:0xFFD37A, patches:true,  crown:true, wet:true}
 };
 function makeLala(){
   const p = new THREE.Group(), R = {group:p, legs:[], fans:new THREE.Group(), lantern:new THREE.Group(), crown:null, patches:[]};
@@ -1345,6 +1354,7 @@ function bindAttachments(R, model, s){
 }
 /* How much the wild-hair dial runs the squash morph backwards. ?wildhair= to taste. */
 const WILD_HAIR = (() => { const v = parseFloat(QS.get("wildhair")); return isNaN(v) ? -0.55 : Math.max(-1.5, Math.min(1, v)); })();
+const WET_HAIR  = (() => { const v = parseFloat(QS.get("wethair"));  return isNaN(v) ?  1.55 : Math.max(0, Math.min(2.5, v)); })();
 function applyHeadwear(ch){
   if(!ch) return;
   const bare = ch.wantBareHead === true;
@@ -1352,7 +1362,9 @@ function applyHeadwear(ch){
   /* the primitive stand-in wears the same outfit, so it loses its hat too */
   [ch.brim, ch.hatTop].forEach(m => { if(m && m.parent) m.parent.visible = !bare; });
   if(ch.band) ch.band.visible = !bare;
-  const inf = bare ? (ch.wantWildHair ? WILD_HAIR : 0) : 1;
+  /* the hair dial: 1 packs it under the hat, 0 is as built, negative is wild, and past 1 is WET -
+     flat to the skull and a little heavier, which is the same displacement pushed further */
+  const inf = bare ? (ch.wantWildHair ? WILD_HAIR : 0) : (ch.wantWetHair ? WET_HAIR : 1);
   (ch.hairMorphs || []).forEach(o => { if(o.morphTargetInfluences) o.morphTargetInfluences[0] = inf; });
 }
 /* ---- her head, measured ----
@@ -1559,7 +1571,8 @@ function cowgirlHat(brimOuter){
   g.scale.set(HAT_RX/R0, 1, HAT_RZ/R0);
   return g;
 }
-const CREATURE_SHADOW = {horse:1.15, cow:1.10, dino:1.8, jelly:.8, armadillo:.34, iguana:.30, chicken:.22};
+const CREATURE_SHADOW = {horse:1.15, cow:1.10, dino:1.8, jelly:.8, armadillo:.34, iguana:.30, chicken:.22,
+                         raptor:.62, crab:.22, gator:.75};
 /* Every species on an island, whether the config uses the old singular `creature` or the list.
    Kept as one accessor so no call site has to care which spelling an island happens to use. */
 function creaturesOf(cfg){
@@ -1830,6 +1843,7 @@ function applyOutfit(ch, key, extra){
   ch.dress.material.color.setHex(o.dress);
   ch.wantBareHead = (o.hat === null);
   ch.wantWildHair = !!o.wild;
+  ch.wantWetHair  = !!o.wet;
   if(o.hat !== null){ ch.brim.material.color.setHex(o.hat); ch.hatTop.material.color.setHex(o.hat); }
   ch.band.material.color.setHex(o.hatBand);
   ch.legs.forEach(l => l.userData.main.material.color.setHex(o.boots));
@@ -2468,6 +2482,116 @@ function motes(scene, n, spread, col, rise){
   const pts = new THREE.Points(g, new THREE.PointsMaterial({color:col, size:.22, transparent:true, opacity:.5, depthWrite:false}));
   pts.userData.rise = rise; scene.add(pts); return pts;
 }
+/* ---- shooting stars ----
+   Build-plan item 5. The star field is a static point cloud on the sky dome; this is a small pool
+   of streaks that cross it now and then. Each is a stretched line drawn along its own direction, so
+   it reads as a trail rather than a moving dot, and they arrive on a Poisson-ish timer rather than
+   a fixed cadence - a metronome reads as a machine. They only exist where the sky is dark enough to
+   have stars at all, which is Good Riddance and Sanity. */
+function shootingStars(scene, n){
+  const list = [];
+  for(let i=0;i<n;i++){
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute([0,0,0, 0,0,0], 3));
+    const m = new THREE.LineBasicMaterial({color:0xFFF3D0, transparent:true, opacity:0, depthWrite:false});
+    const ln = new THREE.Line(g, m); ln.frustumCulled = false; ln.renderOrder = -1;
+    ln.userData = {t:-Math.random()*14, dur:0, from:new THREE.Vector3(), dir:new THREE.Vector3()};
+    scene.add(ln); list.push(ln);
+  }
+  return list;
+}
+function shootingStarsUpdate(list, dt){
+  for(const ln of list){
+    const u = ln.userData;
+    u.t += dt;
+    if(u.t < 0){ ln.material.opacity = 0; continue; }
+    if(u.t === 0 || !u.dur){
+      /* a fresh arc: start high and off to one side, travel mostly sideways and a little down */
+      const a = Math.random()*Math.PI*2, r = 480 + Math.random()*160;
+      u.from.set(Math.cos(a)*r, 180 + Math.random()*220, Math.sin(a)*r);
+      const b = a + (Math.random() < .5 ? 1 : -1) * (0.5 + Math.random()*0.7);
+      u.dir.set(Math.cos(b), -0.28 - Math.random()*0.25, Math.sin(b)).normalize();
+      u.dur = 0.7 + Math.random()*0.8;
+      u.len = 90 + Math.random()*90;
+      u.speed = 620 + Math.random()*420;
+    }
+    const k = u.t / u.dur;
+    if(k >= 1){ u.t = -(3 + Math.random()*16); u.dur = 0; ln.material.opacity = 0; continue; }
+    const head = u.from.clone().addScaledVector(u.dir, u.speed * u.t);
+    const tail = head.clone().addScaledVector(u.dir, -u.len);
+    const p = ln.geometry.attributes.position;
+    p.setXYZ(0, head.x, head.y, head.z); p.setXYZ(1, tail.x, tail.y, tail.z); p.needsUpdate = true;
+    ln.material.opacity = Math.sin(Math.PI * k) * 0.95;      /* in and out, never a hard pop */
+  }
+}
+/* ---- glitter trail ----
+   Build-plan item 6, for A Place for Me. A ring buffer of points dropped at her feet while she is
+   actually moving, each drifting up and fading. It is one Points object with a fixed pool rather
+   than spawned objects, so it costs the same whether she is standing still or sprinting. */
+/* A Points material with no map draws each point as a hard SQUARE, which is what the first pass
+   looked like: white tiles bouncing along behind her. This is a one-off canvas sprite - a soft core
+   with a four-point star flare - so each particle reads as a glint. */
+let _glitTex = null;
+function glitterSprite(){
+  if(_glitTex) return _glitTex;
+  const S = 64, c = document.createElement("canvas"); c.width = c.height = S;
+  const x = c.getContext("2d");
+  const g = x.createRadialGradient(S/2, S/2, 0, S/2, S/2, S/2);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.28, "rgba(255,242,205,0.85)");
+  g.addColorStop(1, "rgba(255,225,150,0)");
+  x.fillStyle = g; x.beginPath(); x.arc(S/2, S/2, S/2, 0, Math.PI*2); x.fill();
+  x.globalCompositeOperation = "lighter";
+  x.strokeStyle = "rgba(255,248,220,0.9)"; x.lineWidth = 2;
+  for(const a of [0, Math.PI/2]){                      /* the two spikes that make it a sparkle */
+    x.save(); x.translate(S/2, S/2); x.rotate(a);
+    const lg = x.createLinearGradient(-S/2, 0, S/2, 0);
+    lg.addColorStop(0, "rgba(255,248,220,0)"); lg.addColorStop(.5, "rgba(255,255,255,.95)");
+    lg.addColorStop(1, "rgba(255,248,220,0)");
+    x.strokeStyle = lg; x.beginPath(); x.moveTo(-S/2, 0); x.lineTo(S/2, 0); x.stroke();
+    x.restore();
+  }
+  _glitTex = new THREE.CanvasTexture(c);
+  return _glitTex;
+}
+function glitterTrail(scene, n, col){
+  const g = new THREE.BufferGeometry();
+  const p = new Float32Array(n*3), a = new Float32Array(n);
+  for(let i=0;i<n;i++){ p[i*3+1] = -999; }
+  g.setAttribute("position", new THREE.BufferAttribute(p,3));
+  /* additive sparks against a bright golden-hour beach wash out fast: they need real size
+     and a warm core, or the trail reads as dust on the lens instead of glitter */
+  const m = new THREE.PointsMaterial({color:col, size:.85, transparent:true, opacity:.95,
+                                      depthWrite:false, blending:THREE.AdditiveBlending,
+                                      sizeAttenuation:true, map:glitterSprite()});
+  const pts = new THREE.Points(g, m); pts.frustumCulled = false;
+  pts.userData = {life:a, head:0, acc:0, vel:new Float32Array(n*3)};
+  scene.add(pts); return pts;
+}
+function glitterUpdate(tr, dt, W, moving){
+  const u = tr.userData, p = tr.geometry.attributes.position, life = u.life, vel = u.vel;
+  const n = life.length;
+  if(moving){
+    u.acc += dt;
+    const every = 0.016;
+    while(u.acc > every){
+      u.acc -= every;
+      const i = u.head; u.head = (u.head + 1) % n;
+      p.setXYZ(i, W.x + (Math.random()-.5)*.85, W.y + .10 + Math.random()*.45, W.z + (Math.random()-.5)*.85);
+      vel[i*3] = (Math.random()-.5)*.35; vel[i*3+1] = .45 + Math.random()*.55; vel[i*3+2] = (Math.random()-.5)*.35;
+      life[i] = 1;
+    }
+  }
+  for(let i=0;i<n;i++){
+    if(life[i] <= 0) continue;
+    life[i] -= dt * 0.55;                      /* about 1.8 s, long enough to read as a trail */
+    if(life[i] <= 0){ p.setXYZ(i, 0, -999, 0); continue; }
+    p.setXYZ(i, p.getX(i) + vel[i*3]*dt, p.getY(i) + vel[i*3+1]*dt, p.getZ(i) + vel[i*3+2]*dt);
+  }
+  p.needsUpdate = true;
+  let alive = 0; for(let i=0;i<n;i++) if(life[i] > 0) alive++;
+  tr.material.opacity = alive ? .9 : 0;
+}
 function cloudShadows(scene, n, r){
   const list = [];
   for(let i=0;i<n;i++){
@@ -2552,6 +2676,96 @@ function makeCreature(type){
     const tail = inked(new THREE.ConeGeometry(.09,.62,7), 0x8A7B69, .7); tail.rotation.z = Math.PI/2; tail.position.set(-.86,.26,0); h.add(tail);
     for(let k=0;k<4;k++){ const l = inked(new THREE.CylinderGeometry(.055,.05,.30,6), 0x6E6153, .6);
       l.position.set(k<2?.30:-.30,.15,k%2?.20:-.20); l.userData.phase=k*1.5; h.add(l); legs.push(l); }
+  } else if(type === "gator"){
+    /* Cumberland Island's third animal, and the build plan notes it was in the very first brief and
+       never got made. An alligator is read almost entirely from ABOVE - a long dark line with a
+       ridged back and a blunt snout - so that is what this is: low, wide, and mostly tail. */
+    const C1 = 0x44543C, C2 = 0x36432F, C3 = 0x8E9A72;
+    const body = inked(new THREE.SphereGeometry(.50,12,8), C1, .9); body.scale.set(2.3,.52,1.05); body.position.y=.26; h.add(body);
+    const belly = inked(new THREE.SphereGeometry(.44,10,7), C3, .6); belly.scale.set(2.1,.26,.92); belly.position.y=.13; h.add(belly);
+    const snout = inked(new THREE.BoxGeometry(.92,.20,.42), C1, .7); snout.position.set(1.42,.24,0); h.add(snout);
+    const jaw   = inked(new THREE.BoxGeometry(.86,.10,.36), C3, .5); jaw.position.set(1.40,.13,0); h.add(jaw);
+    [-1,1].forEach(sd => { const e = inked(new THREE.SphereGeometry(.075,7,6), 0xE8D98A, .4);
+      e.position.set(.86,.40,sd*.16); h.add(e); });
+    const tail = inked(new THREE.ConeGeometry(.34,2.3,7), C2, .8); tail.rotation.z=Math.PI/2; tail.scale.y=.55;
+    tail.position.set(-2.05,.22,0); h.add(tail);
+    for(let b=0;b<7;b++){ const sc = inked(new THREE.ConeGeometry(.085,.17,4), C2, .35);
+      sc.position.set(.85 - b*.42, .46, 0); h.add(sc); }
+    for(let k=0;k<4;k++){ const l = inked(new THREE.CylinderGeometry(.075,.065,.34,6), C2, .5);
+      l.position.set(k<2?.62:-.62, .14, k%2?.52:-.52); l.rotation.x = (k%2?1:-1)*.75;
+      l.userData.phase = k*1.5; h.add(l); legs.push(l); }
+  } else if(type === "raptor"){
+    /* Build-plan: a SECOND dinosaur, and the note is that one species reads as cheap. The point is
+       that it must not look like the big one shrunk - so it is bipedal, roughly her height, with a
+       horizontal spine and a counterweight tail. Different silhouette, different scale, reads as a
+       different animal from across the meadow. */
+    const C1 = 0x8A6A3E, C2 = 0x6E5230;
+    const body = inked(new THREE.SphereGeometry(.62,12,9), C1, 1.2); body.scale.set(1.6,.85,.8); body.position.y=1.55; h.add(body);
+    const neck = inked(new THREE.CylinderGeometry(.16,.26,.95,8), C1, 1.0); neck.position.set(.90,2.02,0); neck.rotation.z=-.75; h.add(neck);
+    const head = inked(new THREE.BoxGeometry(.62,.30,.28), C1, 1.0); head.position.set(1.44,2.32,0); head.rotation.z=-.18; h.add(head);
+    const jaw  = inked(new THREE.BoxGeometry(.52,.13,.24), C2, .8); jaw.position.set(1.42,2.16,0); jaw.rotation.z=-.10; h.add(jaw);
+    const tail = inked(new THREE.ConeGeometry(.26,2.5,8), C2, 1.1); tail.rotation.z=Math.PI/2 + .12; tail.position.set(-1.55,1.72,0); h.add(tail);
+    [-1,1].forEach(sd => {                                   /* the little arms, held up */
+      const arm = inked(new THREE.CylinderGeometry(.07,.09,.52,6), C1, .7);
+      arm.position.set(.62,1.52,sd*.34); arm.rotation.z=.9; h.add(arm); });
+    for(let k=0;k<2;k++){
+      const thigh = inked(new THREE.SphereGeometry(.26,9,7), C1, .9); thigh.scale.set(1,1.25,.8);
+      thigh.position.set(-.10,1.22,k?.34:-.34); h.add(thigh);
+      const l = inked(new THREE.CylinderGeometry(.10,.12,1.25,7), C2, .9);
+      l.position.set(-.02,.62,k?.34:-.34); l.userData.phase = k*Math.PI; h.add(l); legs.push(l);
+      const foot = inked(new THREE.BoxGeometry(.44,.10,.22), C2, .7); foot.position.set(.14,.06,k?.34:-.34); h.add(foot);
+    }
+  } else if(type === "ptero"){
+    /* The first thing in this game that FLIES on a fixed wing. Built long and thin so it reads at
+       altitude as a silhouette: a crested head, a slim body, and two wide membrane wings that the
+       update sweeps rather than flaps like a bird. */
+    const C1 = 0xB08360, C2 = 0x8A6547, MEM = 0xC79A78;
+    const body = inked(new THREE.SphereGeometry(.42,10,8), C1, 1.0); body.scale.set(1.9,.8,.7); body.position.y=0; h.add(body);
+    const neck = inked(new THREE.CylinderGeometry(.11,.15,.70,7), C1, .8); neck.position.set(.66,.16,0); neck.rotation.z=-.55; h.add(neck);
+    const head = inked(new THREE.ConeGeometry(.16,.95,7), C1, .8); head.rotation.z=-Math.PI/2 - .18; head.position.set(1.32,.34,0); h.add(head);
+    const crest = inked(new THREE.ConeGeometry(.30,.52,4), C2, .7); crest.position.set(1.00,.56,0); crest.rotation.z=-.5; crest.scale.z=.22; h.add(crest);
+    const tail = inked(new THREE.ConeGeometry(.10,1.0,6), C2, .7); tail.rotation.z=Math.PI/2; tail.position.set(-1.0,-.02,0); h.add(tail);
+    [-1,1].forEach((sd,i) => {
+      const w = new THREE.Group();
+      const mem = inked(new THREE.CircleGeometry(1.95, 10, 0, Math.PI*0.78), MEM, 1.0);
+      mem.rotation.set(-Math.PI/2, 0, sd>0 ? -0.35 : Math.PI + 0.35);
+      w.add(mem);
+      const spar = inked(new THREE.CylinderGeometry(.055,.035,2.0,5), C2, .7);
+      spar.rotation.z = Math.PI/2; spar.position.set(-.55, .02, sd*0.95); spar.rotation.y = sd*0.5; w.add(spar);
+      w.position.set(0, .06, sd*.30);
+      h.add(w); legs.push(w); w.userData.phase = i*Math.PI;     /* the update sweeps these */
+    });
+    h.userData.wings = legs.slice();
+  } else if(type === "dolphin"){
+    /* Lives in the water, which nothing did before. Smooth and fusiform, with a real dorsal and
+       flukes, because from a beach the dorsal breaking the surface IS the animal. */
+    const C1 = 0x6E7E92, C2 = 0xCBD6E2;
+    const body = inked(new THREE.SphereGeometry(.80,14,10), C1, 1.2); body.scale.set(2.0,.82,.82); h.add(body);
+    const belly = inked(new THREE.SphereGeometry(.70,12,9), C2, .9); belly.scale.set(1.85,.52,.70); belly.position.y=-.24; h.add(belly);
+    const snout = inked(new THREE.ConeGeometry(.22,.85,9), C1, .9); snout.rotation.z=-Math.PI/2; snout.position.set(1.85,-.06,0); h.add(snout);
+    const dorsal = inked(new THREE.ConeGeometry(.30,.72,4), C1, .9); dorsal.position.set(-.12,.66,0); dorsal.scale.z=.26; dorsal.rotation.z=-.32; h.add(dorsal);
+    const fluke = inked(new THREE.ConeGeometry(.58,.42,4), C1, .9); fluke.rotation.x=Math.PI/2; fluke.rotation.z=Math.PI/2;
+    fluke.scale.set(1,.26,1); fluke.position.set(-1.72,-.02,0); h.add(fluke);
+    [-1,1].forEach(sd => { const f = inked(new THREE.ConeGeometry(.26,.60,4), C1, .8);
+      f.rotation.set(Math.PI/2, 0, .5); f.scale.set(1,.22,1); f.position.set(.42,-.30,sd*.56); h.add(f); });
+  } else if(type === "fish"){
+    /* Deliberately tiny and plain: a shoal is read as a MOVING MASS, not as individuals, so detail
+       here would be wasted and the schooling in the update is what does the work. */
+    const C1 = 0x8FD3D8, C2 = 0xF2E6A8;
+    const body = inked(new THREE.SphereGeometry(.16,8,6), C1, .4); body.scale.set(1.9,.9,.5); h.add(body);
+    const tail = inked(new THREE.ConeGeometry(.13,.22,4), C2, .35); tail.rotation.z=Math.PI/2; tail.scale.z=.3; tail.position.set(-.34,0,0); h.add(tail);
+  } else if(type === "crab"){
+    /* San Andres' signature animal is its migrating land crab. Wide, low, and mostly claw. */
+    const C1 = 0xC2543C, C2 = 0x8E3728;
+    const shell = inked(new THREE.SphereGeometry(.26,10,7), C1, .6); shell.scale.set(1.25,.55,1); shell.position.y=.20; h.add(shell);
+    [-1,1].forEach(sd => { const cl = inked(new THREE.SphereGeometry(.13,8,6), C2, .5);
+      cl.scale.set(1.4,.7,.8); cl.position.set(.30,.16,sd*.24); h.add(cl); });
+    [-1,1].forEach(sd => [0,1,2].forEach(k => {
+      const l = inked(new THREE.CylinderGeometry(.028,.022,.30,5), C2, .4);
+      l.position.set(.08 - k*.17, .10, sd*.30); l.rotation.x = sd*.6; l.userData.phase = k*1.7 + (sd>0?0:.9);
+      h.add(l); legs.push(l); }));
+    [-1,1].forEach(sd => { const e = inked(new THREE.SphereGeometry(.045,6,5), 0x2A1A14, .3);
+      e.position.set(.30,.36,sd*.09); h.add(e); });
   } else if(type === "iguana"){
     /* Long, low and mostly tail - the silhouette is the whole animal. Sunning green-grey. */
     const body = inked(new THREE.SphereGeometry(.34,12,8), 0x6F7F55, .8); body.scale.set(1.7,.62,.85); body.position.y=.22; h.add(body);
@@ -2648,7 +2862,10 @@ const ISLANDS = [
   weather:"rain", creatures:[{type:"horse", n:9, r:[36,58], sp:[.11,.18]},
                              /* Cumberland Island is famous for exactly two animals: the wild
                                 horses, already here, and armadillos. Low density, ambient. */
-                             {type:"armadillo", n:6, r:[22,52], sp:[.05,.09]}], birds:9, bf:{n:20, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
+                             {type:"armadillo", n:6, r:[22,52], sp:[.05,.09]},
+                             /* and the alligators, which were in the first brief for this island
+                                and never got built. Out near the water, slow, and never chasing. */
+                             {type:"gator", n:4, r:[46,62], sp:[.03,.05]}], birds:9, bf:{n:20, cols:[0x8FD3F4,0xF2A6C8,0xFFE08A]},
   npcs:[{rig:"green", name:"Wren", h:1.63, at:[-9,34], wander:10, line:"The horses come down to the stream after the rain. Stand still and they'll walk right past you."},
         {rig:"fan", name:"Juno", h:1.58, at:[14,20], wander:8, line:"4 Letters was the first one I ever heard. I cried in a parking lot. Don't tell anyone."}],
   grassCols:[0x7FCB9E,0x63B183,0x93D9AE],
@@ -2673,7 +2890,13 @@ const ISLANDS = [
   features:[{type:"hill",x:0,z:-25,r:22,h:20,name:"The Caldera",crater:true},{type:"mesa",x:40,z:12,r:10,h:5.6,name:"Bone Ledge",ink:true}],
   trees:{n:60, min:20, max:64, s:[1.0,2.2], palm:true},
   dock:[0,58], spawn:[0,50],
-  weather:"embers", creature:{type:"dino", n:2, r:[34,46], sp:[.05,.07]}, birds:4, bf:{n:8, cols:[0xFFB36B,0xFFE08A,0xE8907E]},
+  /* One dinosaur read as cheap for a dinosaur island. The big one is untouched; a pack of raptors
+     roams under it at a completely different scale and silhouette, and pterodactyls hold the sky -
+     the first fixed-wing animal in the game. */
+  weather:"embers", creatures:[{type:"dino",   n:2, r:[34,46], sp:[.05,.07]},
+                               {type:"raptor", n:5, r:[18,40], sp:[.11,.17]},
+                               {type:"ptero",  n:3, r:[30,62], sp:[.05,.08], soar:true, alt:26}],
+  birds:4, bf:{n:8, cols:[0xFFB36B,0xFFE08A,0xE8907E]},
   grassCols:[0x6FA56A,0x4F8A4C,0x8AC07A],
   ability:{key:"boots", at:[-22,26], y:1.6, name:"Her boots", hint:"Jump higher than anything here", jumpMul:1.95},
   letter:{at:[40,12], y:5.6, gate:"jump"},
@@ -2696,7 +2919,13 @@ const ISLANDS = [
   features:[{type:"hill",x:-30,z:-25,r:12,h:9,name:"Lighthouse Rock"},{type:"mesa",x:64,z:-12,r:8,h:4,name:"The Sea Stack",ink:true,outer:true}],
   trees:{n:26, min:14, max:44, s:[.6,1.1]},
   dock:[0,52], spawn:[0,44],
-  weather:"storm", creature:{type:"jelly", n:9, r:[40,70], sp:[.04,.08], fly:true}, birds:0, bf:null, sail:22,
+  /* San Andres, at night. The jellyfish stay; dolphins and a shoal work the water offshore, and the
+     island's signature animal - the migrating land crab - skitters along the night shoreline. */
+  weather:"storm", creatures:[{type:"jelly",   n:9, r:[40,70], sp:[.04,.08], fly:true},
+                              {type:"dolphin", n:4, r:[58,78], sp:[.05,.08], water:true},
+                              {type:"fish",    n:14, r:[52,70], sp:[.07,.11], water:true, school:true},
+                              {type:"crab",    n:6, r:[30,48], sp:[.09,.15]}],
+  birds:0, bf:null, sail:22,
   grassCols:[0x3E6A7A,0x2E5262,0x4C7E8C],
   ability:{key:"lantern", at:[-26.6,-21.2], name:"Her lantern", hint:"The stones are there now. Look east.", lantern:true},
   letter:{at:[64,-12], y:4, gate:"lantern"},
@@ -2711,7 +2940,7 @@ const ISLANDS = [
   ]
 },
 {
-  key:"town", name:"Town Square", song:"the Colombian beach", idx:3, glyph:"A", acc:"#9B84DC", outfit:"town",
+  key:"town", name:"Town Square", song:"the Colombian beach", idx:3, glyph:"A", acc:"#9B84DC", outfit:"town", outfit2:"town2",
   intro:"The song about being seen. A beach town at golden hour, string lights, a fountain, cows in glitter. Her crown and the cow-print dress are in the square. Wear them and the gate to the point opens — because they know you.",
   pal:{skyTop:0x7A4C8A, skyMid:0xF5A27A, skyBot:0xFFD9A8, fog:0xF3C7A2, sand:0xF6E3BE, grass:0x9ED49A, grassDk:0x5FA86A,
        water:0x4EAFC9, waterHi:0x8ED8E8, key:0xFFE3BC, leaf:0x5FA86A, leaf2:0x8CD08A, wood:0x9A6A4A, stone:0xF4E7D2},
@@ -2725,7 +2954,12 @@ const ISLANDS = [
                                 {type:"chicken", n:7, r:[16,34], sp:[.07,.13]},
                                 {type:"iguana",  n:4, r:[24,46], sp:[.04,.07]}], birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
   npcs:[{rig:"fan", name:"Bea", h:1.64, at:[20,-6], wander:9, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
-        {rig:"fan", name:"Cass", h:1.78, at:[-19,14], wander:9, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
+        /* mountScale 2.1 made a bus, and a saddle of 1.05 left her perched on the shell with her feet on
+       it rather than sitting in it - the rig's origin is at her feet, so the lift has to put her
+       SEAT at the shell, not her soles. */
+    {rig:"fan", name:"Neri", h:1.71, at:[8,22], wander:0, mount:"turtle", mountScale:1.55, mountHue:.76, saddle:0.36,
+     line:"Her name's Pili. She's older than the town. Don't rush her, nobody does."},
+    {rig:"fan", name:"Cass", h:1.78, at:[-19,14], wander:9, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
         {rig:"dock", name:"Rafa", h:1.95, at:[-38,22], wander:8, line:"Beach is better at golden hour. Everything is. That's the whole trick of this town."}],
   grassCols:[0x9ED49A,0x7CC383,0xB6E2AE],
   ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true},
@@ -2983,7 +3217,26 @@ const SECRET_WEAR = {                 /* the level-up: one article, visibly diff
 function qGet(cfg, step){ return step === "delivered" ? !!G.letters[cfg.idx] : !!G.quest[cfg.key + ":" + step]; }
 function qSet(cfg, step, v){ if(step === "delivered") G.letters[cfg.idx] = v; else G.quest[cfg.key + ":" + step] = v; save(); }
 function wearOf(cfg){ return G.wear[cfg.key] ? SECRET_WEAR[cfg.key] : null; }
+/* Which outfit she should be wearing on this island, in one place. It was inline at five call sites
+   and a second stage would have had to be added to all five. */
+function outfitFor(cfg){
+  if(!cfg) return "base";
+  const earned = cfg.outfit && cfg.ability && G.abilities[cfg.ability.key];
+  if(!earned) return cfg.key === "moon" ? "town" : "base";
+  /* stage two, once this island's letter quest has actually moved */
+  if(cfg.outfit2 && (qGet(cfg, "written") || qGet(cfg, "delivered"))) return cfg.outfit2;
+  return cfg.outfit;
+}
 
+/* a point on the beach disc that is still on land - the beach runs right up to the waterline */
+function bsampleLitter(beach, inside, rmin, rmax){
+  for(let k=0;k<24;k++){
+    const a = Math.random()*Math.PI*2, r = rmin + Math.random()*(rmax-rmin);
+    const x = beach.x + Math.cos(a)*r, z = beach.z + Math.sin(a)*r;
+    if(inside(x,z)) return [x,z];
+  }
+  return null;
+}
 function penMesh(){
   const g = new THREE.Group();
   const shaft = inked(new THREE.CylinderGeometry(.045,.075,1.5,6), 0xEFE6D2, 1.5); shaft.rotation.z = .38; g.add(shaft);
@@ -2993,6 +3246,78 @@ function penMesh(){
   const feather = inked(fg, 0xF7F1E6, .9, {side:THREE.DoubleSide});
   feather.position.set(-.28,.72,0); feather.rotation.z = .38; g.add(feather);
   const nib = inked(new THREE.ConeGeometry(.075,.34,6), 0x2C2A33, 1.3); nib.position.set(.29,-.78,0); nib.rotation.z = Math.PI + .38; g.add(nib);
+  return g;
+}
+/* ---- the tie-dye turtle ----
+   Build plan, A Place for Me: "the letter is shaped like a tie-dye turtle", and separately an NPC
+   rides "a purple tie-dye sea turtle". One shell, two scales - the small one IS this island's letter
+   (every other island uses the same sheet of paper or a gem), the big one is the mount.
+
+   Tie-dye is a SWIRL, not a gradient: the dye follows the folds out from a centre, so the hue here
+   is driven by the angle around the shell as much as by the distance from its crown, with the angle
+   term itself warped by radius so the bands spiral instead of running straight out like a dartboard.
+   ?holo=0 falls back to flat colour along with the rest of the iridescent work. */
+function tieDyeMaterial(hueBase, spin){
+  const m = new THREE.ShaderMaterial({
+    side: THREE.DoubleSide,
+    uniforms: {uTime:{value:0}, uHue:{value:hueBase}, uSpin:{value:spin || 1.0}, uAmt:{value:HOLO}},
+    vertexShader: `varying vec3 vP; varying vec3 vN;
+      void main(){ vP = position; vN = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      uniform float uTime; uniform float uHue; uniform float uSpin; uniform float uAmt;
+      varying vec3 vP; varying vec3 vN;
+      vec3 hsv(vec3 c){
+        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+      }
+      void main(){
+        float r = length(vP.xz);
+        float a = atan(vP.z, vP.x);
+        /* the spiral: the angle is bent by radius, which is what turns rings into a swirl */
+        float sw = a * uSpin + r * 2.6 + uTime * 0.06;
+        float band = sin(sw * 3.0) * 0.5 + 0.5;
+        band = smoothstep(0.18, 0.82, band);              /* dye bleeds, but it still has edges */
+        float h = fract(uHue + band * 0.30 + r * 0.10);
+        vec3 col = hsv(vec3(h, mix(0.80, 0.35, band), mix(0.62, 1.0, band)));
+        float lam = clamp(dot(normalize(vN), normalize(vec3(0.4, 0.9, 0.35))), 0.0, 1.0);
+        col *= 0.55 + 0.55 * lam;                          /* enough shading to keep the form */
+        gl_FragColor = vec4(mix(hsv(vec3(uHue, 0.55, 0.75)), col, uAmt), 1.0);
+      }`
+  });
+  _holoMats.push(m);
+  return m;
+}
+function tieDyeTurtle(s, hueBase){
+  const g = new THREE.Group(), S = s || 1;
+  const mat = tieDyeMaterial(hueBase != null ? hueBase : 0.74, 1.0);   /* 0.74 is a violet */
+  /* the shell: a squashed dome, with the plates read as a ring of low facets */
+  /* A first pass domed the shell and ringed it with a fat torus, and it read as a swirled ball
+     inside a hoop rather than as a turtle. A carapace is FLAT and wide with a thin lip: the dome
+     comes down, the rim is scaled into the same ellipse as the shell instead of being a circle
+     round it, and the lip is thin enough to be an edge rather than a tyre. */
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 10, 0, Math.PI*2, 0, Math.PI*0.5), mat);
+  shell.scale.set(1.30, .40, 1.05); shell.position.y = .26; g.add(shell);
+  const rim = inked(new THREE.TorusGeometry(1.0, .055, 6, 24), 0x5E3F6E, .8);
+  rim.rotation.x = Math.PI/2; rim.scale.set(1.30, 1.05, 1); rim.position.y = .25; g.add(rim);
+  const plas = inked(new THREE.SphereGeometry(1, 16, 8, 0, Math.PI*2, Math.PI*0.5, Math.PI*0.5), 0xE9D9B8, .8);
+  plas.scale.set(1.28, .20, 1.03); plas.position.y = .25; g.add(plas);
+  const head = inked(new THREE.SphereGeometry(.30, 10, 8), 0x6E8F5E, .9);
+  head.scale.set(1.40, .80, .88); head.position.set(1.46, .28, 0); g.add(head);
+  [-1,1].forEach(sd => { const e = inked(new THREE.SphereGeometry(.055, 6, 5), 0x20181C, .4);
+    e.position.set(1.66, .36, sd*.13); g.add(e); });
+  /* four flippers, angled back, and a stub of a tail */
+  /* flippers sit PROUD of the shell or they disappear under it - front pair forward, back pair
+     swept back, all four flat */
+  [[.95,.92,-.55],[.95,-.92,.55],[-.92,.86,-1.05],[-.92,-.86,1.05]].forEach(([fx,fz,rot]) => {
+    const f = new THREE.Mesh(new THREE.SphereGeometry(.5, 10, 6), mat);
+    f.scale.set(1.15, .13, .50); f.position.set(fx, .20, fz); f.rotation.y = rot; g.add(f);
+  });
+  const tail = inked(new THREE.ConeGeometry(.13, .40, 6), 0x6E8F5E, .6);
+  tail.rotation.z = Math.PI/2; tail.position.set(-1.46, .22, 0); g.add(tail);
+  g.scale.setScalar(S);
+  g.userData.tieDye = mat;
   return g;
 }
 function paperMesh(){
@@ -3160,6 +3485,82 @@ function holoMaterial(col){
   });
   _holoMats.push(m);
   return m;
+}
+/* ---- holographic fire ----
+   Build-plan item 5. Fire that is only orange reads as lava; her reference is the iridescent flare
+   off a ceiling fan, so the core stays hot and the outer ring drifts through an oil-slick spectrum.
+   The hue is driven by radius and by a couple of out-of-phase ripples, so the colours crawl over
+   each other instead of rotating as one wheel. */
+function holoFire(){
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    uniforms: {uTime:{value:0}, uAmt:{value:HOLO}},
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      uniform float uTime; uniform float uAmt; varying vec2 vUv;
+      vec3 hsv(vec3 c){
+        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+      }
+      void main(){
+        vec2 d = vUv - 0.5;
+        float r = length(d) * 2.0;
+        float a = atan(d.y, d.x);
+        /* two low, out-of-phase ripples: a high frequency here notched the disc into a star */
+        float ripple = 0.5 + 0.25 * sin(a * 2.0 + uTime * 0.7) + 0.25 * sin(r * 3.4 - uTime * 1.1);
+        float core = smoothstep(0.85, 0.05, r);                 /* hot in the middle */
+        float h = fract(0.02 + r * 0.42 + ripple * 0.16 + uTime * 0.05);
+        vec3 iri = hsv(vec3(h, 0.80, 1.0));
+        vec3 hot = vec3(1.0, 0.62, 0.28);
+        vec3 col = mix(iri, hot, core * (1.0 - 0.45 * uAmt));
+        col += vec3(0.30, 0.14, 0.36) * ripple * uAmt * (1.0 - core);
+        gl_FragColor = vec4(col, smoothstep(1.06, 0.20, r));   /* feather the rim, no hard disc edge */
+      }`
+  });
+  _holoMats.push(m);
+  return m;
+}
+/* ---- Providence Canyon ----
+   Build-plan item 9. She sent photos of Providence Canyon, GA: eroded walls in horizontal bands of
+   rust, cream and pink. The caldera wall was one flat tone. Banding it by HEIGHT is what those
+   photos actually show - the strata are level, so they cut across the cone's slope rather than
+   following it, which is exactly what makes the shape read as eroded rather than as painted.
+   The bands are written as vertex colours on the existing lathe, so this costs no draw call and no
+   texture; the wobble keeps the boundaries from looking machined. */
+const CANYON_BANDS = [
+  /* Providence Canyon's signature is the CONTRAST between rust and near-white, not the rust alone.
+     A first pass kept every band in the same orange family and the strata vanished against Good
+     Riddance's orange sky - the cream bands are what make the wall read as eroded rock. */
+  [0xA8512C, 0.10], [0xF6EFE2, 0.05], [0xC97C48, 0.08], [0xE8C6A4, 0.05],
+  [0x8F4526, 0.09], [0xFBF6EC, 0.04], [0xD4884F, 0.08], [0xEFD9BF, 0.05],
+  [0xA85A31, 0.09], [0xF8F2E6, 0.04], [0xC2733F, 0.08], [0xE3B489, 0.05],
+  [0x95492A, 0.09], [0xF3E7D6, 0.04], [0xCB7F4A, 0.07]
+];
+function canyonMaterial(P){
+  return toon(0xFFFFFF, {side:THREE.DoubleSide, vertexColors:true});
+}
+function canyonStripes(geo, h){
+  const pos = geo.attributes.position, n = pos.count;
+  const col = new Float32Array(n*3), c = new THREE.Color();
+  let ymin = Infinity, ymax = -Infinity;
+  for(let i=0;i<n;i++){ const y = pos.getY(i); if(y<ymin) ymin=y; if(y>ymax) ymax=y; }
+  const span = Math.max(1e-5, ymax - ymin);
+  const edges = []; let acc = 0;
+  for(const [,w] of CANYON_BANDS){ acc += w; edges.push(acc); }
+  for(const [i,e] of edges.entries()) edges[i] = e / acc;
+  for(let i=0;i<n;i++){
+    const x = pos.getX(i), z = pos.getZ(i);
+    let f = (pos.getY(i) - ymin) / span;
+    /* a little wobble round the rim so the strata are not laser-straight */
+    const th = Math.atan2(z, x);
+    f += Math.sin(th * 3.0) * 0.016 + Math.sin(th * 7.0) * 0.009 + Math.sin(th * 13.0) * 0.005;
+    f = Math.max(0, Math.min(0.9999, f));
+    let k = 0; while(k < edges.length - 1 && f > edges[k]) k++;
+    c.setHex(CANYON_BANDS[k][0]);
+    col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
 }
 function holoTick(t){ for(let i=0;i<_holoMats.length;i++) _holoMats[i].uniforms.uTime.value = t; }
 function cueArrow(col){
@@ -3714,11 +4115,16 @@ function buildIsland(cfg){
          so nothing can sit "inside" the slope any more */
       const pts = [new THREE.Vector2(f.r+.6, -.6)];
       for(let k=28;k>=0;k--){ const d = f.r*(k/28); pts.push(new THREE.Vector2(Math.max(d, .001), height(f.x + d, f.z) - .05)); }
-      const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 48), toon(P.grassDk, {side:THREE.DoubleSide, map:TEX.meadow}));
+      const lg2 = new THREE.LatheGeometry(pts, 48);
+      const m = new THREE.Mesh(lg2, f.crater ? canyonMaterial(P) : toon(P.grassDk, {side:THREE.DoubleSide, map:TEX.meadow}));
+      if(f.crater) canyonStripes(lg2, f.h);
       m.position.set(f.x, 0, f.z); scene.add(m);
       if(f.crater){
-        const lava = new THREE.Mesh(new THREE.CircleGeometry(f.r*.26, 24),
-          new THREE.MeshBasicMaterial({color:0xFF7A3D}));
+        /* Build-plan item 5, second half: holographic fire. The crater pool was a flat orange disc.
+           It now runs a shader that keeps fire's warm core but lets the outer ring drift through an
+           oil-slick spectrum, so it reads as the iridescent light in her ceiling-fan reference
+           rather than as lava. ?holo=0 turns it back into the flat disc. */
+        const lava = new THREE.Mesh(new THREE.CircleGeometry(f.r*.26, 48), holoFire());
         lava.rotation.x = -Math.PI/2; lava.position.set(f.x, height(f.x,f.z)+.15, f.z); scene.add(lava);
         const lg = new THREE.PointLight(0xFF8A4A, 1.6, 40); lg.position.set(f.x, height(f.x,f.z)+4, f.z); scene.add(lg);
       }
@@ -4021,6 +4427,37 @@ function buildIsland(cfg){
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,3,5), toon(BONE)); pole.position.set(s[0],height(s[0],s[1])+1.5,s[1]); scene.add(pole); }
     /* beach life: towels, balls, a sandcastle, and a promenade of colourful storefronts on the north edge */
     const beach = cfg.beach;
+    /* ---- the litter, and the cleanup ----
+       The build plan assumed this mechanic already existed and asked me to confirm what triggers
+       it. It did not exist: there was a beach ZONE with towels and a sandcastle, and nothing that
+       ever cleared. So here is the litter, and delivering this island's letter is what clears it -
+       the quest completing, not touching the letter, which is what the plan asked for.
+       Drab on purpose: it has to read as rubbish against a beach that is otherwise all candy. */
+    I.litter = [];
+    {
+      /* darker and a size up from the first pass: at gameplay distance the first litter read as
+         speckle on the sand rather than as rubbish someone left */
+      const LC = [0x4E4A3E, 0x6A6250, 0x3E4B3A, 0x5A4E38, 0x6A6A5E];
+      for(let i=0;i<22;i++){
+        const s2 = bsampleLitter(beach, inside, 2, 22); if(!s2) continue;
+        const c = LC[i % LC.length];
+        let m;
+        if(i % 3 === 0){            /* a bottle on its side */
+          m = inked(new THREE.CylinderGeometry(.16,.19,.74,7), c, .9);
+          m.rotation.z = Math.PI/2; m.rotation.y = Math.random()*3;
+        } else if(i % 3 === 1){     /* a can */
+          m = inked(new THREE.CylinderGeometry(.15,.15,.38,8), c, .8);
+          m.rotation.z = Math.PI/2 + (Math.random()-.5)*.6;
+        } else {                    /* a flattened wrapper */
+          m = inked(new THREE.PlaneGeometry(.56,.42), c, .6, {side:THREE.DoubleSide});
+          m.rotation.x = -Math.PI/2; m.rotation.z = Math.random()*Math.PI;
+        }
+        m.position.set(s2[0], height(s2[0],s2[1]) + .10, s2[1]);
+        scene.add(m); I.litter.push(m);
+      }
+      /* already delivered on a previous visit: the beach stays clean */
+      if(qGet(cfg, "delivered")) I.litter.forEach(m => { m.visible = false; });
+    }
     const sandPatch = new THREE.Mesh(new THREE.CircleGeometry(beach.r, 40), toon(P.sand, {map:TEX.sand})); sandPatch.rotation.x = -Math.PI/2; sandPatch.position.set(beach.x, .04, beach.z); sandPatch.receiveShadow = true; scene.add(sandPatch);
     const wetLine = new THREE.Mesh(new THREE.RingGeometry(beach.r-1.5, beach.r+.5, 40), new THREE.MeshBasicMaterial({color:0xD9C39C, transparent:true, opacity:.5})); wetLine.rotation.x = -Math.PI/2; wetLine.position.set(beach.x, .05, beach.z); scene.add(wetLine);
     const bsample = (rmin, rmax) => { for(let k=0;k<20;k++){ const a = Math.random()*Math.PI*2, r = rmin+Math.random()*(rmax-rmin), x = beach.x+Math.cos(a)*r, z = beach.z+Math.sin(a)*r; if(inside(x,z)) return [x,z]; } return null; };
@@ -4148,8 +4585,13 @@ function buildIsland(cfg){
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
     const L = cfg.letter;
     if(L.reY || L.y == null) L.y = height(L.at[0], L.at[1]);
-    const lm = cfg.key === "moon" ? inked(new THREE.OctahedronGeometry(.8,0), 0xF0A56D, 2.4) : paperMesh();
+    /* A Place for Me's letter is a tie-dye turtle, per the build plan - every other island's is the
+       same sheet of paper, and hers should not be. */
+    const lm = cfg.key === "moon" ? inked(new THREE.OctahedronGeometry(.8,0), 0xF0A56D, 2.4)
+             : (cfg.key === "town" ? tieDyeTurtle(.62, .78) : paperMesh());
     lm.position.set(L.at[0], L.y+2.2, L.at[1]); scene.add(lm); I.letterMesh = lm;
+    lm.userData.flat = (cfg.key !== "town");     /* the turtle is not a sheet of paper */
+    lm.userData.y0 = lm.position.y;
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,26,16,1,true), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.10, side:THREE.DoubleSide}));
     beam.position.set(L.at[0], L.y+13, L.at[1]); scene.add(beam); I.letterBeam = beam;
   }
@@ -4220,6 +4662,17 @@ function buildIsland(cfg){
     if(n.h) g.scale.setScalar(n.h*2.95/1.70 / (RIGS[n.rig] ? RIGS[n.rig].height : 2.8));   /* their own height in metres, not the rig's */
     groundShadow(g, .52);
     g.position.set(n.at[0], height(n.at[0], n.at[1]), n.at[1]); scene.add(g); I.npcs.push(g); wantRig(R, n.rig);
+    /* Build plan: an NPC rides a purple tie-dye sea turtle. The postman on his horse was written as
+       a one-off; this is the same idea as a LIST, so the next rider is a config line rather than
+       another bespoke block. */
+    if(n.mount){
+      const mt = n.mount === "turtle" ? tieDyeTurtle(n.mountScale || 2.1, n.mountHue != null ? n.mountHue : .76)
+                                      : makeCreature(n.mount);
+      scene.add(mt); groundShadow(mt, n.mount === "turtle" ? .95 : 1.0);
+      g.userData.mounted = true;
+      (I.mounts = I.mounts || []).push({mount:mt, rider:g, lift:n.saddle != null ? n.saddle : 1.05});
+      I.colliders.push({x:n.at[0], z:n.at[1], r:2.2});
+    }
   });
   /* Where grass must NOT grow: off the meadow slab (so it never creeps onto the beach or the sea),
      on the dock deck, in the beach or grotto clearings, up against anything solid, and in any zone
@@ -4256,12 +4709,23 @@ function buildIsland(cfg){
      (creatures:[{...},{...}]), and the old singular field still works so nothing had to be rewritten
      to keep running. This is the one change the whole biodiversity pass was waiting on. */
   for(const c of creaturesOf(cfg)){
+    /* Water and air animals are not bound to the land polygon, so they reuse the `fly` path that
+       already skips every land constraint; `water` and `soar` then say what to do INSTEAD - ride the
+       swell, or hold an altitude. A shoal also needs one shared centre, or "schooling" is just
+       several fish that happen to be near each other. */
+    const loose = !!(c.fly || c.water || c.soar);
+    const shoal = c.school ? {a: Math.random()*Math.PI*2, r: c.r[0]+Math.random()*(c.r[1]-c.r[0]), sp: c.sp[0]+Math.random()*(c.sp[1]-c.sp[0])} : null;
     for(let i=0;i<c.n;i++){ const h = makeCreature(c.type);
       let a0 = Math.random()*Math.PI*2, r0 = c.r[0]+Math.random()*(c.r[1]-c.r[0]);
-      if(!c.fly){ const hit = landOnBearing(I, a0, r0); if(hit){ a0 = hit[3]; r0 = hit[2]; h.userData.lx = hit[0]; h.userData.lz = hit[1]; } }
-      if(!c.fly) groundShadow(h, c.shadow != null ? c.shadow : CREATURE_SHADOW[c.type] || .8);
+      if(!loose){ const hit = landOnBearing(I, a0, r0); if(hit){ a0 = hit[3]; r0 = hit[2]; h.userData.lx = hit[0]; h.userData.lz = hit[1]; } }
+      if(!loose) groundShadow(h, c.shadow != null ? c.shadow : CREATURE_SHADOW[c.type] || .8);
       h.userData.a = a0; h.userData.r = r0;
-      h.userData.sp = c.sp[0]+Math.random()*(c.sp[1]-c.sp[0]); h.userData.fly = !!c.fly; h.userData.ph = Math.random()*6;
+      h.userData.sp = c.sp[0]+Math.random()*(c.sp[1]-c.sp[0]); h.userData.fly = loose; h.userData.ph = Math.random()*6;
+      h.userData.water = !!c.water; h.userData.soar = !!c.soar;
+      h.userData.alt = c.alt != null ? c.alt : 22;
+      h.userData.shoal = shoal;
+      if(shoal){ const ang = (i/c.n)*Math.PI*2, rad = 1.6 + Math.random()*3.4;
+        h.userData.soff = {x: Math.cos(ang)*rad, y: (Math.random()-.5)*2.2, z: Math.sin(ang)*rad, w: Math.random()*6.3}; }
       h.userData.type = c.type;
       scene.add(h); I.creatures.push(h); } }
 
@@ -4277,6 +4741,10 @@ function buildIsland(cfg){
     motes: motes(scene, 140, 80, cfg.weather==="embers" ? 0xFF9A55 : (cfg.weather==="glitter" ? 0xFFE59A : (cfg.key==="sanity" ? 0xA8DCF4 : 0xFFF0C0)), cfg.weather==="embers" ? 1.4 : .22),
     clouds: cfg.key==="sanity" ? [] : cloudShadows(scene, 6, 60),
     puffs: cloudPuffs(scene, cfg.key==="sanity" ? 5 : 9, cfg.key==="sanity" ? 0x3A4670 : (cfg.key==="gr" ? 0xF3C9AE : 0xFFFBF2)),
+    /* shooting stars need a dark sky to be seen against, so they go where the star field goes */
+    shoot: (cfg.key === "gr" || cfg.key === "sanity") ? shootingStars(scene, 4) : null,
+    /* her glitter trail: A Place for Me is the island that asked for it */
+    glitter: (cfg.key === "town" || cfg.key === "moon") ? glitterTrail(scene, 260, 0xFFE9A8) : null,
     windMul:1
   };
   if(cfg.weather === "rain"){
@@ -4571,9 +5039,32 @@ function islandUpdate(I, dt, t){
       if(d.userData.life <= 0){ I.scene.remove(d); Q.drops.splice(Q.drops.indexOf(d),1); } });
   }
   holoTick(t);
+  if(I.litterClear != null && I.litterClear < 1){
+    /* it lifts away rather than vanishing on a frame: each piece rises and fades on its own beat */
+    I.litterClear = Math.min(1, I.litterClear + dt * 0.55);
+    I.litter.forEach((m, i) => {
+      const k = Math.max(0, Math.min(1, (I.litterClear - (i % 7) * 0.06) * 1.7));
+      m.position.y += dt * 1.2 * k;
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      m.traverse(o => { if(o.material){ o.material.transparent = true; o.material.opacity = 1 - k; } });
+      if(k >= 1) m.visible = false;
+    });
+  }
+  if(I.fx.shoot) shootingStarsUpdate(I.fx.shoot, dt);
+  if(I.fx.glitter){
+    const W = I.W, sp = Math.hypot(W.x - (W.gx != null ? W.gx : W.x), W.z - (W.gz != null ? W.gz : W.z));
+    W.gx = W.x; W.gz = W.z;
+    glitterUpdate(I.fx.glitter, dt, W, W.active && sp > dt * 1.2);   /* only while she is really moving */
+  }
   guideUpdate(I, dt, t);
   cueUpdate(I, dt, t);
-  if(I.letterMesh && I.letterMesh.visible){ I.letterMesh.rotation.y += dt*1.4; I.letterMesh.rotation.x += dt*.6; }
+  if(I.letterMesh && I.letterMesh.visible){
+    /* A sheet of paper tumbling on two axes reads as fluttering. A TURTLE doing it reads as a
+       turtle going end over end, so the turtle turns about its own vertical axis and bobs instead. */
+    I.letterMesh.rotation.y += dt*1.4;
+    if(I.letterMesh.userData.flat) I.letterMesh.rotation.x += dt*.6;
+    else I.letterMesh.position.y = I.letterMesh.userData.y0 + Math.sin(t*1.3)*.18;
+  }
   I.moons.forEach(m => { if(!m.visible) return; m.rotation.y += dt*1.8;
     if(Math.hypot(W.x-m.position.x, W.z-m.position.z) < 1.7 && Math.abs(W.y+1.2-m.position.y) < 2.2){
       m.visible = false; G.moonsTaken[m.userData.id] = true; G.moons++; syncHUD(); save(); auChime([880,1175],.06,.4); } });
@@ -4657,6 +5148,9 @@ function islandUpdate(I, dt, t){
       if(pd < 1.3 && pd > 1e-4 && npcStand(I, g.position.x + px/pd*(1.3-pd), g.position.z + pz/pd*(1.3-pd))){ g.position.x += px/pd*(1.3-pd); g.position.z += pz/pd*(1.3-pd); } }
     g.position.y = I.height(g.position.x, g.position.z);
     let da = u.heading - g.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2; g.rotation.y += da*Math.min(1, dt*6);
+    /* applySeated bends an ANIMATED pose into a seat; it is not a pose on its own. Stopping a
+       mounted rider's mixer to stop it fighting the seat left the rig in its bind pose and
+       applySeated folded her head-down over the shell. The mixer runs for everyone. */
     if(R.mixer){ playClip(R, u.state === "walk" ? "walk" : "idle"); R.mixer.update(dt); }
     /* crowd LOD: ink outline only when close to the camera, shadow only at mid range — halves the skinned triangle load */
     if(R.inkTwins){ const dc = camera.position.distanceTo(g.position), nearInk = dc < 26, midShadow = dc < 42;
@@ -4666,6 +5160,18 @@ function islandUpdate(I, dt, t){
   /* Ollie sits his horse: the horse takes his ground position and heading, he rides at saddle height,
      and his legs get the same seated pose Lala's do. Done in its own pass so it applies whether he is
      idling, wandering or out on a delivery run. */
+  (I.mounts||[]).forEach(m => {
+    const r = m.rider, u = r.userData;
+    m.mount.position.set(r.position.x, r.position.y, r.position.z);
+    m.mount.rotation.y = r.rotation.y;
+    /* a sea turtle on land does not trot: the flippers sweep slowly and the shell rocks with them */
+    const sw = Math.sin(t*1.1) * ((u.state === "walk") ? .42 : .16);
+    m.mount.children.forEach((c,i) => { if(i >= 6 && i <= 9) c.rotation.z = sw * (i % 2 ? 1 : -1); });
+    m.mount.rotation.z = Math.sin(t*1.1)*.045;
+    r.position.y += m.lift;
+    if(u.R && u.R.model) applySeated(u.R);
+    if(r.userData.shadowDecal) r.userData.shadowDecal.visible = false;
+  });
   if(I.quest && I.quest.horse){
     const rider = I.npcs.find(g => g.userData.cfg && g.userData.cfg.post);
     if(rider){
@@ -4686,7 +5192,18 @@ function islandUpdate(I, dt, t){
      and when a step left the land polygon they were snapped to their last good spot, which reads
      as a teleport. Now each carries its own radius offset, they push apart when they get too
      close, and a blocked step just stops them instead of moving them somewhere else. */
-  const HERD_SEP = 3.2;
+  /* Separation used to be a flat 3.2 units for everything, which was written when an island held
+     ONE species. With a list, that spaced chickens out like cattle and still let a chicken and an
+     iguana overlap, because the right distance depends on how big the two animals actually are.
+     The shadow radius is already a per-species size, so the gap is derived from it. */
+  const SEP_K = 1.45;
+  /* ...with a floor, because two chickens derive a gap of 37 cm from their own size and that is
+     close enough to read as one bird with four legs. Nothing gets nearer than about half a metre. */
+  const SEP_MIN = 0.95;
+  const sizeOf = ty => (CREATURE_SHADOW[ty] != null ? CREATURE_SHADOW[ty] : .8);
+  /* one shared centre per shoal, advanced once a frame rather than per fish */
+  for(const h of I.creatures){ const sh = h.userData.shoal; if(sh && !sh.__t){ sh.__t = 1; sh.a += sh.sp*dt; } }
+  for(const h of I.creatures){ const sh = h.userData.shoal; if(sh) sh.__t = 0; }
   I.creatures.forEach((h, hi) => { const u = h.userData; if(u.ridden) return; u.a += u.sp*dt;
     if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
@@ -4701,13 +5218,20 @@ function islandUpdate(I, dt, t){
     }
     if(!u.fly){ if(onLand(I, x, z)){ u.lx = x; u.lz = z; } else if(u.lx != null){ x = u.lx; z = u.lz; } }
     /* keep the herd out of each other: a soft push, not a hard collision, so they still amble */
+    /* Separation is per-pair and applied as it is found. Capping the summed push against each
+       animal's own stride was tried, to stop a crowd of small slow animals carrying each other
+       sideways - it made things worse in both directions at once: they could no longer separate
+       (a chicken and an iguana closed to a quarter of their gap) AND the facing got worse, because
+       an animal stuck in a pile still has erratic motion. The residual is a town-square crowding
+       problem, not a separation-strength problem: see qa/animdir. */
     if(!u.fly) for(const o of I.creatures){
       if(o === h || o.userData.fly || o.userData.ridden) continue;
       const ddx = x - o.position.x, ddz = z - o.position.z, dd = Math.hypot(ddx, ddz);
-      if(dd > 1e-3 && dd < HERD_SEP){
-        const push = (HERD_SEP - dd) * 0.5;
+      const sep = Math.max(SEP_MIN, (sizeOf(u.type) + sizeOf(o.userData.type)) * SEP_K);
+      if(dd > 1e-3 && dd < sep){
+        const push = (sep - dd) * 0.75;      /* both animals push, so this resolves in a frame or two */
         const nx2 = x + ddx/dd*push, nz2 = z + ddz/dd*push;
-        if(u.fly || onLand(I, nx2, nz2)){ x = nx2; z = nz2; }
+        if(onLand(I, nx2, nz2)){ x = nx2; z = nz2; }
       }
     }
     /* No teleports. When a step leaves the land polygon, landOnBearing sweeps up to +-3 radians to
@@ -4723,15 +5247,52 @@ function islandUpdate(I, dt, t){
       }
     }
     u.px0 = x; u.pz0 = z;
-    const base = u.fly ? 5 + Math.sin(t*.9+u.ph)*1.6 : I.height(x,z) + Math.abs(Math.sin(t*5))*.12;
+    /* A shoal moves as one body: each fish holds a fixed station around the shared centre and
+       breathes against it, which reads as schooling. Independent orbits read as a traffic jam. */
+    if(u.shoal){
+      const sh = u.shoal, o = u.soff;
+      const cx = Math.cos(sh.a)*sh.r, cz = Math.sin(sh.a)*sh.r;
+      const fwd = sh.a + Math.PI/2;                        /* the direction the shoal is travelling */
+      const sw = Math.sin(t*1.6 + o.w)*.5;
+      x = cx + Math.cos(fwd)*o.x - Math.sin(fwd)*(o.z + sw);
+      z = cz + Math.sin(fwd)*o.x + Math.cos(fwd)*(o.z + sw);
+    }
+    let base;
+    if(u.water){
+      /* riding the same swell the sea mesh is drawn from, so they sit IN the water and not on a
+         plane above it. Dolphins arc clear of it now and then - that breach is the whole animal. */
+      const surf = seaHeight(x, z, t);   /* the helper is seaHeight; SEA_Y is the flat constant */
+      if(u.type === "dolphin"){
+        const cyc = (t*.35 + u.ph) % 1;
+        const arc = cyc < .28 ? Math.sin(cyc/.28 * Math.PI) : 0;
+        u.breach = arc;
+        base = surf - .35 + arc*2.6;
+      } else {
+        base = surf - .55 + Math.sin(t*1.4 + u.ph)*.28 + (u.soff ? u.soff.y*.25 : 0);
+      }
+    } else if(u.soar){
+      base = I.height(x,z) + u.alt + Math.sin(t*.32 + u.ph)*4.5;
+    } else if(u.fly){
+      base = 5 + Math.sin(t*.9+u.ph)*1.6;
+    } else {
+      base = I.height(x,z) + Math.abs(Math.sin(t*5))*.12;
+    }
     /* Face where you are ACTUALLY going, not where the orbit parameter says you should be.
        Deriving the yaw from u.a was right until the herd-separation push started nudging animals
        sideways: qa/animdir.mjs then caught a cow travelling 35 degrees off its own nose. Velocity
        is the only honest source, and it is immune to whatever else moves them later.
        A Y-rotation of theta maps the model's local +x to (cos theta, -sin theta), so aligning +x
        with a velocity (vx, vz) means theta = atan2(-vz, vx). */
-    const pvx = x - (u.ox != null ? u.ox : x), pvz = z - (u.oz != null ? u.oz : z);
+    /* Facing comes from velocity, which is right - but a SLOW animal barely moves per frame, so a
+       single sideways separation push was larger than its own step and turned it across its own
+       path. qa/animdir caught iguanas walking 44 degrees off their nose. The velocity used for
+       facing is low-passed, so a one-frame shove bends the heading instead of hijacking it. */
+    const rvx = x - (u.ox != null ? u.ox : x), rvz = z - (u.oz != null ? u.oz : z);
     u.ox = x; u.oz = z;
+    const sm = Math.min(1, dt * 4);
+    u.vx = (u.vx || 0) * (1 - sm) + rvx * sm;
+    u.vz = (u.vz || 0) * (1 - sm) + rvz * sm;
+    const pvx = u.vx, pvz = u.vz;
     h.position.set(x, base, z);
     if(pvx*pvx + pvz*pvz > 1e-6){
       const want = Math.atan2(-pvz, pvx);
@@ -4739,6 +5300,27 @@ function islandUpdate(I, dt, t){
       while(da3 >  Math.PI) da3 -= Math.PI*2;
       while(da3 < -Math.PI) da3 += Math.PI*2;
       h.rotation.y += da3 * Math.min(1, dt*6);                     /* they turn, they do not snap */
+    }
+    if(u.type === "ptero"){
+      /* a fixed wing SWEEPS and the body banks into the turn; flapping it like a bird would make a
+         two-metre animal look like a sparrow */
+      const sweep = Math.sin(t*1.25 + u.ph)*.30;
+      (u.legs||[]).forEach((w,i) => { w.rotation.x = (i ? -sweep : sweep); w.rotation.z = Math.sin(t*.9+u.ph)*.10; });
+      h.rotation.z = -Math.sign(u.sp) * .34 + Math.sin(t*.5+u.ph)*.07;
+      h.rotation.x = Math.sin(t*.7+u.ph)*.05;
+    } else if(u.type === "dolphin"){
+      /* nose up as it leaves the water, nose down as it re-enters */
+      const a2 = u.breach || 0;
+      const cyc = (t*.35 + u.ph) % 1;
+      h.rotation.z = a2 > 0 ? (cyc < .14 ? .55*a2 : -.55*a2) : Math.sin(t*1.1+u.ph)*.06;
+      h.rotation.x = Math.sin(t*1.3+u.ph)*.08;
+    } else if(u.type === "fish"){
+      h.rotation.z = Math.sin(t*4 + u.ph)*.10;
+      h.rotation.x = Math.sin(t*3 + u.ph*1.4)*.14;
+    } else if(u.type === "raptor"){
+      /* a bipedal stride: the two legs are exactly out of phase, and the body bobs on each step */
+      (u.legs||[]).forEach(l => { l.rotation.x = Math.sin(t*5.2 + l.userData.phase)*.62; });
+      h.position.y += Math.abs(Math.sin(t*5.2 + u.ph))*.09;
     }
     if(u.type === "jelly"){ const p = Math.sin(t*2+u.ph); h.scale.set(1 - p*.06, 1 + p*.14, 1 - p*.06);
       u.legs.forEach(l => { l.rotation.x = Math.sin(t*2+l.userData.phase)*.3; l.rotation.z = Math.cos(t*1.6+l.userData.phase)*.25; l.userData.child.rotation.x = Math.sin(t*2.4+l.userData.phase+1)*.45; }); }
@@ -4898,6 +5480,12 @@ function interact(){
     W.active = false; ov("ovNote");
   } else if(t.kind === "post"){
     qSet(cfg, "delivered", true); syncHUD();
+    /* the beach clears the moment the letter is DELIVERED - the end of the pen/paper/desk/postman
+       chain, not a walk-up on the letter itself - and she says her line over it */
+    if(I.litter && I.litter.some(m => m.visible)){
+      I.litterClear = 0;
+      setTimeout(() => toast("The beach cleared up", "Cleaning up the earth is like cleaning up my heart \u{1F30D}\u{1F33F}\u{1F496}"), 900);
+    }
     const g = t.obj, u = g.userData;
     /* he rides the island and hands it round — every fan out here gets a copy */
     u.deliverTo = (I.npcs||[]).filter(o => o !== g && o.userData.cfg && !o.userData.cfg.post)
@@ -4910,13 +5498,13 @@ function interact(){
   } else if(t.kind === "secret"){
     const sec = SECRET_TEXT[cfg.key] || {who:"A folded note", text:"..."}, wear = SECRET_WEAR[cfg.key];
     G.wear[cfg.key] = true; save(); I.quest.secret.visible = false;
-    applyOutfit(W, cfg.outfit && cfg.ability && G.abilities[cfg.ability.key] ? cfg.outfit : "base", wear);
+    applyOutfit(W, outfitFor(cfg), wear);
     auChime([659,784,988,1319],.15,1.3);
     $("noteWho").textContent = sec.who;
     $("noteBody").textContent = sec.text + (wear ? "\n\nShe puts it away and comes back wearing " + wear.wearName + "." : "");
     W.active = false; ov("ovNote");
   } else if(t.kind === "ability"){
-    G.abilities[cfg.ability.key] = true; save(); I.pickup.visible = false; applyOutfit(W, cfg.outfit);
+    G.abilities[cfg.ability.key] = true; save(); I.pickup.visible = false; applyOutfit(W, outfitFor(cfg));
     auChime([523,659,784,1047]); toast(cfg.ability.name, cfg.ability.hint);
   } else if(t.kind === "letter"){
     if(cfg.key === "moon"){          /* the fifth song, at the top of the rock — this is the ending */
@@ -4993,6 +5581,49 @@ const bubbles = [];
     m.scale.setScalar(m.userData.s); keep.add(m); bubbles.push(m); }
   const fin = new THREE.Mesh(geo, stdMat({color:MOON, gradientMap:GRAD, transparent:true, opacity:.7, emissive:MOON, emissiveIntensity:.3}));
   fin.scale.setScalar(3); fin.position.set(0,4,0); fin.visible = false; keep.add(fin); keep.userData.fin = fin; }
+/* ---- the red leather book ----
+   Build-plan item 8. Her note: in the keep, after all four letters, a red leather book that flashes
+   gold like a spellbook and reveals the secret fifth letter. The plan is explicit that this is
+   ADDED BEFORE the bubble room rather than replacing it, so the bubbles now start hidden and the
+   book is what turns them on. Reading it is a walk-up, like popping a bubble - the keep has no
+   other button and asking for one here would break its rhythm. */
+const bookG = new THREE.Group();
+{
+  const ped = inked(new THREE.CylinderGeometry(1.15, 1.45, 1.5, 12), 0x342A52, 1.6);
+  ped.position.y = .75; bookG.add(ped);
+  const top = inked(new THREE.CylinderGeometry(1.3, 1.3, .16, 12), 0x4A3C6E, 1.4);
+  top.position.y = 1.56; bookG.add(top);
+  const bk = new THREE.Group(); bk.position.y = 1.86;
+  const LEATHER = 0x8E1F28, GOLD = 0xE8C070;
+  const cover = (dy, rot) => {
+    const c = inked(new THREE.BoxGeometry(1.5, .10, 1.95), LEATHER, 1.5);
+    c.position.y = dy; c.rotation.z = rot; return c;
+  };
+  bk.add(cover(.14, 0), cover(-.14, 0));
+  const pages = inked(new THREE.BoxGeometry(1.38, .18, 1.84), 0xF3E6CE, 1.2);
+  bk.add(pages);
+  const spine = inked(new THREE.BoxGeometry(.16, .40, 1.98), 0x6E141C, 1.5);
+  spine.position.x = -.76; bk.add(spine);
+  /* gold foil: a band across the cover and a small moon, so it reads as HER book */
+  const band = new THREE.Mesh(new THREE.BoxGeometry(1.52, .02, .18), new THREE.MeshBasicMaterial({color:GOLD}));
+  band.position.set(0, .20, .55); bk.add(band);
+  const moonF = new THREE.Mesh(new THREE.TorusGeometry(.26, .045, 8, 20, Math.PI*1.35),
+                               new THREE.MeshBasicMaterial({color:GOLD}));
+  moonF.position.set(.05, .20, -.25); moonF.rotation.set(-Math.PI/2, 0, .6); bk.add(moonF);
+  bookG.add(bk); bookG.userData.book = bk;
+  /* the flash: a glow shell that swells, and a real light so the room answers it */
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(1.5, 18, 14),
+    new THREE.MeshBasicMaterial({color:GOLD, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending}));
+  glow.position.y = 1.9; bookG.add(glow); bookG.userData.glow = glow;
+  const gl = new THREE.PointLight(0xFFD98A, 0, 26); gl.position.set(0, 2.2, 0); bookG.add(gl); bookG.userData.light = gl;
+  /* the fifth letter itself, which rises out of the book once it opens */
+  const fifth = new THREE.Group();
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(.52, 28), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.95, side:THREE.DoubleSide}));
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.62, .055, 8, 28), new THREE.MeshBasicMaterial({color:GOLD}));
+  fifth.add(disc, ring); fifth.visible = false; fifth.position.y = 2.1; bookG.add(fifth); bookG.userData.fifth = fifth;
+  bookG.position.set(0, 0, 0); keep.add(bookG);
+}
+let bookRead = false, bookT = 0;
 const KW = makeLala(); keep.add(KW.group);
 const keepI = {cfg:{key:"keep", hub:false, notes:[], places:[], fallback:"The Keep", dock:[999,999], spawn:[0,16], features:[], lobes:[{x:0,z:0,r:20}], weather:"clear"},
                W:KW, inside:(x,z)=>Math.hypot(x,z)<20, height:()=>0, stones:[], gateMeshes:[], notes:[], moons:[], creatures:[], foam:[], boat:new THREE.Group(),
@@ -5012,7 +5643,7 @@ function setMode(m){
   $("prompt").classList.remove("on");
 }
 async function goSail(after){ loadRig("lala"); ovNone(); await toBlack(); sailT = 0; sBoat.position.set(0,0,0);
-  applyOutfit(sRider, CUR && CUR.cfg.outfit && G.abilities[CUR.cfg.ability.key] ? CUR.cfg.outfit : "base");
+  applyOutfit(sRider, outfitFor(CUR && CUR.cfg));
   CUR = null; setMode("sail"); sailDone = after; await fromBlack(); }
 async function goIsland(I, skipFade){
   if(!skipFade) await toBlack();
@@ -5020,7 +5651,7 @@ async function goIsland(I, skipFade){
   const W = I.W, cfg = I.cfg;
   W.x = cfg.spawn[0]; W.z = cfg.spawn[1]; W.y = I.height(W.x,W.z); W.vy = 0; W.grounded = true; W.heading = Math.PI; W.camYaw = Math.PI; W.active = false;
   W.camPitch = CAM.pitch; W.lookHold = 0; W.recenter = false; camRig(I, true); W.camDistCur = W.camDist; placeCamera(I, 1);
-  applyOutfit(W, cfg.outfit && cfg.ability && G.abilities[cfg.ability.key] ? cfg.outfit : (cfg.key === "moon" ? "town" : "base"), wearOf(cfg));
+  applyOutfit(W, outfitFor(cfg), wearOf(cfg));
   I.moons.forEach(m => m.visible = !G.moonsTaken[m.userData.id]);
   if(I.pickup && cfg.ability) I.pickup.visible = !G.abilities[cfg.ability.key];
   if(I.letterMesh){ const got = cfg.key === "moon" ? G.finished : (cfg.questSeeded ? qGet(cfg,"paper") : G.letters[cfg.idx]);
@@ -5037,8 +5668,12 @@ async function goIsland(I, skipFade){
 async function goKeep(){
   await toBlack(); CUR = keepI; setMode("keep"); ovNone();
   KW.x = 0; KW.z = 16; KW.y = 0; KW.vy = 0; KW.grounded = true; KW.heading = Math.PI; KW.camYaw = Math.PI; KW.active = true;
-  applyOutfit(KW, "town"); popped = 0; bubbles.forEach(b => { b.userData.popped = false; b.visible = true; }); keep.userData.fin.visible = false; finaleDone = false;
-  $("lblL").textContent = "The Keep"; $("valL").textContent = "The fifth song"; $("weather").textContent = "Pop them all";
+  applyOutfit(KW, "town"); popped = 0; bubbles.forEach(b => { b.userData.popped = false; b.visible = false; }); keep.userData.fin.visible = false; finaleDone = false;
+  bookRead = false; bookT = 0;
+  bookG.visible = true; bookG.userData.fifth.visible = false;
+  bookG.userData.glow.material.opacity = 0; bookG.userData.light.intensity = 0;
+  KW.z = 16;                                     /* she starts back from it, so it is a walk, not a spawn-on-top */
+  $("lblL").textContent = "The Keep"; $("valL").textContent = "The fifth song"; $("weather").textContent = "A book on the stand";
   await fromBlack();
 }
 function renderDock(){
@@ -5138,7 +5773,36 @@ function tick(){
   if(MODE === "island" && CUR){ islandUpdate(CUR, dt, T); present(CUR.scene); }
   else if(MODE === "keep"){
     if(KW.active) walkerUpdate(keepI, dt, T);
-    bubbles.forEach(b => { if(b.userData.popped) return; const u = b.userData; u.a += u.sp*dt*.3; u.y += u.rise*dt; if(u.y > 16) u.y = 0;
+    if(!bookRead){
+      /* closed and waiting: it breathes, and the gold flashes on a heartbeat rather than a sine,
+         so it reads as a signal rather than as decoration */
+      const bk = bookG.userData.book;
+      bk.position.y = 1.86 + Math.sin(T*1.1)*.07; bk.rotation.y = Math.sin(T*.45)*.22;
+      const beat = Math.pow(Math.max(0, Math.sin(T*2.0)), 6);
+      bookG.userData.glow.material.opacity = .10 + beat*.45;
+      bookG.userData.glow.scale.setScalar(1 + beat*.18);
+      bookG.userData.light.intensity = .5 + beat*2.6;
+      if(KW.active && Math.hypot(KW.x, KW.z) < 3.2 && KW.y < 5){
+        bookRead = true; bookT = 0;
+        auPop(); auChime([392,523,659,784,1047],.14,1.1);
+        bookG.userData.fifth.visible = true;
+        toast("The fifth letter", "Red leather, gold leaf. It was on the stand the whole time.");
+        $("valL").textContent = "The fifth letter"; $("weather").textContent = "Pop them all";
+        bubbles.forEach(b => { b.visible = true; });        /* NOW the bubble room begins */
+      }
+    } else if(bookT < 3.2){
+      /* the flash, then the letter lifts out and fades into the room */
+      bookT += dt;
+      const k = Math.min(1, bookT/1.1);
+      bookG.userData.glow.material.opacity = (1-k)*.95;
+      bookG.userData.glow.scale.setScalar(1 + k*5.5);
+      bookG.userData.light.intensity = (1-k)*7.0;
+      const f = bookG.userData.fifth;
+      f.position.y = 2.1 + bookT*1.15; f.rotation.y = bookT*2.2;
+      f.children.forEach(c => { c.material.transparent = true; c.material.opacity = Math.max(0, 1 - bookT/3.2); });
+      if(bookT >= 3.2){ f.visible = false; bookG.userData.light.intensity = 0; }
+    }
+    bubbles.forEach(b => { if(b.userData.popped || !b.visible) return; const u = b.userData; u.a += u.sp*dt*.3; u.y += u.rise*dt; if(u.y > 16) u.y = 0;
       b.position.set(Math.cos(u.a)*u.r, u.y+1.5, Math.sin(u.a)*u.r);
       if(Math.hypot(KW.x-b.position.x, KW.z-b.position.z) < 1.4+u.s && Math.abs(KW.y+1.5-b.position.y) < 2.4){ u.popped = true; b.visible = false; popped++; auPop(); auChime([[523,659,784,988,1175][popped%5]],0,.3); $("valL").textContent = `${popped} / 24`; } });
     const fin = keep.userData.fin;

@@ -607,6 +607,79 @@ model's silhouette and I never measured it. On the rebuild with the leg fit appl
 sits at a mean ratio of 1.0204 - within 2% of the reference. Reported deviations get measured before
 they are reported, the same as any other factual claim.
 
+## 4.5 The build plan, 2026-09-11 — what landed, and four lessons
+
+Working `lala-luna-land-handoff.md`'s code track in its stated order. Items 1 and 2 were audits, not
+builds: the `creatures:[...]` list was already shipped, and so were the pen/paper/desk/postman chain
+and the cue arrows. The plan's warning that `window.storage` would fail on GitHub Pages is STALE -
+the save system already falls back to localStorage.
+
+Shipped: Sanity's bare head and wild hair (3, partly), rainbow holographic arrows (4), shooting stars
+and holographic fire (5), the glitter trail (6), the red leather book before the bubble room (8),
+Providence Canyon striations on the caldera (9), and the wildlife pass - velociraptors and
+pterodactyls on Good Riddance, dolphins, a fish shoal and land crabs on Sanity, alligators on Green.
+
+**The plan was wrong about the beach cleanup, and it is worth knowing why.** It said the mechanic
+already existed and asked only that the trigger be confirmed. It did not exist: there was a beach
+ZONE with towels, umbrellas and a sandcastle, and nothing that ever cleared. An "Action: confirm"
+item in a plan is still worth opening the code for - a named zone in a config is not a mechanic.
+
+**RULE - a guard that samples ONE INSTANT cannot tell a transient from a fault.** Two guards were
+judging on a single worst moment and both were flaky as a result. `qa/herd` failed on a run where
+only litter COLOURS had changed; separation is deliberately a soft push, so animals passing each
+other are briefly inside their gap and then resolve - that is the amble, and what he actually
+reported was animals STACKED, a sustained state. `qa/animdir` called the same crab 4.9 degrees on one
+run and 81.6 on the next, because an animal mid-turn legitimately has its nose off its path. Both now
+take many samples and judge the MEDIAN, with the absolute worst kept only for genuine
+interpenetration. Measure the thing he complained about, not the worst frame you can find.
+
+**RULE - `req.mjs` only ever loaded the hub, so a per-island crash shipped clean.** A dolphin calling
+`seaY` (the helper is `seaHeight`; `SEA_Y` is the flat constant) threw on Sanity and killed the rest
+of the creature loop, so dolphins, fish AND crabs sat at the origin - and every existing guard passed.
+`qa/allerr.mjs` now walks all five islands and reports what each logs. Run it after any island work.
+
+**RULE - separation and thresholds have to scale with the animal.** A flat 3.2-unit gap was written
+when an island held one species; with a list it spaced chickens like cattle and still let a chicken
+overlap an iguana. The gap is now derived from each pair's own size (the shadow radius) with a
+half-metre floor. Capping the summed push against each animal's stride was tried and made things
+worse in both directions at once - they could no longer separate AND the facing degraded - so it was
+reverted; the note is in the code.
+
+**Outfit changes are invisible on the rigged character, and this blocks two plan items.** The outfit
+system only ever recoloured the primitive stand-in - a cone for the dress. On the real model her
+clothes are painted into the baked atlas. Two repaint attempts failed (see `tools/retex_outfit.py`),
+the second because sampling the atlas at the UVs of her crop top, her shorts, her bare thigh and her
+hair returns the SAME brown for all four, which contradicts the renderer. Item 3's white dress and
+item 7's two-stage outfit both wait on this. The likely route is a second GLB for the Sanity look,
+generated the way the character itself was - it needs his call because it costs credits.
+
+## 4.6 The tie-dye turtle, and a pose helper that is not a pose
+
+A Place for Me's letter is now a tie-dye sea turtle instead of the same sheet of paper every other
+island uses, and a named NPC (Neri) keeps a big one in the square - both from `tieDyeTurtle()`, one
+shell at two scales, exactly as the build plan suggested.
+
+**Tie-dye is a SWIRL, not a gradient.** Hue driven by radius alone gives a dartboard; the dye follows
+the folds, so the angle around the shell drives it too, and the angle term is warped BY radius so the
+bands spiral. That one detail is the whole effect.
+
+**The letter tumbles on two axes.** Right for a sheet of paper, which reads as fluttering; a turtle
+doing it goes end over end. Non-flat letters now turn about their own vertical axis and bob
+(`letterMesh.userData.flat`).
+
+**A first pass domed the shell and ringed it in a fat torus** and it read as a swirled ball inside a
+hoop. A carapace is flat and wide with a thin lip, and the flippers have to sit proud of the shell or
+they vanish under it.
+
+**RULE - `applySeated` bends an ANIMATED pose into a seat; it is not a pose by itself.** The rider
+looked like she was standing on the shell, so her mixer was stopped to keep the idle clip from
+fighting the seat. That left the rig in its BIND pose and applySeated folded her head-down over the
+turtle. The mixer runs for every NPC, mounted or not. The rider currently reads as standing on the
+turtle rather than sitting in it - approximate, and known; the turtle itself is right.
+
+NPC mounts are a list now (`I.mounts`, `npc.mount`/`mountScale`/`mountHue`/`saddle`) rather than the
+postman's horse being a second bespoke block, so the next rider is a config line.
+
 ---
 
 # 5. Tooling
