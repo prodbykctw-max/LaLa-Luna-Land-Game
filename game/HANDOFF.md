@@ -845,3 +845,40 @@ the trees do.
 harmful, but because "no measurable effect on a wrong diagnosis" is the profile of a change that ships
 a regression later. Same family as the Taubin smoothing: a metric moving the right way is not proof,
 and a metric that cannot move at all is not a test.
+
+## 4.11 She was wearing the placeholder's hat
+
+2026-09-12. He said, for the fourth or fifth time across two weeks, that the hat is too big and the
+wrong shape. I measured it, got brim 1.344 u against her head at 0.907 u, worked out that ratio
+against a real Stetson, and told him the hat was fine (4.9). He said it again. He was right both
+times, and the measurement was right too — it was measuring **the wrong hat.**
+
+`makeLala()` builds a sketch figure to stand in until the GLB arrives. Its hat is
+`CylinderGeometry(.68,.68,.08,18)` — a flat disc 1.339 across — under
+`CylinderGeometry(.32,.36,.4,14)`, a near-straight drum. `attachRig()` hides all 12 stand-in parts
+when the real rig lands. Then `applyHeadwear()` turned three of them straight back on:
+
+    [ch.brim, ch.hatTop].forEach(m => { if(m && m.parent) m.parent.visible = !bare; });
+    if(ch.band) ch.band.visible = !bare;
+
+It only ever asked "is she bare-headed", never "is the stand-in still the figure on screen". So the
+real `cowgirlHat()` — taco brim, cattleman crease, a pinch either side, 0.748 across — has been on
+her head the entire time, completely buried under a disc nearly twice its width. Measured live:
+**3 of 12 primitives visible on a fully rigged character**, and they were brim, hatTop and band.
+Fix: `const stand = !ch.model;` and gate all three on it.
+
+**Rule — when he repeats a complaint after I have "measured" it, the measurement is the suspect, not
+him.** He has no access to my numbers and no reason to argue with them; he is reporting what is on
+the screen. A second complaint about the same thing means I measured something that is not what he is
+looking at. Go and identify the object in frame — by name, by dimensions, by visibility, walking the
+parent chain — before measuring anything about it.
+
+**Rule — measure the thing that is VISIBLE, not the thing with the matching name.** `W.brim` and
+`W.hat` both existed; I read the one whose name matched and never checked which was drawn. Any
+measurement of a character part now starts with: is it visible, is every parent visible, and is there
+a second object doing the same job.
+
+**Rule — a stand-in must be able to answer "am I still the one on screen".** The placeholder and the
+rig share an outfit API (`wantBareHead`, `band` colour, `wantWildHair`), which is good, but every
+handler on that API has to branch on which body is actually being drawn. Any new outfit state added
+to `applyHeadwear` needs the same `stand` gate or it will resurrect the sketch figure piece by piece.
