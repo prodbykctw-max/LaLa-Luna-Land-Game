@@ -749,3 +749,36 @@ form a theory.
 2. If they are still wrong, go to `loadRig` (~line 622) and rebuild its bounding box from visible
    mesh geometry only, so no future asset can poison scale and ground offset at once.
 3. Then work his list in §3, in his priority order, not yours.
+
+## 4.8 Build time is not load time — the crowd-proxy regression, 2026-09-11
+
+Found by the nightly QA sweep agent (the "Night Runner" trigger), not by me, and it was right.
+
+**The bug.** `buildIsland()` runs for *all five islands* at page boot
+(`ISLANDS.forEach(c => ISL[c.key] = buildIsland(c))`, `:5696`). Town's crowd-spawn loop
+ended with `wantRig(R, "fan"+n); loadProxy("fan"+n);`. `wantRig` is lazy — it was rewritten
+on Sept 8 precisely so the hub would not download Town's rigs — but `loadProxy` fetched
+immediately. So standing on the hub, the page pulled twelve crowd-proxy GLBs, 1.87 MB, plus
+their textures, before the first frame, for a crowd on an island the player was not on.
+
+Measured, `qa/assets.mjs`, before → after moving the call into `preloadRigs()`:
+hub 40 → 16 requests / 13.07 → 10.68 MB; green 45 → 21 / 16.27 → 13.89; gr 45 → 21 /
+16.26 → 13.88; sanity 44 → 20 / 16.09 → 13.71; town 69 → 69 / 25.74 → 25.74 (unchanged,
+as intended). `qa/lod.mjs` unchanged: 12 proxies, 34 instanced, 0 visible rigs.
+
+**Rule — a lazy loader is only as lazy as its laziest caller.** Fixing `wantRig` did not fix
+the class of bug, because a second fetch sat one line later in the same statement. When a
+"load this when you need it" system is introduced, grep for *every* network call in the build
+path, not just the one that caused the complaint.
+
+**Rule — everything inside `buildIsland` runs on every island.** `cfg.decor === "town"` scopes
+a block to Town's *geometry*, not to Town's *play session*. Anything in there that fetches,
+starts a timer, or allocates a budget is paying for all five islands at once. Per-island work
+that should wait belongs in `preloadRigs(I)`.
+
+**Rule — a scheduled agent cannot push, so its fix dies with its container.** The sweep agent
+committed to a branch in its own ephemeral `git clone`, then reported the branch by name. No
+such branch ever existed on the remote or on his machine — `git branch -a` and `git log --all`
+both confirmed it. Its *diagnosis* was exact and its *numbers* reproduced to the request. Treat
+a scheduled agent's report as a lead to re-derive, never as work already landed, and have it
+deliver a patch file rather than a commit.
