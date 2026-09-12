@@ -345,7 +345,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-12b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-12c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -5428,7 +5428,20 @@ function islandUpdate(I, dt, t){
   I.stones.forEach(s => s.mesh.visible = ab.lantern);
   I.gateMeshes.forEach(m => m.visible = !ab.gateOpen);
   if(I.beam) I.beam.target.position.set(-30 + Math.cos(t*.4)*60, 0, -25 + Math.sin(t*.4)*60);
-  if(cfg.hub){ const all = G.letters.every(Boolean); I.castleLamps.forEach(l => l.material.color.setHex(all ? MOON : 0x8A7C60));
+  if(cfg.hub){ const all = G.letters.every(Boolean);
+    /* ===================  A CRASH ONLY A LONG SESSION SEES  ===================
+       qa/traversal.mjs, 2026-09-12: 3x "Cannot read properties of undefined (reading 'setHex')" over a
+       ~1 h hub run. It never appears in a short one — qa/console_load.mjs's ~60 s hub pass is clean, and
+       so was a 36 s check that wrongly concluded the report was mistaken. The lamps are built once at
+       :4598-4604 as MeshBasicMaterial({color:MOON}), which always has a .color, so a lamp reading as
+       undefined mid-session means something swaps or disposes a lamp material without updating
+       I.castleLamps, or the array picks up a foreign entry. Root cause still unfound: nothing else in
+       this file touches I.castleLamps after hub build, and the static batcher's plainToon() filter
+       excludes MeshBasicMaterial.
+       This guard does not swallow the fault — it logs once through DBG so the next long hub run names
+       the lamp instead of dying on it. Take it out when the cause is found. */
+    I.castleLamps.forEach(l => { if(l && l.material && l.material.color) l.material.color.setHex(all ? MOON : 0x8A7C60);
+      else if(!I._lampWarned){ I._lampWarned = true; DBG("castleLamp missing material/color", l && l.uuid); } });
     if(I.door) I.door.rotation.y += ((all ? -1.3 : 0) - I.door.rotation.y)*Math.min(1, dt*2); }
 
   /* weather */

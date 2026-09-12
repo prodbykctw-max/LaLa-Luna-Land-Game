@@ -882,3 +882,39 @@ a second object doing the same job.
 rig share an outfit API (`wantBareHead`, `band` colour, `wantWildHair`), which is good, but every
 handler on that API has to branch on which body is actually being drawn. Any new outfit state added
 to `applyHeadwear` needs the same `stand` gate or it will resurrect the sketch figure piece by piece.
+
+## 4.12 A short test cannot clear a long-session bug
+
+2026-09-12. The nightly sweep reported a real page error on the hub: 3x "Cannot read properties of
+undefined (reading 'setHex')" at `:5400`. I ran hub for **36 seconds**, saw 4 castle lamps with 4 good
+materials and zero page errors, and filed it **NOT REPRODUCED** — then went further and refused to add
+the guard it suggested, on the grounds that "wrapping a line that does not throw would hide the next
+real fault there."
+
+The report said, in its own text, that the error only appears in `qa/traversal.mjs`'s **~1 hour** hub
+run and that `qa/console_load.mjs`'s ~60 s pass is clean. My 36 s test was the short kind. I had the
+report in hand and still ran a test shorter than the one it had already told me comes back clean.
+
+**Rule — match the test window to the claimed one before writing "not reproduced".** A null result is
+only evidence against a bug when the test could have caught it. If the claim names a duration, a
+session length or a suite, reproduce under that or say plainly that the window was not matched — never
+convert "I did not see it in 36 seconds" into "it does not happen".
+
+**Rule — a guard that LOGS is not a guard that HIDES.** The one I refused was
+`if(l && l.material && l.material.color) … else if(!I._lampWarned){ DBG(...) }` — it keeps the session
+alive and names the bad lamp on the next long run, which is strictly more diagnostic than a crash that
+kills the frame loop. Distinguish swallowing (silent try/catch, a default substituted, the symptom
+gone) from instrumenting (the fault recorded, execution continued, the next occurrence better
+described). Refuse the first; the second is usually how a rare bug gets caught at all.
+
+**And the sweep corrected me on a second item.** I attributed the "+2 lights per island" to the desk
+candle and her lantern. It is the `TOON3D` rig: `LOOK` defaults to `"toon3d"` (`:483`) and the
+per-island setup adds a bounce and a rim `DirectionalLight` by design (`:4043-4050`) — exactly +2, on
+every island, whatever the content, which is why the pattern was so uniform. The agent found this
+itself and wrote it up as "corrected, not a bug". Measured hub lights bear it out: Directional 0.38
+`#3c8cbe` is the bounce, Directional 0.42 `#ffe6c1` the rim. Not a defect at all.
+
+**Rule — read the whole report before verifying any line of it.** I verified five one-line claims
+relayed in chat and never read the 22 KB report they came from. It contained the reproduction window
+that would have saved finding 1, and its own correction to finding 3. The relay is a pointer; the
+report is the source (HANDOFF C4: read the body, never the address).

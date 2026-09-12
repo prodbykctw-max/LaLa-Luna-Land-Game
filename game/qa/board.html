@@ -1,0 +1,363 @@
+<title>Lala Luna Nightly Sweep</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400;1,9..144,600&family=Archivo:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#F7F6F2; --panel:#FFFFFF; --sunk:#EFEDE6;
+    --ink:#1A1B28; --ink-2:#4A4C60; --ink-3:#7B7D91;
+    --rule:#DEDCD3; --rule-2:#C9C7BC;
+    --moon:#B08512; --lantern:#C77B14;
+    --ok:#3F7F5E; --warn:#B06C14; --bad:#B2402B; --dead:#6C5CA8;
+    --ok-bg:#E6F0EA; --warn-bg:#F6ECDA; --bad-bg:#F6E3DE; --dead-bg:#EAE6F6;
+    --shadow:0 1px 2px rgba(26,27,40,.06), 0 8px 24px -12px rgba(26,27,40,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0B0E24; --panel:#141834; --sunk:#0F1330;
+      --ink:#EDEBF5; --ink-2:#A9AECB; --ink-3:#737A9E;
+      --rule:#252B4E; --rule-2:#333A62;
+      --moon:#FFF6D6; --lantern:#FFE2A8;
+      --ok:#7FD3A6; --warn:#F0BD6B; --bad:#F08A72; --dead:#B3A6F0;
+      --ok-bg:#16301F; --warn-bg:#33260F; --bad-bg:#3A1C16; --dead-bg:#221C3E;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0B0E24; --panel:#141834; --sunk:#0F1330;
+    --ink:#EDEBF5; --ink-2:#A9AECB; --ink-3:#737A9E;
+    --rule:#252B4E; --rule-2:#333A62;
+    --moon:#FFF6D6; --lantern:#FFE2A8;
+    --ok:#7FD3A6; --warn:#F0BD6B; --bad:#F08A72; --dead:#B3A6F0;
+    --ok-bg:#16301F; --warn-bg:#33260F; --bad-bg:#3A1C16; --dead-bg:#221C3E;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--ink);
+    font:400 16px/1.6 Archivo, ui-sans-serif, system-ui, sans-serif;
+    padding:0 20px; padding-block:0 72px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:940px; margin:0 auto; display:flex; flex-direction:column; gap:44px}
+
+  /* ---- masthead ---- */
+  header{padding-block:52px 0; display:flex; flex-direction:column; gap:18px}
+  .eyebrow{
+    font:500 11px/1 "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
+  }
+  h1{
+    margin:0; font-family:Fraunces, Georgia, serif; font-weight:600;
+    font-size:clamp(34px, 6.4vw, 54px); line-height:1.04; letter-spacing:-.015em;
+    text-wrap:balance;
+  }
+  h1 em{font-style:italic; font-weight:400; color:var(--lantern)}
+  .standfirst{margin:0; max-width:60ch; color:var(--ink-2); font-size:17px}
+
+  /* ---- run strip ---- */
+  .run{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(148px,1fr));
+    gap:1px; background:var(--rule); border:1px solid var(--rule);
+    border-radius:3px; overflow:hidden;
+  }
+  .run div{background:var(--panel); padding:14px 16px; display:flex; flex-direction:column; gap:5px}
+  .run dt{
+    font:500 10px/1 "JetBrains Mono", monospace; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--ink-3); margin:0;
+  }
+  .run dd{margin:0; font:500 15px/1.3 "JetBrains Mono", monospace; font-variant-numeric:tabular-nums}
+  .run dd.good{color:var(--ok)} .run dd.miss{color:var(--bad)}
+
+  /* ---- sections ---- */
+  section{display:flex; flex-direction:column; gap:20px}
+  h2{
+    margin:0; font-family:Fraunces, Georgia, serif; font-weight:600;
+    font-size:26px; line-height:1.15; letter-spacing:-.01em;
+  }
+  h2 + .lede{margin:-12px 0 0; color:var(--ink-2); max-width:62ch}
+
+  /* ---- the alert ---- */
+  .alert{
+    border:1px solid var(--rule-2); border-left:3px solid var(--bad);
+    background:var(--panel); border-radius:2px; padding:20px 22px;
+    display:flex; flex-direction:column; gap:10px; box-shadow:var(--shadow);
+  }
+  .alert h3{margin:0; font-size:17px; font-weight:600; font-family:Archivo, sans-serif}
+  .alert p{margin:0; color:var(--ink-2); max-width:66ch}
+  .alert p:last-child{color:var(--ink); font-weight:500}
+
+  /* ---- findings ledger ---- */
+  .ledger{display:flex; flex-direction:column; border-top:1px solid var(--rule)}
+  .row{
+    display:grid; grid-template-columns:26px 1fr; gap:0 16px;
+    padding:18px 0 18px 14px; border-bottom:1px solid var(--rule);
+    position:relative;
+  }
+  .row::before{
+    content:""; position:absolute; left:0; top:18px; bottom:18px; width:3px; border-radius:2px;
+    background:var(--stripe, transparent);
+  }
+  .row[data-v="confirmed"]{--stripe:var(--bad)}
+  .row[data-v="partial"]{--stripe:var(--warn)}
+  .row[data-v="notrepro"]{--stripe:var(--ink-3)}
+  .row[data-v="fixed"]{--stripe:var(--ok)}
+  .num{
+    font:500 13px/1.7 "JetBrains Mono", monospace; color:var(--ink-3);
+    font-variant-numeric:tabular-nums;
+  }
+  .body{display:flex; flex-direction:column; gap:8px; min-width:0}
+  .claim{margin:0; font-weight:500; font-size:16.5px; text-wrap:pretty}
+  .verdict{
+    align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
+    font:500 10.5px/1 "JetBrains Mono", monospace; letter-spacing:.13em;
+    text-transform:uppercase; padding:6px 9px; border-radius:2px;
+  }
+  .verdict[data-v="confirmed"]{background:var(--bad-bg); color:var(--bad)}
+  .verdict[data-v="partial"]{background:var(--warn-bg); color:var(--warn)}
+  .verdict[data-v="notrepro"]{background:var(--sunk); color:var(--ink-2)}
+  .verdict[data-v="fixed"]{background:var(--ok-bg); color:var(--ok)}
+  .found{margin:0; color:var(--ink-2); font-size:15px; max-width:68ch; text-wrap:pretty}
+  .found code, .mono{
+    font:400 13.5px/1.5 "JetBrains Mono", monospace;
+    background:var(--sunk); padding:1px 5px; border-radius:2px; color:var(--ink);
+  }
+
+  /* ---- the miss ---- */
+  .miss-panel{
+    background:var(--panel); border:1px solid var(--rule-2); border-radius:2px;
+    padding:24px 24px 22px; display:flex; flex-direction:column; gap:14px;
+    box-shadow:var(--shadow); border-top:3px solid var(--dead);
+  }
+  .miss-panel h3{
+    margin:0; font-family:Fraunces, Georgia, serif; font-weight:600; font-size:21px;
+  }
+  .miss-panel p{margin:0; color:var(--ink-2); max-width:66ch}
+  .twohat{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;
+    margin-top:4px;
+  }
+  .twohat > div{
+    background:var(--sunk); border-radius:2px; padding:15px 16px;
+    display:flex; flex-direction:column; gap:7px;
+  }
+  .twohat h4{
+    margin:0; font:500 10.5px/1 "JetBrains Mono", monospace;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+  }
+  .twohat .dim{
+    font:500 21px/1.1 "JetBrains Mono", monospace; font-variant-numeric:tabular-nums;
+  }
+  .twohat .a .dim{color:var(--bad)} .twohat .b .dim{color:var(--ok)}
+  .twohat p{font-size:14.5px; color:var(--ink-2)}
+
+  /* ---- shipped list ---- */
+  .ships{display:flex; flex-direction:column; border-top:1px solid var(--rule)}
+  .ship{
+    display:flex; gap:16px; align-items:baseline; flex-wrap:wrap;
+    padding:13px 0; border-bottom:1px solid var(--rule);
+  }
+  .sha{
+    font:500 13px/1.5 "JetBrains Mono", monospace; color:var(--lantern);
+    flex:0 0 auto; font-variant-numeric:tabular-nums;
+  }
+  .ship span:last-child{color:var(--ink-2); font-size:15px; flex:1 1 240px; min-width:0}
+
+  /* ---- open items ---- */
+  .open{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:14px}
+  .open article{
+    background:var(--panel); border:1px solid var(--rule); border-radius:2px;
+    padding:17px 18px; display:flex; flex-direction:column; gap:8px;
+  }
+  .open h3{margin:0; font-size:16px; font-weight:600; font-family:Archivo,sans-serif}
+  .open p{margin:0; color:var(--ink-2); font-size:14.5px}
+  .tag{
+    align-self:flex-start; font:500 10px/1 "JetBrains Mono", monospace;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
+  }
+
+  footer{
+    border-top:1px solid var(--rule); padding-top:22px;
+    color:var(--ink-3); font-size:14px; display:flex; flex-direction:column; gap:6px;
+  }
+  footer .mono{background:none; padding:0}
+  @media (max-width:520px){
+    .row{grid-template-columns:1fr; gap:8px}
+    .num{display:none}
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Lala Luna Land · scheduled audit</p>
+    <h1>The nightly sweep, <em>and what survived it</em></h1>
+    <p class="standfirst">A scheduled agent audits the build every morning at 10:00 UTC. This is where its findings land, checked against the running game rather than taken on trust.</p>
+    <dl class="run">
+      <div><dt>Last run</dt><dd>12 Sep 10:01<span style="color:var(--ink-3)">Z</span></dd></div>
+      <div><dt>Duration</dt><dd>2 h 30 m</dd></div>
+      <div><dt>Status</dt><dd class="good">Succeeded</dd></div>
+      <div><dt>Next run</dt><dd>13 Sep 10:00<span style="color:var(--ink-3)">Z</span></dd></div>
+      <div><dt>Report</dt><dd class="good">Recovered</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="alert" style="border-left-color:var(--warn)">
+      <h3>The report was in Downloads all along</h3>
+      <p>The sweep delivers into its own throwaway session, so nothing reaches the repo — but the 12 September report and its patch <em>were</em> saved to <code>~/Downloads</code> at 18:35, after an earlier search of that folder had already run. Both are now committed to <code>game/qa/</code> and <code>Claude outputs/</code> so they stop depending on a browser download.</p>
+      <p>The 11 September report is still gone. From the next run on the sweep publishes here as well.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The 12 September findings, verified</h2>
+    <p class="lede">Five claims came back from the sweep. Each was checked against the code and the running game before anything was changed — two held as stated, one was true but misdated, one was right with the wrong cause, and one did not reproduce at all.</p>
+
+    <div class="ledger">
+      <div class="row" data-v="confirmed">
+        <span class="num">01</span>
+        <div class="body">
+          <p class="claim">Hub throws a <code>setHex</code> page error at <code>index.html:5400</code></p>
+          <span class="verdict" data-v="confirmed">Confirmed · I was wrong</span>
+          <p class="found">It fires <strong>3× during <code>traversal.mjs</code>'s ~1 hour hub run</strong>, and never in a short one. I tested for 36 seconds, saw four good lamps and no errors, and filed it not-reproduced — a window shorter than the one the report had already said comes back clean. The guard is now in: it logs once through <code>DBG</code> rather than killing the frame loop, so the next long run names the bad lamp. Root cause still unfound by either of us.</p>
+        </div>
+      </div>
+
+      <div class="row" data-v="confirmed">
+        <span class="num">02</span>
+        <div class="body">
+          <p class="claim">Camera clips into geometry on Hub and Good Riddance</p>
+          <span class="verdict" data-v="confirmed">Confirmed · cause differs</span>
+          <p class="found">The arm collapses to its <code>3.5</code> floor on strafe — 11.03 → 3.50 on hub, 11.05 → 3.62 on GR, both directions. Not new GR content: hub is identical and hub has not changed. A fix was attempted and reverted; refining the sample walk from 0.94 u to 0.03 u moved the number by <strong>0.01</strong>.</p>
+        </div>
+      </div>
+
+      <div class="row" data-v="notrepro">
+        <span class="num">03</span>
+        <div class="body">
+          <p class="claim">Every island carries two more lights than baseline</p>
+          <span class="verdict" data-v="notrepro">Not a bug · by design</span>
+          <p class="found">The sweep corrected this itself, and it is right. <code>LOOK</code> defaults to <code>"toon3d"</code> (<code>:483</code>) and each island's setup then adds a bounce and a rim <code>DirectionalLight</code> by design (<code>:4043-4050</code>) — exactly +2, on every island, whatever the content, which is why the pattern was so uniform. I had attributed them to the desk candle and her lantern; those were in the baseline of four all along. Measured hub confirms it: Directional 0.38 <code>#3c8cbe</code> is the bounce, 0.42 <code>#ffe6c1</code> the rim.</p>
+        </div>
+      </div>
+
+      <div class="row" data-v="partial">
+        <span class="num">04</span>
+        <div class="body">
+          <p class="claim"><code>assets/lala.glb</code> has grown to 6.65 MB</p>
+          <span class="verdict" data-v="partial">True · misdated</span>
+          <p class="found">6,974,652 bytes, mtime 10 September — it is the v2 rebuild, two days before the run, not a change in this window. Every island pays for it and compression is still worth doing, but nothing regressed here.</p>
+        </div>
+      </div>
+
+      <div class="row" data-v="fixed">
+        <span class="num">05</span>
+        <div class="body">
+          <p class="claim"><code>HEAD_EAR</code> and <code>HEAD_CROWN</code> are dead identifiers</p>
+          <span class="verdict" data-v="fixed">True · fixed</span>
+          <p class="found">Both unreferenced, and <code>HEAD_SIDE</code> with them — its own comment claimed it was "kept so the physics clamp still reads in the old names", and the clamp no longer uses it. All three removed; the measured constants they derive from are kept.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the sweep did not find</h2>
+    <p class="lede">The visual audit ran separately, through the real gameplay camera across all five islands. It turned up the thing that had been wrong for two weeks — and that no instrumented check was ever going to catch, because the measurement was pointed at the wrong object.</p>
+
+    <div class="miss-panel">
+      <h3>She was wearing the placeholder's hat</h3>
+      <p><code>makeLala()</code> builds a sketch figure to stand in until the GLB loads. <code>attachRig()</code> hides all twelve stand-in parts when the real rig lands — and then <code>applyHeadwear()</code> turned three of them straight back on, because it only ever asked <em>is she bare-headed</em>, never <em>is the stand-in still the figure on screen</em>.</p>
+      <div class="twohat">
+        <div class="a">
+          <h4>What was rendering</h4>
+          <span class="dim">1.339 u</span>
+          <p>A flat <code>CylinderGeometry(.68,.68,.08)</code> disc under a near-straight drum. The placeholder.</p>
+        </div>
+        <div class="b">
+          <h4>What was underneath it</h4>
+          <span class="dim">0.748 u</span>
+          <p>The real <code>cowgirlHat()</code> — taco brim, cattleman crease, a pinch either side. There the whole time.</p>
+        </div>
+      </div>
+      <p>Measured live before the fix: <strong>3 of 12 primitives visible on a fully rigged character</strong>, and they were brim, hatTop and band. One condition fixed it — <code>const stand = !ch.model;</code>. Every render of a too-big drum-shaped hat was a render of the placeholder, and so was every measurement made defending it.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What else the full report says</h2>
+    <p class="lede">The five relayed lines were a fraction of it. The report runs eight suites, and most of what it found is good news that never made it into the summary.</p>
+    <div class="ships">
+      <div class="ship"><span class="sha">Suite 1</span><span>Traversal clean at full scale — <strong>0 traps, 0 pockets, 0 stalls, 0 buried, 0 out-of-bounds</strong> across all five islands, 91,032 cells. Camera-in-geometry hits rose on hub (4% → 6.6%) and gr (2% → 6.0%) on byte-identical sample grids.</span></div>
+      <div class="ship"><span class="sha">Suite 2</span><span>Reach <strong>58/58</strong>, up from 57/58 — Theo's shadowed "Take her fans" on Green is fixed and holding.</span></div>
+      <div class="ship"><span class="sha">Suite 3</span><span>Camera baseline holds: <strong>0° yaw drift</strong> on every segment, every island. Stuck-keys-after-blur still fixed.</span></div>
+      <div class="ship"><span class="sha">Suite 6</span><span>Mobile fully closed out — <code>mute</code> and <code>secretsBtn</code> now <strong>77×44 / 71×44</strong> on every island in both orientations. 0 overlaps, 0 off-screen, 0 small targets.</span></div>
+      <div class="ship"><span class="sha">Suite 7</span><span>Scene triangles came <strong>down</strong> on four of five: hub −11%, green −18%, gr −24% (skinned tris −56%), sanity −7%. Town up 4.5% but draw calls down 19%.</span></div>
+      <div class="ship"><span class="sha">Suite 8</span><span><code>index.html</code> is now <strong>5,917 lines</strong>, another +68% since 8 September. 150 functions, 24 listeners flat, 0 TODO/FIXME, 14 empty <code>catch{}</code> — all the same defensive pattern, just more of them.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Shipped since the sweep</h2>
+    <div class="ships">
+      <div class="ship"><span class="sha">2026-09-12c</span><span>Castle-lamp guard from the sweep's own patch — logs once instead of killing the frame loop</span></div>
+      <div class="ship"><span class="sha">3dd909c</span><span>Real hat visible · touch controls off desktop · lantern glow · build <span class="mono">2026-09-12b</span></span></div>
+      <div class="ship"><span class="sha">1492209</span><span>Hat finding withdrawn · sweep claims verified · three dead constants dropped</span></div>
+      <div class="ship"><span class="sha">497f637</span><span>Visual audit and the three tools that produced it</span></div>
+      <div class="ship"><span class="sha">1b850dc</span><span>HANDOFF 4.8 — build time is not load time</span></div>
+      <div class="ship"><span class="sha">ab362f2</span><span>Town's crowd proxies stopped downloading on every island · hub 40 → 16 requests</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Open, and worth your call</h2>
+    <div class="open">
+      <article>
+        <span class="tag">Blocks lighting work</span>
+        <h3>Half the scene is unlit</h3>
+        <p>Sanity runs <strong>341 MeshBasicMaterial against 369 MeshStandard</strong>. The night rig is nine good lights and it reaches none of those 341. Tuning lights cannot change what half the island never reads.</p>
+      </article>
+      <article>
+        <span class="tag">Blocks camera work</span>
+        <h3>The world is unseeded</h3>
+        <p>Decor uses unseeded <code>Math.random()</code> at 88 sites, so every load builds a different island. The camera, reach, traversal and herd suites are all comparing runs against worlds that are not the same world.</p>
+      </article>
+      <article>
+        <span class="tag">Visible every frame</span>
+        <h3>A mown ring follows her</h3>
+        <p>Grass clumps collapse to zero past 44 u and nothing takes over, so there is a bare circle around her in every shot on every island.</p>
+      </article>
+      <article>
+        <span class="tag">Visible every frame</span>
+        <h3>Clouds have green bellies</h3>
+        <p>The underside takes the hemisphere light's ground colour at full strength, so every cloud is lit olive against an orange sky, with hard creases where its spheres intersect.</p>
+      </article>
+      <article>
+        <span class="tag">Five islands, one look</span>
+        <h3>Straight coastlines</h3>
+        <p>The sand band is a constant width and the water edge is an airbrushed blur. Identical on all five.</p>
+      </article>
+      <article>
+        <span class="tag">Dead control</span>
+        <h3><code>?hs=</code> does nothing</h3>
+        <p>The documented hat-scale dial has no effect — 0.60 and 1.0 render identically. It was scaling the hat that was buried.</p>
+      </article>
+      <article>
+        <span class="tag">Second report running</span>
+        <h3>Four suites are never run</h3>
+        <p><code>float.mjs</code>, <code>overhead.mjs</code>, <code>scale.mjs</code> and <code>qa/maps/</code> sit in the repo unreferenced by <code>run_all.sh</code>. Wire them in or delete them.</p>
+      </article>
+      <article>
+        <span class="tag">Unconfirmed either way</span>
+        <h3>Ollie's intermittent UNREACHABLE</h3>
+        <p>Town's postman read OK on this run's single pass. The fault is load-order dependent, so one clean result is not a fix — it needs repeat runs to close.</p>
+      </article>
+    </div>
+  </section>
+
+  <footer>
+    <span>Every figure on this page was measured in the running game, not carried from a prior report.</span>
+    <span class="mono">trig_01QTDijWxQTMunuYPUoFjzk7 · claude-sonnet-5 · 0 10 * * * UTC</span>
+  </footer>
+
+</div>

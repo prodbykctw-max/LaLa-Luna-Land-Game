@@ -1,0 +1,77 @@
+From 85796c8434d0e8b293674af5e6555825dcf3c402 Mon Sep 17 00:00:00 2001
+From: "Claude (QA)" <prodbykctw@gmail.com>
+Date: Sat, 12 Sep 2026 22:17:17 +0000
+Subject: [PATCH] QA fixes 2026-09-12: guard hub castle-lamp setHex crash, drop
+ dead HEAD_EAR/HEAD_CROWN/HEAD_SIDE
+
+- index.html:5400 castleLamps.forEach threw "Cannot read properties of
+  undefined (reading 'setHex')" 3x during a ~1h hub session in
+  traversal.mjs (never in a short session). Root cause not pinned down
+  yet (no code touches I.castleLamps after hub build, and the static
+  batcher's plainToon() filter excludes MeshBasicMaterial so it
+  shouldn't be touching these lamps either) - added a guard so it logs
+  once instead of crashing, to help pin it down on the next long run.
+- Removed HEAD_EAR, HEAD_CROWN and HEAD_SIDE (index.html ~1432-1457):
+  codehealth.mjs flagged HEAD_EAR/HEAD_CROWN as unused; confirmed all
+  three have zero references outside their own declarations, and the
+  hat-fit clamp they were 'kept for' (HAT_CLEAR/HAT_TILT_MAX) already
+  uses HAT_RX/HAT_RZ/HAT_FIT directly, not these. Comment describing
+  them as still read by that clamp was stale - removed with them.
+
+Verified: all inline script parses (new Function() per block), and a
+console_load.mjs run over hub/green/gr shows the same 2 pre-existing
+environmental console entries as before the change, no new errors.
+
+Not fixed this pass (flagged in qa/report-2026-09-12.md, need more
+investigation or asset-pipeline work, not a safe quick edit):
+- camera-in-geometry rate up on hub/gr despite unchanged world size
+- lala.glb grown to 6.65MB, pushing every island's download total up
+The '+2 lights per island' item in the report is NOT a bug: it's the
+new TOON3D lighting rig (LOOK defaults to toon3d, index.html:481-484)
+adding a bounce + rim light per island by design (index.html:4018-4024).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Gme6oFC7juz6DjwGNU5ueL
+---
+ game/index.html | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/game/index.html b/game/index.html
+index 1f55a53..a5f3c51 100644
+--- a/game/index.html
++++ b/game/index.html
+@@ -1429,7 +1429,6 @@ function applyHeadwear(ch){
+    it, because the fault was the fit, not the shape. */
+ const HEAD_HALF_X = 0.199, HEAD_HALF_Z = 0.219;   /* widest measured, any height */
+ const HEAD_TOP    = 0.467;                        /* top of her hair */
+-const HEAD_EAR    = 0.179;                        /* widest row = temples/ears */
+ 
+ /* A brim rests above the ears, not on them. Her hair carries a lot of volume on top, so the seat
+    also has to leave a crown tall enough to contain it: seat 0.275 + crown 0.215 = 0.490, clear of
+@@ -1453,8 +1452,6 @@ const HAT_BRIM   = HAT_FIT * 1.43;              /* the measured Stetson ratio: 3
+    crown walls (they always cleared) never found it. The crown has to be tall enough that even the
+    bottom of the crease clears her hair:  seat + H - 0.062 > 0.4672 + margin  ->  H > 0.272. */
+ const HAT_CROWN_H = 0.280;                      /* 16 cm; her hair has real volume and it has to fit */
+-/* kept so the physics clamp below still reads in the old names */
+-const HEAD_CROWN = HEAD_TOP, HEAD_SIDE = Math.max(HEAD_HALF_X, HEAD_HALF_Z);
+ const HAT_PHYS = (() => { const v = parseFloat(QS.get("hatphys")); return isNaN(v) ? 1 : v; })();
+ /* ---- hat physics ----
+    The hat is parented to the head bone, so nothing she does can move it. This gives it a two-axis
+@@ -5397,7 +5394,13 @@ function islandUpdate(I, dt, t){
+   I.stones.forEach(s => s.mesh.visible = ab.lantern);
+   I.gateMeshes.forEach(m => m.visible = !ab.gateOpen);
+   if(I.beam) I.beam.target.position.set(-30 + Math.cos(t*.4)*60, 0, -25 + Math.sin(t*.4)*60);
+-  if(cfg.hub){ const all = G.letters.every(Boolean); I.castleLamps.forEach(l => l.material.color.setHex(all ? MOON : 0x8A7C60));
++  if(cfg.hub){ const all = G.letters.every(Boolean);
++    /* defensive: under long sessions a castle lamp has occasionally turned up with no material/color
++       (QA traversal.mjs, 2026-09-12 — 3x "Cannot read properties of undefined (reading 'setHex')" over
++       a ~1h hub run, never in a short session); guard it and log once instead of crashing so a future
++       long run can pin down which lamp and when. */
++    I.castleLamps.forEach(l => { if(l && l.material && l.material.color) l.material.color.setHex(all ? MOON : 0x8A7C60);
++      else if(!I._lampWarned){ I._lampWarned = true; DBG("castleLamp missing material/color", l && l.uuid); } });
+     if(I.door) I.door.rotation.y += ((all ? -1.3 : 0) - I.door.rotation.y)*Math.min(1, dt*2); }
+ 
+   /* weather */
+-- 
+2.43.0
+
