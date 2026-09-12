@@ -343,7 +343,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-11k";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-12a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1429,7 +1429,6 @@ function applyHeadwear(ch){
    it, because the fault was the fit, not the shape. */
 const HEAD_HALF_X = 0.199, HEAD_HALF_Z = 0.219;   /* widest measured, any height */
 const HEAD_TOP    = 0.467;                        /* top of her hair */
-const HEAD_EAR    = 0.179;                        /* widest row = temples/ears */
 
 /* A brim rests above the ears, not on them. Her hair carries a lot of volume on top, so the seat
    also has to leave a crown tall enough to contain it: seat 0.275 + crown 0.215 = 0.490, clear of
@@ -1453,8 +1452,6 @@ const HAT_BRIM   = HAT_FIT * 1.43;              /* the measured Stetson ratio: 3
    crown walls (they always cleared) never found it. The crown has to be tall enough that even the
    bottom of the crease clears her hair:  seat + H - 0.062 > 0.4672 + margin  ->  H > 0.272. */
 const HAT_CROWN_H = 0.280;                      /* 16 cm; her hair has real volume and it has to fit */
-/* kept so the physics clamp below still reads in the old names */
-const HEAD_CROWN = HEAD_TOP, HEAD_SIDE = Math.max(HEAD_HALF_X, HEAD_HALF_Z);
 const HAT_PHYS = (() => { const v = parseFloat(QS.get("hatphys")); return isNaN(v) ? 1 : v; })();
 /* ---- hat physics ----
    The hat is parented to the head bone, so nothing she does can move it. This gives it a two-axis
@@ -5051,6 +5048,11 @@ function placeCamera(I, dt){
   /* scenery: cylinders pull the arm in */
   const cc = cameraCollide(I, W.look, desired, 3.5*cp); let arm = Math.min(want, Math.hypot(cc.x-W.look.x, cc.z-W.look.z)/Math.max(cp, .05));
   /* terrain: walk the arm and stop before it dips under the ground (hills, mesas, the lighthouse rock) */
+  /* A bisection refinement of this walk was tried on 2026-09-12 and REVERTED — see HANDOFF 4.10.
+     The arm does collapse to its 3.5 floor when she strafes (measured, both islands, two runs), but
+     the cause is not this walk's 0.94 u sample step: refining it to 0.03 u moved distMin by 0.01.
+     Do not re-try it here without first seeding the world — decor placement is unseeded (report T3),
+     so qa/camera.mjs loads a DIFFERENT island each run and cannot A/B a camera change at all. */
   for(let k = 1; k <= 12; k++){ const t = arm*k/12, px = W.look.x + dir.x*t, pz = W.look.z + dir.z*t, py = W.look.y + dir.y*t;
     if(I.inside(px,pz) && py < I.height(px,pz) + 1.1){ arm = Math.max(3.5, t - .8); break; }
     if(I.camBlobs && t > 3.5){ let hit = false; for(const b of I.camBlobs){ const ddx = px-b.x, ddy = py-b.y, ddz = pz-b.z; if(ddx*ddx+ddy*ddy+ddz*ddz < b.r*b.r){ hit = true; break; } } if(hit){ arm = Math.max(3.5, t - .8); break; } } }

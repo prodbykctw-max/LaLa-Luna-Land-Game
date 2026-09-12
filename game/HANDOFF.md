@@ -782,3 +782,66 @@ such branch ever existed on the remote or on his machine — `git branch -a` and
 both confirmed it. Its *diagnosis* was exact and its *numbers* reproduced to the request. Treat
 a scheduled agent's report as a lead to re-derive, never as work already landed, and have it
 deliver a patch file rather than a commit.
+
+## 4.9 A ratio is only evidence against a body that shares the reference's proportions
+
+2026-09-12. In the visual audit I measured her hat, converted it to metres through the body scale
+(3.00 u = 5'8" = 0.576 m/u) and reported brim 0.77 m, crown 0.40 m against a 0.16 m human head —
+"about double scale", filed as an obvious Tier 1 defect with a table of numbers under it.
+
+It was wrong. Measured against her ACTUAL head, read through `SkinnedMesh.boneTransform` on the
+vertices the Head bone dominates: head width 0.907 u, brim 1.344 u, **brim ÷ head = 1.48**, crown ÷
+head = 0.78. A real Stetson is 2.45. Her brim is narrower relative to her head than a real hat's.
+
+The mistake was not the arithmetic. Every number in the original table was correct. The mistake was
+the comparison: converting to metres and comparing to a real hat assumed her head is human-
+proportioned. **Her head is 0.295 of her body height — 3.4 heads tall against a human's 7.5.** The hat
+is right for the head; the head is stylised.
+
+**Rule — never convert a character measurement to real-world units and compare it to a real-world
+object.** The unit scale is fixed by total height alone, so it carries no information about any other
+proportion. Measure the part against the part it attaches to, on the same mesh, in the same units:
+hat against head, sleeve against arm, boot against foot. A ratio between two things on the same body
+is evidence. A ratio between one thing on that body and a photograph of a person is not.
+
+**Rule — a table of correct numbers is not a verified finding.** The numbers made the claim look
+measured, which is exactly why it got filed at Tier 1 without the one check that would have killed it.
+Presenting measurements raises the evidence bar on the conclusion, it does not lower it. Before a
+measured claim ships, name the assumption that converts the measurement into the conclusion, and test
+that assumption too.
+
+Closed the same turn it was found: the audit entry is struck through with the original claim, the
+correction and the real finding kept side by side, rather than quietly edited out.
+
+## 4.10 The unseeded world makes half the QA suite unable to A/B anything
+
+2026-09-12. The nightly sweep reported "camera clipping into geometry, up on Hub and GR". It is real:
+`qa/camera.mjs`, strafe-left, the camera arm collapses from 11.03 to **3.50** on the hub and 11.05 to
+**3.62** on Good Riddance — 3.5 is the `Math.max(3.5, …)` FLOOR in the terrain walk, not a distance to
+anything. Both islands, both runs, left and right strafe.
+
+I diagnosed it as sample resolution: 12 samples over an 11.3 u arm is a 0.94 u step, then `t - .8`
+backs off almost a whole step, so a hit in the first three samples resolves to the floor whatever it
+hit. I replaced the walk with a bracket-plus-five-bisections (0.03 u) and a 0.25 back-off.
+
+**It moved distMin by 0.01** (3.50 -> 3.49 on hub, 3.62 -> 3.61 on gr). The diagnosis was wrong — the
+short arm is coming from `cameraCollide()`'s cylinder pass or from something genuinely close, not from
+this walk's step size. Reverted.
+
+The more important thing the attempt exposed: **I could not have told the difference either way.**
+Between the two runs, hub's idle distMin moved 9.94 -> 10.82 and gr's 5.81 -> 10.98, and hub's pop
+counts went 3/2/1 -> 4/5/5, all on segments my change could not affect. Decor placement uses unseeded
+`Math.random()` (88 call sites, open as T3 in `qa/report.md`), so **every load builds a different
+island.** The camera suite, the reach suite, the traversal suite and the herd suite are all comparing
+runs against worlds that are not the same world.
+
+**Rule — T3 is a blocker, not tidiness.** Seed the world before any further camera, traversal or
+placement work. Until then a before/after on those suites is noise, and any camera fix "verified" by
+them is unverified. What still works without a seed: counts and censuses that do not depend on layout
+(material types, request counts, light counts, bone measurements), because those are the same whatever
+the trees do.
+
+**Rule — when the instrument cannot see the change, revert the change.** Not because it was proven
+harmful, but because "no measurable effect on a wrong diagnosis" is the profile of a change that ships
+a regression later. Same family as the Taubin smoothing: a metric moving the right way is not proof,
+and a metric that cannot move at all is not a test.
