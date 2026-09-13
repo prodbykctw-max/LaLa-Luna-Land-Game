@@ -193,19 +193,19 @@
     <h1>The nightly sweep, <em>and what survived it</em></h1>
     <p class="standfirst">A scheduled agent audits the build every morning at 10:00 UTC. This is where its findings land, checked against the running game rather than taken on trust.</p>
     <dl class="run">
-      <div><dt>Last run</dt><dd>12 Sep 10:01<span style="color:var(--ink-3)">Z</span></dd></div>
-      <div><dt>Duration</dt><dd>2 h 30 m</dd></div>
-      <div><dt>Status</dt><dd class="good">Succeeded</dd></div>
-      <div><dt>Next run</dt><dd>13 Sep 10:00<span style="color:var(--ink-3)">Z</span></dd></div>
-      <div><dt>Report</dt><dd class="good">Recovered</dd></div>
+      <div><dt>Last good run</dt><dd>12 Sep 10:01<span style="color:var(--ink-3)">Z</span></dd></div>
+      <div><dt>13 Sep sched.</dt><dd class="miss">Failed 9 s</dd></div>
+      <div><dt>13 Sep manual</dt><dd class="miss">Hung 8 h</dd></div>
+      <div><dt>Next run</dt><dd>14 Sep 10:00<span style="color:var(--ink-3)">Z</span></dd></div>
+      <div><dt>Page written by</dt><dd>Hand</dd></div>
     </dl>
   </header>
 
   <section>
-    <div class="alert" style="border-left-color:var(--warn)">
-      <h3>The report was in Downloads all along</h3>
-      <p>The sweep delivers into its own throwaway session, so nothing reaches the repo — but the 12 September report and its patch <em>were</em> saved to <code>~/Downloads</code> at 18:35, after an earlier search of that folder had already run. Both are now committed to <code>game/qa/</code> and <code>Claude outputs/</code> so they stop depending on a browser download.</p>
-      <p>The 11 September report is still gone. From the next run on the sweep publishes here as well.</p>
+    <div class="alert">
+      <h3>The sweep has not completed a run since 12 September</h3>
+      <p>The 13 September scheduled run reported FAILED <strong>nine seconds</strong> after firing — too fast to have cloned the repo. A manual re-fire at 15:28 UTC was still PENDING eight hours later, having never published here. Two of his job-sprint tasks died in the same window that morning, which points at a transient platform fault rather than anything in the sweep itself.</p>
+      <p>So every finding below was verified by hand, and this page was written by hand. The next scheduled run is 14 Sep 10:00 UTC, and its instructions now say to publish here as soon as the first suite reports rather than at the end — a page updated last is a page that never gets updated.</p>
     </div>
   </section>
 
@@ -228,7 +228,7 @@
         <div class="body">
           <p class="claim">Camera clips into geometry on Hub and Good Riddance</p>
           <span class="verdict" data-v="confirmed">Confirmed · cause differs</span>
-          <p class="found">The arm collapses to its <code>3.5</code> floor on strafe — 11.03 → 3.50 on hub, 11.05 → 3.62 on GR, both directions. Not new GR content: hub is identical and hub has not changed. A fix was attempted and reverted; refining the sample walk from 0.94 u to 0.03 u moved the number by <strong>0.01</strong>.</p>
+          <p class="found">The arm collapses to its <code>3.5</code> floor when the arm sweeps a decor cylinder. A fix was attempted and reverted — refining the sample walk from 0.94 u to 0.03 u moved the number by 0.01. <strong>Now reproducible</strong>: on the seeded hub layout the strafe collapse is absent, but <code>W-through-colliders</code> still drops to 3.72 with 4 pops on both runs. The mechanism is intact and can finally be worked on; a different seed would likely bring the strafe case back too.</p>
         </div>
       </div>
 
@@ -300,6 +300,7 @@
   <section>
     <h2>Shipped since the sweep</h2>
     <div class="ships">
+      <div class="ship"><span class="sha">2026-09-13a</span><span><strong>The world is seeded.</strong> T3 closed — <code>buildIsland</code> runs on a seeded generator and restores the real <code>Math.random</code> in a <code>finally</code>. <code>camera.mjs</code> on hub now reproduces <strong>6 of 8 segments byte-identical</strong> across separate runs, the other two differing by 0.01. It was 3.50→11.31 vs 3.49→11.51 on the same segment yesterday.</span></div>
       <div class="ship"><span class="sha">2026-09-12c</span><span>Castle-lamp guard from the sweep's own patch — logs once instead of killing the frame loop</span></div>
       <div class="ship"><span class="sha">3dd909c</span><span>Real hat visible · touch controls off desktop · lantern glow · build <span class="mono">2026-09-12b</span></span></div>
       <div class="ship"><span class="sha">1492209</span><span>Hat finding withdrawn · sweep claims verified · three dead constants dropped</span></div>
@@ -316,11 +317,6 @@
         <span class="tag">Blocks lighting work</span>
         <h3>Half the scene is unlit</h3>
         <p>Sanity runs <strong>341 MeshBasicMaterial against 369 MeshStandard</strong>. The night rig is nine good lights and it reaches none of those 341. Tuning lights cannot change what half the island never reads.</p>
-      </article>
-      <article>
-        <span class="tag">Blocks camera work</span>
-        <h3>The world is unseeded</h3>
-        <p>Decor uses unseeded <code>Math.random()</code> at 88 sites, so every load builds a different island. The camera, reach, traversal and herd suites are all comparing runs against worlds that are not the same world.</p>
       </article>
       <article>
         <span class="tag">Visible every frame</span>
