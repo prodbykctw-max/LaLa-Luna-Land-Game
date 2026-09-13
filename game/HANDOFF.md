@@ -918,3 +918,47 @@ itself and wrote it up as "corrected, not a bug". Measured hub lights bear it ou
 relayed in chat and never read the 22 KB report they came from. It contained the reproduction window
 that would have saved finding 1, and its own correction to finding 3. The relay is a pointer; the
 report is the source (HANDOFF C4: read the body, never the address).
+
+## 4.13 The world is seeded, and the camera suite became an instrument
+
+2026-09-13. T3 — decor placed with bare `Math.random()` — is closed. It was carried as a tidiness
+item in `qa/report.md` since 2026-09-04; 4.10 established it was a blocker.
+
+**The change is three lines, not 115.** `buildIsland` runs synchronously, so the whole build happens
+inside one window: swap `Math.random` for a seeded `mulberry32` on the way in, restore it in a
+`finally` on the way out, and rename the old body to `buildIslandBody`. Everything placed during the
+build is deterministic; everything after it — creature wander, FX, grass recycling as she walks —
+keeps the real `Math.random` and stays alive. Each island seeds off its own key so changing one
+island's content cannot reshuffle another's. `?seed=<anything>` picks a different world, `?seed=random`
+restores the old per-load shuffle.
+
+**What it bought, measured.** `qa/camera.mjs` on hub, run twice back to back:
+
+| | before seeding | after seeding |
+|---|---|---|
+| segment A | 3.50–11.31, 3 pops → 3.49–11.51, 4 pops | 11.02–11.52, 0 pops — **identical both runs** |
+| segment D | 3.52–11.02, 2 pops → 3.50–10.94, 5 pops | 10.99–11.02, 0 pops — **identical both runs** |
+| idle | 9.94 → 10.82 | 10.99–11.00 — **identical both runs** |
+| colliders | — | 214 / 214 |
+
+6 of 8 segments byte-identical; the two that differ do so by **0.01** (11.29 vs 11.28), which is frame
+timing, not layout. Pop counts identical on every segment.
+
+**Do NOT read this as the camera bug being fixed.** The strafe collapse is absent on *this* seeded hub
+layout because the arm no longer sweeps a decor cylinder there — a different seed would likely bring
+it back. `W-through-colliders` still collapses to 3.72 with 4 pops, both runs. The mechanism is intact.
+What changed is that it is now **reproducible**, which is the precondition for fixing it.
+
+**Rule — building the instrument is the work, not overhead.** `qa/determinism.mjs` took four wrong
+passes before it measured the right thing, and each wrong pass looked like a failed seed:
+  1. Fingerprinted every mesh — NPCs and creatures had wandered between runs. Test bug.
+  2. Hand-listed the movers to exclude — missed a ripple ring out at sea. One mesh in 388.
+  3. Rounded to 0.1 u so sway would not matter — which let slow movers PASS the stillness check and
+     poisoned the digest instead. Hub went from MATCH to DIFFER on a coarser comparison, which is
+     backwards and is what gave it away.
+  4. Split the precisions — 3 dp to judge stillness, 1 dp to build the digest — and sampled twice.
+     Still flipped, because a ripple that grows and resets can read the same at two chosen moments.
+Three samples fixed it. **A test that disagrees with itself between runs is measuring the clock.**
+When a determinism check flips, suspect the check before the seed, and diff the actual entries rather
+than reasoning about what might have moved — the diff found "1 differing mesh of 388" in one run,
+which settled it instantly where argument would not have.
