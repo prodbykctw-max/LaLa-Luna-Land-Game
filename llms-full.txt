@@ -1,0 +1,41 @@
+# Lala Luna Land — full reference
+
+Last updated: 2026-09-13
+Canonical URL: https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/
+
+## TL;DR
+
+Lala Luna Land is a free browser-based 3D island-hopping adventure built for singer Lala Luna, the 'Queen of Whimsy.' Sail between islands, find the four scattered letters that spell her name, collect notes, moons and outfits, and reach the fifth island for the final song. Playable on phone and desktop, no download or sign-up.
+
+Developer: PRODBYKCTW LLC (Melvin D. Brown III, @prodbyKCTW) / RARƎ AGENCY. Genre: Adventure / exploration. Platform: Web browser (mobile Safari, Chrome, desktop). Price: free.
+
+## What it is
+A free-roam 3D hub game made for the artist Lala Luna. The story: "The keep is shut. The night the songs got loud, Lala walked out of her own castle and scattered four letters across four islands — one for every song. Spell her name and the doors open." Each island is shaped from real-world coastlines (Providencia, Isla Margarita, Gorgona, San Andrés, Curaçao, with Fernando de Noronha as the fifth island). The player explores, talks to NPCs (the "LUNA-tics" fan crowd), collects letters, notes, moons and outfits, unlocks travel between docks, and opens a portal to the fifth island for the ending.
+
+## How to play
+- Space — jump (hold to glide) · E — interact · Q/E — look left/right on desktop
+- On touch: on-screen pad to move, Interact button to talk/pick up, camera recenter (⟲) button
+- Progress is saved in the browser; "Start over" clears every letter, note, moon and outfit
+
+## Tech
+Built with Three.js and vanilla JavaScript, hosted on GitHub Pages. No accounts, no downloads, no payments.
+
+## Frequently asked questions
+
+Q: What is Lala Luna Land?
+A: A free browser-based 3D adventure game built for the artist Lala Luna. You sail between islands, find the letters of her name, and unlock the fifth island's final song.
+
+Q: Is it free?
+A: Yes. It runs in the browser on phones and desktops with no download, sign-up or payment.
+
+Q: Who made it?
+A: It was developed by PRODBYKCTW / RARƎ AGENCY (Melvin D. Brown III, @prodbyKCTW), an Atlanta-area independent developer building custom games and apps for artists.
+
+Q: How do I play?
+A: Space to jump (hold to glide), E to interact, Q/E to look; on touch use the on-screen pad, the Interact button and the camera recenter button.
+
+## Links
+
+- Play: https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/
+- Developer GitHub: https://github.com/prodbykctw-max
+- Developer Instagram: https://www.instagram.com/prodbykctw/
