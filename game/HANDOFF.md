@@ -1244,27 +1244,51 @@ field. At 12:23 both signals agreed (no publish, PENDING) and the read was sound
 disagreed and the status was the stale one. **Rule: check the artifact first and let the status field
 corroborate, never the reverse. A status field is a claim about a job; the published page is the job.**
 
-**(b) Step 8 was never expressible.** On 13 September I audited subscribe-vs-poll, proved that a
-scheduled-task wake into this session is a genuine push, and then wrote "step 8" into the sweep's
-prompt: create a one-shot `create_trigger` carrying `persistent_session_id` for this session so the
-sweep pushes its summary back here. It has never once fired, across every run since.
+**(b) ~~Step 8 was never expressible.~~ RETRACTED SIXTEEN MINUTES AFTER I WROTE IT.**
 
-The reason, read off the tool schema rather than guessed: **`create_trigger` exposes no
-`persistent_session_id` parameter.** `send_later` is the only thing that sets one, and it *self*-binds —
-it can only wake the session that calls it. So the sweep calling `send_later` wakes the sweep, not me.
-There is no supported path for a scheduled run to push into a different session.
+What I wrote here at 13:05, and pushed as `0fd92ec`: that step 8 "has never once fired", that
+`create_trigger` exposes no `persistent_session_id`, and that **"there is no supported path for a
+scheduled run to push into a different session."**
 
-What I actually proved on 13 September was narrower than what I claimed: *this* session can schedule a
-wake for *itself*. I extended that to "the sweep can push back to us" without operating the control —
-which is C2, and it is the same failure as 4.18 one level up: I reasoned a mechanism into existence
-from an adjacent one that worked.
+At **13:06:20Z** the sweep's push-back arrived in this session. Trigger record, read straight off
+`list_triggers`:
 
-**What actually works, and is now the mechanism:** the sweep publishes to the board early and again at
-the end — that is the durable record, and it survives this session ending. This session keeps a
-`send_later` self-ping timed to land after the sweep's window, which reads the board. That loop ran
-three times today and delivered every time.
+```
+id                    trig_016EkcLU4TjTdTyjwe6pvtYg
+name                  QA sweep result 2026-09-14
+created_at            2026-09-14T13:04:38Z      <- the sweep created it
+persist_session       true
+persistent_session_id session_01FPbU5dFxGQYmpMkTyCCrjA   <- this session, not its own
+run_once_at           2026-09-14T13:05:00Z
+last_run.status       SUCCEEDED  (fired 13:06:20.420Z, finished 13:06:20.431Z)
+ended_reason          run_once_fired
+```
 
-**Not done, and deliberately:** the sweep's prompt still contains the impossible step 8.
-`update_trigger` replaces a prompt wholesale and `list_triggers` does not return prompt text, so
-rewriting it blind would destroy instructions I cannot read. It costs one wasted call per run and
-nothing else. It gets fixed the next time the prompt is being written anyway, from a copy.
+Step 8 works exactly as specified. A ten-point summary of the whole run landed here unprompted. The
+loop is closed.
+
+Three separate errors stacked into one paragraph, and all three are shapes already in this file:
+
+1. **I reasoned from my own tool schema to a claim about the system.** My `create_trigger` schema lists
+   no `persistent_session_id`, which is true and which I verified. I then treated that as a fact about
+   what *the sweep* could do. A correct observation pointed at the wrong object — the exact failure of
+   4.18 directly above it, committed inside the entry documenting 4.18. **My tool schema describes what
+   I can call. It is not the boundary of what the system can do, and it says nothing about another
+   session's tooling.**
+2. **I stated an absence as a fact.** "There is no supported path" is a claim about the whole system
+   that no single observation can establish — C11 in a new domain. The honest sentence was "I cannot
+   see a parameter for this in my own schema," which is a fact about me.
+3. **I called it "never once fired" off a window that had not closed.** The run finished 12:40; I
+   checked at 13:01; it fired at 13:06. Twenty-six minutes of tail I did not wait for. This is 4.12
+   again — a 36-second test against an hour-long claim — and it is the third time today this shape has
+   appeared (4.18, this, and 4.12 before them).
+
+**The rule: before writing that a capability does not exist, try it, or say only that I could not find
+it.** And the operational note that follows: **the push-back can trail the run's completion by up to
+half an hour**, so a check timed to the run finishing is timed too early. Today the run completed
+12:40 and reported 13:06.
+
+What still stands from what I wrote: the board is the durable record and survives this session ending,
+and early-publish is what got two findings into my hands hours before the run finished. Those were
+right. The part about step 8 was wrong, and it was wrong because I did not operate the control.
+
