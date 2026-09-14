@@ -193,10 +193,10 @@
     <h1>The nightly sweep, <em>and what survived it</em></h1>
     <p class="standfirst">A scheduled agent audits the build every morning at 10:00 UTC. This is where its findings land, checked against the running game rather than taken on trust.</p>
     <dl class="run">
-      <div><dt>Last good run</dt><dd>12 Sep 10:01<span style="color:var(--ink-3)">Z</span></dd></div>
-      <div><dt>13 Sep sched.</dt><dd class="miss">Failed 9 s</dd></div>
-      <div><dt>13 Sep manual</dt><dd class="miss">Hung 8 h</dd></div>
-      <div><dt>Next run</dt><dd>14 Sep 10:00<span style="color:var(--ink-3)">Z</span></dd></div>
+      <div><dt>Live build</dt><dd class="good">2026-09-14b</dd></div>
+      <div><dt>Last good sweep</dt><dd>12 Sep 10:01<span style="color:var(--ink-3)">Z</span></dd></div>
+      <div><dt>13 Sep runs</dt><dd class="miss">Failed / hung</dd></div>
+      <div><dt>Next sweep</dt><dd>14 Sep 10:00<span style="color:var(--ink-3)">Z</span></dd></div>
       <div><dt>Page written by</dt><dd>Hand</dd></div>
     </dl>
   </header>
@@ -299,14 +299,14 @@
 
   <section>
     <h2>Shipped since the sweep</h2>
+    <p class="lede">Six builds, every one verified by fetching the live page rather than trusting the push.</p>
     <div class="ships">
-      <div class="ship"><span class="sha">2026-09-13a</span><span><strong>The world is seeded.</strong> T3 closed — <code>buildIsland</code> runs on a seeded generator and restores the real <code>Math.random</code> in a <code>finally</code>. <code>camera.mjs</code> on hub now reproduces <strong>6 of 8 segments byte-identical</strong> across separate runs, the other two differing by 0.01. It was 3.50→11.31 vs 3.49→11.51 on the same segment yesterday.</span></div>
-      <div class="ship"><span class="sha">2026-09-12c</span><span>Castle-lamp guard from the sweep's own patch — logs once instead of killing the frame loop</span></div>
-      <div class="ship"><span class="sha">3dd909c</span><span>Real hat visible · touch controls off desktop · lantern glow · build <span class="mono">2026-09-12b</span></span></div>
-      <div class="ship"><span class="sha">1492209</span><span>Hat finding withdrawn · sweep claims verified · three dead constants dropped</span></div>
-      <div class="ship"><span class="sha">497f637</span><span>Visual audit and the three tools that produced it</span></div>
-      <div class="ship"><span class="sha">1b850dc</span><span>HANDOFF 4.8 — build time is not load time</span></div>
-      <div class="ship"><span class="sha">ab362f2</span><span>Town's crowd proxies stopped downloading on every island · hub 40 → 16 requests</span></div>
+      <div class="ship"><span class="sha">2026-09-14b</span><span><strong>Windows that read as lived-in.</strong> Every pane was one flat cold blue on every building on every island. Unlit is the right material — a lit window emits — but there was only one of them. Each pane now rolls a deterministic colour from its island's palette: warm lamplight at two strengths, some catching the cold sky, about one in six dark.</span></div>
+      <div class="ship"><span class="sha">2026-09-14a</span><span><strong>She has mass.</strong> Horizontal was never physics — speed was recomputed from the stick every frame and the body teleported to the input angle. Now a velocity: accelerate in, decay out, heading turns at a rate, airborne authority cut to 22% so a running jump commits to its arc. <code>?momentum=0</code> for the old feel.</span></div>
+      <div class="ship"><span class="sha">2026-09-13b</span><span>The mown ring is gone — the grass melts into the ground colour before the geometry goes. Clouds no longer lit olive-green from underneath by the meadow, and their sphere seams went with it.</span></div>
+      <div class="ship"><span class="sha">2026-09-13a</span><span><strong>The world is seeded.</strong> T3 closed. <code>camera.mjs</code> reproduces 6 of 8 segments byte-identical between runs where it used to move 0.9 u on segments nothing had touched.</span></div>
+      <div class="ship"><span class="sha">2026-09-12c</span><span>The sweep's castle-lamp guard — logs once instead of killing the frame loop.</span></div>
+      <div class="ship"><span class="sha">2026-09-12b</span><span>The real hat, finally visible. Touch controls off desktop. Lantern glow.</span></div>
     </div>
   </section>
 
@@ -314,19 +314,14 @@
     <h2>Open, and worth your call</h2>
     <div class="open">
       <article>
-        <span class="tag">Blocks lighting work</span>
-        <h3>Half the scene is unlit</h3>
-        <p>Sanity runs <strong>341 MeshBasicMaterial against 369 MeshStandard</strong>. The night rig is nine good lights and it reaches none of those 341. Tuning lights cannot change what half the island never reads.</p>
+        <span class="tag">Corrected — not a blocker</span>
+        <h3>"Half the scene is unlit" was wrong</h3>
+        <p>The count was right; the conclusion was not. Of 374 unlit materials, <strong>270 are translucent FX, 52 are emitters, 34 are sky</strong> — all correctly unlit. The real number is <strong>18 opaque solids</strong>. Nothing about lighting is capped.</p>
       </article>
       <article>
-        <span class="tag">Visible every frame</span>
-        <h3>A mown ring follows her</h3>
-        <p>Grass clumps collapse to zero past 44 u and nothing takes over, so there is a bare circle around her in every shot on every island.</p>
-      </article>
-      <article>
-        <span class="tag">Visible every frame</span>
-        <h3>Clouds have green bellies</h3>
-        <p>The underside takes the hemisphere light's ground colour at full strength, so every cloud is lit olive against an orange sky, with hard creases where its spheres intersect.</p>
+        <span class="tag">Next, when you push on it</span>
+        <h3>Density is the lush lever</h3>
+        <p>Layered ground cover under shrubs under canopy under drifting particulate. Those games look lush from how <em>many</em> things are in frame, not from any one asset. Then surface detail and normal maps, then shadow quality.</p>
       </article>
       <article>
         <span class="tag">Five islands, one look</span>
