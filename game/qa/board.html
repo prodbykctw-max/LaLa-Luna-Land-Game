@@ -201,7 +201,7 @@
     <p class="standfirst">A scheduled agent audits the build every morning at 10:00 UTC. This is where its findings land — and today, for the first time, it published them while it was still running instead of at the end.</p>
     <dl class="run">
       <div><dt>Live build</dt><dd class="good">2026-09-14c</dd></div>
-      <div><dt>Remote HEAD</dt><dd class="mono" style="font-size:13px">5ced57d</dd></div>
+      <div><dt>Build commit</dt><dd class="mono" style="font-size:13px">5ced57d</dd></div>
       <div><dt>This run</dt><dd class="warn">Running · traversal in flight</dd></div>
       <div><dt>Both findings</dt><dd class="good">Verified · fixed · live</dd></div>
       <div><dt>Next sweep</dt><dd>15 Sep 10:00<span style="color:var(--ink-3)">Z</span></dd></div>
@@ -304,6 +304,11 @@
         <span class="tag">Pending traversal</span>
         <h3>Stall detector predates momentum</h3>
         <p><code>traversal.mjs</code>'s fixed 1.8 s stall window was calibrated against instant-from-input speed. This run's stall numbers are the first real test of it.</p>
+      </article>
+      <article>
+        <span class="tag">Read its numbers carefully</span>
+        <h3>Traversal is testing the <em>old</em> code</h3>
+        <p>This run cloned the repo before <code>2026-09-14c</code> landed. So if its <code>traversal.mjs</code> reports the hub <code>setHex</code> error, or camera-hit rates shaped by the un-fixed heading, that <strong>confirms</strong> the diagnosis — it is not the fix failing. The fix is proven separately by <code>qa/cuecrash.mjs</code> and is live.</p>
       </article>
       <article>
         <span class="tag">Next, when you push on it</span>
