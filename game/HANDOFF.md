@@ -1103,3 +1103,58 @@ arrived immediately. Grep for what reads the thing you just made lag.
 explicitly — balls, crates); ragdoll on a bad landing (the rig has 22 bones, a constrained chain is
 feasible); vehicle/boat handling. Do NOT reach for a general physics engine — cannon-es or ammo would
 put a whole world solver in the frame budget for a handful of props. Hand-rolled, budgeted, per-feature.
+
+## 4.17 "Half the scene is unlit" was a real number and a wrong conclusion
+
+2026-09-14. I put this at the top of the visual audit's Tier 2 and repeated it to him three times:
+**341 MeshBasicMaterial against 369 MeshStandard on Sanity — half the island outside the lighting
+rig, and the ceiling on any future lighting work.** The count was right. The conclusion was wrong, and
+`qa/matcensus.mjs` (new) shows why the moment it asks what those materials are ON:
+
+| what they are | count | should they be lit? |
+|---|---|---|
+| translucent FX — jelly bells, ripple rings, glitter, foam, guide arrows | 270 | **no** |
+| small emissive spheres — lanterns, orbs, star cores | 52 | **no**, they are emitters |
+| sky, cloud, moon | 34 | **no** (I made the clouds unlit deliberately in 4.14) |
+| opaque solids | **18** | yes |
+
+So 88% of the "unlit half" is things that must be unlit. The real number is **eighteen objects**, which
+is an afternoon, not a structural blocker. I had counted a category and never opened it.
+
+**This is the third time in this project, and always the same shape** — 4.9 (hat measured against a
+real-world head), 4.11 (measuring the placeholder), now this. A correct figure, pointed at the wrong
+object, presented with more confidence *because* it had a number attached.
+
+**Rule — a census is not a finding until you have opened the buckets.** "N things are X" earns no
+conclusion until you can say what those N things ARE and what each kind should be. Group by kind and
+state the verdict per kind, in the same pass that produces the count. A total is the question, never
+the answer.
+
+**Rule — the more load-bearing a claim, the earlier it should have been opened.** This one was Tier 2
+item #1 and was repeated in three separate summaries, which is exactly the profile of a claim that
+should have been the FIRST one re-checked, not the last.
+
+**And the windows, which the census did find.** Every window pane was one flat `0xBFE6F0` — the same
+cold blue on every building on every island, so at night they read as holes punched in the wall rather
+than the one thing in a townscape that should be alight. Unlit is the *right* material: a lit window
+is emissive, it gives light rather than taking it. What was wrong is that there was only one of them.
+A street reads as lived-in because the windows disagree — so each pane now rolls a deterministic
+per-window colour from the island's own palette: mostly warm lamplight at two strengths, some catching
+the cold sky, and about one in six dark because nobody is home.
+
+**What actually stands between this and the look he wants** (his words: lush, real 3D, an epic
+single-player Asian game — Where Winds Meet is already the named reference in his memory). It is not
+the material census. In order of how much each would move the picture:
+  1. **Density and layering.** Those games are lush because of how MANY things are in frame — ground
+     cover under mid-shrubs under canopy under drifting particulate — not because any one asset is
+     detailed. This is the biggest lever and it is a frame-budget problem, which is a solved kind of
+     problem here (static batching and crowd LOD already took Town from 13 to 26-29 fps).
+  2. **Surface detail.** `TEX.meadow` is a canvas mottle and there are no normal maps anywhere, so
+     every surface is matte and flat however good the lighting gets.
+  3. **Shadow quality.** No contact shadows, no softening with distance; 29 large canopies per island
+     are outside the shadow system entirely (visual audit #16).
+  4. **Silhouette variety.** Straight coastlines, one grass clump geometry, repeated set pieces.
+And the constraint that does not move: this is one HTML file on GitHub Pages, playtested on mobile
+Safari and an Intel UHD 620 with no discrete GPU. Where Winds Meet is UE5 with Nanite and Lumen and
+tens of gigabytes of assets on a dedicated card. The route to "beautiful" here is art direction and
+density, never fidelity per asset — and that route is genuinely open.

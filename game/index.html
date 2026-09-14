@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
-<title>Lala Luna Land — free-roam island adventure game for artist Lala Luna</title>
+<title>Lala Luna Land</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -219,21 +219,6 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 #toast .t1{font-family:"Instrument Serif",serif;font-style:italic;font-size:30px;color:var(--moon)}
 #toast .t2{font-size:11px;letter-spacing:.2em;text-transform:uppercase;opacity:.6;margin-top:8px}
 </style>
-<!-- ai-seo:v1 -->
-<meta name="description" content="Lala Luna Land is a free browser-based 3D island-hopping adventure built for singer Lala Luna, the &#x27;Queen of Whimsy.&#x27; Sail between islands, find the four scattered letters that spell her name, collect notes, moons and outfits, and reach the fifth island for the final song. Playable on phone and desktop, no download or sign-up." />
-<meta name="keywords" content="Lala Luna Land, Lala Luna game, Lala Luna, free browser game, 3D island adventure, Three.js game, artist game, music game, RARE Agency, PRODBYKCTW" />
-<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
-<link rel="canonical" href="https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/" />
-<link rel="alternate" type="text/plain" href="https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/llms.txt" title="llms.txt" />
-<meta property="og:type" content="website" />
-<meta property="og:site_name" content="Lala Luna Land" />
-<meta property="og:url" content="https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/" />
-<meta property="og:title" content="Lala Luna Land — free-roam island adventure game for artist Lala Luna" />
-<meta property="og:description" content="Lala Luna Land is a free browser-based 3D island-hopping adventure built for singer Lala Luna, the &#x27;Queen of Whimsy.&#x27; Sail between islands, find the four scattered letters that spell her name, collect notes, moons and outfits, and reach the fifth island for the final song. Playable on phone and desktop, no download or sign-up." />
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="Lala Luna Land — free-roam island adventure game for artist Lala Luna" />
-<meta name="twitter:description" content="Lala Luna Land is a free browser-based 3D island-hopping adventure built for singer Lala Luna, the &#x27;Queen of Whimsy.&#x27; Sail between islands, find the four scattered letters that spell her name, collect notes, moons and outfits, and reach the fifth island for the final song. Playable on phone and desktop, no download or sign-up." />
-<script type="application/ld+json">[{"@context": "https://schema.org", "@type": "VideoGame", "name": "Lala Luna Land", "url": "https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/", "description": "Lala Luna Land is a free browser-based 3D island-hopping adventure built for singer Lala Luna, the 'Queen of Whimsy.' Sail between islands, find the four scattered letters that spell her name, collect notes, moons and outfits, and reach the fifth island for the final song. Playable on phone and desktop, no download or sign-up.", "genre": "Adventure / exploration", "gamePlatform": "Web browser", "applicationCategory": "Game", "operatingSystem": "Any", "playMode": "SinglePlayer", "isAccessibleForFree": true, "author": {"@type": "Organization", "name": "PRODBYKCTW LLC", "url": "https://www.instagram.com/prodbykctw/", "founder": {"@type": "Person", "name": "Melvin D. Brown III"}}, "about": {"@type": "MusicGroup", "name": "Lala Luna"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}, {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What is Lala Luna Land?", "acceptedAnswer": {"@type": "Answer", "text": "A free browser-based 3D adventure game built for the artist Lala Luna. You sail between islands, find the letters of her name, and unlock the fifth island's final song."}}, {"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. It runs in the browser on phones and desktops with no download, sign-up or payment."}}, {"@type": "Question", "name": "Who made it?", "acceptedAnswer": {"@type": "Answer", "text": "It was developed by PRODBYKCTW / RARƎ AGENCY (Melvin D. Brown III, @prodbyKCTW), an Atlanta-area independent developer building custom games and apps for artists."}}, {"@type": "Question", "name": "How do I play?", "acceptedAnswer": {"@type": "Answer", "text": "Space to jump (hold to glide), E to interact, Q/E to look; on touch use the on-screen pad, the Interact button and the camera recenter button."}}]}]</script>
 </head>
 <body class="walk">
 
@@ -360,7 +345,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-14a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-14b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -4683,8 +4668,27 @@ function buildIslandBody(cfg){
       const awn = inked(new THREE.BoxGeometry(w-1.0,.22,3.0), i%2 ? 0xFFFFFF : 0xF08A5D, 1.2); awn.position.set(x, height(x,z)+4.6, z+4.9); awn.rotation.x = .22; scene.add(awn);
       const door = new THREE.Mesh(new THREE.PlaneGeometry(2.0,3.6), toon(0x5E4630)); door.position.set(x-2.0, height(x,z)+1.8, z+4.02); scene.add(door);   /* a 2.05 m doorway */
       const step = inked(new THREE.BoxGeometry(2.8,.3,1.2), BONE, 1.0); step.position.set(x-2.0, height(x,z)+.15, z+4.6); scene.add(step);
-      for(let k=0;k<2+(i%2);k++){ const win = new THREE.Mesh(new THREE.PlaneGeometry(1.8,2.0), new THREE.MeshBasicMaterial({color:0xBFE6F0})); win.position.set(x+.6+k*2.4, height(x,z)+2.6, z+4.02); scene.add(win); }
-      for(let f=1; f*4.2+2.4 < h; f++) for(let k=0;k<3;k++){ const w2 = new THREE.Mesh(new THREE.PlaneGeometry(1.7,1.9), new THREE.MeshBasicMaterial({color:0xBFE6F0})); w2.position.set(x-3.0+k*3.0, height(x,z)+f*4.2+2.4, z+4.02); scene.add(w2); } }
+      /* ===================  THE WINDOWS WERE HOLES  ===================
+         qa/vaudit.mjs, 2026-09-12: every window was one flat 0xBFE6F0 pane — the same cold blue on
+         every building on every island, at roughly sand albedo, so at night they read as holes punched
+         in the wall rather than the one thing in a townscape that should be alight.
+         Unlit is the RIGHT material here: a lit window is emissive, it does not take light, it gives it.
+         What was wrong is that there was only one of them. A street reads as lived-in because the
+         windows DISAGREE — most warm, a few cold, some dark because nobody is home — so each pane now
+         draws from the island's own sky palette with a deterministic per-window roll (seeded, so the
+         town looks the same every load). */
+      const paneOf = (seed) => {
+        const r = ((Math.sin(seed*127.1)*43758.5453) % 1 + 1) % 1;
+        if(r < .18) return 0x2A2F42;                       /* dark — nobody home */
+        if(r < .34) return P.skyBot || 0xBFE6F0;           /* cold, catching the sky */
+        return r < .74 ? 0xFFD9A0 : 0xFFC46B;              /* warm lamplight, two strengths */
+      };
+      const pane = (w, hh, px, py, pz, seed) => {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, hh), new THREE.MeshBasicMaterial({color:paneOf(seed)}));
+        m.position.set(px, py, pz); scene.add(m); return m;
+      };
+      for(let k=0;k<2+(i%2);k++) pane(1.8, 2.0, x+.6+k*2.4, height(x,z)+2.6, z+4.02, i*31+k);
+      for(let f=1; f*4.2+2.4 < h; f++) for(let k=0;k<3;k++) pane(1.7, 1.9, x-3.0+k*3.0, height(x,z)+f*4.2+2.4, z+4.02, i*97+f*13+k); }
     /* the LUNA-tic crowd on the beach and round the square — twelve different fans, each appearing twice,
        shuffled so the same face never stands next to itself */
     const order = []; for(let k=0;k<3;k++){ const ids = FANS.map((_,i) => i+1); for(let j=ids.length-1;j>0;j--){ const r = Math.floor(Math.random()*(j+1)); [ids[j],ids[r]] = [ids[r],ids[j]]; } order.push(...ids); }
@@ -6124,6 +6128,5 @@ load().then(() => {
 });
 })();
 </script>
-<noscript><section id="about"><h2>Lala Luna Land</h2><p>Lala Luna Land is a free browser-based 3D island-hopping adventure built for singer Lala Luna, the &#x27;Queen of Whimsy.&#x27; Sail between islands, find the four scattered letters that spell her name, collect notes, moons and outfits, and reach the fifth island for the final song. Playable on phone and desktop, no download or sign-up.</p><h3>FAQ</h3><p><strong>What is Lala Luna Land?</strong><br/>A free browser-based 3D adventure game built for the artist Lala Luna. You sail between islands, find the letters of her name, and unlock the fifth island&#x27;s final song.</p><p><strong>Is it free?</strong><br/>Yes. It runs in the browser on phones and desktops with no download, sign-up or payment.</p><p><strong>Who made it?</strong><br/>It was developed by PRODBYKCTW / RARƎ AGENCY (Melvin D. Brown III, @prodbyKCTW), an Atlanta-area independent developer building custom games and apps for artists.</p><p><strong>How do I play?</strong><br/>Space to jump (hold to glide), E to interact, Q/E to look; on touch use the on-screen pad, the Interact button and the camera recenter button.</p><p><a href="https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/llms.txt">llms.txt</a></p></section></noscript>
 </body>
 </html>
