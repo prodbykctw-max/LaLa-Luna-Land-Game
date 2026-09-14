@@ -1048,3 +1048,58 @@ true push stream, and a `command:` source turns any stdout line into a notificat
 things this container can observe, so it is no use for a sweep running in another container. And
 `CronCreate`/`CronList` are an in-process scheduler that dies with the session — `CronList` currently
 reports no jobs, which is correct; scheduled work belongs in `create_trigger`, never there.
+
+## 4.16 GTA physics, honestly scoped — and the regression the seeded world caught
+
+2026-09-14. He asked for "physics of GTA". What that actually means, split into what is reachable
+here and what is not.
+
+**Not reachable: Euphoria.** GTA IV's famous feel is NaturalMotion's Euphoria — a per-character
+active ragdoll that braces, staggers, reaches for walls and catches itself, running a real solver per
+NPC per frame. It is proprietary middleware with a console CPU budget behind it. In a single-file
+three.js r128 page targeting an Intel UHD 620 that already fought to hold 26-29 fps in Town, it is not
+a stretch goal, it is a different product.
+
+**What people actually feel as "GTA physics" is mostly MASS, and that was free.** Her vertical motion
+was already real — `vy` integrates `GRAV` and the jump is a launch velocity. Horizontal was not
+physics at all:
+
+    curSpeed = SPEED*mag*boost*wade;     // recomputed from the stick every frame
+    W.heading = ang;                     // body teleports to the input angle
+
+So she hit full speed on frame one, stopped dead the frame a key came up, could reverse instantly, and
+a running jump lost its run the moment you let go of the key. Now horizontal is a velocity
+(`W.vx/W.vz`): input sets a target, she accelerates toward it (ACCEL 34) and decays toward rest
+(DECEL 46), heading turns at a rate (TURN 7.4) instead of snapping, and airborne authority is cut to
+AIR 0.22 — which is what makes a running jump commit to its arc. `curSpeed` is now the OUTPUT of the
+velocity, so the walk/run blend, stride timeScale, `W.speedNow` and the grass push all keep working
+untouched. `?momentum=0` restores the old instant model for comparison.
+
+**The regression, and why it matters that the world is seeded.** First measurement after the change,
+`qa/camera.mjs` on hub: yaw drift **-104.2 deg** on strafe-left and **+129.7** on strafe-right where
+both had been 0, and distance covered collapsing 37.3 u -> **8.5 u**. She was running in a circle.
+
+Cause: the always-behind camera gates on `away = max(0, cos(heading - camYaw))` and only engages above
+0.25 — so a pure strafe, at 90 deg, holds it shut. The comment above it already named this trap
+("the two cases that used to feed back into the input angle and spiral the view"). It was correct for
+an instantaneous heading. With momentum the heading LAGS, and on its way from forward to sideways it
+sweeps through the small angles the gate opens on; the camera chases, which moves the input basis,
+which moves the target. Fixed by gating on the STICK instead of the body — `W.stickAway = max(0, -iz/|input|)`
+— which is what "away from the camera" was always supposed to mean and which cannot lag.
+
+After: yaw drift **0 on every segment**, pops unchanged or better (W-through-colliders 4 -> 3),
+distance 29-33 u against 37 — the ~10% is the acceleration ramp inside a fixed-length segment, which
+is the mass doing its job. `qa/downhill.mjs` still 0 airborne frames on green and gr.
+
+**This is what seeding bought.** Two days ago this comparison was impossible — the camera suite moved
+0.9 u between runs on segments nothing had touched, so a 104 deg drift would have been arguable. On a
+seeded world the before/after is a clean read and the regression was undeniable inside one run.
+
+**Rule — a gate tuned against an instantaneous value breaks when you add lag to it.** Adding inertia
+anywhere means auditing every threshold, gate and comparison downstream that assumed the old value
+arrived immediately. Grep for what reads the thing you just made lag.
+
+**Still open on the GTA thread, in value order.** Kickable rigid-body props (he asked for this
+explicitly — balls, crates); ragdoll on a bad landing (the rig has 22 bones, a constrained chain is
+feasible); vehicle/boat handling. Do NOT reach for a general physics engine — cannon-es or ammo would
+put a whole world solver in the frame budget for a handful of props. Hand-rolled, budgeted, per-feature.

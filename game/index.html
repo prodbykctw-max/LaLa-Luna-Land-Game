@@ -360,7 +360,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-13b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-14a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -4959,7 +4959,7 @@ function buildIslandBody(cfg){
   I.W = makeLala(); scene.add(I.W.group);
   I.W.shadow = groundShadow(I.W.group, .55);
   I.W.x = cfg.spawn[0]; I.W.z = cfg.spawn[1]; I.W.y = height(I.W.x, I.W.z);
-  I.W.vy = 0; I.W.grounded = true; I.W.gliding = false; I.W.heading = Math.PI; I.W.camYaw = Math.PI; I.W.active = false; I.W.target = null;
+  I.W.vy = 0; I.W.vx = 0; I.W.vz = 0; I.W.grounded = true; I.W.gliding = false; I.W.heading = Math.PI; I.W.camYaw = Math.PI; I.W.active = false; I.W.target = null;
 
   /* bake every static inked prop into two big meshes (toon + ink) so hundreds of draw calls become two —
      shadow pass, ink pass and main pass all shrink. Anything that moves or changes stays a separate object. */
@@ -5019,19 +5019,72 @@ function walkerUpdate(I, dt, t){
   if(keys.KeyA||keys.ArrowLeft) ix-=1; if(keys.KeyD||keys.ArrowRight) ix+=1;
   ix += joy.x; iz += joy.y;
   const mag = Math.min(1, Math.hypot(ix,iz));
+  /* ===================  SHE HAD NO MASS  ===================
+     Vertical motion was already real - vy integrates GRAV and the jump is a launch velocity. HORIZONTAL
+     was not physics at all: curSpeed was recomputed from the stick every frame, so she hit full speed on
+     frame one, stopped dead the frame a key came up, and could reverse direction instantly. Heading
+     snapped straight to the input angle. That is the opposite of what makes GTA feel like GTA - the thing
+     you actually feel there is weight: it takes a moment to get going, you keep going after you let off,
+     you cannot turn on a pin at speed, and a jump CARRIES the run that set it up.
+
+     So horizontal is a velocity now. Input sets a target; she accelerates toward it and decays toward
+     rest, and her heading turns at a rate instead of teleporting. Airborne authority is cut hard (AIR),
+     which is what stops the mid-air direction-change that reads as floaty and makes a running jump
+     commit to its arc.
+
+     curSpeed stays the OUTPUT of that velocity rather than the input to it, so everything downstream -
+     the walk/run blend, stride timeScale, W.speedNow for the shore birds, the grass push - keeps working
+     untouched. ?momentum=0 restores the old instant model for comparison. */
+  const MOM   = (() => { const v = parseFloat(QS.get("momentum")); return isNaN(v) ? 1 : Math.max(0, Math.min(1, v)); })();
+  const ACCEL = 34, DECEL = 46, AIR = 0.22, TURN = 7.4;
+  if(W.vx == null) W.vx = 0; if(W.vz == null) W.vz = 0;
   let curSpeed = 0;
-  if(mag > .08){
-    const ang = Math.atan2(-ix,-iz) + W.camYaw, boost = W.gliding ? 1.35 : (W.mount ? RIDE_MUL : 1);
-    curSpeed = SPEED*mag*boost*(1 - .55*Math.min(1, (W.depth||0)/1.0));      /* water drags at her legs: waist-deep is about half speed */
-    const mx = Math.sin(ang)*curSpeed*dt, mz = Math.cos(ang)*curSpeed*dt;
-    W.heading = ang;
+  {
+    const boost = W.gliding ? 1.35 : (W.mount ? RIDE_MUL : 1);
+    const wade  = 1 - .55*Math.min(1, (W.depth||0)/1.0);     /* water drags at her legs: waist-deep is about half speed */
+    const top   = SPEED*boost*wade;
+    let tvx = 0, tvz = 0, ang = W.heading;
+    if(mag > .08){ ang = Math.atan2(-ix,-iz) + W.camYaw; tvx = Math.sin(ang)*top*mag; tvz = Math.cos(ang)*top*mag; }
+    /* How far "away from the camera" the STICK is pointing: 1 straight forward, 0 at a strafe, 0 walking
+       back at the camera. The always-behind camera gates on this. It used to gate on her HEADING, which
+       was identical while heading snapped to the stick — but heading now lags, and during the lag it
+       sweeps through the small angles the gate opens on, so the camera chased her, which moved the input
+       basis, which moved the target: qa/camera.mjs caught it as -104 deg of yaw drift on a strafe and her
+       distance covered collapsing 37.3 -> 8.5 u. She was running in a circle. The stick does not lag. */
+    { const h = Math.hypot(ix, iz); W.stickAway = h > .08 ? Math.max(0, -iz / h) : 0; }
+    if(MOM <= 0){                                            /* the old model, for A/B */
+      W.vx = tvx; W.vz = tvz; if(mag > .08) W.heading = ang;
+    } else {
+      const grip = (W.grounded ? 1 : AIR) * MOM + (1 - MOM);
+      const rate = (mag > .08 ? ACCEL : DECEL) * grip;
+      const k = Math.min(1, rate*dt / Math.max(0.001, top));  /* normalised so the feel holds at any top speed */
+      W.vx += (tvx - W.vx) * k;
+      W.vz += (tvz - W.vz) * k;
+      if(Math.abs(W.vx) < .02 && Math.abs(W.vz) < .02 && mag <= .08){ W.vx = 0; W.vz = 0; }
+      /* she faces where she is GOING, not where the stick points, and gets there at a turn rate */
+      const sp = Math.hypot(W.vx, W.vz);
+      if(sp > .25){
+        const want = Math.atan2(W.vx, W.vz);
+        let d = want - W.heading; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2;
+        W.heading += d * Math.min(1, dt * TURN * (W.grounded ? 1 : AIR*2));
+      }
+    }
+    curSpeed = Math.hypot(W.vx, W.vz);
+  }
+  if(curSpeed > .02){
+    const mx = W.vx*dt, mz = W.vz*dt;
     const hNow = I.height(W.x,W.z);
     const tryMove = (nx,nz) => {
       if(!canStand(I,nx,nz)) return false;
       if(W.grounded && I.height(nx,nz) - hNow > 2.2) return false;      /* she steps up a low ledge instead of being stopped by it */
       W.x = nx; W.z = nz; return true;
     };
-    if(!tryMove(W.x+mx, W.z+mz)) { if(!tryMove(W.x+mx, W.z)) tryMove(W.x, W.z+mz); }
+    /* blocked on an axis means the velocity on that axis is spent, not carried into the next frame -
+       otherwise she hugs a wall building speed she cannot use and shoots off the moment it ends */
+    if(!tryMove(W.x+mx, W.z+mz)){
+      const okX = tryMove(W.x+mx, W.z); if(!okX) W.vx = 0;
+      const okZ = tryMove(W.x, W.z+mz); if(!okZ) W.vz = 0;
+    }
     /* solid scenery: slide around trunks, rocks and towers instead of walking through them */
     if(I.colliders) for(const c of I.colliders){
       if(c.camOnly) continue;
@@ -5074,8 +5127,10 @@ function walkerUpdate(I, dt, t){
 
   let da = W.heading - W.group.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2;
   W.group.rotation.y += da*Math.min(1, dt*15);
-  const moving = mag > .08 && W.grounded;
-  W.speedNow = mag > .08 ? curSpeed : 0;                     /* what the shore birds judge her by */
+  /* "moving" is now about the body, not the stick - she is still moving for a beat after the key is up,
+     and the walk cycle has to keep playing through it or her feet skate to a halt */
+  const moving = curSpeed > .35 && W.grounded;
+  W.speedNow = curSpeed > .1 ? curSpeed : 0;                 /* what the shore birds judge her by */
   /* Water. Depth is the real sea surface (same wave as the shader) over the ground under her. Every
      stride in it throws a ring and a handful of drops sized to how fast and how deep; landing in it from
      a jump throws a proper splash; standing still in it, the swash rings around her legs. */
@@ -5172,8 +5227,8 @@ function updateCamera(I, dt, speed){
        always see where you are going. The strength is cos(angle between her heading and the camera's back
        vector), so it is FULL when running away, zero at 90 deg (strafe) and zero at 180 deg (walking at the
        camera) — the two cases that used to feed back into the input angle and spiral the view. */
-    let d = W.heading - W.camYaw; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2;
-    const away = Math.max(0, Math.cos(d));
+    const away = W.stickAway != null ? W.stickAway
+               : (() => { let d = W.heading - W.camYaw; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2; return Math.max(0, Math.cos(d)); })();
     if(away > .25) W.camYaw = lerpAngle(W.camYaw, W.heading, Math.min(1, dt*3.4*away*(speed/SPEED))); }
   while(W.camYaw > Math.PI) W.camYaw -= Math.PI*2; while(W.camYaw < -Math.PI) W.camYaw += Math.PI*2;
   /* the look point trails her a touch so steps and jumps don't jolt the frame */
@@ -5681,12 +5736,12 @@ function interact(){
         const nx = W.x + Math.cos(W.heading+a)*2.2, nz = W.z + Math.sin(W.heading+a)*2.2;
         if(canStand(I,nx,nz)){ W.x = nx; W.z = nz; break; }
       }
-      W.y = I.height(W.x,W.z); W.vy = 0; W.grounded = true;
+      W.y = I.height(W.x,W.z); W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true;
       if(W.seatBones) W.model && W.model.traverse(o => { if(o.isBone && o.userData.rest) o.quaternion.copy(o.userData.rest); });
       W.seated = false; toast("Down", "");
     } else {
       const h = t.obj; W.mount = h; h.userData.ridden = true;
-      W.x = h.position.x; W.z = h.position.z; W.vy = 0; W.grounded = true; W.seated = true;
+      W.x = h.position.x; W.z = h.position.z; W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true; W.seated = true;
       auChime([392,523,659]); toast("Riding", "Interact again to get down");
     }
   } else if(t.kind === "dock"){
@@ -5872,7 +5927,7 @@ async function goIsland(I, skipFade){
   if(!skipFade) await toBlack();
   CUR = I; setMode("island"); preloadRigs(I);
   const W = I.W, cfg = I.cfg;
-  W.x = cfg.spawn[0]; W.z = cfg.spawn[1]; W.y = I.height(W.x,W.z); W.vy = 0; W.grounded = true; W.heading = Math.PI; W.camYaw = Math.PI; W.active = false;
+  W.x = cfg.spawn[0]; W.z = cfg.spawn[1]; W.y = I.height(W.x,W.z); W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true; W.heading = Math.PI; W.camYaw = Math.PI; W.active = false;
   W.camPitch = CAM.pitch; W.lookHold = 0; W.recenter = false; camRig(I, true); W.camDistCur = W.camDist; placeCamera(I, 1);
   applyOutfit(W, outfitFor(cfg), wearOf(cfg));
   I.moons.forEach(m => m.visible = !G.moonsTaken[m.userData.id]);
@@ -5890,7 +5945,7 @@ async function goIsland(I, skipFade){
 }
 async function goKeep(){
   await toBlack(); CUR = keepI; setMode("keep"); ovNone();
-  KW.x = 0; KW.z = 16; KW.y = 0; KW.vy = 0; KW.grounded = true; KW.heading = Math.PI; KW.camYaw = Math.PI; KW.active = true;
+  KW.x = 0; KW.z = 16; KW.y = 0; KW.vy = 0; KW.vx = 0; KW.vz = 0; KW.grounded = true; KW.heading = Math.PI; KW.camYaw = Math.PI; KW.active = true;
   applyOutfit(KW, "town"); popped = 0; bubbles.forEach(b => { b.userData.popped = false; b.visible = false; }); keep.userData.fin.visible = false; finaleDone = false;
   bookRead = false; bookT = 0;
   bookG.visible = true; bookG.userData.fifth.visible = false;
@@ -5952,7 +6007,7 @@ function renderTravel(){
       ovNone(); await toBlack();
       const W = I.W;
       if(W.mount){ W.mount.userData.ridden = false; W.mount = null; W.seated = false; }
-      W.x = q.x; W.z = q.z; W.y = I.height(q.x, q.z); W.vy = 0; W.grounded = true;
+      W.x = q.x; W.z = q.z; W.y = I.height(q.x, q.z); W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true;
       camRig(I, true); placeCamera(I, 1);
       if(I.fx && I.fx.grass && I.fx.grass.follow) for(let k=0;k<10;k++) I.fx.grass.follow(W.x, W.z);
       await fromBlack(); W.active = true;
