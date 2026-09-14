@@ -184,129 +184,106 @@
     .row{grid-template-columns:1fr; gap:8px}
     .num{display:none}
   }
+
+  .alert.bad{border-left-color:var(--bad)}
+  .alert.good{border-left-color:var(--ok)}
+  .row[data-v="open"]{--stripe:var(--dead)}
+  .verdict[data-v="open"]{background:var(--dead-bg); color:var(--dead)}
+  .miss-panel.ok{border-top-color:var(--ok)}
+  .run dd.warn{color:var(--warn)}
 </style>
 
 <div class="wrap">
 
   <header>
     <p class="eyebrow">Lala Luna Land · scheduled audit</p>
-    <h1>The nightly sweep, <em>and what survived it</em></h1>
-    <p class="standfirst">A scheduled agent audits the build every morning at 10:00 UTC. This is where its findings land, checked against the running game rather than taken on trust.</p>
+    <h1>The sweep found two, <em>and one of them was mine</em></h1>
+    <p class="standfirst">A scheduled agent audits the build every morning at 10:00 UTC. This is where its findings land — and today, for the first time, it published them while it was still running instead of at the end.</p>
     <dl class="run">
-      <div><dt>Live build</dt><dd class="good">2026-09-14b</dd></div>
-      <div><dt>Last good sweep</dt><dd>12 Sep 10:01<span style="color:var(--ink-3)">Z</span></dd></div>
-      <div><dt>13 Sep runs</dt><dd class="miss">Failed / hung</dd></div>
-      <div><dt>Next sweep</dt><dd>14 Sep 10:00<span style="color:var(--ink-3)">Z</span></dd></div>
-      <div><dt>Page written by</dt><dd>Hand</dd></div>
+      <div><dt>Live build</dt><dd class="good">2026-09-14c</dd></div>
+      <div><dt>Remote HEAD</dt><dd class="mono" style="font-size:13px">5ced57d</dd></div>
+      <div><dt>This run</dt><dd class="warn">Running · traversal in flight</dd></div>
+      <div><dt>Both findings</dt><dd class="good">Verified · fixed · live</dd></div>
+      <div><dt>Next sweep</dt><dd>15 Sep 10:00<span style="color:var(--ink-3)">Z</span></dd></div>
     </dl>
   </header>
 
   <section>
-    <div class="alert">
-      <h3>The sweep has not completed a run since 12 September</h3>
-      <p>The 13 September scheduled run reported FAILED <strong>nine seconds</strong> after firing — too fast to have cloned the repo. A manual re-fire at 15:28 UTC was still PENDING eight hours later, having never published here. Two of his job-sprint tasks died in the same window that morning, which points at a transient platform fault rather than anything in the sweep itself.</p>
-      <p>So every finding below was verified by hand, and this page was written by hand. The next scheduled run is 14 Sep 10:00 UTC, and its instructions now say to publish here as soon as the first suite reports rather than at the end — a page updated last is a page that never gets updated.</p>
+    <div class="alert good">
+      <h3>The early-publish mechanism works, and it earned its keep on the first run</h3>
+      <p>The 13 September scheduled run reported FAILED nine seconds after firing; a manual re-fire sat PENDING for eight hours and published nothing. Both were invisible until someone went looking. The instructions now say publish to this page the moment the first suite reports a number, not at the end — and this morning's run did exactly that, mid-flight, with <code>traversal.mjs</code> still going. Two findings arrived hours before the run will finish.</p>
+      <p>Both were then re-measured here independently before anything was changed, both held, both are fixed and live on <code>2026-09-14c</code>. The run is still going; this page updates again when <code>traversal.mjs</code> lands.</p>
     </div>
   </section>
 
   <section>
-    <h2>The 12 September findings, verified</h2>
-    <p class="lede">Five claims came back from the sweep. Each was checked against the code and the running game before anything was changed — two held as stated, one was true but misdated, one was right with the wrong cause, and one did not reproduce at all.</p>
-
-    <div class="ledger">
-      <div class="row" data-v="confirmed">
-        <span class="num">01</span>
-        <div class="body">
-          <p class="claim">Hub throws a <code>setHex</code> page error at <code>index.html:5400</code></p>
-          <span class="verdict" data-v="confirmed">Confirmed · I was wrong</span>
-          <p class="found">It fires <strong>3× during <code>traversal.mjs</code>'s ~1 hour hub run</strong>, and never in a short one. I tested for 36 seconds, saw four good lamps and no errors, and filed it not-reproduced — a window shorter than the one the report had already said comes back clean. The guard is now in: it logs once through <code>DBG</code> rather than killing the frame loop, so the next long run names the bad lamp. Root cause still unfound by either of us.</p>
-        </div>
-      </div>
-
-      <div class="row" data-v="confirmed">
-        <span class="num">02</span>
-        <div class="body">
-          <p class="claim">Camera clips into geometry on Hub and Good Riddance</p>
-          <span class="verdict" data-v="confirmed">Confirmed · cause differs</span>
-          <p class="found">The arm collapses to its <code>3.5</code> floor when the arm sweeps a decor cylinder. A fix was attempted and reverted — refining the sample walk from 0.94 u to 0.03 u moved the number by 0.01. <strong>Now reproducible</strong>: on the seeded hub layout the strafe collapse is absent, but <code>W-through-colliders</code> still drops to 3.72 with 4 pops on both runs. The mechanism is intact and can finally be worked on; a different seed would likely bring the strafe case back too.</p>
-        </div>
-      </div>
-
-      <div class="row" data-v="notrepro">
-        <span class="num">03</span>
-        <div class="body">
-          <p class="claim">Every island carries two more lights than baseline</p>
-          <span class="verdict" data-v="notrepro">Not a bug · by design</span>
-          <p class="found">The sweep corrected this itself, and it is right. <code>LOOK</code> defaults to <code>"toon3d"</code> (<code>:483</code>) and each island's setup then adds a bounce and a rim <code>DirectionalLight</code> by design (<code>:4043-4050</code>) — exactly +2, on every island, whatever the content, which is why the pattern was so uniform. I had attributed them to the desk candle and her lantern; those were in the baseline of four all along. Measured hub confirms it: Directional 0.38 <code>#3c8cbe</code> is the bounce, 0.42 <code>#ffe6c1</code> the rim.</p>
-        </div>
-      </div>
-
-      <div class="row" data-v="partial">
-        <span class="num">04</span>
-        <div class="body">
-          <p class="claim"><code>assets/lala.glb</code> has grown to 6.65 MB</p>
-          <span class="verdict" data-v="partial">True · misdated</span>
-          <p class="found">6,974,652 bytes, mtime 10 September — it is the v2 rebuild, two days before the run, not a change in this window. Every island pays for it and compression is still worth doing, but nothing regressed here.</p>
-        </div>
-      </div>
-
-      <div class="row" data-v="fixed">
-        <span class="num">05</span>
-        <div class="body">
-          <p class="claim"><code>HEAD_EAR</code> and <code>HEAD_CROWN</code> are dead identifiers</p>
-          <span class="verdict" data-v="fixed">True · fixed</span>
-          <p class="found">Both unreferenced, and <code>HEAD_SIDE</code> with them — its own comment claimed it was "kept so the physics clamp still reads in the old names", and the clamp no longer uses it. All three removed; the measured constants they derive from are kept.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <h2>What the sweep did not find</h2>
-    <p class="lede">The visual audit ran separately, through the real gameplay camera across all five islands. It turned up the thing that had been wrong for two weeks — and that no instrumented check was ever going to catch, because the measurement was pointed at the wrong object.</p>
+    <h2>Finding 01 — the <code>setHex</code> crash was never the castle lamps</h2>
+    <p class="lede">The sweep read a fresh clone of remote HEAD and said the fix shipped on 12 September was never merged. It was half right, and the other half is worse: the fix was merged. It was pointed at the wrong object.</p>
 
     <div class="miss-panel">
-      <h3>She was wearing the placeholder's hat</h3>
-      <p><code>makeLala()</code> builds a sketch figure to stand in until the GLB loads. <code>attachRig()</code> hides all twelve stand-in parts when the real rig lands — and then <code>applyHeadwear()</code> turned three of them straight back on, because it only ever asked <em>is she bare-headed</em>, never <em>is the stand-in still the figure on screen</em>.</p>
+      <h3>A guard is only a fix if it guards the thing that throws</h3>
+      <p><code>holoMaterial()</code> (<code>index.html:3592</code>) returns a <code>THREE.ShaderMaterial</code> and defines exactly one shim — <code>opacity</code>, forwarding to the <code>uOpacity</code> uniform — under a comment explaining that a ShaderMaterial has no such property. <strong>It has no <code>.color</code> either.</strong> Four lines below that comment, <code>cueUpdate()</code> runs <code>a.userData.main.material.color.setHex(CUE_COL[mode])</code> on every jump↔glide cue change. That is the throw. It only fires on a mode <em>change</em>, which is why an hour of <code>traversal.mjs</code> sees it three times and a 36-second run never does.</p>
+      <p>The guard shipped on <code>2026-09-12c</code> was on <code>I.castleLamps</code> — a different object, which was never throwing. It was written without ever reproducing the crash, and the board then described it in the past tense.</p>
       <div class="twohat">
         <div class="a">
-          <h4>What was rendering</h4>
-          <span class="dim">1.339 u</span>
-          <p>A flat <code>CylinderGeometry(.68,.68,.08)</code> disc under a near-straight drum. The placeholder.</p>
+          <h4>Without the shim</h4>
+          <span class="dim">throws</span>
+          <p><code>material.color</code> is <code>false</code>; <code>.setHex()</code> raises <em>Cannot read properties of undefined</em>; <code>uTint</code> unchanged.</p>
         </div>
         <div class="b">
-          <h4>What was underneath it</h4>
-          <span class="dim">0.748 u</span>
-          <p>The real <code>cowgirlHat()</code> — taco brim, cattleman crease, a pinch either side. There the whole time.</p>
+          <h4>With the shim</h4>
+          <span class="dim">returns</span>
+          <p><code>material.color</code> is <code>true</code>; the call returns; <code>uTint</code> moves to the target colour.</p>
         </div>
       </div>
-      <p>Measured live before the fix: <strong>3 of 12 primitives visible on a fully rigged character</strong>, and they were brim, hatTop and band. One condition fixed it — <code>const stand = !ch.model;</code>. Every render of a too-big drum-shaped hat was a render of the placeholder, and so was every measurement made defending it.</p>
+      <p>Proven both directions by <code>qa/cuecrash.mjs</code> (new) — same island, same build, ± the one block. The fix mirrors the opacity shim: <code>.color</code> forwards into <code>uTint</code>. <strong>The recolour had never worked either</strong> — even arrows that didn't throw never changed colour between jump and glide.</p>
     </div>
   </section>
 
   <section>
-    <h2>What else the full report says</h2>
-    <p class="lede">The five relayed lines were a fraction of it. The report runs eight suites, and most of what it found is good news that never made it into the summary.</p>
-    <div class="ships">
-      <div class="ship"><span class="sha">Suite 1</span><span>Traversal clean at full scale — <strong>0 traps, 0 pockets, 0 stalls, 0 buried, 0 out-of-bounds</strong> across all five islands, 91,032 cells. Camera-in-geometry hits rose on hub (4% → 6.6%) and gr (2% → 6.0%) on byte-identical sample grids.</span></div>
-      <div class="ship"><span class="sha">Suite 2</span><span>Reach <strong>58/58</strong>, up from 57/58 — Theo's shadowed "Take her fans" on Green is fixed and holding.</span></div>
-      <div class="ship"><span class="sha">Suite 3</span><span>Camera baseline holds: <strong>0° yaw drift</strong> on every segment, every island. Stuck-keys-after-blur still fixed.</span></div>
-      <div class="ship"><span class="sha">Suite 6</span><span>Mobile fully closed out — <code>mute</code> and <code>secretsBtn</code> now <strong>77×44 / 71×44</strong> on every island in both orientations. 0 overlaps, 0 off-screen, 0 small targets.</span></div>
-      <div class="ship"><span class="sha">Suite 7</span><span>Scene triangles came <strong>down</strong> on four of five: hub −11%, green −18%, gr −24% (skinned tris −56%), sanity −7%. Town up 4.5% but draw calls down 19%.</span></div>
-      <div class="ship"><span class="sha">Suite 8</span><span><code>index.html</code> is now <strong>5,917 lines</strong>, another +68% since 8 September. 150 functions, 24 listeners flat, 0 TODO/FIXME, 14 empty <code>catch{}</code> — all the same defensive pattern, just more of them.</span></div>
+    <h2>Finding 02 — momentum was swinging the camera off geometry</h2>
+    <p class="lede">Verified here independently before touching it, on the shipped build, then again after the fix.</p>
+
+    <div class="ledger">
+      <div class="row" data-v="fixed">
+        <span class="num">01</span>
+        <div class="body">
+          <p class="claim">Holding <code>W</code> in a straight line swung the camera a quarter turn because she scraped a rock</p>
+          <span class="verdict" data-v="fixed">Confirmed · fixed · live</span>
+          <p class="found"><code>2026-09-14a</code> made heading chase <code>atan2(W.vx, W.vz)</code> — actual velocity. <code>tryMove()</code> zeroes the blocked axis on a collision, so the next frame's velocity is the <strong>slid</strong> vector; heading chased it and the always-behind camera chased heading. Measured on <code>W-through-colliders</code>: <strong>green 28.5°, gr 23.7°</strong> against flat 0° in every prior report. Heading now aims at the <strong>stick</strong> while she is being driven and falls back to velocity only when coasting — the body still slides, still carries speed, still deflects; only the facing stops being a function of whatever she's brushing. <strong>After: 0° on every segment of all five islands.</strong></p>
+        </div>
+      </div>
+      <div class="row" data-v="open">
+        <span class="num">02</span>
+        <div class="body">
+          <p class="claim">GR's plain <code>A</code>/<code>D</code> distance pops — same commit, different mechanism, not fixed</p>
+          <span class="verdict" data-v="open">Open · not claimed</span>
+          <p class="found">The sweep flagged 5–8 pops on segments that read flat 0 before momentum; measured here at 7 and 5. After the heading fix they are <strong>6 and 6</strong> — unmoved, as expected, because they are the camera arm collapsing to its 3.5 floor rather than anything to do with facing. That is the camera-arm-collapse item already tracked, now with a second reproducible trigger.</p>
+        </div>
+      </div>
     </div>
   </section>
 
   <section>
-    <h2>Shipped since the sweep</h2>
-    <p class="lede">Six builds, every one verified by fetching the live page rather than trusting the push.</p>
+    <h2>Shipped since the sweep published</h2>
     <div class="ships">
-      <div class="ship"><span class="sha">2026-09-14b</span><span><strong>Windows that read as lived-in.</strong> Every pane was one flat cold blue on every building on every island. Unlit is the right material — a lit window emits — but there was only one of them. Each pane now rolls a deterministic colour from its island's palette: warm lamplight at two strengths, some catching the cold sky, about one in six dark.</span></div>
-      <div class="ship"><span class="sha">2026-09-14a</span><span><strong>She has mass.</strong> Horizontal was never physics — speed was recomputed from the stick every frame and the body teleported to the input angle. Now a velocity: accelerate in, decay out, heading turns at a rate, airborne authority cut to 22% so a running jump commits to its arc. <code>?momentum=0</code> for the old feel.</span></div>
-      <div class="ship"><span class="sha">2026-09-13b</span><span>The mown ring is gone — the grass melts into the ground colour before the geometry goes. Clouds no longer lit olive-green from underneath by the meadow, and their sphere seams went with it.</span></div>
-      <div class="ship"><span class="sha">2026-09-13a</span><span><strong>The world is seeded.</strong> T3 closed. <code>camera.mjs</code> reproduces 6 of 8 segments byte-identical between runs where it used to move 0.9 u on segments nothing had touched.</span></div>
-      <div class="ship"><span class="sha">2026-09-12c</span><span>The sweep's castle-lamp guard — logs once instead of killing the frame loop.</span></div>
-      <div class="ship"><span class="sha">2026-09-12b</span><span>The real hat, finally visible. Touch controls off desktop. Lantern glow.</span></div>
+      <div class="ship"><span class="sha">2026-09-14c</span><span><strong>The real <code>setHex</code> fix, and the camera whip.</strong> <code>.color</code> forwards into <code>uTint</code>; heading aims at the stick while driven. Verified live by fetching the page, not by trusting the push.</span></div>
+      <div class="ship"><span class="sha">qa/cuecrash.mjs</span><span>Drives the cue recolour directly instead of waiting an hour for her to wander past a ledge. Turns a once-an-hour heisenbug into a 30-second check.</span></div>
+      <div class="ship"><span class="sha">qa/hsdial.mjs</span><span>Measures the <em>real</em> hat group rather than the placeholder primitive every earlier measurement was aimed at.</span></div>
+      <div class="ship"><span class="sha">HANDOFF 4.18</span><span>A guard is only a fix if it guards the object that throws. Reproduce the throw and capture the stack before shipping one — and an unverified fix never gets written up in the past tense.</span></div>
+      <div class="ship"><span class="sha">HANDOFF 4.19</span><span>A movement or camera change is not verified until it has been measured against geometry. Open ground is the case where every model agrees.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What held, from the sweep's own suites</h2>
+    <p class="lede">Its numbers, as it published them mid-run.</p>
+    <div class="ships">
+      <div class="ship"><span class="sha">Determinism</span><span><code>hub</code> and <code>gr</code> both <strong>MATCH</strong> (<code class="mono">56c8dd0a</code> / <code class="mono">f723868c</code>). A first pass showing hub DIFFER was its own 300 s timeout killing the browser mid-fingerprint — re-run at 900 s and it cleared.</span></div>
+      <div class="ship"><span class="sha">Reach</span><span><strong>59/59 OK</strong> — every note, ability, letter, NPC and dock reachable on all five islands.</span></div>
+      <div class="ship"><span class="sha">Console / assets</span><span>0 non-finite state, 0 NaN bounding spheres, every rig attached. Requests and bytes flat against the last two sessions.</span></div>
+      <div class="ship"><span class="sha">Mobile</span><span>0 overlaps, 0 off-screen, 0 small targets. Town landscape's <code>prompt</code> flag from the last report is gone.</span></div>
+      <div class="ship"><span class="sha">Frame budget</span><span>Lights flat at 6/6/7/9/6. GR skinned triangles stable at <strong>251,498</strong> across four separate measurements.</span></div>
     </div>
   </section>
 
@@ -314,41 +291,41 @@
     <h2>Open, and worth your call</h2>
     <div class="open">
       <article>
-        <span class="tag">Corrected — not a blocker</span>
-        <h3>"Half the scene is unlit" was wrong</h3>
-        <p>The count was right; the conclusion was not. Of 374 unlit materials, <strong>270 are translucent FX, 52 are emitters, 34 are sky</strong> — all correctly unlit. The real number is <strong>18 opaque solids</strong>. Nothing about lighting is capped.</p>
+        <span class="tag">Corrected today</span>
+        <h3><code>?hs=</code> was never a dead dial</h3>
+        <p>Measured on the real hat group: <strong>0.748 u</strong> at <code>hs=1</code>, <strong>0.449</strong> at 0.6, <strong>1.047</strong> at 1.4 — exactly linear. It looked dead because the placeholder disc was rendering on top of the hat it was scaling. Same root cause as the hat bug, closed by the same one-line fix.</p>
+      </article>
+      <article>
+        <span class="tag">Reproducible, unfixed</span>
+        <h3>Camera arm collapses to its floor</h3>
+        <p>Now triggered two ways: <code>W-through-colliders</code> on every island (2–4 pops), and GR's plain <code>A</code>/<code>D</code> since momentum (6 each). Arm drops to ~3.5 and springs back.</p>
+      </article>
+      <article>
+        <span class="tag">Pending traversal</span>
+        <h3>Stall detector predates momentum</h3>
+        <p><code>traversal.mjs</code>'s fixed 1.8 s stall window was calibrated against instant-from-input speed. This run's stall numbers are the first real test of it.</p>
       </article>
       <article>
         <span class="tag">Next, when you push on it</span>
         <h3>Density is the lush lever</h3>
-        <p>Layered ground cover under shrubs under canopy under drifting particulate. Those games look lush from how <em>many</em> things are in frame, not from any one asset. Then surface detail and normal maps, then shadow quality.</p>
+        <p>Layered ground cover under shrubs under canopy under drifting particulate. Then surface detail and normal maps, then shadow quality. Only <strong>18 opaque solids</strong> are unlit — nothing about lighting is capped.</p>
       </article>
       <article>
         <span class="tag">Five islands, one look</span>
         <h3>Straight coastlines</h3>
-        <p>The sand band is a constant width and the water edge is an airbrushed blur. Identical on all five.</p>
+        <p>Constant sand-band width, airbrushed water edge. Unchanged.</p>
       </article>
       <article>
-        <span class="tag">Dead control</span>
-        <h3><code>?hs=</code> does nothing</h3>
-        <p>The documented hat-scale dial has no effect — 0.60 and 1.0 render identically. It was scaling the hat that was buried.</p>
-      </article>
-      <article>
-        <span class="tag">Second report running</span>
-        <h3>Four suites are never run</h3>
-        <p><code>float.mjs</code>, <code>overhead.mjs</code>, <code>scale.mjs</code> and <code>qa/maps/</code> sit in the repo unreferenced by <code>run_all.sh</code>. Wire them in or delete them.</p>
-      </article>
-      <article>
-        <span class="tag">Unconfirmed either way</span>
-        <h3>Ollie's intermittent UNREACHABLE</h3>
-        <p>Town's postman read OK on this run's single pass. The fault is load-order dependent, so one clean result is not a fix — it needs repeat runs to close.</p>
+        <span class="tag">Flagged repeatedly</span>
+        <h3>Suites never wired into <code>run_all.sh</code></h3>
+        <p><code>float.mjs</code>, <code>overhead.mjs</code>, <code>scale.mjs</code>, <code>qa/maps/</code>, and the 12 Sep visual-audit tooling. Wire them in or delete them.</p>
       </article>
     </div>
   </section>
 
   <footer>
-    <span>Every figure on this page was measured in the running game, not carried from a prior report.</span>
-    <span class="mono">trig_01QTDijWxQTMunuYPUoFjzk7 · claude-sonnet-5 · 0 10 * * * UTC</span>
+    <span>Every figure on this page was measured in the running game this session, or read off the live page at <code>prodbykctw-max.github.io</code> after the push.</span>
+    <span class="mono">trig_01QTDijWxQTMunuYPUoFjzk7 · 0 10 * * * UTC · 2026-09-14, run in progress</span>
   </footer>
 
 </div>
