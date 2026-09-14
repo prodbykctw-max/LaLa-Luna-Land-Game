@@ -345,7 +345,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-14b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-14c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -3633,6 +3633,24 @@ function holoMaterial(col){
     get(){ return m.uniforms.uOpacity.value; },
     set(v){ m.uniforms.uOpacity.value = v; }
   });
+  /* ===================  THE HUB setHex CRASH WAS HERE ALL ALONG  ===================
+     The cue arrows also RECOLOUR themselves - cueUpdate() runs
+     `a.userData.main.material.color.setHex(CUE_COL[mode])` every time the cue flips between
+     jump and glide. A ShaderMaterial has no .color either, so that call reads .setHex off
+     undefined and throws. It only fires on a mode CHANGE, which is why it took traversal.mjs's
+     ~1 hour hub run to see it 3x and why a 36-second run never did.
+     The guard shipped on 2026-09-12c was pointed at I.castleLamps - a different object that was
+     never throwing. Guarding the wrong call site is not a fix, and it read as one on the board.
+     Forward .color to uTint the same way .opacity forwards to uOpacity: the call site stays
+     untouched, the crash goes, and the recolour now actually takes effect (it never did). */
+  const cc = new THREE.Color(col);
+  const push = () => { m.uniforms.uTint.value.set(cc.r, cc.g, cc.b); };
+  ["setHex", "set", "setRGB", "setStyle", "copy", "lerp"].forEach(fn => {
+    const real = cc[fn];
+    if(typeof real !== "function") return;
+    cc[fn] = function(){ const r = real.apply(cc, arguments); push(); return r; };
+  });
+  Object.defineProperty(m, "color", { get(){ return cc; }, set(v){ cc.copy(v); } });
   _holoMats.push(m);
   return m;
 }
@@ -5065,10 +5083,23 @@ function walkerUpdate(I, dt, t){
       W.vx += (tvx - W.vx) * k;
       W.vz += (tvz - W.vz) * k;
       if(Math.abs(W.vx) < .02 && Math.abs(W.vz) < .02 && mag <= .08){ W.vx = 0; W.vz = 0; }
-      /* she faces where she is GOING, not where the stick points, and gets there at a turn rate */
+      /* She turns at a rate rather than snapping - that is the momentum. But WHAT she turns toward
+         must be the stick, not the velocity.
+         ===================  WHY: THE COLLISION-SLIDE CAMERA WHIP  ===================
+         Facing velocity read correctly on open ground, where velocity converges on the stick.
+         It broke the moment she touched anything: tryMove() zeroes the blocked axis, so the next
+         frame's velocity is the SLID vector, heading chased it, and the always-behind camera
+         chased heading. Holding W straight through GR's collider cluster swung the camera 23-28
+         deg - a quarter turn the player never asked for - and put 5-7 distance pops on green/gr
+         plain A/D, on segments that read flat 0 in every report before 2026-09-14a.
+         Aim at the stick while she is being driven; fall back to velocity only when coasting,
+         which is where facing-your-momentum is the whole point. The body still slides, still
+         carries speed, still deflects - only the FACING stops being a function of the geometry
+         she happens to be scraping. */
       const sp = Math.hypot(W.vx, W.vz);
-      if(sp > .25){
-        const want = Math.atan2(W.vx, W.vz);
+      const driven = mag > .08;
+      if(driven || sp > .25){
+        const want = driven ? ang : Math.atan2(W.vx, W.vz);
         let d = want - W.heading; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2;
         W.heading += d * Math.min(1, dt * TURN * (W.grounded ? 1 : AIR*2));
       }

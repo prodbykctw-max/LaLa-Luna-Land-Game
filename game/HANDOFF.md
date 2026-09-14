@@ -1158,3 +1158,72 @@ And the constraint that does not move: this is one HTML file on GitHub Pages, pl
 Safari and an Intel UHD 620 with no discrete GPU. Where Winds Meet is UE5 with Nanite and Lumen and
 tens of gigabytes of assets on a dedicated card. The route to "beautiful" here is art direction and
 density, never fidelity per asset — and that route is genuinely open.
+
+## 4.18 I guarded the wrong call site and reported the crash as handled
+
+2026-09-14. The nightly sweep's 12 September report said the hub throws a `setHex` page error 3× during
+`traversal.mjs`'s ~1 hour run. In 4.12 I recorded my first error on it — testing for 36 seconds and
+filing it NOT REPRODUCED against a window the report had already said comes back clean. I then shipped
+`2026-09-12c`, a guard on `I.castleLamps`, wrote "the guard is now in" on the board, and moved on.
+
+**The castle lamps were never throwing.** Today's sweep read a fresh clone of remote HEAD and said the
+fix was never merged. It was right, and the reason is worse than not merging it: I fixed a different
+object. The crash is in the jump/glide cue:
+
+```
+holoMaterial() returns a THREE.ShaderMaterial   (index.html:3592, HOLO defaults to 1)
+cueUpdate():  a.userData.main.material.color.setHex(CUE_COL[mode])   (index.html:3777)
+```
+
+`holoMaterial()` defined exactly one shim — `opacity`, forwarding to `uOpacity`, with a comment
+explaining that a ShaderMaterial has no such property. **It has no `.color` either**, and the line
+right below the comment that says so reads `.setHex` off `undefined`. It only fires when the cue
+*changes* mode, which is why an hour of traversal sees it three times and nothing shorter ever does.
+
+Proven both directions with `qa/cuecrash.mjs` (new), same island, same build ± the one block:
+
+| | `material.color` | `.setHex()` | `uTint` after |
+|---|---|---|---|
+| without the shim | `false` | **throws** `Cannot read properties of undefined (reading 'setHex')` | unchanged |
+| with the shim | `true` | returns | recolours correctly |
+
+The fix mirrors the opacity shim: `.color` forwards into `uTint`. The recolour had never worked either —
+even the arrows that did not throw were never changing colour between jump and glide.
+
+**The rule: a guard is only a fix if the object it guards is the object that throws.** I never
+reproduced the crash before writing the guard — I pattern-matched "`setHex` on something that might
+lack a material" to the nearest plausible call site and shipped it. That is the same failure as 4.9,
+4.11 and 4.17 in a new costume: a real mechanism, pointed at the wrong object, and sold with more
+confidence because there was code attached. **Before shipping a guard, reproduce the throw and capture
+the stack. If I cannot make it throw, I have not found it, and I do not get to say it is handled.**
+
+And a second rule, for the board specifically: **an unverified fix does not get written up in the past
+tense.** "The guard is now in" was true; "this is fixed" was the implication and it was false, and it
+cost the sweep a full run to catch.
+
+## 4.19 A feel change verified only on open ground
+
+2026-09-14. `2026-09-14a` ("she has mass") made heading chase `atan2(W.vx, W.vz)` — actual velocity —
+instead of snapping to the stick. I verified it on open ground: she accelerated, decayed, turned at a
+rate, and after 4.16 she stopped running in circles. Shipped.
+
+The sweep found what open ground cannot show. `tryMove()` zeroes the blocked axis on a collision, so the
+next frame's velocity is the **slid** vector — heading chased it, and the always-behind camera chased
+heading. Measured by me, independently, on the shipped build:
+
+| island · segment | before | after |
+|---|---|---|
+| green · `W-through-colliders` | **28.5°** drift | 0° |
+| gr · `W-through-colliders` | **23.7°** drift | 0° |
+
+Every prior report shows flat 0° on every segment. Holding W in a straight line swung the camera a
+quarter turn because she scraped a rock. Fix: aim heading at the **stick** while she is being driven,
+fall back to velocity only when coasting — the body still slides and carries speed, the facing stops
+being a function of whatever geometry she is brushing.
+
+Not fixed, and not claimed to be: GR's plain `A`/`D` picked up 5–7 distance pops in the same commit and
+they are still there (7→6, 5→6). Those are the camera-arm collapse to its 3.5 floor, already tracked.
+
+**The rule: a movement or camera change is not verified until it has been measured against geometry.**
+Open ground is the case where every model agrees. `qa/camera.mjs`'s `W-through-colliders` segment exists
+precisely for this and I did not run it before shipping the momentum commit.
