@@ -1227,3 +1227,44 @@ they are still there (7→6, 5→6). Those are the camera-arm collapse to its 3.
 **The rule: a movement or camera change is not verified until it has been measured against geometry.**
 Open ground is the case where every model agrees. `qa/camera.mjs`'s `W-through-colliders` segment exists
 precisely for this and I did not run it before shipping the momentum commit.
+
+## 4.20 Two wrong beliefs about the scheduler, found the same morning
+
+2026-09-14. The nightly sweep fired 10:01:29Z and completed 12:40Z, publishing a full report. Two
+things I believed about the machinery around it were false.
+
+**(a) `last_run` status is not a completion signal.** I checked it at 11:23, 12:23 and 13:01. It read
+`PENDING` every time — including at 13:01, twenty-one minutes *after* the run had finished and
+republished the board. I had been about to write it up as "PENDING at 180 minutes, past its own
+timeout, the mechanism cannot reach completion." That conclusion would have been entirely wrong, and
+it would have been wrong in the expensive direction: proposing to tear apart a sweep that works.
+
+The ground truth for "did the run deliver" is **the artifact it publishes**, not the scheduler's status
+field. At 12:23 both signals agreed (no publish, PENDING) and the read was sound; at 13:01 they
+disagreed and the status was the stale one. **Rule: check the artifact first and let the status field
+corroborate, never the reverse. A status field is a claim about a job; the published page is the job.**
+
+**(b) Step 8 was never expressible.** On 13 September I audited subscribe-vs-poll, proved that a
+scheduled-task wake into this session is a genuine push, and then wrote "step 8" into the sweep's
+prompt: create a one-shot `create_trigger` carrying `persistent_session_id` for this session so the
+sweep pushes its summary back here. It has never once fired, across every run since.
+
+The reason, read off the tool schema rather than guessed: **`create_trigger` exposes no
+`persistent_session_id` parameter.** `send_later` is the only thing that sets one, and it *self*-binds —
+it can only wake the session that calls it. So the sweep calling `send_later` wakes the sweep, not me.
+There is no supported path for a scheduled run to push into a different session.
+
+What I actually proved on 13 September was narrower than what I claimed: *this* session can schedule a
+wake for *itself*. I extended that to "the sweep can push back to us" without operating the control —
+which is C2, and it is the same failure as 4.18 one level up: I reasoned a mechanism into existence
+from an adjacent one that worked.
+
+**What actually works, and is now the mechanism:** the sweep publishes to the board early and again at
+the end — that is the durable record, and it survives this session ending. This session keeps a
+`send_later` self-ping timed to land after the sweep's window, which reads the board. That loop ran
+three times today and delivered every time.
+
+**Not done, and deliberately:** the sweep's prompt still contains the impossible step 8.
+`update_trigger` replaces a prompt wholesale and `list_triggers` does not return prompt text, so
+rewriting it blind would destroy instructions I cannot read. It costs one wasted call per run and
+nothing else. It gets fixed the next time the prompt is being written anyway, from a copy.
