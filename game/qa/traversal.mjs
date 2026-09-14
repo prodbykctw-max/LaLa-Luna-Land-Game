@@ -68,7 +68,18 @@ for (const isl of argIslands()) {
     const keyDirs = [['KeyW'], ['KeyS'], ['KeyA'], ['KeyD']];
     let frames = 0; const cnt = () => { frames++; requestAnimationFrame(cnt); }; requestAnimationFrame(cnt);
     const starts = [[cfg.spawn[0], cfg.spawn[1]], ...traps.slice(0, 4).map(t => [t.x, t.z]), ...pockets.slice(0, 6).map(t => [t.x, t.z])];
-    for (let i = 0; i < 6; i++) { const a = Math.random() * 6.28, r = 8 + Math.random() * 50, x = Math.cos(a) * r, z = Math.sin(a) * r; if (I.inside(x, z) && T.canStand(I, x, z)) starts.push([+x.toFixed(1), +z.toFixed(1)]); }
+    /* These six starts used to come from plain Math.random(). Seeding the WORLD does not cover them —
+       buildIsland() restores the real Math.random in a finally once the island is built — so every run
+       stalled a different six places, and a clean run and a borderline run were equally uninformative:
+       neither could be compared to the other. Seeded per island, they are now the same six every run,
+       which is what makes the stall window recalibratable against momentum. Override with ?stallseed=. */
+    const stallSeed = (() => {
+      const q = new URLSearchParams(location.search).get('stallseed') || ('stall:' + isl);
+      let h = 2166136261; for (let i = 0; i < q.length; i++) { h ^= q.charCodeAt(i); h = Math.imul(h, 16777619); }
+      let a = h >>> 0;
+      return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    })();
+    for (let i = 0; i < 6; i++) { const a = stallSeed() * 6.28, r = 8 + stallSeed() * 50, x = Math.cos(a) * r, z = Math.sin(a) * r; if (I.inside(x, z) && T.canStand(I, x, z)) starts.push([+x.toFixed(1), +z.toFixed(1)]); }
     const stalls = [], buried = [], outside = []; let tests = 0; const t0 = performance.now(); frames = 0;
     for (const [sx, sz] of starts) for (const d of keyDirs) {
       W.x = sx; W.z = sz; W.y = I.height(sx, sz); W.vy = 0; W.grounded = true; W.camYaw = Math.PI; W.heading = Math.PI; W.lookHold = 0;

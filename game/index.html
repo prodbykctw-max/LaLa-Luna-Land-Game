@@ -345,7 +345,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-14c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-14d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -797,9 +797,22 @@ function cameraCollide(I, target, desired, minDist){
     if(proj <= 0 || proj - cr > clamped) continue;
     const perp = Math.abs(cx*uz - cz*ux);
     if(perp >= cr) continue;
+    /* ===============  THE ARM COLLAPSE, MEASURED AT LAST  ===============
+       This is where it was, and it was never the terrain walk below. qa/armprobe.mjs attributes
+       every floored frame on GR's A and D segments to this loop: 23 of 153 frames jammed at the
+       3.5 floor, flapping in and out as she strafes past decor.
+       The cause is arithmetic, not tuning. `hit` was Math.max(0, proj - back - buffer), so any
+       collider whose NEAR FACE sits at or behind her - she is standing in it, or brushing it -
+       gives proj - back <= 0, hit 0, and the arm slams to its floor. A cylinder she is standing
+       inside cannot occlude her from a camera that is outside it looking in; clamping to zero
+       there is just wrong, and it is what produced the pops.
+       So: a collider can only shorten the arm if its near face is actually BETWEEN her and the
+       camera. If it is at or behind her, skip it - there is nothing to hide behind. */
     const back = Math.sqrt(Math.max(0, cr*cr - perp*perp));
-    const hit = Math.max(0, proj - back - buffer);
-    if(hit < clamped) clamped = hit;
+    const near = proj - back;
+    if(near <= 0) continue;                    /* she is in it or against it - not an occluder */
+    const hit = near - buffer;
+    if(hit > 0 && hit < clamped) clamped = hit;
   }
   clamped = Math.max(clamped, minDist ?? 5.0);
   return new THREE.Vector3(target.x + ux*clamped, desired.y, target.z + uz*clamped);
@@ -1441,7 +1454,6 @@ function applyHeadwear(ch){
    A crown narrower than the skull it sits on cannot do anything but let the head through, which is
    what he has been pointing at in every render. No amount of profile tuning was ever going to fix
    it, because the fault was the fit, not the shape. */
-const HEAD_HALF_X = 0.199, HEAD_HALF_Z = 0.219;   /* widest measured, any height */
 const HEAD_TOP    = 0.467;                        /* top of her hair */
 
 /* A brim rests above the ears, not on them. Her hair carries a lot of volume on top, so the seat
@@ -5281,10 +5293,10 @@ function placeCamera(I, dt){
   const cc = cameraCollide(I, W.look, desired, 3.5*cp); let arm = Math.min(want, Math.hypot(cc.x-W.look.x, cc.z-W.look.z)/Math.max(cp, .05));
   /* terrain: walk the arm and stop before it dips under the ground (hills, mesas, the lighthouse rock) */
   /* A bisection refinement of this walk was tried on 2026-09-12 and REVERTED — see HANDOFF 4.10.
-     The arm does collapse to its 3.5 floor when she strafes (measured, both islands, two runs), but
-     the cause is not this walk's 0.94 u sample step: refining it to 0.03 u moved distMin by 0.01.
-     Do not re-try it here without first seeding the world — decor placement is unseeded (report T3),
-     so qa/camera.mjs loads a DIFFERENT island each run and cannot A/B a camera change at all. */
+     That instinct was right: the collapse was never here. qa/armprobe.mjs (2026-09-14) attributes
+     every floored frame to cameraCollide() above — 23 of 153 frames on GR's strafe — and the cause
+     was its near-face arithmetic, now fixed there. This walk's 0.94 u sample step was never the
+     problem; refining it to 0.03 u moved distMin by 0.01. Leave it alone. */
   for(let k = 1; k <= 12; k++){ const t = arm*k/12, px = W.look.x + dir.x*t, pz = W.look.z + dir.z*t, py = W.look.y + dir.y*t;
     if(I.inside(px,pz) && py < I.height(px,pz) + 1.1){ arm = Math.max(3.5, t - .8); break; }
     if(I.camBlobs && t > 3.5){ let hit = false; for(const b of I.camBlobs){ const ddx = px-b.x, ddy = py-b.y, ddz = pz-b.z; if(ddx*ddx+ddy*ddy+ddz*ddz < b.r*b.r){ hit = true; break; } } if(hit){ arm = Math.max(3.5, t - .8); break; } } }

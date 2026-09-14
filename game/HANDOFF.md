@@ -1292,3 +1292,103 @@ What still stands from what I wrote: the board is the durable record and survive
 and early-publish is what got two findings into my hands hours before the run finished. Those were
 right. The part about step 8 was wrong, and it was wrong because I did not operate the control.
 
+
+## 4.21 The camera arm collapse, found — and the probe that first said it wasn't there
+
+2026-09-14. Open since 12 September, carried on the board as "camera arm collapses to its 3.5 floor,
+reproducible, unfixed". Found today, and it was never where the note in `placeCamera()` was pointing.
+
+**The mechanism.** `cameraCollide()` (`index.html:786`) swept every decor cylinder and computed
+
+```js
+const hit = Math.max(0, proj - back - buffer);   // buffer 1.5
+```
+
+`proj - back` is the collider's NEAR FACE along the ray from her to the camera. For anything she is
+standing in or brushing against, that is ≤ 0, so `hit` clamped to 0 and the arm slammed to its floor.
+A cylinder she is standing inside cannot occlude her from a camera outside it looking in — clamping to
+zero there is simply wrong, and it is what made the arm flap in and out as she strafed past decor.
+Fix: a collider only shortens the arm if its near face is genuinely between her and the camera.
+
+**Measured, five islands, before → after** (`qa/camera.mjs`, `2026-09-14c` → `2026-09-14d`):
+
+| segment | before | after |
+|---|---|---|
+| gr `A` | 6 pops, floor **3.72** | **2 pops, floor 8.00** |
+| gr `D` | 6 pops, floor **3.51** | 6 pops, floor **5.22** |
+| gr `W-through-colliders` | 0 pops, 10.75 | 0 pops, 10.80 |
+| green `W-through-colliders` | 4 pops, 3.89 | 2 pops, 3.83 |
+| yaw drift, every segment | 0° | 0° |
+
+Every floor rose. **Not claimed fixed:** gr `D` still pops 6 times, and `W-through-colliders` still pops
+2–4 on every island. Those are the camera legitimately pulling in through a dense cluster, and the
+metric counts the first frame of each genuine pull-in (rate 14/s against a 0.8 u/frame threshold). The
+±1–2 wobble between runs is the real-time key-hold noise the sweep already flagged.
+
+**The probe lied first, and the reason matters.** `qa/armprobe.mjs` reimplements `placeCamera()`'s arm
+each frame and reports which branch shortened it. Its first run said: arm constant 11.50, zero floored
+frames, no collapse anywhere — flatly contradicting `qa/camera.mjs` on the same island and segments.
+
+The difference was the **sequence**. `camera.mjs` runs `W` from spawn first, then `A` and `D` from
+wherever `W` left her. My probe started `A` at spawn. Different patch of ground, no colliders near the
+sightline, no collapse. Mirroring the suite's order exactly reproduced it on the first try: 7 pops,
+23/153 frames at the floor, cause `cylinder`.
+
+**The rule: a repro's setup is part of the repro.** When a probe disagrees with the suite it is meant to
+explain, the probe is the suspect — and the first thing to check is not the maths but everything the
+suite did *before* the segment under test. I nearly filed "the arm does not actually collapse, the suite
+is measuring something else", which would have been 4.18 all over again with the objects swapped.
+
+## 4.22 run_all.sh was running every suite against a stale test build
+
+2026-09-14. Found while auditing the unwired suites. `qa/run_all.sh` opened by `sed`-ing its own
+`window.__T` hook into `index_test.html`:
+
+```
+window.__T = {ISL, goIsland, nearest, get CUR(){...}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat}
+```
+
+That hook predates `qa/_harness.mjs`. The real one adds `tryJump`, `guideUpdate`, `objectiveOf`,
+`hatPhysics`, `PROXIES`, `RIGS`, `qGet`, `interact` and more. And `ensureTestBuild()` only regenerates
+when `index.html` is **newer** than `index_test.html` — so writing the stale hook first meant every
+suite in the batch silently ran against it. Individual `node qa/<suite>.mjs` runs were fine; the batch
+was not, which is exactly the kind of difference nobody notices.
+
+Removed. The harness owns the test build. Also: the script hardcoded `cd /home/claude/lala` (now
+resolves off its own folder), and it never ran `determinism`, `float`, `overhead` or `scale` — all four
+now in the list, with a guard that skips any suite whose file is missing.
+
+**`qa/maps/` is not an unwired suite.** It is 8.5 MB of committed PNG output from `overhead.mjs` —
+design maps plus some reference renders. It has been listed as "wire it in or delete it" for days on the
+strength of its name. Nothing to wire; the files are his reference art and stay. `overhead.mjs` writes
+to the gitignored `qa/out/`, so it will not grow.
+
+## 4.23 codehealth.mjs could not see past the first '=' in a declaration
+
+2026-09-14. `const A = 1, B = 2;` — the unused-identifier scan matched
+`/^(?:const|let)\s+([^=;]+?)\s*=/`, which stops at the FIRST `=`, so `B` was never collected and could
+never be reported. That is how `HEAD_HALF_Z` sat undetected next to a `HEAD_HALF_X` the tool *did*
+flag. Now parses the whole statement and splits the declarator list on depth-zero commas, so commas
+inside `f(1, 2)` or `[3, 4]` are not mistaken for separators.
+
+Verified by planting `const ZZ_ALIVE = 1, ZZ_DEAD_ONE = 2, ZZ_DEAD_TWO = 3;` with only `ZZ_ALIVE`
+referenced: the scanner reports both dead names and skips the live one. Against the real file it now
+reports `possiblyUnused: []` — and `HEAD_HALF_X`/`HEAD_HALF_Z` are removed from `index.html`, confirmed
+dead by my own grep before cutting, not on the sweep's say-so.
+
+**The rule: when a QA tool reports nothing, prove it can still report something.** An empty result from
+a scanner I just edited is indistinguishable from a broken scanner until a planted case says otherwise.
+
+## 4.24 Stop leaving scratch files in his repo
+
+2026-09-14. Every deploy wrote the commit message to `game/commitmsg.txt` inside his working tree,
+leaving `?? game/commitmsg.txt` in `git status` forever. Small, but it is his repo and it was my litter.
+
+I first wrote here that future sessions would "stage the message outside the repo instead", then tried
+it and `device_commit_files` refused: **only `C:\Users\Owner\Documents\LaLa-Luna-Land-Game` is a
+connected folder**, so nothing can be written anywhere else on his machine. Corrected before it could
+become an instruction nobody could follow — which is the same mistake as 4.20(b), caught this time
+because I operated the control before writing the sentence down as settled.
+
+**What actually holds:** the message still goes to `game/commitmsg.txt`, and that path is now in
+`.gitignore`, so it no longer shows up as untracked. `git commit -F game/commitmsg.txt` is unchanged.

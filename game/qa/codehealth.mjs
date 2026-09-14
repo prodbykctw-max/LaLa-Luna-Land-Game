@@ -26,7 +26,21 @@ const dupLiterals = Object.entries(counts).filter(([, v]) => v.length >= 4).sort
 // unused top-level identifiers
 const js = lines.slice(script0).join('\n');
 const decl = [...js.matchAll(/^(?:const|let|var|function|async function)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
-const declMulti = [...js.matchAll(/^(?:const|let)\s+([^=;]+?)\s*=/gm)].flatMap(m => m[1].split(',').map(s => s.trim().split(/\s|=/)[0]).filter(s => /^[A-Za-z_$][\w$]*$/.test(s)));
+/* `const A = 1, B = 2;` — the old pattern stopped at the FIRST '=', so B was never collected and
+   could never be reported unused (that is how HEAD_HALF_Z hid). Take the whole statement, then split
+   the declarator list on commas that are at depth zero — commas inside (), [], {} belong to a value. */
+const declMulti = [...js.matchAll(/^(?:const|let|var)\s+([\s\S]*?);\s*(?:\/\*|\/\/|$)/gm)].flatMap(m => {
+  const body = m[1], parts = []; let depth = 0, buf = '';
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if ('([{'.includes(ch)) depth++;
+    else if (')]}'.includes(ch)) depth--;
+    if (ch === ',' && depth === 0) { parts.push(buf); buf = ''; continue; }
+    buf += ch;
+  }
+  parts.push(buf);
+  return parts.map(s => s.trim().split(/[\s=]/)[0]).filter(s => /^[A-Za-z_$][\w$]*$/.test(s));
+});
 const unused = [...new Set([...decl, ...declMulti])].filter(id => { const re = new RegExp('(?<![\\w$.])' + id.replace(/\$/g, '\\$') + '(?![\\w$])', 'g'); const n = (js.match(re) || []).length; return n <= 1; });
 // duplicated long lines
 const seen = {}; lines.forEach((l, i) => { const t = l.trim(); if (t.length < 60 || /^[\/*]/.test(t)) return; (seen[t] = seen[t] || []).push(i + 1); });

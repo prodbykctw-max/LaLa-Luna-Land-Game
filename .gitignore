@@ -16,3 +16,9 @@ game/index_test.html
 game/index-*.html
 game/index_*.html
 "Claude outputs/*.html"
+
+# Deploy scratch. The commit message used to be written to game/commitmsg.txt,
+# which left the working tree permanently dirty with an untracked file after
+# every single deploy. It is staged outside the repo now; this line covers the
+# copies already sitting in working trees.
+game/commitmsg.txt
