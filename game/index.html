@@ -345,7 +345,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-13a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-13b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -2308,13 +2308,19 @@ const CLUMP = clumpGeometry();
    large the island gets. ?grass= scales it (?grass=0.5 halves it) if an old GPU struggles. */
 const GRASS_N = Math.round((matchMedia("(pointer:coarse)").matches || innerWidth < 820 ? 5200 : 11000)
                            * (parseFloat(QS.get("grass")) || 1));
-const grassPatch = sh => {
+const grassPatch = (sh, far) => {
   sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3(0,-99,0)}; sh.uniforms.uWind = {value:1};
+  sh.uniforms.uFar = {value: far || new THREE.Color(0x7CC79A)};
   /* who is standing in the grass right now (xyz + radius), and where she has just walked (xyz + how flattened it still is) */
   sh.uniforms.uPush  = {value: Array.from({length:6},  () => new THREE.Vector4(0,-99,0,0))};
   sh.uniforms.uTrail = {value: Array.from({length:12}, () => new THREE.Vector4(0,-99,0,0))};
+  /* the blend has to reach the fragment stage: doing it in the vertex shader would be overwritten by
+     three's own <color_vertex> chunk, which assigns vColor after our injection point */
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", "#include <common>\nuniform vec3 uFar; varying float vFarBlend;")
+    .replace("#include <color_fragment>", "#include <color_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, uFar, vFarBlend);");
   sh.vertexShader = sh.vertexShader
-    .replace("#include <common>", "#include <common>\nuniform float uTime, uWind; uniform vec3 uPlayer; uniform vec4 uPush[6]; uniform vec4 uTrail[12];")
+    .replace("#include <common>", "#include <common>\nuniform float uTime, uWind; uniform vec3 uPlayer, uFar; uniform vec4 uPush[6]; uniform vec4 uTrail[12];\nvarying float vFarBlend;")
     .replace("#include <begin_vertex>", `#include <begin_vertex>
       { float w = uv.y * uv.y;                                  /* only the tip moves; the root is anchored */
         vec3 io = (modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0)).xyz;
@@ -2338,7 +2344,19 @@ const grassPatch = sh => {
            costs a vertex but no fill. The island is 66 u across, so most of the field is far away —
            this is what pays for the density up close; the ground texture carries the far meadow. */
         float camd = distance(io.xz, cameraPosition.xz);
-        transformed *= 1.0 - smoothstep(31.0, 44.0, camd);
+        float fade = smoothstep(31.0, 44.0, camd);
+        transformed *= 1.0 - fade;
+        /* ===================  A MOWN RING FOLLOWED HER  ===================
+           qa/vaudit.mjs, 2026-09-12: a hard circle of bare ground around her in every shot on every
+           island, at the radius where the clumps collapse. Shrinking the blades to nothing was never
+           the problem on its own - what draws the edge is CONTRAST. Inside the ring the ground is
+           dark blades over light meadow; outside it is flat meadow, and the eye reads the boundary
+           between the two as a line however smoothly the geometry shrinks.
+           So the colour melts into the ground before the geometry goes, and finishes first (the 0.78
+           power front-loads it). By the time a clump is small enough to notice vanishing it is
+           already the colour of the dirt under it. uFar is the island's own grass tint - the same
+           wash the terrain beneath the field carries. */
+        vFarBlend = pow(fade, 0.78);
 
         /* The grass parts around whoever is in it - her, her horse, a wandering cow, a fan, a rolling
            ball - each with its own radius, and it stays flattened along the line she has just walked,
@@ -2369,7 +2387,12 @@ function grassField(scene, n, origin, heightFn, cols, blocked){
      Recycling is amortised over frames, a slice at a time, so there is no hitch. */
   const RING = 44;
   const mat = toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide});
-  mat.userData.patches = [["grass", sh => { grassPatch(sh); mat.userData.uniforms = sh.uniforms; }]];
+  /* the far colour is the mean of this island's own clump tints - the same wash the terrain under the
+     field carries, so a faded clump and the ground it stands on land on the same value */
+  const farC = new THREE.Color(0,0,0), tmpC = new THREE.Color();
+  (cols || [0x7CC79A]).forEach(h => { tmpC.setHex(h); farC.add(tmpC); });
+  farC.multiplyScalar(1 / Math.max(1, (cols || [1]).length));
+  mat.userData.patches = [["grass", sh => { grassPatch(sh, farC); mat.userData.uniforms = sh.uniforms; }]];
   const mesh = new THREE.InstancedMesh(CLUMP, mat, n);
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), c = new THREE.Color();
   const up = new THREE.Vector3(0,1,0), pos = new THREE.Vector3();
@@ -2634,14 +2657,58 @@ function cloudShadows(scene, n, r){
   }
   return list;
 }
-function cloudPuffs(scene, n, tint){
-  const list = [], mat = toon(0xFFFFFF, {color:tint||0xFFFFFF});
+/* ===================  THE CLOUDS HAD GREEN BELLIES  ===================
+   qa/vaudit.mjs, 2026-09-12: every cloud on every island is lit olive-green from underneath against
+   an orange sky. The cause is that a cloud was a MeshToonMaterial, so it read the scene's
+   HemisphereLight — whose ground colour is P.grassDk, the meadow. A cloud 40 u up has no business
+   taking bounce light off grass at full strength.
+
+   Two other faults came from the same place. The puffs inside one cloud are separate opaque spheres,
+   so where they intersect the shading changes abruptly and draws a hard crease; and a lit sphere at
+   this size reads as a ball, not vapour.
+
+   All three go away by taking the clouds out of the lighting rig entirely and painting the gradient
+   into the vertices: unlit MeshBasicMaterial, vertex colour lerped by height WITHIN THE WHOLE CLOUD
+   rather than within each sphere. Because neighbouring spheres sample the same vertical ramp, their
+   intersections now match in colour and the creases disappear. The ramp runs from a warm lit top to
+   a cool underside pulled from the island's own sky, never from its ground. */
+function cloudPuffs(scene, n, tint, P){
+  const list = [];
+  const top = new THREE.Color(tint || 0xFFFFFF);
+  /* the underside is the island's sky, darkened — a cloud's shadow side is lit by the air above it */
+  const bot = new THREE.Color(P && P.skyTop ? P.skyTop : 0x8892B8).lerp(top, 0.42).multiplyScalar(0.92);
+  const mat = new THREE.MeshBasicMaterial({vertexColors:true});
+  const c = new THREE.Color(), v = new THREE.Vector3();
   for(let i=0;i<n;i++){
     const g = new THREE.Group(), w = 10+Math.random()*16;
     const k = 4 + (Math.random()*4|0);
+    const parts = [];
+    let lo = 1e9, hi = -1e9;
     for(let j=0;j<k;j++){ const r = w*(.22+Math.random()*.22);
-      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), mat);
-      m.position.set((j/(k-1)-.5)*w*.9 + (Math.random()-.5)*w*.15, (Math.random()-.3)*r*.5, (Math.random()-.5)*w*.35); m.scale.y = .62; g.add(m); }
+      const geo = new THREE.SphereGeometry(r, 10, 8);
+      const px = (j/(k-1)-.5)*w*.9 + (Math.random()-.5)*w*.15,
+            py = (Math.random()-.3)*r*.5,
+            pz = (Math.random()-.5)*w*.35;
+      /* the sphere is squashed on Y, so measure the ramp against the SCALED height or the underside
+         ramp lands in the wrong place on the flatter puffs */
+      const sy = .62;
+      lo = Math.min(lo, py - r*sy); hi = Math.max(hi, py + r*sy);
+      parts.push({geo, px, py, pz, r, sy});
+    }
+    const span = Math.max(0.001, hi - lo);
+    for(const q of parts){
+      const pos = q.geo.attributes.position, col = new Float32Array(pos.count*3);
+      for(let a=0;a<pos.count;a++){
+        v.fromBufferAttribute(pos, a);
+        const y = q.py + v.y*q.sy;                       /* this vertex's height in the CLOUD, not the sphere */
+        const u = Math.min(1, Math.max(0, (y - lo)/span));
+        c.copy(bot).lerp(top, Math.pow(u, 0.85));
+        col[a*3] = c.r; col[a*3+1] = c.g; col[a*3+2] = c.b;
+      }
+      q.geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      const m = new THREE.Mesh(q.geo, mat);
+      m.position.set(q.px, q.py, q.pz); m.scale.y = q.sy; g.add(m);
+    }
     const a = Math.random()*Math.PI*2, d = 70+Math.random()*150;
     g.position.set(Math.cos(a)*d, 34+Math.random()*26, Math.sin(a)*d); g.userData.sp = .6+Math.random()*.9;
     g.rotation.y = Math.random()*6; scene.add(g); list.push(g);
@@ -4855,7 +4922,7 @@ function buildIslandBody(cfg){
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
     motes: motes(scene, 140, 80, cfg.weather==="embers" ? 0xFF9A55 : (cfg.weather==="glitter" ? 0xFFE59A : (cfg.key==="sanity" ? 0xA8DCF4 : 0xFFF0C0)), cfg.weather==="embers" ? 1.4 : .22),
     clouds: cfg.key==="sanity" ? [] : cloudShadows(scene, 6, 60),
-    puffs: cloudPuffs(scene, cfg.key==="sanity" ? 5 : 9, cfg.key==="sanity" ? 0x3A4670 : (cfg.key==="gr" ? 0xF3C9AE : 0xFFFBF2)),
+    puffs: cloudPuffs(scene, cfg.key==="sanity" ? 5 : 9, cfg.key==="sanity" ? 0x3A4670 : (cfg.key==="gr" ? 0xF3C9AE : 0xFFFBF2), P),
     /* shooting stars need a dark sky to be seen against, so they go where the star field goes */
     shoot: (cfg.key === "gr" || cfg.key === "sanity") ? shootingStars(scene, 4) : null,
     /* her glitter trail: A Place for Me is the island that asked for it */

@@ -962,3 +962,45 @@ Three samples fixed it. **A test that disagrees with itself between runs is meas
 When a determinism check flips, suspect the check before the seed, and diff the actual entries rather
 than reasoning about what might have moved — the diff found "1 differing mesh of 388" in one run,
 which settled it instantly where argument would not have.
+
+## 4.14 The mown ring was a contrast problem, not a geometry problem
+
+2026-09-14. Two of the visual audit's every-frame defects, both fixed by taking something OUT of the
+lighting rig rather than adding to it.
+
+**The ring.** A hard circle of bare ground followed her on every island, at the radius where the grass
+clumps collapse. The obvious read is "the fade is too abrupt", and the obvious fix is to widen
+`smoothstep(31.0, 44.0, camd)`. That would not have worked: the field is a 44 u disc, so however
+gently a clump shrinks there is still a last clump. **What draws the edge is contrast, not size.**
+Inside the ring the ground is dark blades over light meadow; outside it is flat meadow, and the eye
+reads the boundary between those two textures as a line no matter how smooth the geometry is.
+
+So the colour now melts into the ground before the geometry goes, and finishes first —
+`vFarBlend = pow(fade, 0.78)` front-loads it, and the fragment stage does
+`diffuseColor.rgb = mix(diffuseColor.rgb, uFar, vFarBlend)`. `uFar` is the mean of that island's own
+`grassCols`, which is the same wash the terrain under the field carries. By the time a clump is small
+enough for its disappearance to be noticeable, it is already the colour of the dirt it stands on.
+
+One mechanical trap: the blend has to be applied in the FRAGMENT shader. Doing it in the vertex
+shader after our injection point gets overwritten, because three's own `<color_vertex>` chunk assigns
+`vColor` later in the same function.
+
+**The clouds.** Every cloud was lit olive-green from underneath against an orange sky, with hard
+creases where the spheres inside one cloud intersect. Cause: a cloud was a `MeshToonMaterial`, so it
+read the scene's `HemisphereLight` — whose ground colour is `P.grassDk`, the meadow. A cloud 40 u up
+was taking bounce light off grass at full strength.
+
+Fix: unlit `MeshBasicMaterial` with the gradient painted into the vertices, ramped by height **within
+the whole cloud** rather than within each sphere. Because neighbouring spheres sample the same
+vertical ramp, their intersections now match in colour and the creases vanish — one change fixing
+both faults. The underside colour comes from the island's `skyTop`, never its ground.
+
+**Rule — when something in the sky is the wrong colour, check what the hemisphere light's GROUND
+colour is.** It is the one light term that paints upward-facing surfaces from below, and anything
+high enough that real bounce would never reach it should not be in the lighting rig at all.
+
+**And a near-miss worth recording.** The first re-render after these changes showed a strong orange
+wash across the lower frame with a hard diagonal edge, and I was one sentence from filing it as a
+regression. It was the beach: a low camera near the shore, warm sand filling the bottom-left, the
+diagonal being the waterline. A second shot from elsewhere on the same island was clean. **Check a
+second frame before calling a render a regression** — one camera position is one camera position.
