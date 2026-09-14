@@ -345,7 +345,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-14d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-14e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -4300,8 +4300,20 @@ function buildIslandBody(cfg){
   /* ground */
   if(POLY){
     const sandP = polyOffset(POLY, 6), grassP = polyOffset(POLY, -2.5);
-    scene.add(polySlab(sandP, 3.2, -.12, toon(P.sand, {map:TEX.sand, roughness:1, envMapIntensity:.16})));   /* the beach, a hair below the meadow */
-    scene.add(polySlab(grassP, 3.4, 0, toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}))); /* top face at y=0 = the walkable height */
+    /* ===============  THE ISLAND WAS A FLOATING SLAB  ===============
+       These were 3.2 and 3.4 deep. polySlab extrudes DOWNWARD from topY, so the underside of the
+       whole island sat at about y -3.3 — while seaBed() is a plane at y -7. That left a 3.6 u void
+       under every island: from a low camera near the shore, or any time the camera swung out over
+       the water, you looked straight under the land and saw the seabed and the open sea through it,
+       and the sea plane at SEA_Y -1.1 cut across the gap as a blue band lying over the beach.
+       That is the "water is where the grass is" glitch, and the reason the island read as a slab
+       floating above the ocean instead of land standing in it.
+       The slabs now run past the seabed, so the island is a solid plug from its top face down
+       through the sea floor. There is nothing under it to see. A few extra side triangles, no more.
+       Anything that changes SEA_Y or seaBed's -7 must keep these deeper than both. */
+    const SLAB_BOTTOM = -10;
+    scene.add(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16})));   /* the beach, a hair below the meadow */
+    scene.add(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}))); /* top face at y=0 = the walkable height */
     { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ scene.add(tm); I.terrainMesh = tm; } }
     /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
        down through the shallows shows real ground under her feet instead of a blue plane on nothing */
@@ -4314,10 +4326,12 @@ function buildIslandBody(cfg){
     I.wetBand.renderOrder = 1; scene.add(I.wetBand);
     I.foam.push(shoreFoam(scene, POLY));
   } else cfg.lobes.forEach(l => {
-    const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 3, 48), toon(P.sand, {map:TEX.sand}));
-    sand.position.set(l.x,-1.62,l.z); scene.add(sand);
-    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 3.2, 48), toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}));
-    grass.position.set(l.x,-1.6,l.z); scene.add(grass);
+    /* same floating-slab fix for the legacy circular islands: 3 and 3.2 tall left their undersides
+       above the seabed at -7. Keep the top faces exactly where they were and drop the bottoms. */
+    const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 10, 48), toon(P.sand, {map:TEX.sand}));
+    sand.position.set(l.x,-5.12,l.z); scene.add(sand);
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 10, 48), toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}));
+    grass.position.set(l.x,-5,l.z); scene.add(grass);
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
   cfg.features.forEach(f => {
