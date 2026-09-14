@@ -1,0 +1,19 @@
+# Lala Luna Land
+
+> Lala Luna Land is a free browser-based 3D island-hopping adventure built for singer Lala Luna, the 'Queen of Whimsy.' Sail between islands, find the four scattered letters that spell her name, collect notes, moons and outfits, and reach the fifth island for the final song. Playable on phone and desktop, no download or sign-up.
+
+- Genre: Adventure / exploration
+- Platform: Web browser (mobile Safari, Chrome, desktop)
+- Made for: Lala Luna
+- Developer: PRODBYKCTW LLC (Melvin D. Brown III, @prodbyKCTW) / RARƎ AGENCY
+- Price: free
+
+## Pages
+
+- [Play](https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/): the game
+- [llms-full.txt](https://prodbykctw-max.github.io/LaLa-Luna-Land-Game/llms-full.txt): full description, controls, FAQ
+
+## Optional
+
+- [Developer on GitHub](https://github.com/prodbykctw-max)
+- [Developer on Instagram](https://www.instagram.com/prodbykctw/)
