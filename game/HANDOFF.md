@@ -1004,3 +1004,47 @@ wash across the lower frame with a hard diagonal edge, and I was one sentence fr
 regression. It was the beach: a low camera near the shore, warm sand filling the bottom-left, the
 diagonal being the waterline. A second shot from elsewhere on the same island was clean. **Check a
 second frame before calling a render a regression** — one camera position is one camera position.
+
+## 4.15 What actually subscribes, and what I was quietly polling
+
+2026-09-14. Checked rather than assumed, because "we get notified" and "somebody has to go and
+look" feel identical from the inside until something goes wrong for five hours.
+
+**Genuinely event-driven, proven by it happening.** A scheduled task bound to this session
+(`send_later`, or `create_trigger` with `persistent_session_id`) wakes it: the 15:27 push retry
+arrived on its own as a task-notification and `ReadNotifications` drained it. No polling involved —
+the wake is held by the trigger service and outlives the gaps between turns.
+
+**Genuinely NOT subscribable from here, and nothing can change that today.** Artifact republishes and
+comments. Every publish in this session returned "Live subscription: not supported yet from remote
+sessions", and `Artifact action:"status"` confirms **no artifact watches in this session**. So if
+someone republishes the board, or leaves a comment on it, nothing tells us. The only option is to
+re-read the page on demand — which is what we do, and it should be described as that and not as a
+subscription.
+
+**What I WAS polling without saying so.** The nightly sweep's outcome. I found the 13 September
+9-second failures by calling `list_triggers` and reading `last_run` — five hours after they happened.
+The sweep's own `notifications: {push:true}` goes to his phone, not to this session, so this thread
+had no idea. That is a poll wearing a status field's clothing.
+
+**Fixed by making the producer push.** The sweep's instructions now end with a mandatory step: create
+a one-shot `create_trigger` with `persistent_session_id` set to this session and the run summary as
+the prompt, **whether the run succeeded, found nothing, or died partway** — a failed run is exactly
+the result that most needs to arrive unprompted. If that call is refused it must say so in its
+summary, so the gap stays visible instead of going silent.
+
+**Rule — a subsystem that cannot be subscribed to must push to you, or you are polling.** When
+something runs outside this session and there is no watch primitive for it, the fix is not a tighter
+poll loop; it is a line in the producer's own instructions telling it to notify. The producer always
+knows it finished. The consumer never does.
+
+**Rule — "no news" from an unsubscribed source is not good news.** Silence from the sweep looked
+identical whether it ran clean, never started, or hung for eight hours. Any status that can only be
+learned by asking needs either a push from the other side or an explicit "last confirmed at" stamp,
+never an assumption that quiet means fine.
+
+**Note on the tools.** `Monitor` is the real subscribe primitive available here — a `ws:` source is a
+true push stream, and a `command:` source turns any stdout line into a notification. It only helps for
+things this container can observe, so it is no use for a sweep running in another container. And
+`CronCreate`/`CronList` are an in-process scheduler that dies with the session — `CronList` currently
+reports no jobs, which is correct; scheduled work belongs in `create_trigger`, never there.
