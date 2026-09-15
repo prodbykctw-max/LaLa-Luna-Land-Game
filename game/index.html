@@ -1602,7 +1602,7 @@ function cowgirlHat(brimOuter){
   return g;
 }
 const CREATURE_SHADOW = {horse:1.15, cow:1.10, dino:1.8, jelly:.8, armadillo:.34, iguana:.30, chicken:.22,
-                         raptor:.62, crab:.22, gator:.75, monkey:.28, anole:.14};
+                         raptor:.62, crab:.22, gator:.75, monkey:.28, anole:.14, flamingo:.40, turtle:.50};
 /* Every species on an island, whether the config uses the old singular `creature` or the list.
    Kept as one accessor so no call site has to care which spelling an island happens to use. */
 function creaturesOf(cfg){
@@ -2209,6 +2209,33 @@ function shoreBirds(scene, POLY, cfg, heightFn, shoreOutFn, n, col){
   }
   list.ring = polyOffset(POLY, 3.0);
   return list;
+}
+/* a closed path at a fixed distance off the coast, with cumulative lengths, so sea animals can be
+   placed "s units along it" and follow the shore whatever shape the island is */
+function ringPath(pts){
+  const cum = [0]; for(let i=1;i<=pts.length;i++){ const a = pts[i-1], b = pts[i%pts.length]; cum.push(cum[i-1] + Math.hypot(b[0]-a[0], b[1]-a[1])); }
+  const total = cum[pts.length];
+  const at = s => { s = ((s % total) + total) % total; let i = 0; while(i < pts.length-1 && cum[i+1] < s) i++;
+    const a = pts[i], b = pts[(i+1)%pts.length], f = (s - cum[i]) / Math.max(1e-6, cum[i+1]-cum[i]); return [a[0] + (b[0]-a[0])*f, a[1] + (b[1]-a[1])*f]; };
+  return {pts, cum, total, at};
+}
+/* a bird standing in the shallows: it dips to feed, takes the odd step, and when she runs at it
+   wades away a few strides rather than flying. Rings under it from the water system. */
+function shallowsUpdate(I, h, u, dt, t){
+  const W = I.W, dp = Math.hypot(W.x-h.position.x, W.z-h.position.z);
+  u.timer = (u.timer || 0) - dt;
+  const dipNow = Math.sin(t*.7 + u.ph) > .92 ? 1 : 0; u.dip = (u.dip || 0) + (dipNow - (u.dip || 0))*Math.min(1, dt*3);
+  if(u.neck) u.neck.rotation.z = -u.dip*1.1;
+  if(dp < 7 && (W.speedNow || 0) > 3 && u.tx == null){ const ax = h.position.x-W.x, az = h.position.z-W.z, al = Math.hypot(ax, az) || 1;
+    const nx = h.position.x + ax/al*6, nz = h.position.z + az/al*6, o = I.shoreOut(nx, nz); if(o > 3 && o < WADE_MAX){ u.tx = nx; u.tz = nz; } }
+  else if(u.timer <= 0){ const a = Math.random()*6.283, nx = h.position.x + Math.cos(a)*2.5, nz = h.position.z + Math.sin(a)*2.5, o = I.shoreOut(nx, nz);
+    if(o > 3.5 && o < 9 && I.height(nx, nz) <= 0){ u.tx = nx; u.tz = nz; } u.timer = 4 + Math.random()*6; }
+  if(u.tx != null){ const dx = u.tx-h.position.x, dz = u.tz-h.position.z, d = Math.hypot(dx, dz);
+    if(d > .05){ const st = Math.min(d, 1.6*dt); h.position.x += dx/d*st; h.position.z += dz/d*st; h.rotation.y = Math.atan2(dx, dz) - Math.PI/2;
+      (u.legs||[]).forEach(l => l.rotation.x = Math.sin(t*6 + l.userData.phase)*.35); if(I.water && Math.random() < dt*3) I.water.ripple(h.position.x, h.position.z, .5); }
+    else { u.tx = null; (u.legs||[]).forEach(l => l.rotation.x = 0); } }
+  else if(I.water && Math.random() < dt*.4) I.water.ripple(h.position.x, h.position.z, .45);
+  h.position.y = I.height(h.position.x, h.position.z);
 }
 function wadersUpdate(I, dt, t){
   const list = I.fx.waders; if(!list || !list.length) return;
@@ -2910,6 +2937,25 @@ function makeCreature(type){
     const C1 = 0x8FD3D8, C2 = 0xF2E6A8;
     const body = inked(new THREE.SphereGeometry(.16,8,6), C1, .4); body.scale.set(1.9,.9,.5); h.add(body);
     const tail = inked(new THREE.ConeGeometry(.13,.22,4), C2, .35); tail.rotation.z=Math.PI/2; tail.scale.z=.3; tail.position.set(-.34,0,0); h.add(tail);
+  } else if(type === "flamingo"){
+    /* Curacao's flamingos stand in the shallows: a pink body on two long legs, the neck in two
+       bends with a black-tipped bill that dips to feed. The neck is its own group so it can bow. */
+    const pink = 0xF29AB0, deep = 0xE8788F;
+    const body = inked(new THREE.SphereGeometry(.42, 10, 8), pink, 1.0); body.scale.set(1.5, .8, .8); body.position.y = 1.55; h.add(body);
+    const wing = inked(new THREE.SphereGeometry(.34, 8, 6), deep, .8); wing.scale.set(1.3, .5, .6); wing.position.set(-.05, 1.72, 0); h.add(wing);
+    const neck = new THREE.Group(); neck.position.set(.45, 1.7, 0);
+    const n1 = inked(new THREE.CylinderGeometry(.07, .09, .9, 6), pink, .7); n1.position.y = .45; n1.rotation.z = -.35; neck.add(n1);
+    const n2 = inked(new THREE.CylinderGeometry(.06, .07, .7, 6), pink, .7); n2.position.set(.42, .95, 0); n2.rotation.z = .55; neck.add(n2);
+    const head = inked(new THREE.SphereGeometry(.13, 8, 6), pink, .7); head.position.set(.62, 1.22, 0); neck.add(head);
+    const beak = inked(new THREE.ConeGeometry(.05, .3, 5), 0x2A2224, .6); beak.position.set(.72, 1.05, 0); beak.rotation.z = Math.PI*.85; neck.add(beak);
+    h.add(neck); h.userData.neck = neck;
+    [-1,1].forEach(sd => { const l = inked(new THREE.CylinderGeometry(.03, .03, 1.5, 4), deep, .5); l.position.set(-.05, .75, sd*.12); l.userData.phase = sd > 0 ? 0 : Math.PI; h.add(l); legs.push(l); });
+  } else if(type === "turtle"){
+    /* a sea turtle: the shell just breaking the surface, four flippers, the head lifting to breathe */
+    const sh = inked(new THREE.SphereGeometry(.7, 12, 8), 0x4F6B3A, .9); sh.scale.set(1.3, .5, 1.05); sh.position.y = .15; h.add(sh);
+    const head = inked(new THREE.SphereGeometry(.2, 8, 6), 0x7B8A55, .6); head.position.set(1.05, .2, 0); h.add(head);
+    for(let k=0;k<4;k++){ const f = inked(new THREE.BoxGeometry(.7, .06, .32), 0x7B8A55, .5); const sd = k%2 ? 1 : -1;
+      f.position.set(k<2 ? .45 : -.5, .05, sd*.75); f.rotation.y = sd*(k<2 ? -.6 : .6); f.userData.phase = k*1.6; h.add(f); legs.push(f); }
   } else if(type === "crab"){
     /* San Andres' signature animal is its migrating land crab. Wide, low, and mostly claw. */
     const C1 = 0xC2543C, C2 = 0x8E3728;
@@ -3084,7 +3130,8 @@ const ISLANDS = [
   weather:"storm", creatures:[{type:"jelly",   n:9, r:[40,70], sp:[.04,.08], fly:true},
                               {type:"dolphin", n:4, r:[58,78], sp:[.05,.08], water:true},
                               {type:"fish",    n:14, r:[52,70], sp:[.07,.11], water:true, school:true},
-                              {type:"crab",    n:6, r:[30,48], sp:[.09,.15]}],
+                              {type:"crab",    n:6, r:[30,48], sp:[.09,.15]},
+                              {type:"turtle",  n:3, r:[50,64], sp:[.03,.04], water:true}],   /* sea turtles surface off the night beach */
   birds:0, bf:null, sail:22,
   grassCols:[0x3E6A7A,0x2E5262,0x4C7E8C],
   ability:{key:"lantern", at:[-26.6,-21.2], name:"Her lantern", hint:"The stones are there now. Look east.", lantern:true},
@@ -3114,7 +3161,9 @@ const ISLANDS = [
                                 {type:"chicken", n:7, r:[16,34], sp:[.07,.13]},
                                 {type:"iguana",  n:4, r:[24,46], sp:[.04,.07]},
                                 /* Curacao's national bird, over the square */
-                                {type:"troupial", n:4, r:[20,44], sp:[.10,.16], fly:true}], birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
+                                {type:"troupial", n:4, r:[20,44], sp:[.10,.16], fly:true},
+                                /* and the flamingos, standing in the shallows off the beach */
+                                {type:"flamingo", n:8, r:[20,40], sp:[.02,.03], shallows:true}], birds:6, bf:{n:12, cols:[0xF2A6C8,0xFFD37A,0xB9A4F4]},
   npcs:[{rig:"fan", name:"Bea", h:1.64, at:[20,-6], wander:9, line:"LUNA-tics, yeah. We made the shirts before she even had a second single."},
         /* mountScale 2.1 made a bus, and a saddle of 1.05 left her perched on the shell with her feet on
        it rather than sitting in it - the rig's origin is at her feet, so the lift has to put her
@@ -3147,7 +3196,9 @@ const ISLANDS = [
   features:[{type:"hill",x:-6,z:-26,r:26,h:34,name:"Morro do Pico"}],
   trees:{n:22, min:16, max:60, s:[.7,1.2]},
   dock:[0,44], spawn:[0,36],
-  weather:"glitter", creature:null, birds:8, bf:{n:16, cols:[0xFFF6D6,0xF2A6C8,0xB9A4F4]},
+  weather:"glitter", birds:8, bf:{n:16, cols:[0xFFF6D6,0xF2A6C8,0xB9A4F4]},
+  /* Fernando de Noronha: the spinner dolphins it is known for, sea turtles, and crabs on the sand */
+  creatures:[{type:"dolphin", n:5, r:[50,68], sp:[.05,.08], water:true}, {type:"turtle", n:3, r:[44,58], sp:[.03,.04], water:true}, {type:"crab", n:6, r:[24,40], sp:[.09,.15]}],
   grassCols:[0x7FB79E,0x5E9986,0x9BD0B4],
   ability:null,
   letter:{at:[-6,-26], y:null, onPeak:true, gate:null},
@@ -4178,9 +4229,9 @@ function buildIslandBody(cfg){
   }
   PBR_TINT = pbrTint(P.key, keyI); applyPbrTint();   /* she travels; her tint travels with her */
   /* Anything that IS the world's surface gets marked. The QA tools measure "is this object sitting
-     on the ground" by comparing its bbox bottom to the ground height at its own x/z — which is
-     meaningless for the ground itself. Once the slabs were deepened to -10 the audit dutifully
-     reported the island as the most buried object on the island. Mark it and skip it. */
+     on the ground" by comparing its bbox bottom to the ground height at its own x/z — meaningless
+     for the ground itself. Once the slabs were deepened to -10 the audit reported the island as the
+     most buried object on the island. Mark it and skip it. */
   const GROUND = o => { if(o) o.userData.ground = true; return o; };
   const sea = seaMesh(P.water, P.waterHi); sea.position.y = SEA_Y; GROUND(sea); scene.add(sea);
   scene.add(GROUND(seaBed(P.water)));
@@ -4791,10 +4842,9 @@ function buildIslandBody(cfg){
     /* ===============  THE KEEP WAS INSIDE THE HILL  ===============
        This was `castle.position.y = 2.6` — a literal authored when hub's centre was a 2.8-high mesa
        on flat ground. The elevation grid and WORLD=4 have since raised height(0,0) to about 36, so
-       the whole castle sat ~30 u underground: its highest point (a tower cap at +29.7) finished
-       6.5 u BELOW the grass. The island's namesake landmark was invisible, and I.door — the thing
-       the interact prompt fires on — was buried with it, which is why the game offered an
-       interaction with nothing on screen.
+       the whole castle sat ~30 u underground: its highest tower cap finished 6.5 u BELOW the grass.
+       The island's namesake landmark was invisible, and I.door — what the interact prompt fires on
+       — was buried with it, which is why the game offered an interaction with nothing on screen.
        The lamp posts eleven lines above this one always used height(x,z). The castle never did.
        Ground height is the only authority; nothing that stands on the ground gets a literal. */
     const castle = new THREE.Group(); castle.position.y = height(0, 0); scene.add(castle); I.castleLamps = [];
@@ -4987,6 +5037,18 @@ function buildIslandBody(cfg){
       if(shoal){ const ang = (i/c.n)*Math.PI*2, rad = 1.6 + Math.random()*3.4;
         h.userData.soff = {x: Math.cos(ang)*rad, y: (Math.random()-.5)*2.2, z: Math.sin(ang)*rad, w: Math.random()*6.3}; }
       h.userData.type = c.type;
+      if(c.shallows && POLY){
+        /* stands in the wade band (3.5-9 u past the waterline) near where she arrives, never on a hill
+           skirt that runs past the coast and never in the dock's landing */
+        const ring = polyOffset(POLY, 6.5).map(p => ({x:p[0], z:p[1], d:Math.hypot(p[0]-cfg.spawn[0], p[1]-cfg.spawn[1])}))
+          .filter(p => !(Math.abs(p.x-cfg.dock[0]) < 14 && Math.abs(p.z-cfg.dock[1]) < DOCK_LEN/2 + 14)).sort((a,b) => a.d-b.d).slice(0, 12);
+        let placed = false;
+        for(let k=0;k<10 && !placed && ring.length;k++){ const p = ring[(Math.random()*ring.length)|0];
+          const px = p.x + (Math.random()-.5)*6, pz = p.z + (Math.random()-.5)*6, o = shoreOut(px, pz);
+          if(height(px, pz) <= 0 && o >= 3.5 && o <= 9){ h.position.set(px, height(px, pz), pz); placed = true; } }
+        if(!placed){ scene.remove(h); continue; }
+        h.userData.shallows = true; h.userData.fly = false; h.rotation.y = Math.random()*6.3;
+      }
       scene.add(h); I.creatures.push(h); } }
 
   /* weather + fx */
@@ -5537,7 +5599,9 @@ function islandUpdate(I, dt, t){
   /* one shared centre per shoal, advanced once a frame rather than per fish */
   for(const h of I.creatures){ const sh = h.userData.shoal; if(sh && !sh.__t){ sh.__t = 1; sh.a += sh.sp*dt; } }
   for(const h of I.creatures){ const sh = h.userData.shoal; if(sh) sh.__t = 0; }
-  I.creatures.forEach((h, hi) => { const u = h.userData; if(u.ridden) return; u.a += u.sp*dt;
+  I.creatures.forEach((h, hi) => { const u = h.userData; if(u.ridden) return;
+    if(u.shallows){ shallowsUpdate(I, h, u, dt, t); return; }
+    u.a += u.sp*dt;
     if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
        radius walks straight into the sea. Pull the radius in until the step lands on land (with a
@@ -5592,6 +5656,15 @@ function islandUpdate(I, dt, t){
     }
     let base;
     if(u.water){
+      /* Dolphins and turtles follow the coast 34 u out instead of orbiting the island's centre: the
+         orbit walked a turtle onto the meadow of the hidden island, whose coastline is off-centre,
+         and sent a dolphin 95 u out where nobody would see it. A shoal keeps its shared centre. */
+      if(!u.shoal && I.cfg.poly){
+        if(!I.seaRing){ I.seaRing = ringPath(polyOffset(I.cfg.poly, 34)); }
+        if(u.s == null){ let bd = 1e18, s0 = 0; for(let k=0;k<I.seaRing.total;k+=6){ const [px, pz] = I.seaRing.at(k); const d = (px-x)*(px-x) + (pz-z)*(pz-z); if(d < bd){ bd = d; s0 = k; } } u.s = s0; }
+        u.s += Math.abs(u.sp)*70*dt;
+        [x, z] = I.seaRing.at(u.s);
+      }
       /* riding the same swell the sea mesh is drawn from, so they sit IN the water and not on a
          plane above it. Dolphins arc clear of it now and then - that breach is the whole animal. */
       const surf = seaHeight(x, z, t);   /* the helper is seaHeight; SEA_Y is the flat constant */
@@ -5600,6 +5673,12 @@ function islandUpdate(I, dt, t){
         const arc = cyc < .28 ? Math.sin(cyc/.28 * Math.PI) : 0;
         u.breach = arc;
         base = surf - .35 + arc*2.6;
+        /* spray and rings where it leaves the water and where it comes back down */
+        const out = arc > .05; if(I.water && out !== !!u.out){ I.water.splash(x, surf, z, out ? 10 : 16, out ? 1.1 : 1.5); I.water.ripple(x, z, out ? 1.4 : 2.0); } u.out = out;
+      } else if(u.type === "turtle"){
+        const up = Math.max(0, Math.sin(t*.6 + u.ph)); base = surf - .55 + up*.45;      /* shell awash, head up to breathe */
+        (u.legs||[]).forEach(f => f.rotation.z = Math.sin(t*1.8 + f.userData.phase)*.3);
+        if(I.water && up > .95 && Math.random() < dt*2) I.water.ripple(x, z, 1.2);
       } else {
         base = surf - .55 + Math.sin(t*1.4 + u.ph)*.28 + (u.soff ? u.soff.y*.25 : 0);
       }
@@ -5667,6 +5746,12 @@ function islandUpdate(I, dt, t){
       u.legs.forEach(l => { l.rotation.x = Math.sin(t*2+l.userData.phase)*.3; l.rotation.z = Math.cos(t*1.6+l.userData.phase)*.25; l.userData.child.rotation.x = Math.sin(t*2.4+l.userData.phase+1)*.45; }); }
     else u.legs.forEach(l => l.rotation.x = Math.sin(t*(u.type==="dino"?2.2:5) + l.userData.phase)*.45);
     if(u.R && u.R.mixer){ if(u.R.current !== u.R.actions.walk) playClip(u.R, "walk", 0); u.R.mixer.update(dt * (u.type==="dino" ? .7 : 1)); }
+    if(u.type === "crab"){
+      /* a land crab goes into the sand when she comes close, and comes back up once she has gone */
+      const dp = Math.hypot(W.x-h.position.x, W.z-h.position.z);
+      u.hide = Math.max(0, Math.min(1, (u.hide || 0) + (dp < 4.5 ? dt*3 : dp > 8 ? -dt*1.2 : 0)));
+      h.scale.y = 1 - u.hide*.92; h.position.y -= u.hide*.12;
+    }
     if(u.sparkle) u.sparkle.rotation.y = t*.8; });
   const ab = abilityOf(I);
   I.stones.forEach(s => s.mesh.visible = ab.lantern);
