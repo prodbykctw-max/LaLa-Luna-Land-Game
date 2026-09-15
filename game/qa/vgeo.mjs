@@ -13,29 +13,66 @@ for (const island of argIslands()) {
     const float = [], buried = [];
     const lightPos = []; S.traverse(o => { if (o.isLight && o.intensity > 0.05 && (o.isPointLight || o.isSpotLight)) lightPos.push(o.getWorldPosition(new THREE.Vector3())); });
     const globes = [];
-    S.traverse(o => {
-      if (!o.isMesh || o.userData.dyn || o.isInstancedMesh || o.isSkinnedMesh) return;
-      if (o.parent && o.parent.userData && o.parent.userData.R) return;   // rigs
-      let g; try { g = o.geometry; } catch (e) { return; }
-      if (!g || !g.attributes || !g.attributes.position) return;
-      if (g.attributes.position.count > 4000) return;                      // skip terrain
-      try { box.setFromObject(o); } catch (e) { return; }
+    /* ===============  MEASURE THE OBJECT, NOT ITS PARTS  ===============
+       This used to walk every MESH. Two ways that lied:
+       1. The ground itself. A slab or the terrain grid is judged by "is your bottom below the
+          ground height here", which it always is — once the slabs were deepened to -10 the audit
+          reported the island as the most buried thing on the island. Anything marked
+          userData.ground is the world's surface and is skipped.
+       2. Parts of a thing. A tree's canopy is its own mesh, and its bbox bottom is metres above
+          the ground, so every canopy, lantern globe, sign and anything else mounted on a post read
+          as "floating". The trunk holding it up was a different mesh entirely.
+       So: judge TOP-LEVEL objects, with the union bbox of all their children. A tree is a tree. */
+    /* I.fx is the game's own registry of everything that MOVES or lives in the air — birds, clouds,
+       butterflies, motes, foam, shooting stars. index.html:3263 already uses it as a skip set when
+       it bakes the static batch, so use the same one here instead of inventing a second list.
+       Without it the audit reports every cloud 40-60 u up as a "floating object", which is what
+       turned 93 real candidates into 349 and buried the actual defects in noise. */
+    const airborne = new Set();
+    const fx = I.fx || {};
+    for (const [k, v] of Object.entries(fx)) {
+      if (k === 'canopies' || k === 'bushes') continue;
+      const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null);
+      if (arr) arr.forEach(o => { if (o && o.isObject3D) { airborne.add(o); let q = o; while ((q = q.parent) && q !== S) airborne.add(q); } });
+      else if (v && v.isObject3D) airborne.add(v);
+    }
+    (I.notes || []).forEach(n => airborne.add(n));
+    (I.mist  || []).forEach(m => airborne.add(m));
+    const skipName = /^(sky|moon|rain|bow|beam|foam|star|cloud|bird|mote)/i;
+    for (const o of S.children) {
+      if (!o.visible || o.isLight || o.isCamera) continue;
+      if (o.userData.ground || o.userData.dyn) continue;
+      if (o === I.sea || o === I.moon || o === I.rain || o === I.terrainMesh) continue;
+      if (W && (o === W.group || o === W.model)) continue;
+      if (o.name && skipName.test(o.name)) continue;
+      if (airborne.has(o)) continue;
+      { let anyAir = false; o.traverse(k => { if (airborne.has(k)) anyAir = true; }); if (anyAir) continue; }
+      let hasGeo = false, allGround = true;
+      o.traverse(k => { if (k.isMesh) { hasGeo = true; if (!k.userData.ground) allGround = false; }
+                        if (k.isSkinnedMesh || k.isInstancedMesh) hasGeo = false; });
+      if (!hasGeo || allGround) continue;
+      try { box.setFromObject(o); } catch (e) { continue; }
+      if (!isFinite(box.min.y) || !isFinite(box.max.y)) continue;
       box.getCenter(c);
-      if (!isFinite(c.x) || Math.hypot(c.x, c.z) > 300) return;
+      if (!isFinite(c.x) || Math.hypot(c.x, c.z) > 300) continue;
       const size = box.max.y - box.min.y, foot = (box.max.x - box.min.x) * (box.max.z - box.min.z);
-      if (size < 0.5 || foot < 0.8) return;
+      if (size < 0.5 || foot < 0.8) continue;
       const h = I.height(c.x, c.z);
       const gap = box.min.y - h;
-      const tag = { t: g.type, x: +c.x.toFixed(1), z: +c.z.toFixed(1), gap: +gap.toFixed(2), h: +size.toFixed(1) };
+      const label = o.name || (o.userData && o.userData.kind) || (o.type === 'Group' ? 'group' : (o.geometry && o.geometry.type) || o.type);
+      const tag = { name: label, x: +c.x.toFixed(1), z: +c.z.toFixed(1), gap: +gap.toFixed(2), h: +size.toFixed(1) };
       if (gap > 1.2) float.push(tag);
       else if (gap < -size * 0.75) buried.push(tag);
-      // lantern globes: small emissive-looking spheres up high on a post
-      if (g.type === 'SphereGeometry' && size > 0.6 && size < 1.4 && box.min.y - h > 1.5) {
-        const p = new THREE.Vector3(); o.getWorldPosition(p);
-        const near = lightPos.some(L => L.distanceTo(p) < 2.5);
-        globes.push({ x: +p.x.toFixed(1), z: +p.z.toFixed(1), lit: near, mat: o.material.type });
-      }
-    });
+      /* lantern globes: small spheres held up high, anywhere inside this object */
+      o.traverse(k => {
+        if (!k.isMesh || !k.geometry || k.geometry.type !== 'SphereGeometry') return;
+        const b2 = new THREE.Box3().setFromObject(k); const sz = b2.max.y - b2.min.y;
+        if (sz < 0.6 || sz > 1.4) return;
+        const pw = new THREE.Vector3(); k.getWorldPosition(pw);
+        if (pw.y - I.height(pw.x, pw.z) < 1.5) return;
+        globes.push({ x: +pw.x.toFixed(1), z: +pw.z.toFixed(1), lit: lightPos.some(L => L.distanceTo(pw) < 2.5), mat: k.material.type });
+      });
+    }
     // grass: read real instance heights out of the field
     let grass = null;
     S.traverse(o => { if (o.isInstancedMesh && o.geometry && o.geometry.attributes.color && !grass) {

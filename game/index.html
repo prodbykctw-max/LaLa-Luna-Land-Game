@@ -345,7 +345,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-14e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-15a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -4177,7 +4177,13 @@ function buildIslandBody(cfg){
     rim.position.set(10, 22, -36); scene.add(rim);
   }
   PBR_TINT = pbrTint(P.key, keyI); applyPbrTint();   /* she travels; her tint travels with her */
-  const sea = seaMesh(P.water, P.waterHi); sea.position.y = SEA_Y; scene.add(sea); scene.add(seaBed(P.water));
+  /* Anything that IS the world's surface gets marked. The QA tools measure "is this object sitting
+     on the ground" by comparing its bbox bottom to the ground height at its own x/z — which is
+     meaningless for the ground itself. Once the slabs were deepened to -10 the audit dutifully
+     reported the island as the most buried object on the island. Mark it and skip it. */
+  const GROUND = o => { if(o) o.userData.ground = true; return o; };
+  const sea = seaMesh(P.water, P.waterHi); sea.position.y = SEA_Y; GROUND(sea); scene.add(sea);
+  scene.add(GROUND(seaBed(P.water)));
   /* stars scale with how dark the island's sky is — Sanity (the night song, full moon) gets a real
      field, the golden-hour islands a faint scatter. */
   const night = 1 - Math.min(1, ((P.skyTop>>16&255) + (P.skyTop>>8&255) + (P.skyTop&255)) / 300);
@@ -4312,26 +4318,26 @@ function buildIslandBody(cfg){
        through the sea floor. There is nothing under it to see. A few extra side triangles, no more.
        Anything that changes SEA_Y or seaBed's -7 must keep these deeper than both. */
     const SLAB_BOTTOM = -10;
-    scene.add(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16})));   /* the beach, a hair below the meadow */
-    scene.add(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}))); /* top face at y=0 = the walkable height */
-    { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ scene.add(tm); I.terrainMesh = tm; } }
+    scene.add(GROUND(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16}))));   /* the beach, a hair below the meadow */
+    scene.add(GROUND(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16})))); /* top face at y=0 = the walkable height */
+    { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }
     /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
        down through the shallows shows real ground under her feet instead of a blue plane on nothing */
     const shelf = new THREE.Mesh(ringBand(polyOffset(POLY, SHELF_FLAT), polyOffset(POLY, 15), shelfGround(SHELF_FLAT) - .01, shelfGround(15) - .01),
                                  toon(new THREE.Color(P.sand).multiplyScalar(.70), {map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}));
-    shelf.receiveShadow = true; scene.add(shelf);
+    shelf.receiveShadow = true; GROUND(shelf); scene.add(shelf);
     /* the wet line: a dark, breathing strip of sand where the swash reaches */
     I.wetBand = new THREE.Mesh(ringBand(polyOffset(POLY, 2.6), polyOffset(POLY, 6.3), -.085, -.085),
                                new THREE.MeshBasicMaterial({color:0x1E2C3A, transparent:true, opacity:.18, depthWrite:false}));
-    I.wetBand.renderOrder = 1; scene.add(I.wetBand);
+    I.wetBand.renderOrder = 1; GROUND(I.wetBand); scene.add(I.wetBand);
     I.foam.push(shoreFoam(scene, POLY));
   } else cfg.lobes.forEach(l => {
     /* same floating-slab fix for the legacy circular islands: 3 and 3.2 tall left their undersides
        above the seabed at -7. Keep the top faces exactly where they were and drop the bottoms. */
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 10, 48), toon(P.sand, {map:TEX.sand}));
-    sand.position.set(l.x,-5.12,l.z); scene.add(sand);
+    sand.position.set(l.x,-5.12,l.z); GROUND(sand); scene.add(sand);
     const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 10, 48), toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}));
-    grass.position.set(l.x,-5,l.z); scene.add(grass);
+    grass.position.set(l.x,-5,l.z); GROUND(grass); scene.add(grass);
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
   cfg.features.forEach(f => {
@@ -4343,7 +4349,7 @@ function buildIslandBody(cfg){
       const lg2 = new THREE.LatheGeometry(pts, 48);
       const m = new THREE.Mesh(lg2, f.crater ? canyonMaterial(P) : toon(P.grassDk, {side:THREE.DoubleSide, map:TEX.meadow}));
       if(f.crater) canyonStripes(lg2, f.h);
-      m.position.set(f.x, 0, f.z); scene.add(m);
+      m.position.set(f.x, 0, f.z); m.userData.ground = true; scene.add(m);   /* a hill IS the ground */
       if(f.crater){
         /* Build-plan item 5, second half: holographic fire. The crater pool was a flat orange disc.
            It now runs a shader that keeps fire's warm core but lets the outer ring drift through an
@@ -4356,7 +4362,7 @@ function buildIslandBody(cfg){
     } else {
       const m = f.ink ? inked(new THREE.CylinderGeometry(f.r, f.r*1.06, f.h, 24), f.outer ? P.stone : P.grassDk, 2.0, {map:TEX.rock})
                       : new THREE.Mesh(new THREE.CylinderGeometry(f.r, f.r*1.02, f.h, 32), toon(f.name === "The Square" ? P.stone : P.grassDk, {map:TEX.rock}));
-      m.position.set(f.x, f.h/2, f.z); scene.add(m);
+      m.position.set(f.x, f.h/2, f.z); m.traverse(k => k.userData.ground = true); scene.add(m);   /* a mesa IS the ground */
     }
   });
 
@@ -4782,7 +4788,16 @@ function buildIslandBody(cfg){
 
   /* hub castle */
   if(cfg.hub){
-    const castle = new THREE.Group(); castle.position.y = 2.6; scene.add(castle); I.castleLamps = [];
+    /* ===============  THE KEEP WAS INSIDE THE HILL  ===============
+       This was `castle.position.y = 2.6` — a literal authored when hub's centre was a 2.8-high mesa
+       on flat ground. The elevation grid and WORLD=4 have since raised height(0,0) to about 36, so
+       the whole castle sat ~30 u underground: its highest point (a tower cap at +29.7) finished
+       6.5 u BELOW the grass. The island's namesake landmark was invisible, and I.door — the thing
+       the interact prompt fires on — was buried with it, which is why the game offered an
+       interaction with nothing on screen.
+       The lamp posts eleven lines above this one always used height(x,z). The castle never did.
+       Ground height is the only authority; nothing that stands on the ground gets a literal. */
+    const castle = new THREE.Group(); castle.position.y = height(0, 0); scene.add(castle); I.castleLamps = [];
     const keep = inked(new THREE.BoxGeometry(13,15,13), P.stone, 2.2); keep.position.y=7.5; castle.add(keep);
     const roof = inked(new THREE.ConeGeometry(11,8,4), 0x4A3A63, 2.2); roof.position.y=19; roof.rotation.y=Math.PI/4; castle.add(roof);
     [[-7.5,-7.5],[7.5,-7.5],[-7.5,7.5],[7.5,7.5]].forEach(([x,z]) => {
