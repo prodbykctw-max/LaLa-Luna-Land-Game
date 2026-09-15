@@ -308,6 +308,9 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
   <div id="secretsList" style="margin-top:18px"></div>
   <button id="bSecrets">Back</button>
   <button class="ghost" id="bReset" style="margin-top:10px">Start over</button>
+  <div id="ctxLost" class="hide" style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(12,10,22,.88);color:#FFF6D6;font:15px/1.6 system-ui,sans-serif;text-align:center;padding:24px">
+    <div>Rebuilding the island&hellip;<div style="opacity:.7;font-size:13px;margin-top:8px">Your phone reclaimed the graphics memory. Nothing is lost.</div></div>
+  </div>
   <div id="resetWrap" class="hide" style="margin-top:14px">
     <div style="opacity:.8;font-size:15px;line-height:1.5">This clears every letter, note, moon and outfit and puts you back at the keep. It cannot be undone.</div>
     <button id="bResetYes" style="margin-top:10px">Yes, start over</button>
@@ -345,7 +348,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-15c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-15d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -416,6 +419,44 @@ addEventListener("resize", () => {
   camera.aspect = innerWidth/innerHeight; camera.fov = innerHeight > innerWidth ? 66 : 56; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
 });
+/* ===================  THE BLACK SCREEN ON A PHONE  ===================
+   Every mobile browser throws the WebGL context away when it feels like it: you background the tab,
+   take a call, switch apps, another tab wants memory, iOS decides the page has been alive too long.
+   The default browser behaviour after that is permanent — the canvas is dead and only a reload
+   brings it back, which on this game means losing your place on the island.
+   Two lines fix the permanence. preventDefault() on the loss tells the browser we intend to come
+   back, which is the ONLY thing that makes 'webglcontextrestored' fire at all; without it the event
+   never arrives no matter what you listen for. On restore, three.js needs its GPU-side state built
+   again, so the simplest correct answer is to reload once and land back on the same island rather
+   than pretend a half-initialised renderer is fine. */
+(() => {
+  const cv = renderer.domElement;
+  let lost = false;
+  cv.addEventListener("webglcontextlost", (e) => {
+    e.preventDefault();                       /* without this, "restored" never fires */
+    lost = true;
+    DBG("webgl context lost");
+    try{ const el = $("ctxLost"); if(el) el.classList.remove("hide"); }catch(e2){}
+  }, false);
+  cv.addEventListener("webglcontextrestored", () => {
+    DBG("webgl context restored");
+    /* Remember where she was so the reload is invisible, then rebuild from a clean boot. */
+    try{
+      if(CUR && CUR.cfg) sessionStorage.setItem("lala:ctxIsland", CUR.cfg.key);
+    }catch(e2){}
+    location.reload();
+  }, false);
+  /* iOS suspends the AudioContext on background and never resumes it by itself. Without this the
+     game comes back silent and stays silent until a reload. */
+  const wake = () => {
+    if(lost) return;
+    try{ if(AU.ctx && AU.ctx.state === "suspended") AU.ctx.resume(); }catch(e2){}
+  };
+  document.addEventListener("visibilitychange", () => { if(!document.hidden) wake(); });
+  addEventListener("focus", wake);
+  addEventListener("pageshow", wake);
+  addEventListener("touchend", wake, {passive:true});
+})();
 const INK = 0x241E2E, MOON = 0xFFF6D6, BONE = 0xF7F1E6;
 
 function ramp(n){
@@ -6392,6 +6433,15 @@ function tick(){
   }
 }
 load().then(() => {
+  /* Coming back from a lost WebGL context (see the handler near the resize listener): land on the
+     island she was on, with play already active, so a phone dropping the canvas costs a blink
+     instead of the walk back. */
+  let ctxBack = null;
+  try{ ctxBack = sessionStorage.getItem("lala:ctxIsland"); sessionStorage.removeItem("lala:ctxIsland"); }catch(e){}
+  if(ctxBack && ISL[ctxBack]){
+    CUR = ISL[ctxBack]; goIsland(ISL[ctxBack], true); ovNone(); CUR.W.active = true; tick();
+    DBG("resumed after context loss on", ctxBack); return;
+  }
   /* ?go=green|gr|sanity|town jumps straight onto an island — handy for playtesting one spot */
   const jump = new URLSearchParams(location.search).get("go");
   if(jump && ISL[jump] && jump !== "hub"){ CUR = ISL[jump]; goIsland(ISL[jump], true); ovNone(); CUR.W.active = true; tick(); return; }
