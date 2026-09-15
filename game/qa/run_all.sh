@@ -10,7 +10,12 @@ cd "$(dirname "$0")/.."
 # real one. The harness owns the test build. Do not re-add it.
 
 mkdir -p qa/out
-for s in determinism codehealth console_load assets reach traversal camera framebudget mobile float overhead scale; do
+# The visual suites (vgeo, vaudit, vmat, vcheck) were never in this list. vgeo is the one that
+# measures whether an object is sitting ON the ground, and it is the suite that would have caught
+# Luna's Keep sitting 30 u inside its own hill — the island's namesake landmark, invisible, with
+# its door still firing an interact prompt. It existed for days and nothing ran it.
+# A check nobody runs is not a check.
+for s in determinism codehealth console_load assets reach traversal camera framebudget mobile float overhead scale vgeo vcheck vmat vaudit; do
   [ -f "qa/$s.mjs" ] || { echo "== $s  (missing, skipped)"; continue; }
   echo "== $s"; timeout 1800 node qa/$s.mjs > qa/out/$s.out 2> qa/out/$s.log; tail -5 qa/out/$s.log
 done

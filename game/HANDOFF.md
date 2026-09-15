@@ -1392,3 +1392,103 @@ because I operated the control before writing the sentence down as settled.
 
 **What actually holds:** the message still goes to `game/commitmsg.txt`, and that path is now in
 `.gitignore`, so it no longer shows up as untracked. `git commit -F game/commitmsg.txt` is unchanged.
+
+## 4.25 The island was a sheet floating over the ocean
+
+2026-09-15 (shipped 14e). He sent a phone screenshot: horizontal blue bands lying across the grass,
+and from a low angle the island reading as a slab hovering above the sea. My first theory was
+depth-buffer z-fighting — near 0.1 against far 2790 is a 27,900:1 ratio, which genuinely is terrible.
+It was wrong, and `qa/seaclip.mjs` killed it in one run: **the sea surface is above the ground on 0 of
+126 ray samples inside the island.** Never intersecting. Not precision, not waves — missing geometry.
+
+`polySlab` extrudes DOWNWARD from its top face. The beach and meadow slabs were 3.2 and 3.4 deep, so
+the underside of every island sat at about **y −3.3**, while `seaBed()` is a plane at **y −7**. A 3.6 u
+void ran under the whole island. Any low camera near the shore looked straight under the land at the
+seabed and open sea, and the sea plane at −1.1 cut across that gap as a blue band over the beach.
+
+Slabs now run to −10, past the sea floor, so the island is a solid plug. Top faces unchanged, so
+walkable height did not move. `qa/undercut.mjs` measures it: gap **−3** where it was **+3.6** —
+negative meaning the land penetrates the sea floor instead of hovering above it.
+
+**The rule: when something looks like a shading artefact, measure whether the geometry is even there.**
+I was one commit from "fixing" the near plane, which would have changed nothing and looked plausible.
+
+## 4.26 Luna's Keep spent weeks inside its own hill
+
+2026-09-15 (shipped 15a). He said: *"I can go up a hill and it's telling me to interact with something
+I can't see if it's hidden inside of a hill."* He was describing the island's namesake landmark.
+
+```js
+const castle = new THREE.Group(); castle.position.y = 2.6;   // hub castle
+```
+
+A literal, authored when hub's centre was a 2.8-high mesa on flat ground. The elevation grid and
+`WORLD = 4` have since raised `height(0,0)` to **36.19**. The castle sat ~30 u underground: its highest
+tower cap finished at 29.7, **6.5 u below the grass**. `I.door` — the object the interact prompt fires
+on — was buried with it, which is exactly the symptom he reported. The lamp posts **eleven lines
+above** use `height(x,z)+1.4`. The castle never did.
+
+Fixed to `castle.position.y = height(0, 0)`. Verified by rendering the same camera before and after:
+bare hill, then towers, roof, crest and a reachable door.
+
+**The rule: nothing that stands on the ground gets a literal y.** `height(x,z)` is the only authority,
+and a constant beside it is a bug waiting for someone to move the terrain.
+
+And the guard, in the game itself (`?groundcheck=0` silences it): every island build now walks its own
+finished scene, skips the world's surface, anything airborne, and anything with no mesh that draws,
+and logs by name whatever is standing below its own ground. It never MOVES anything — guessing where a
+thing should go is how the hat spent two weeks being the wrong hat — it just refuses to stay quiet.
+
+## 4.27 The audit lied four separate ways, and I nearly acted on all of it
+
+2026-09-15. `qa/vgeo.mjs` reported **55 buried, 349 floating**. I was about to go and fix 55 objects.
+Four passes later, having changed nothing about the game:
+
+| | buried | floating |
+|---|---|---|
+| as first reported | 55 | 349 |
+| ground excluded | 22 | 93 |
+| whole objects, not parts | 18 | 32 |
+| invisible objects excluded | 18 | 32 |
+| after the one real fix | **7** | 32 |
+
+1. **It judged the ground.** A slab whose bottom is below the ground height is the definition of a
+   slab. The moment I deepened them to −10, the audit named the island the most buried object on the
+   island. Ground meshes now carry `userData.ground` — hills and mesas too, because a hill IS ground.
+2. **It judged parts of things.** It walked every MESH, so a tree's canopy was measured on its own and
+   read as floating five metres up; the trunk holding it was a different mesh. Now it judges
+   **top-level objects** by union bbox.
+3. **It judged the sky.** Clouds and birds are supposed to be 50 u up. `I.fx` is the game's own
+   registry of everything that moves or flies and `index.html:3263` already used it as a skip set —
+   the audit just never did.
+4. **It judged invisible objects.** Taken moon collectibles are pooled as hidden groups at the world
+   origin. The parent is visible, every mesh inside is not, and it reported the pool as a buried
+   object 37 u underground on every island. An object that does not draw cannot be a visual defect.
+
+**The rule, and it is the same one as 4.17 and 4.18 in a fourth costume: a count is not a finding
+until you have opened the bucket and named what is in it.** Three quarters of that alarm was the
+instrument. Had I "fixed" 55 objects I would have moved the ground, the tree canopies and the sky.
+
+`qa/idflag.mjs` (new) resolves a flagged object against `I.props/npcs/stones/gates` and
+`cfg.features/places`, so a defect reports as *"the keep, at Luna's Keep, inside the hill"* rather than
+*"group at (0,0)"*. An audit that cannot name what it found cannot be acted on.
+
+And the reason this was never caught: **`vgeo` was not in `run_all.sh`.** Neither were `vaudit`, `vmat`
+or `vcheck`. All four are now. A check nobody runs is not a check.
+
+## 4.28 PowerShell silently corrupted a file I was about to commit
+
+2026-09-15. His fauna PR #3 landed on `index.html` mid-work. I did not force or reset — I took origin's
+version and re-applied my ten edits with an assertion on each. To get origin's bytes I ran
+`git show origin/main:game/index.html > file` in PowerShell, which wrote **UTF-16 and double-encoded
+through the OEM code page**: all 135 em-dashes came back as `ΓÇö`.
+
+My first check said clean, because the regex I wrote did not include those glyphs. What caught it was
+comparing the **non-ASCII profile against the live page** — 152 non-ASCII, 6 distinct, 135 em-dashes —
+against the merged file's 449 non-ASCII, 13 distinct. Repaired with a cp437 round-trip, verified the
+profile matched live exactly, and only then re-applied the edits.
+
+**The rule: never move a file's bytes through a shell's text layer.** Use the file-transfer tools, or
+compare a checkable property (encoding profile, byte count, hash) against a known-good copy before
+committing. And a clean result from a check I just wrote myself is not evidence until I have shown the
+check can fail.

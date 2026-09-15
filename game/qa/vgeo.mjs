@@ -47,9 +47,18 @@ for (const island of argIslands()) {
       if (o.name && skipName.test(o.name)) continue;
       if (airborne.has(o)) continue;
       { let anyAir = false; o.traverse(k => { if (airborne.has(k)) anyAir = true; }); if (anyAir) continue; }
+      /* A visible container full of invisible meshes is not a visual defect. Taken moon collectibles
+         are pooled as hidden groups at the world origin; the parent is visible, every mesh inside is
+         not, and the audit reported the pool as a buried object 37 u underground on every island.
+         Require at least one mesh that actually DRAWS — visible itself and visible all the way up. */
       let hasGeo = false, allGround = true;
-      o.traverse(k => { if (k.isMesh) { hasGeo = true; if (!k.userData.ground) allGround = false; }
-                        if (k.isSkinnedMesh || k.isInstancedMesh) hasGeo = false; });
+      o.traverse(k => {
+        if (k.isSkinnedMesh || k.isInstancedMesh) return;
+        if (!k.isMesh) return;
+        let vis = true, q = k; while (q && q !== S) { if (!q.visible) { vis = false; break; } q = q.parent; }
+        if (!vis) return;
+        hasGeo = true; if (!k.userData.ground) allGround = false;
+      });
       if (!hasGeo || allGround) continue;
       try { box.setFromObject(o); } catch (e) { continue; }
       if (!isFinite(box.min.y) || !isFinite(box.max.y)) continue;

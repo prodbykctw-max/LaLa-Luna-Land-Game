@@ -345,7 +345,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-15a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-15c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -453,6 +453,13 @@ function stdMat(opts){
      key: a third of it is enough to tint the shadows with sky colour, which is the part that
      actually makes things sit in a place. */
   if(o.envMapIntensity == null) o.envMapIntensity = 0.34;
+  /* relief from the albedo's own luminance — see SURFACE DETAIL above */
+  if(SURF > 0 && o.map && o.normalMap == null && SURF_STRENGTH.has(o.map)){
+    const nm = normalFromTex(o.map, SURF_STRENGTH.get(o.map));
+    if(nm){ o.normalMap = nm; o.normalScale = new THREE.Vector2(SURF, SURF); 
+      /* the same luminance drives roughness: the dark side of a blade scatters more than the lit one */
+      if(o.roughnessMap == null) o.roughnessMap = o.map; }
+  }
   const m = new THREE.MeshStandardMaterial(o);
   /* Cel colours are authored bright because the 5-step ramp darkened them on the way out — the
      ramp's own floor is 0.40. Fed straight into a physical shader they read as roughly double the
@@ -586,6 +593,69 @@ function sandGround(){
   return t;
 }
 const TEX = {meadow: grassGround(), sand: sandGround(), rock: mottle(9, 70, 1.6)};
+
+/* =====================  SURFACE DETAIL  =====================
+   Until now not one surface in this game had a normal map. Every material was perfectly smooth, and
+   that — not the shading model — is why it reads as plastic: ART already defaults to "real", so these
+   are MeshStandardMaterials with env maps, lit properly, and still flat as paper.
+   The fix costs no new art. The ground textures above are grayscale canvases whose luminance already
+   IS a height field: a blade's shadow is dark, the lit side of a grain of sand is bright. Sobel that
+   luminance and you get a normal map perfectly registered to the albedo, because it came from it.
+   One pass over a 512x512 canvas at boot, nothing per frame, no download.
+   DEFAULTED OFF, and here is the honest reason. qa/surfcmp.mjs renders the same frame at surf=0, 1
+   and 2: they are visually IDENTICAL at gameplay distance. 46 materials get a normal map and you
+   cannot see one of them, because the ground textures tile 26*WORLD = 104 times across the island,
+   so the relief minifies below a pixel long before it reaches the eye. The mechanism is right and it
+   is free at runtime, but it costs three Sobel passes over 512x512 canvases at boot and buys nothing
+   where it is currently pointed. It stays here for surfaces that are actually large in frame — the
+   beach, a cliff face, a tree trunk you walk past — and it stays off until it is pointed at one.
+   ?surf=1 turns it on, ?surf=2 doubles it. Render the A/B before believing either of us. */
+const SURF = (() => { const v = parseFloat(QS.get("surf")); return isNaN(v) ? 0 : Math.max(0, Math.min(3, v)); })();
+const _normCache = new WeakMap();
+function normalFromTex(tex, strength){
+  if(!tex || !tex.image) return null;
+  if(_normCache.has(tex)) return _normCache.get(tex);
+  let out = null;
+  try{
+    const src = tex.image, S = src.width|0, H = src.height|0;
+    if(!S || !H) return null;
+    const sc = document.createElement("canvas"); sc.width = S; sc.height = H;
+    const sctx = sc.getContext("2d"); sctx.drawImage(src, 0, 0);
+    const d = sctx.getImageData(0,0,S,H).data;
+    /* luminance as height, wrapped at the edges so the tile still tiles */
+    const lum = new Float32Array(S*H);
+    for(let i=0;i<S*H;i++) lum[i] = (d[i*4]*0.299 + d[i*4+1]*0.587 + d[i*4+2]*0.114) / 255;
+    const oc = document.createElement("canvas"); oc.width = S; oc.height = H;
+    const octx = oc.getContext("2d"); const img = octx.createImageData(S,H); const o = img.data;
+    const at = (x,y) => lum[((y+H)%H)*S + ((x+S)%S)];
+    const k = 2.2 * strength;
+    for(let y=0;y<H;y++) for(let x=0;x<S;x++){
+      /* Sobel */
+      const dx = (at(x+1,y-1) + 2*at(x+1,y) + at(x+1,y+1)) - (at(x-1,y-1) + 2*at(x-1,y) + at(x-1,y+1));
+      const dy = (at(x-1,y+1) + 2*at(x,y+1) + at(x+1,y+1)) - (at(x-1,y-1) + 2*at(x,y-1) + at(x+1,y-1));
+      let nx = -dx*k, ny = -dy*k, nz = 1;
+      const inv = 1/Math.hypot(nx,ny,nz); nx*=inv; ny*=inv; nz*=inv;
+      const i = (y*S+x)*4;
+      o[i]   = Math.round((nx*0.5+0.5)*255);
+      o[i+1] = Math.round((ny*0.5+0.5)*255);
+      o[i+2] = Math.round((nz*0.5+0.5)*255);
+      o[i+3] = 255;
+    }
+    octx.putImageData(img,0,0);
+    out = new THREE.CanvasTexture(oc);
+    out.wrapS = tex.wrapS; out.wrapT = tex.wrapT;
+    out.repeat.copy(tex.repeat); out.anisotropy = tex.anisotropy || 1;
+  }catch(e){ DBG("normalFromTex failed", e && e.message); out = null; }
+  _normCache.set(tex, out);
+  return out;
+}
+/* how much relief each surface gets. Sand is fine grain, rock is coarse, grass sits between. */
+const SURF_STRENGTH = new Map();
+if(SURF > 0){
+  SURF_STRENGTH.set(TEX.meadow, 0.9);
+  SURF_STRENGTH.set(TEX.sand,   1.25);
+  SURF_STRENGTH.set(TEX.rock,   1.5);
+}
 
 /* CONTACT SHADOW. The cast shadow is switched off past 42 u and the ink outline past 26 u, so a
    character further away than that stood on flat ground with nothing anchoring it — which reads as
@@ -5098,6 +5168,51 @@ function buildIslandBody(cfg){
   key.shadow.bias = -0.0008; key.shadow.normalBias = .05;
   scene.add(key.target); I.sun = key;
   guideInit(I); cueInit(I);
+  /* ===============  NOTHING STANDS UNDER ITS OWN GROUND  ===============
+     Luna's Keep sat 30 u inside its own hill for weeks: the island's namesake landmark, invisible,
+     with its door still firing an interact prompt at a player who could see nothing. It was one
+     hardcoded y where every neighbouring line used height(x,z), and no check in the game or the QA
+     suite would ever have said so out loud.
+     This is that check, in the build itself. It walks the finished island once, skips the world's
+     own surface, anything that moves or flies, and anything with no mesh that actually draws, and
+     names whatever is standing below the ground it should be standing on. It costs one pass at
+     island build and it prints; it never moves anything, because guessing where a thing SHOULD go
+     is how the hat spent two weeks being the wrong hat. ?groundcheck=0 silences it. */
+  if(QS.get("groundcheck") !== "0"){
+    try{
+      const air = new Set(); const fxr = I.fx || {};
+      for(const [k, v] of Object.entries(fxr)){
+        if(k === "canopies" || k === "bushes") continue;
+        const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null);
+        if(arr) arr.forEach(o => { if(o && o.isObject3D){ air.add(o); let q = o; while((q = q.parent) && q !== scene) air.add(q); } });
+        else if(v && v.isObject3D) air.add(v);
+      }
+      (I.notes||[]).forEach(n => air.add(n)); (I.mist||[]).forEach(m => air.add(m));
+      const bad = [], bx = new THREE.Box3(), ctr = new THREE.Vector3();
+      for(const o of scene.children){
+        if(!o.visible || o.isLight || o.isCamera || o.userData.ground || o.userData.dyn) continue;
+        if(o === I.sea || o === I.moon || o === I.rain || o === I.bow || o === I.terrainMesh) continue;
+        if(I.W && (o === I.W.group || o === I.W.model)) continue;
+        if(air.has(o)) continue;
+        let anyAir = false; o.traverse(k => { if(air.has(k)) anyAir = true; }); if(anyAir) continue;
+        let draws = false, allGround = true;
+        o.traverse(k => { if(!k.isMesh || k.isSkinnedMesh || k.isInstancedMesh) return;
+          let vis = true, q = k; while(q && q !== scene){ if(!q.visible){ vis = false; break; } q = q.parent; }
+          if(!vis) return; draws = true; if(!k.userData.ground) allGround = false; });
+        if(!draws || allGround) continue;
+        bx.setFromObject(o); if(!isFinite(bx.min.y)) continue;
+        bx.getCenter(ctr); if(Math.hypot(ctr.x, ctr.z) > 320) continue;
+        const tall = bx.max.y - bx.min.y;
+        if(tall < 0.5) continue;
+        const g = height(ctr.x, ctr.z), gap = bx.min.y - g;
+        if(gap >= -Math.max(1.0, tall * 0.5)) continue;          /* a little embedding is how things sit */
+        const parts = {}; o.traverse(k => { if(k.isMesh && k.geometry) parts[k.geometry.type] = (parts[k.geometry.type]||0)+1; });
+        bad.push({at:[+ctr.x.toFixed(1), +ctr.z.toFixed(1)], under:+(-gap).toFixed(1), tall:+tall.toFixed(1), ground:+g.toFixed(1), parts});
+      }
+      if(bad.length) DBG("GROUNDCHECK", cfg.key, bad.length + " object(s) standing below their own ground:", bad);
+    }catch(e){ DBG("groundcheck failed", e && e.message); }
+  }
+
   return I;
 }
 

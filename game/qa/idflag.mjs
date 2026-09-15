@@ -47,8 +47,15 @@ for (const isl of argIslands()) {
       if (W && (o === W.group || o === W.model)) continue;
       if (airborne.has(o)) continue;
       let anyAir = false; o.traverse(k => { if (airborne.has(k)) anyAir = true; }); if (anyAir) continue;
+      /* same visibility rule as vgeo: only meshes that actually draw can be a visual defect */
       let hasGeo = false, allGround = true, skinned = false;
-      o.traverse(k => { if (k.isMesh) { hasGeo = true; if (!k.userData.ground) allGround = false; } if (k.isSkinnedMesh || k.isInstancedMesh) skinned = true; });
+      o.traverse(k => {
+        if (k.isSkinnedMesh || k.isInstancedMesh) { skinned = true; return; }
+        if (!k.isMesh) return;
+        let vis = true, q = k; while (q && q !== S) { if (!q.visible) { vis = false; break; } q = q.parent; }
+        if (!vis) return;
+        hasGeo = true; if (!k.userData.ground) allGround = false;
+      });
       if (!hasGeo || allGround || skinned) continue;
       try { box.setFromObject(o); } catch (e) { continue; }
       if (!isFinite(box.min.y)) continue;
