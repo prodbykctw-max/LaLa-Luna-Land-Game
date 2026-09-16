@@ -348,7 +348,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-15d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-16b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1336,8 +1336,27 @@ function preloadRigs(I){
 function attachRig(R, name){
   const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
   const model = THREE.SkeletonUtils.clone(gltf.scene);
-  if(R.tint != null) model.traverse(o => { if(o.isMesh && o.material && o.material.isMeshToonMaterial){ o.material = toonRim(o.material.clone()); o.material.color.setHex(R.tint); } });
+  /* THE SAME MATERIAL-CLASS GATE, A THIRD TIME. This tested isMeshToonMaterial, and ART defaults
+     to "real" — MeshStandardMaterial — so in the shipping art mode NO NPC HAS EVER BEEN TINTED.
+     Every villager wearing "her" colour has been wearing the raw GLB colour instead. toonRim only
+     patches onBeforeCompile; it does not care which material class it is handed. (HANDOFF 4.29) */
+  if(R.tint != null) model.traverse(o => {
+    if(!o.isMesh || !o.material) return;
+    const m = o.material;
+    if(m.userData && m.userData.isInk) return;                       /* the ink twin stays ink */
+    if(!m.color) return;                                             /* nothing to tint */
+    o.material = toonRim(m.clone()); o.material.color.setHex(R.tint);
+  });
   R.group.add(model); R.model = model;
+  /* A rig arrives AFTER buildIslandBody has run its shadow pass, so the pass never saw her: Lala
+     and every NPC have been walking around casting nothing at all, which is most of why she reads
+     as pasted onto the picture rather than standing in it. Flag them as they attach. */
+  model.traverse(o => {
+    if(!o.isMesh) return;
+    if(o.material && o.material.userData && o.material.userData.isInk){ o.castShadow = false; o.receiveShadow = false; return; }
+    o.castShadow = true; o.receiveShadow = true;
+    o.frustumCulled = false;                    /* skinned bounds are the bind pose; culling pops her out */
+  });
   R.inkTwins = []; R.skins = []; model.traverse(o => { if(!o.isMesh) return; if(o.material.userData && o.material.userData.isInk) R.inkTwins.push(o); else R.skins.push(o); });
   (R.primitive||[]).forEach(m => m.visible = false);
   bindAttachments(R, model, gltf.scene.scale.x);
@@ -2859,14 +2878,49 @@ function cloudPuffs(scene, n, tint, P){
       const m = new THREE.Mesh(q.geo, mat);
       m.position.set(q.px, q.py, q.pz); m.scale.y = q.sy; g.add(m);
     }
-    const a = Math.random()*Math.PI*2, d = 70+Math.random()*150;
-    g.position.set(Math.cos(a)*d, 34+Math.random()*26, Math.sin(a)*d); g.userData.sp = .6+Math.random()*.9;
+    /* ===================  THE SKY WAS A VOID  ===================
+       This used to be `d = 70 + random*150` — every cloud on every island inside a narrow ring
+       70-220 u from the centre, nine of them, in a world whose far plane is 2790. Look up anywhere
+       but straight at that band and the sky was empty. He described it exactly: "it looks like an
+       image", "the world is pretty dead, it's like a void".
+       A real sky has cloud at every distance and every altitude, and the far ones are smaller,
+       higher, paler and slower — that is what tells you the sky has depth rather than being a
+       backdrop. Distance is sampled on a curve (sqrt) so they spread over the whole dome instead of
+       bunching at the far edge, altitude rises with distance, and everything past the midfield is
+       blended toward the sky colour so it reads as air, not as a nearer cloud that shrank.
+       They stay unlit MeshBasicMaterial in one shared material, so a skyful costs about what nine
+       cost: no lights, no shadows, no per-frame work beyond the drift they already had. */
+    const a = Math.random()*Math.PI*2;
+    const far = Math.sqrt(Math.random());                 /* even area coverage, not a far-edge pile-up */
+    const d = 60 + far*560;
+    const alt = 34 + far*120 + Math.random()*26;          /* the distant ones sit higher in the frame */
+    g.position.set(Math.cos(a)*d, alt, Math.sin(a)*d);
+    /* far clouds are smaller on screen anyway; give them real size variety so they are not clones */
+    const sc = (0.75 + Math.random()*0.7) * (1 + far*1.35);
+    g.scale.setScalar(sc);
+    /* haze: the further out, the more it becomes sky. This is the aerial perspective the reference
+       images live on — depth read as colour, not as size. */
+    if(far > 0.12){
+      const hazeC = new THREE.Color(P && P.skyBot ? P.skyBot : 0xBFD4E4);
+      const k = Math.min(0.72, (far-0.12) * 0.95);
+      g.traverse(o => {
+        if(!o.isMesh || !o.geometry || !o.geometry.attributes.color) return;
+        const col = o.geometry.attributes.color, tmp = new THREE.Color();
+        for(let a2=0;a2<col.count;a2++){
+          tmp.fromBufferAttribute(col, a2).lerp(hazeC, k);
+          col.setXYZ(a2, tmp.r, tmp.g, tmp.b);
+        }
+        col.needsUpdate = true;
+      });
+    }
+    g.userData.sp = (.6+Math.random()*.9) * (1 - far*0.62);   /* distance slows things down */
+    g.userData.far = far;
     g.rotation.y = Math.random()*6; scene.add(g); list.push(g);
   }
   return list;
 }
 function fxUpdate(fx, dt, t, camPos){
-  if(fx.puffs) fx.puffs.forEach(c => { c.position.x += c.userData.sp*dt; if(c.position.x > 260) c.position.x = -260; });
+  if(fx.puffs) fx.puffs.forEach(c => { const lim = 60 + (c.userData.far || 0)*560 + 120; c.position.x += c.userData.sp*dt; if(c.position.x > lim) c.position.x = -lim; });   /* wrap at each cloud's own radius, not a fixed 260 that stranded the far ones */
   fx.foam.forEach(f => { if(f.material.uniforms) f.material.uniforms.t.value = t; else f.material.opacity = .26 + Math.sin(t*.9)*.10; });
   if(fx.wet) fx.wet.material.opacity = .15 + (Math.sin(t*.45)*.5+.5)*.09;      /* the wet line breathes with the swell */
   if(fx.grass && fx.grass.mat){ const u = fx.grass.mat.userData.uniforms; if(u){ u.uTime.value = t; u.uWind.value = fx.windMul; if(fx.player) u.uPlayer.value.set(fx.player.x, fx.player.y, fx.player.z);
@@ -4307,7 +4361,16 @@ function buildIslandBody(cfg){
   for(const k in tintSeen) delete tintSeen[k];   /* each island shuffles its own outfit washes */
   const P = cfg.pal, scene = new THREE.Scene();
   const fogK = 1 + (WORLD - 1) * 0.55;   /* a bigger island needs to be visible further out */
-  scene.fog = new THREE.Fog(P.fog, (cfg.key === "sanity" ? 60 : 80) * fogK, (cfg.key === "sanity" ? 220 : 260) * fogK);
+  /* ===================  AERIAL PERSPECTIVE  ===================
+     Distance in the reference images is read as COLOUR, not as size: the far hills are paler, bluer
+     and lower-contrast than the near ones, because there is air in between. The fog tint was a flat
+     authored P.fog, which tinted distance toward a fixed colour that had nothing to do with where
+     the sky actually meets the land. Lean it most of the way toward the horizon band (skyBot) and
+     distance melts INTO the sky instead of into a wash sitting in front of it — which is the single
+     cheapest thing that makes a world feel like it has air in it. ?aerial=0 restores the flat tint. */
+  const AERIAL = (() => { const v = parseFloat(QS.get("aerial")); return isNaN(v) ? 0.68 : Math.max(0, Math.min(1, v)); })();
+  const fogCol = new THREE.Color(P.fog).lerp(new THREE.Color(P.skyBot), AERIAL);
+  scene.fog = new THREE.Fog(fogCol, (cfg.key === "sanity" ? 60 : 80) * fogK, (cfg.key === "sanity" ? 220 : 260) * fogK);
   const sky = skyDome(P.skyTop, P.skyMid, P.skyBot); scene.add(sky.mesh);
   const moon = moonPair(new THREE.Vector3(...cfg.moon.pos), cfg.moon.r); scene.add(moon);
   /* ---- lighting ----
@@ -5173,7 +5236,7 @@ function buildIslandBody(cfg){
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
     motes: motes(scene, 140, 80, cfg.weather==="embers" ? 0xFF9A55 : (cfg.weather==="glitter" ? 0xFFE59A : (cfg.key==="sanity" ? 0xA8DCF4 : 0xFFF0C0)), cfg.weather==="embers" ? 1.4 : .22),
     clouds: cfg.key==="sanity" ? [] : cloudShadows(scene, 6, 60),
-    puffs: cloudPuffs(scene, cfg.key==="sanity" ? 5 : 9, cfg.key==="sanity" ? 0x3A4670 : (cfg.key==="gr" ? 0xF3C9AE : 0xFFFBF2), P),
+    puffs: cloudPuffs(scene, (() => { const o = parseInt(QS.get("clouds")); return isFinite(o) ? o : ((matchMedia("(pointer:coarse)").matches ? 0.55 : 1) * (cfg.key==="sanity" ? 34 : 52) | 0); })(), cfg.key==="sanity" ? 0x3A4670 : (cfg.key==="gr" ? 0xF3C9AE : 0xFFFBF2), P),
     /* shooting stars need a dark sky to be seen against, so they go where the star field goes */
     shoot: (cfg.key === "gr" || cfg.key === "sanity") ? shootingStars(scene, 4) : null,
     /* her glitter trail: A Place for Me is the island that asked for it */
@@ -5200,9 +5263,59 @@ function buildIslandBody(cfg){
   /* bake every static inked prop into two big meshes (toon + ink) so hundreds of draw calls become two —
      shadow pass, ink pass and main pass all shrink. Anything that moves or changes stays a separate object. */
   mergeStatics(I, scene);
-  /* shadows: every toon-shaded solid casts and receives; the sun's shadow box follows the walker.
-     Instanced grass/flowers/litter receive but don't cast — thousands of tiny casters were the bulk of the shadow pass. */
-  scene.traverse(o => { if(o.isMesh && o.material && o.material.isMeshToonMaterial){ o.castShadow = !o.isInstancedMesh; o.receiveShadow = true; } });
+  /* ===============  SHADOWS: JUDGE THE MESH, NEVER THE MATERIAL CLASS  ===============
+     This gate used to read `o.material.isMeshToonMaterial`. ART defaults to "real", which builds
+     MeshStandardMaterial, so the gate matched ZERO objects. Measured on Green before this fix:
+     53 of 1180 meshes cast, 7 received, 378 tall objects cast nothing at all. That is why everything
+     read as "shit rendering on top of flat shit" — nothing was joined to the ground, because nothing
+     darkened the ground beneath it. Contact shadow is the single cheapest cue that an object is
+     STANDING somewhere rather than floating in front of a picture. (HANDOFF 4.29)
+     What casts: any opaque solid that is not the ground itself, not instanced scatter, and not
+     something the game already knows is airborne. What receives: everything opaque, ground first. */
+  {
+    /* I.fx is an OBJECT keyed by effect name, not an array — the same shape mergeStatics reads at :3460.
+       canopies and bushes live in it but are rooted scenery, and they are the tree silhouettes we most
+       want on the ground, so they are excluded from the airborne set exactly as they are there. */
+    const air = new Set(), fxr = I.fx || {};
+    for(const [k, v] of Object.entries(fxr)){
+      if(k === "canopies" || k === "bushes") continue;
+      const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null);
+      if(arr) arr.forEach(o => { if(o && o.isObject3D) o.traverse(q => air.add(q)); });
+      else if(v && v.isObject3D) v.traverse(q => air.add(q));
+    }
+    (I.notes||[]).forEach(n => { if(n && n.traverse) n.traverse(q => air.add(q)); });
+    (I.mist||[]).forEach(m => { if(m && m.traverse) m.traverse(q => air.add(q)); });
+    const skip = new Set();
+    [sky && sky.mesh, moon, I.sea, I.moon, I.rain, I.bow, I.terrainMesh].forEach(o => { if(o && o.traverse) o.traverse(q => skip.add(q)); else if(o && o.isObject3D) skip.add(o); });
+    /* Bounds are measured in WORLD space, so the matrices have to be current or setFromObject
+       silently returns the raw bind-pose geometry. That is how the size test below quietly rejected
+       three NPC rigs on its first run: they measured under 0.35 u because their group scale had not
+       been folded in yet. A size test on a stale matrix is not a size test. */
+    scene.updateMatrixWorld(true);
+    const bb = new THREE.Box3(), sz = new THREE.Vector3();
+    let cast = 0, recv = 0;
+    scene.traverse(o => {
+      if(!o.isMesh || !o.material) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      const solid = mats.some(m => m && !m.transparent && (m.opacity === undefined || m.opacity >= 1) && m.depthWrite !== false);
+      if(!solid) return;                                   /* glass, glow, foam, cloud: never a caster */
+      o.receiveShadow = true; recv++;
+      if(skip.has(o) || air.has(o)) return;                /* sea, seabed, sky, moon, rain, bow, fx */
+      if(o.userData.ground) return;                        /* the ground receives; it does not cast onto itself */
+      if(o.isInstancedMesh){                               /* scatter: cast only if the blades are big enough to read */
+        if(!o.userData.castOK) return;
+      }
+      if(!o.isSkinnedMesh){                                /* a rig's bind-pose box is not its played box */
+        try{
+          bb.setFromObject(o); bb.getSize(sz);
+          if(Math.max(sz.x, sz.y, sz.z) < 0.35) return;    /* sub-blade detail: costs a draw, casts a smudge */
+        }catch(e){}
+      }
+      o.frustumCulled = o.isSkinnedMesh ? false : o.frustumCulled;
+      o.castShadow = true; cast++;
+    });
+    DBG("SHADOWS", cfg.key, "cast", cast, "receive", recv);
+  }
   key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
   key.shadow.camera.near = 5; key.shadow.camera.far = 220;
   key.shadow.camera.left = -70; key.shadow.camera.right = 70; key.shadow.camera.top = 70; key.shadow.camera.bottom = -70;
