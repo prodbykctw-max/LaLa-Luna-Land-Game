@@ -10,10 +10,22 @@
 <style>
 :root{--night:#12101C;--moon:#FFF6D6;--bone:#F7F1E6;--coral:#F08A5D;
       --meadow:#6FBF92;--tide:#5C9FD4;--bruise:#9B84DC;--ink:#241E2E}
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden;background:var(--night)}
+/* ===================  NOTHING IN A GAME IS SELECTABLE TEXT  ===================
+   body already carried touch-action:none and user-select:none, which stops the drag-to-select and
+   the browser's own scroll/zoom gestures. Neither of those is what puts a magnifier and a
+   Copy / Look Up / Share bubble on the screen when you hold a finger down on iOS - that is the
+   touch callout, and it is a separate property. Safari also fires it on the CANVAS, so holding the
+   jump button while the camera swings can pop a "Save Image" sheet over the game.
+   -webkit-user-select is spelled out because older iOS Safari does not honour the unprefixed one
+   on every element, and the * selector carries it to the HUD buttons rather than trusting
+   inheritance through the shadow-ish stacking the overlays use. */
+*{margin:0;padding:0;box-sizing:border-box;
+  -webkit-touch-callout:none;-webkit-user-select:none;-ms-user-select:none;user-select:none}
+html,body{height:100%;overflow:hidden;background:var(--night);overscroll-behavior:none}
 body{font-family:"DM Mono",ui-monospace,monospace;color:var(--bone);
-     -webkit-tap-highlight-color:transparent;touch-action:none;user-select:none}
+     -webkit-tap-highlight-color:transparent;touch-action:none;user-select:none;
+     -webkit-touch-callout:none}
+canvas{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 canvas{display:block;position:fixed;inset:0}
 #grain{position:fixed;inset:-50%;pointer-events:none;z-index:5;opacity:.10;mix-blend-mode:overlay;
  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
@@ -213,6 +225,25 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 #cap{position:fixed;left:0;right:0;bottom:14%;z-index:6;text-align:center;opacity:0;transition:opacity 1s}
 #cap.on{opacity:1}
 #cap .q{font-family:"Instrument Serif",serif;font-style:italic;font-size:clamp(20px,5vw,30px);color:var(--moon);padding:0 24px}
+/* ---- cut scenes ---- Lala asked for an animated scene when the horse is won, and for scenes on
+   achievements generally so the islands carry a story. This is the frame for all of them: it is not
+   video, it is the real world with the camera taken off the player and flown along an authored path,
+   which is how a game does this and costs nothing to download. */
+#cutscene{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;transition:opacity .5s}
+#cutscene.on{opacity:1;pointer-events:auto}
+#cutscene.hide{display:none}
+.cbar{position:absolute;left:0;right:0;height:0;background:#000;transition:height .6s cubic-bezier(.4,0,.2,1)}
+.ctop{top:0} .cbot{bottom:0}
+#cutscene.on .cbar{height:11vh}
+.ctxt{position:absolute;left:0;right:0;bottom:15vh;text-align:center;padding:0 8vw;
+  text-shadow:0 2px 18px rgba(0,0,0,.85)}
+#cutT{font-family:Georgia,serif;font-style:italic;font-size:clamp(20px,3.6vw,38px);color:#FFF6E6;
+  opacity:0;transform:translateY(10px);transition:opacity .7s,transform .7s}
+#cutS{margin-top:.5em;font-size:clamp(11px,1.5vw,15px);letter-spacing:.18em;text-transform:uppercase;
+  color:#E8DCC8;opacity:0;transform:translateY(10px);transition:opacity .7s .15s,transform .7s .15s}
+#cutT.in,#cutS.in{opacity:1;transform:none}
+#cutSkip{position:absolute;right:4vw;bottom:13.5vh;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:rgba(255,255,255,.45)}
 #toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:8;text-align:center;
  opacity:0;transition:opacity .6s;pointer-events:none;width:90%}
 #toast.on{opacity:1}
@@ -325,6 +356,11 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
   <button id="bEnd">Back to the island</button>
 </div></div>
 
+<div id="cutscene" class="hide">
+  <div class="cbar ctop"></div><div class="cbar cbot"></div>
+  <div class="ctxt"><div id="cutT"></div><div id="cutS"></div></div>
+  <div id="cutSkip">tap to skip</div>
+</div>
 <div id="fade"></div>
 
 <script src="vendor/three.min.js"></script>
@@ -348,7 +384,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-16b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-26a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -398,17 +434,76 @@ renderer.shadowMap.enabled = PROF.shadow; renderer.shadowMap.type = THREE.PCFSof
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = (QS.get("look") || "toon3d") !== "real" ? 1.12 : (REAL ? 1.0 : 1.05);   /* the environment map adds real light, so pull the exposure back */
 document.body.appendChild(renderer.domElement);
+/* ===================  AND NO BROWSER UI ON TOP OF THE GAME  ===================
+   CSS stops the selection; these stop the MENUS, which are separate events the stylesheet cannot
+   reach. Long-pressing anything on iOS fires a contextmenu, and a two-finger pinch or a double-tap
+   fires gesturestart/gesturechange even with touch-action:none, which zooms the whole page and
+   leaves the HUD floating off the edge of a phone screen. dblclick is blocked for the same reason.
+   All of them are passive:false because a passive listener is not allowed to preventDefault, which
+   is the entire point of registering them. */
+["contextmenu","selectstart","dragstart","gesturestart","gesturechange","gestureend"].forEach(ev =>
+  addEventListener(ev, e => e.preventDefault(), {passive:false}));
+addEventListener("dblclick", e => e.preventDefault(), {passive:false});
 const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .1, 900 * (1 + (WORLD - 1) * 0.7));   /* far enough to see across a bigger island */
 /* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
 const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .30, .75, .86); if(PROF.bloom) composer.addPass(bloomPass);
+/* ===================  THE GRADE IS WHY THEIR FRAMES LOOK SHOT AND OURS LOOK RENDERED  ===================
+   Nothing in the reference reels is "high detail". Pull a frame from the Askew forest and it is
+   ninety percent near-black teal with ONE saturated orange on the character; Klein's Gate is
+   near-black with ONE red ring; the Nyra field is a narrow band of olive with the sky blown out.
+   They read as photographed because their VALUES ARE GROUPED — the darks are crushed together and
+   tinted, the midtones are compressed, and exactly one hue is allowed to stay saturated. Our frames
+   spread every object across the middle of the range at full chroma, which is the actual definition
+   of "cartoon shading", and it is why the game read as toony no matter which material class it used.
+
+   So the grade now does what a colourist does, in this order:
+     1  shadow tint   - darks pulled toward the air colour, never toward black. Real shadows are
+                        filled by the sky, and a scene whose darks go to 0,0,0 always reads as CG.
+     2  shadow desat  - chroma removed from the darks only. This is what leaves one accent standing.
+     3  S-curve       - midtones compressed toward the middle so the image groups into a few values
+                        instead of a smooth ramp across all of them.
+     4  vignette + sRGB, as before.
+   Every stage is a uniform with a query override so it can be dialled against a reference frame
+   rather than guessed: ?grade=0 turns the whole thing off for a straight A/B. */
+const GRADE = (() => { const v = parseFloat(QS.get("grade")); return isNaN(v) ? 1 : Math.max(0, Math.min(2, v)); })();
 const gradePass = new THREE.ShaderPass({
-  uniforms:{tDiffuse:{value:null}, vig:{value:.42}, sat:{value:1.08}, lift:{value:new THREE.Vector3(.006,.004,.012)}},
+  uniforms:{
+    tDiffuse:{value:null},
+    vig:{value:.42},
+    sat:{value:1.22},                                   /* he wants lush; push chroma, do not pull it */
+    lift:{value:new THREE.Vector3(.006,.004,.012)},
+    amt:{value:GRADE},                                  /* master, so one query flag kills all of it */
+    airCol:{value:new THREE.Color(0x8FA6B8)},           /* set per island to the fog colour */
+    /* FIRST PASS OF THIS WAS WRONG AND HE CAUGHT IT: "did you grayscale the game... take away the
+       richness of the colour". It shipped shadowDesat .55, which pulled more than half the chroma
+       out of every dark pixel - on an island whose whole read is lush green, that is most of the
+       frame. Grouping VALUES is what the reference frames do; draining COLOUR is not the same
+       operation and I conflated them. The tint stays (darks filled by sky colour instead of going
+       to black is simply true), the desaturation drops to a trace, and saturation goes UP overall
+       so the greens get richer rather than flatter. */
+    shadowTint:{value:.22},                             /* how far darks lean into the air colour */
+    shadowDesat:{value:.10},                            /* a trace only - never drain the greens */
+    contrast:{value:.20}                                /* strength of the midtone S-curve */
+  },
   vertexShader:`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-  fragmentShader:`uniform sampler2D tDiffuse; uniform float vig, sat; uniform vec3 lift; varying vec2 vUv;
+  fragmentShader:`uniform sampler2D tDiffuse; uniform float vig, sat, amt, shadowTint, shadowDesat, contrast;
+    uniform vec3 lift, airCol; varying vec2 vUv;
     void main(){ vec4 c=texture2D(tDiffuse,vUv);
-      float l=dot(c.rgb,vec3(.299,.587,.114)); c.rgb=mix(vec3(l),c.rgb,sat);
+      float l=dot(c.rgb,vec3(.299,.587,.114));
+      c.rgb=mix(vec3(l),c.rgb,sat);
+      if(amt > 0.001){
+        /* dark = 1 at black, 0 by the upper midtones. Everything below keys off it, so highlights
+           and the one accent colour are left completely alone. */
+        float dark = 1.0 - smoothstep(0.0, 0.45, l);
+        c.rgb = mix(c.rgb, airCol * max(l, 0.045), dark * shadowTint * amt);
+        float l2 = dot(c.rgb, vec3(.299,.587,.114));
+        c.rgb = mix(c.rgb, vec3(l2), dark * shadowDesat * amt);
+        /* S-curve about 0.5: smoothstep is the curve, mix() is its strength */
+        vec3 sc = c.rgb*c.rgb*(3.0-2.0*c.rgb);
+        c.rgb = mix(c.rgb, sc, contrast * amt);
+      }
       vec2 d=vUv-.5; float v=1.0-smoothstep(.45,1.05,length(d)*1.55)*vig; c.rgb*=v;
       c.rgb=pow(max(c.rgb,0.0),vec3(1.0/2.2)); /* composer targets are linear; do the sRGB step here */
       c.rgb+=lift;
@@ -483,6 +578,88 @@ const rimPatch = sh => {
    what it is, lit by the environment map built from the island's own sky. Callers pass the same
    options either way — gradientMap is simply dropped, and roughness/metalness are only added where
    the caller did not ask for something else. */
+/* =====================  THE 912 FLAT-COLOUR MESHES  =====================
+   Measured on Green, not guessed: 990 meshes in the scene, 78 carry an albedo map, 912 carry a
+   flat colour and nothing else, and the whole game contains ZERO normal maps and ZERO roughness
+   maps. Luna's Keep - the building that fills his phone screenshot - is BoxGeometry(13,15,13) with
+   a solid colour on it. There is no surface anywhere in this world.
+
+   That is what "paper thin", "slapped together" and "plastic" are describing, and it is not
+   something a shadow pass, a fog curve or a colour grade can reach. A surface reads as a MATERIAL
+   because light lands on it unevenly: the normal wobbles at millimetre scale so highlights break
+   up, and the roughness varies so some patches are dull and some catch the sun. Take both away and
+   every object in the frame is the same perfectly smooth shell in a different colour - which is
+   exactly what a "very polygon, very primitive" world looks like.
+
+   So this gives every material a fine detail normal + roughness break-up, and it does it
+   TRIPLANAR in WORLD SPACE rather than through each mesh's own uv. That distinction is the whole
+   point: a BoxGeometry(13,15,13) has uv 0..1 across thirteen units and a small prop has uv 0..1
+   across half a unit, so mapping by uv gives every object a different texel density and the world
+   reads as a collection of objects at unrelated scales. Sampling by world position gives the keep
+   wall, the door, the fence post and the stone the SAME grain, which is what makes a set of
+   separate props read as one place built out of one world.
+
+   One 256px canvas, generated once, no download. ?detail=0 turns it off; ?detail=2 doubles it. */
+function detailNormalTex(){
+  const S = 256, h = new Float32Array(S*S);
+  /* three octaves of wrapping value noise, so the tile has grain AND lumps */
+  const oct = (freq, amp) => {
+    const g = new Float32Array(freq*freq);
+    for(let i=0;i<g.length;i++) g[i] = Math.random();
+    const at = (x,y) => g[((y%freq)+freq)%freq * freq + ((x%freq)+freq)%freq];
+    for(let y=0;y<S;y++) for(let x=0;x<S;x++){
+      const fx = x/S*freq, fy = y/S*freq;
+      const x0 = Math.floor(fx), y0 = Math.floor(fy);
+      const tx = fx-x0, ty = fy-y0;
+      const sx = tx*tx*(3-2*tx), sy = ty*ty*(3-2*ty);
+      const a = at(x0,y0), b = at(x0+1,y0), c = at(x0,y0+1), d = at(x0+1,y0+1);
+      h[y*S+x] += (a+(b-a)*sx + ((c+(d-c)*sx)-(a+(b-a)*sx))*sy) * amp;
+    }
+  };
+  oct(8,.50); oct(24,.30); oct(64,.16); oct(128,.07);
+  const cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const ctx = cv.getContext("2d"), img = ctx.createImageData(S,S), px = img.data;
+  const H = (x,y) => h[(((y%S)+S)%S)*S + (((x%S)+S)%S)];
+  for(let y=0;y<S;y++) for(let x=0;x<S;x++){
+    /* Sobel the height field into a tangent-space normal; alpha carries the height itself so the
+       same fetch can drive roughness without a second texture. */
+    const dx = (H(x+1,y-1)+2*H(x+1,y)+H(x+1,y+1)) - (H(x-1,y-1)+2*H(x-1,y)+H(x-1,y+1));
+    const dy = (H(x-1,y+1)+2*H(x,y+1)+H(x+1,y+1)) - (H(x-1,y-1)+2*H(x,y-1)+H(x+1,y-1));
+    const nx = -dx*2.2, ny = -dy*2.2, nz = 1;
+    const len = Math.hypot(nx,ny,nz), i = (y*S+x)*4;
+    px[i]   = (nx/len*.5+.5)*255;
+    px[i+1] = (ny/len*.5+.5)*255;
+    px[i+2] = (nz/len*.5+.5)*255;
+    px[i+3] = Math.max(0, Math.min(255, H(x,y)*255));
+  }
+  ctx.putImageData(img,0,0);
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  return t;
+}
+const DETAIL = (() => { const v = parseFloat(QS.get("detail")); return isNaN(v) ? 1 : Math.max(0, Math.min(3, v)); })();
+let _detailTex = null;
+const detailTex = () => (_detailTex || (_detailTex = detailNormalTex()));
+/* Skinned and instanced meshes are skipped: their final vertex position is built by the skinning
+   and instancing chunks and modelMatrix alone does not describe it, so a world-space lookup would
+   swim across the surface as they move. Grass and characters carry their own treatment. */
+function detailPatch(sh){
+  sh.uniforms.uDet = {value: detailTex()};
+  sh.uniforms.uDetScale = {value: 0.62};        /* tiles per world unit - fine grain, not a pattern */
+  sh.uniforms.uDetAmt = {value: 0.34 * DETAIL};
+  sh.uniforms.uDetRough = {value: 0.30 * DETAIL};
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nvarying vec3 vWPosD; varying vec3 vWNrmD;")
+    .replace("#include <project_vertex>",
+      "vWPosD = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvWNrmD = normalize(mat3(modelMatrix) * objectNormal);\n#include <project_vertex>");
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>",
+      "#include <common>\nvarying vec3 vWPosD; varying vec3 vWNrmD;\nuniform sampler2D uDet; uniform float uDetScale, uDetAmt, uDetRough;\nvec4 _triDet(){ vec3 bw = pow(abs(vWNrmD), vec3(4.0)); bw /= max(bw.x+bw.y+bw.z, 1e-4);\n  vec4 a = texture2D(uDet, vWPosD.zy * uDetScale);\n  vec4 b = texture2D(uDet, vWPosD.xz * uDetScale);\n  vec4 c = texture2D(uDet, vWPosD.xy * uDetScale);\n  return a*bw.x + b*bw.y + c*bw.z; }")
+    .replace("#include <roughnessmap_fragment>",
+      "#include <roughnessmap_fragment>\n{ vec4 dt = _triDet(); roughnessFactor = clamp(roughnessFactor + (dt.a - 0.5) * uDetRough, 0.06, 1.0); }")
+    .replace("#include <normal_fragment_maps>",
+      "#include <normal_fragment_maps>\n{ vec4 dt = _triDet(); vec3 dn = normalize(dt.xyz * 2.0 - 1.0);\n  vec3 dv = normalize((viewMatrix * vec4(dn, 0.0)).xyz);\n  normal = normalize(normal + dv * uDetAmt); }");
+}
 function stdMat(opts){
   const o = Object.assign({}, opts || {});
   if(!REAL) return new THREE.MeshToonMaterial(o);
@@ -502,6 +679,12 @@ function stdMat(opts){
       if(o.roughnessMap == null) o.roughnessMap = o.map; }
   }
   const m = new THREE.MeshStandardMaterial(o);
+  /* every standard material in the game gets a surface - see THE 912 FLAT-COLOUR MESHES above */
+  if(DETAIL > 0 && !o.__noDetail){
+    m.userData.patches = (m.userData.patches || []).concat([["det", detailPatch]]);
+    m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
+    m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
+  }
   /* Cel colours are authored bright because the 5-step ramp darkened them on the way out — the
      ramp's own floor is 0.40. Fed straight into a physical shader they read as roughly double the
      albedo anything real has: grass is about 0.18-0.25 reflectance, not 0.55. Without this the
@@ -633,7 +816,65 @@ function sandGround(){
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26*WORLD, 26*WORLD); t.anisotropy = 4;
   return t;
 }
-const TEX = {meadow: grassGround(), sand: sandGround(), rock: mottle(9, 70, 1.6)};
+/* =====================  MACRO VARIATION  =====================
+   The ground textures tile 26*WORLD = 104 times across the island. At that rate their blade grain
+   minifies below a pixel and every one of those tiles averages to the SAME colour, so the meadow is
+   mathematically guaranteed to be flat paint however much detail is painted into it. More strokes
+   cannot fix that; the frequency is wrong, not the amount.
+
+   Look at any frame of the reference reels and the ground is never one value: the Nyra field has
+   pale sun-bleached patches running through olive, the Fabz3d shrine floor has darker damp hollows
+   between lighter stone. That variation is at the scale of METRES TO TENS OF METRES - the scale a
+   104x tiled texture cannot express by construction.
+
+   So this is a second, very low frequency wash sampled from the SAME uv, divided back out of the
+   tiling and re-scaled to a couple of tiles across the whole landmass. It multiplies the albedo, so
+   the meadow gains big soft patches of lighter and darker exactly where the eye looks for them.
+   One 256px canvas, one texture fetch, no second uv set, nothing per frame. ?macro=0 turns it off. */
+function macroNoise(){
+  const S = 256, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const c = cv.getContext("2d");
+  c.fillStyle = "#808080"; c.fillRect(0,0,S,S);
+  /* wrapping blobs: draw each one nine times so the texture tiles seamlessly */
+  for(let i=0;i<130;i++){
+    const r = 26 + Math.random()*82, x = Math.random()*S, y = Math.random()*S;
+    const v = Math.round(128 + (Math.random()*2-1)*74);
+    for(let ox=-1; ox<=1; ox++) for(let oy=-1; oy<=1; oy++){
+      const g = c.createRadialGradient(x+ox*S, y+oy*S, 0, x+ox*S, y+oy*S, r);
+      g.addColorStop(0, `rgba(${v},${v},${v},.34)`); g.addColorStop(1, `rgba(${v},${v},${v},0)`);
+      c.fillStyle = g; c.fillRect(x+ox*S-r, y+oy*S-r, r*2, r*2);
+    }
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+const MACRO = (() => { const v = parseFloat(QS.get("macro")); return isNaN(v) ? 0.40 : Math.max(0, Math.min(1, v)); })();
+const MACRO_TILES = (() => { const v = parseFloat(QS.get("macrotiles")); return isNaN(v) ? 2.6 : Math.max(.2, v); })();
+const TEX = {meadow: grassGround(), sand: sandGround(), rock: mottle(9, 70, 1.6), macro: macroNoise()};
+/* Recover the un-tiled uv by dividing vUv back out by the map's own repeat, then re-scale it to a
+   couple of tiles across the mesh. Hooks in after <map_fragment> so it multiplies the final albedo. */
+function macroPatch(sh){
+  sh.uniforms.uMacro = {value: TEX.macro};
+  sh.uniforms.uMacroDiv = {value: 26 * WORLD};
+  sh.uniforms.uMacroTiles = {value: MACRO_TILES};
+  sh.uniforms.uMacroAmt = {value: MACRO};
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>",
+      "#include <common>\nuniform sampler2D uMacro; uniform float uMacroDiv, uMacroTiles, uMacroAmt;")
+    .replace("#include <map_fragment>",
+      "#include <map_fragment>\n#ifdef USE_UV\n{ float mv = texture2D(uMacro, vUv / uMacroDiv * uMacroTiles).r;\n  diffuseColor.rgb *= mix(1.0, 0.56 + mv * 0.92, uMacroAmt); }\n#endif");
+}
+/* add the wash to a material that already went through toonRim (which owns the patch list) */
+function withMacro(mat){
+  if(!mat || MACRO <= 0.001) return mat;
+  if(!mat.userData.patches) mat.userData.patches = [];
+  if(mat.userData.patches.some(x => x[0] === "macro")) return mat;
+  mat.userData.patches.push(["macro", macroPatch]);
+  mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));
+  mat.customProgramCacheKey = () => mat.userData.patches.map(([n]) => n).join("_");
+  mat.needsUpdate = true;
+  return mat;
+}
 
 /* =====================  SURFACE DETAIL  =====================
    Until now not one surface in this game had a normal map. Every material was perfectly smooth, and
@@ -2066,6 +2307,15 @@ function syncHUD(){
   $("sub").textContent = cur ? `Notes ${noteCount(cur.key)} / ${cur.notes.length}` : "";
   $("moonsub").textContent = `Moons ${G.moons}`;
   let ql = ""; try{ const o = CUR ? objectiveOf(CUR) : null; if(o) ql = o.label; }catch(e){}
+  /* Green's own line: the horse comes first there, because it is how she reaches the rest of it */
+  try{
+    if(CUR && CUR.cfg.key === "green" && CUR.creatures){
+      const mine = CUR.creatures.find(c => c.userData.tame);
+      const n = qNum(CUR.cfg, "carrots");
+      if(mine) ql = mine.userData.horseName.toUpperCase() + " IS YOURS";
+      else ql = n > 0 ? ("CARROTS " + n + " / OFFER ONE TO A HORSE") : "FIND A CARROT";
+    }
+  }catch(e){}
   $("questLine").textContent = ql;
 }
 
@@ -2434,27 +2684,58 @@ function clumpGeometry(){
   /* A clump is BLADES individual blades, not two crossed cards. Each blade is a narrow tapered
      strip that arcs outward and over, so one instance reads as a tuft of grass instead of one
      flat X. 5 blades x 2 segments = 20 tris, against 12 for the old pair of cards. */
-  const BLADES = 5, SEG = 2, P = [], N = [], U = [], C = [], I = [];
+  const BLADE_BASE = (() => { const v = parseFloat(QS.get("blade")); return isNaN(v) ? 0.74 : Math.max(0, Math.min(1, v)); })();
+  /* ===================  SPIKES, NOT GRASS  ===================
+     His words: "it looks natural, looks scale, not spikes... very polygon, very blocky, very
+     primitive." He is describing GEOMETRY, and he is right - no colour or grade pass can answer it.
+     A blade was 2 segments: root, middle, tip. Three rows cannot describe a curve, so every blade
+     was a straight tapered triangle, and a tuft of straight tapered triangles is a spike ball. The
+     grass in the Nyra reel reads as HAIR: each strand is long, very thin, and falls over under its
+     own weight, so the tips point sideways and down rather than up and out.
+
+     So: 4 segments instead of 2 (a real arc), blades less than half as wide, taller with far more
+     variance, and a droop term with a cubic falloff so the strand goes vertical at the root and
+     lies over near the tip. Each strand also gets its own slight sideways curl, because a tuft
+     where every strand bends in its own plane is the difference between hair and a shuttlecock.
+
+     The cost is paid for, not added: 7 blades x 4 seg = 56 tris against the old 5 x 2 = 20, and
+     GRASS_N drops so the field lands near 330k tris instead of 220k. Measured spacing was 0.39 m,
+     tighter than real ground cover needs (0.5-0.7 m), so that density was buying nothing the eye
+     could use - it is better spent on strands that are the right shape. */
+  const BLADES = 7, SEG = 4, P = [], N = [], U = [], C = [], I = [];
   let off = 0;
   for(let b=0;b<BLADES;b++){
     const a  = (b/BLADES)*Math.PI*2 + Math.random()*.9;     /* fan the blades around the clump */
     const dx = Math.cos(a), dz = Math.sin(a);
-    const lean = .16 + Math.random()*.26;                   /* how far it arcs out from the centre */
-    const h    = .72 + Math.random()*.55;                   /* blades in one clump differ in height */
-    const w0   = .050 + Math.random()*.022;
-    const root = .055;                                      /* blades start slightly off centre */
+    const lean = .26 + Math.random()*.42;                   /* how far it arcs out from the centre */
+    const h    = .66 + Math.random()*1.02;                  /* blades in one clump differ a lot in height */
+    const w0   = .021 + Math.random()*.013;                 /* a strand, not a ribbon */
+    const root = .038;                                      /* blades start slightly off centre */
+    const curl = (Math.random()*2-1) * .30;                 /* its own sideways plane, so a tuft is not a shuttlecock */
+    const droop= .30 + Math.random()*.30;                   /* how hard it lies over at the tip */
+    const sx = -dz, sz = dx;                                /* sideways, across the blade's lean */
     for(let i=0;i<=SEG;i++){
       const t = i/SEG;
       const bend = t*t;                                     /* arc: straight at the root, curling at the tip */
-      const cx = dx*(root + lean*bend), cz = dz*(root + lean*bend);
-      const y  = h*(t - .18*bend);
-      const w  = w0*(1-t*t*.92);                            /* taper to a point */
+      const cx = dx*(root + lean*bend) + sx*curl*bend*t, cz = dz*(root + lean*bend) + sz*curl*bend*t;
+      const y  = h*(t - droop*bend*t);                      /* cubic droop: upright at the root, over at the tip */
+      const w  = w0*(1-t*t*.94);                            /* taper to a point */
       const px = -dz*w, pz = dx*w;                          /* blade width runs across its facing */
       P.push(cx-px, y, cz-pz,  cx+px, y, cz+pz);
       const nx = dx*.35, ny = 1, nz = dz*.35;
       N.push(nx,ny,nz, nx,ny,nz);
       U.push(0,t, 1,t);
-      const sh = .50 + t*.50;                               /* darker at the base, bright at the tip */
+      /* ===================  THE BLADES WERE DARK CUT-OUTS ON BRIGHT PAINT  ===================
+         This ramped 0.50 -> 1.00, base to tip. Half value at the root, under a low sun, with the
+         new grade pulling chroma out of the darks, bottoms every blade out near black - so each one
+         reads as a separate object sitting ON the meadow instead of being the meadow. Pull a frame
+         from the Nyra field in the reference reels and you cannot find the line where the ground
+         stops and the grass starts: they are the SAME VALUE. Contrast between the scatter and the
+         surface under it is the entire tell, and it is the one thing that survived every previous
+         density pass because density was never what was wrong.
+         0.74 -> 1.04 keeps the root-to-tip read that gives a clump its depth while closing the gap
+         to the ground it is standing in. ?blade= overrides the base for tuning against a frame. */
+      const sh = BLADE_BASE + t*(1.04 - BLADE_BASE);
       C.push(sh,sh,sh, sh,sh,sh);
     }
     for(let i=0;i<SEG;i++){
@@ -2475,7 +2756,7 @@ const CLUMP = clumpGeometry();
 /* Clumps inside the 44 u ring around her. 11,000 in a 44 u disc is 1.8 per square unit — about one
    clump every 0.43 m, which is ground cover rather than spikes, and it stays that dense however
    large the island gets. ?grass= scales it (?grass=0.5 halves it) if an old GPU struggles. */
-const GRASS_N = Math.round((matchMedia("(pointer:coarse)").matches || innerWidth < 820 ? 5200 : 11000)
+const GRASS_N = Math.round((matchMedia("(pointer:coarse)").matches || innerWidth < 820 ? 3100 : 6200)   /* fewer clumps, far better strands - see clumpGeometry */
                            * (parseFloat(QS.get("grass")) || 1));
 const grassPatch = (sh, far) => {
   sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3(0,-99,0)}; sh.uniforms.uWind = {value:1};
@@ -4223,7 +4504,7 @@ function terrainMesh(POLY, key, maxR, P){
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute("color", new THREE.Float32BufferAttribute(col,3));
   g.setIndex(idx); g.computeVertexNormals();
-  const m = new THREE.Mesh(g, toon(0xFFFFFF, {vertexColors:true, map:TEX.meadow, roughness:1, envMapIntensity:.16}));
+  const m = new THREE.Mesh(g, withMacro(toon(0xFFFFFF, {vertexColors:true, map:TEX.meadow, roughness:1, envMapIntensity:.16})));
   m.receiveShadow = true; m.castShadow = true; m.userData.dyn = 1;   /* never batched: it is already one mesh */
   return m;
 }
@@ -4370,7 +4651,35 @@ function buildIslandBody(cfg){
      cheapest thing that makes a world feel like it has air in it. ?aerial=0 restores the flat tint. */
   const AERIAL = (() => { const v = parseFloat(QS.get("aerial")); return isNaN(v) ? 0.68 : Math.max(0, Math.min(1, v)); })();
   const fogCol = new THREE.Color(P.fog).lerp(new THREE.Color(P.skyBot), AERIAL);
-  scene.fog = new THREE.Fog(fogCol, (cfg.key === "sanity" ? 60 : 80) * fogK, (cfg.key === "sanity" ? 220 : 260) * fogK);
+  /* ===================  THERE WAS NO AIR IN THE FIRST 212 UNITS  ===================
+     This was `new THREE.Fog(col, 80*fogK, 260*fogK)`. LINEAR fog does nothing at all until the
+     near plane of the fog itself, and at WORLD 4 that near plane is 80 * 2.65 = 212 units out —
+     further than the player can usually see across a whole island. So everything he actually
+     plays in was rendered through clear vacuum, while only the far ridge got any treatment. That
+     is the "void" and the "flat" in his own words, and it is not something shadows can fix:
+     no amount of contact shadow makes a scene read as having air in it.
+
+     Every reference reel has visible AIR at every depth — haze between the tree trunks two metres
+     away in the Askew forest, dust over the grass in the Nyra field, fog around the portal ring in
+     Klein's Gate. Exponential-squared fog is how that is done: it accumulates from the camera
+     outward with no dead zone, so a near trunk is very slightly hazed, a mid tree noticeably, and
+     the far ridge melts into the sky — which is what separates depth you can FEEL from depth you
+     merely infer from size. The sky dome is a raw ShaderMaterial with no fog chunk, so it is not
+     affected and stays a clean gradient behind it all.
+
+     Density is tuned per island against fogK so the same look holds at any WORLD scale.
+     ?haze=0 restores a clear world; ?haze=2 is a heavy overcast. ?fogmode=linear restores the old
+     fog exactly, for A/B. */
+  const HAZE = (() => { const v = parseFloat(QS.get("haze")); return isNaN(v) ? 1 : Math.max(0, Math.min(4, v)); })();
+  if(QS.get("fogmode") === "linear"){
+    scene.fog = new THREE.Fog(fogCol, (cfg.key === "sanity" ? 60 : 80) * fogK, (cfg.key === "sanity" ? 220 : 260) * fogK);
+  } else {
+    const dens = (cfg.key === "sanity" ? 0.0030 : 0.0034) * HAZE / fogK * 2.65;
+    scene.fog = new THREE.FogExp2(fogCol, dens);
+  }
+  /* the grade's shadow tint has to be THIS island's air, not a global guess, or the darks on the
+     night island get filled with the daytime island's sky */
+  try{ gradePass.uniforms.airCol.value.copy(fogCol); }catch(e){}
   const sky = skyDome(P.skyTop, P.skyMid, P.skyBot); scene.add(sky.mesh);
   const moon = moonPair(new THREE.Vector3(...cfg.moon.pos), cfg.moon.r); scene.add(moon);
   /* ---- lighting ----
@@ -4544,7 +4853,7 @@ function buildIslandBody(cfg){
        Anything that changes SEA_Y or seaBed's -7 must keep these deeper than both. */
     const SLAB_BOTTOM = -10;
     scene.add(GROUND(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16}))));   /* the beach, a hair below the meadow */
-    scene.add(GROUND(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16})))); /* top face at y=0 = the walkable height */
+    scene.add(GROUND(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   withMacro(toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}))))); /* top face at y=0 = the walkable height */
     { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }
     /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
        down through the shallows shows real ground under her feet instead of a blue plane on nothing */
@@ -4561,7 +4870,7 @@ function buildIslandBody(cfg){
        above the seabed at -7. Keep the top faces exactly where they were and drop the bottoms. */
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 10, 48), toon(P.sand, {map:TEX.sand}));
     sand.position.set(l.x,-5.12,l.z); GROUND(sand); scene.add(sand);
-    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 10, 48), toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}));
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 10, 48), withMacro(toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16})));
     grass.position.set(l.x,-5,l.z); GROUND(grass); scene.add(grass);
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
@@ -5073,11 +5382,24 @@ function buildIslandBody(cfg){
        same sheet of paper, and hers should not be. */
     const lm = cfg.key === "moon" ? inked(new THREE.OctahedronGeometry(.8,0), 0xF0A56D, 2.4)
              : (cfg.key === "town" ? tieDyeTurtle(.62, .78) : paperMesh());
-    lm.position.set(L.at[0], L.y+2.2, L.at[1]); scene.add(lm); I.letterMesh = lm;
+    /* ===============  THE LETTER WAS BURIED, ON EVERY ISLAND  ===============
+       `L.y` is authored to match the FEATURE the letter sits on - Green's letter is y:8.5 and
+       Green's High Rock is h:8.5 - but a mesa's h is its rise ABOVE the terrain under it, not its
+       height above sea level. qa/letterground.mjs, measured: Green's letter bottom sits 7.35 units
+       under the ground it is standing on, Good Riddance's 4.37. The island's whole objective was
+       inside a rock, with a cue beam pointing the player at it.
+
+       This is Luna's Keep again (HANDOFF 4.26) - one hardcoded y where every neighbouring line
+       calls height(x,z) - and it survived that sweep because the ground check skips the letter.
+       height() is the only authority on where the ground is; L.y is kept only as the fallback for
+       a letter that is deliberately off the terrain. */
+    const lgy = height(L.at[0], L.at[1]);
+    const ly = (isFinite(lgy) ? Math.max(lgy, L.y) : L.y) + 2.2;
+    lm.position.set(L.at[0], ly, L.at[1]); scene.add(lm); I.letterMesh = lm;
     lm.userData.flat = (cfg.key !== "town");     /* the turtle is not a sheet of paper */
     lm.userData.y0 = lm.position.y;
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,26,16,1,true), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.10, side:THREE.DoubleSide}));
-    beam.position.set(L.at[0], L.y+13, L.at[1]); scene.add(beam); I.letterBeam = beam;
+    beam.position.set(L.at[0], ly + 10.8, L.at[1]); scene.add(beam); I.letterBeam = beam;
   }
   /* pen, desk and hidden note. The letter mesh above is now the PAPER — she needs both before she
      can sit down and write, and the written letter goes to the postman, not to the keep. */
@@ -5224,6 +5546,49 @@ function buildIslandBody(cfg){
         h.userData.shallows = true; h.userData.fly = false; h.rotation.y = Math.random()*6.3;
       }
       scene.add(h); I.creatures.push(h); } }
+
+  /* ===================  THE HORSES, AND THE CARROTS  ===================
+     Her ask, in her words: find a horse you LIKE. That only means something if they can be told
+     apart, so every horse on Green gets a name and keeps it across saves (index order, not random,
+     so Cricket is Cricket every time she loads). Taming is saved per horse, not per island, so the
+     one she picked is the one that stays hers. */
+  if(cfg.key === "green"){
+    let hi = 0;
+    for(const h of I.creatures){
+      if(h.userData.type !== "horse") continue;
+      h.userData.horse = hi;
+      h.userData.horseName = HORSE_NAMES[hi % HORSE_NAMES.length];
+      h.userData.tame = !!G.quest["green:tame:" + hi];
+      h.userData.trust = qNum(cfg, "trust:" + hi);
+      hi++;
+    }
+    /* Carrots grow where the ground is open. Placed by sampling real land rather than by authored
+       coordinates, because authored x/z on this island go through the WORLD scale and a carrot half
+       a metre under a hill is exactly the class of bug the ground check was written to catch. */
+    I.quest = I.quest || {};
+    I.quest.carrots = [];
+    const rndC = mulberry32(seedOf("carrots:" + cfg.key));
+    let placed = 0;
+    for(let a = 0; a < 400 && placed < 7; a++){
+      const ang = rndC() * Math.PI * 2, rad = 14 + rndC() * 46;
+      const cx = Math.cos(ang) * rad, cz = Math.sin(ang) * rad;
+      if(!onLand(I, cx, cz)) continue;
+      const gy = height(cx, cz);
+      if(gy < .4) continue;                                  /* not on the wet sand */
+      let clash = false;
+      for(const c of I.quest.carrots) if(Math.hypot(c.position.x - cx, c.position.z - cz) < 9) clash = true;
+      if(clash) continue;
+      const m = carrotMesh();
+      m.position.set(cx, gy, cz);
+      m.rotation.y = rndC() * 6.3;
+      m.userData.taken = !!G.quest["green:carrotTaken:" + placed];
+      m.userData.ci = placed;
+      m.visible = !m.userData.taken;
+      scene.add(m); I.quest.carrots.push(m);
+      placed++;
+    }
+    DBG("CARROTS", placed, "tamed", I.creatures.filter(c => c.userData.tame).length);
+  }
 
   /* weather + fx */
   I.water = waterFx(scene);
@@ -5378,6 +5743,223 @@ const GRAV = -26, JUMPV = 13.2, GLIDE_VY = -2.0, STRIDE_WALK = 3.0, STRIDE_JOG =
 /* on foot: 12.4 u/s = 7.1 m/s. 1 game unit = 0.576 m (Lala 3.00 u = 1.727 m = 5 ft 8). ?speed= overrides. */
 const SPEED = parseFloat(QS.get("speed")) || 12.4;
 /* riding: the horses are the reason a 4x island is walkable. ?ride= and ?saddle= tune it. */
+/* ===================  CUT SCENES  ===================
+   Lala asked for an animated cut scene when the horse is won, and for scenes on achievements
+   generally, "to add to the story". This is the frame all of them run on.
+
+   It is not video. The camera comes off the player and flies an authored path through the world
+   that is already loaded, which is how every game in the reference reels does it - the Ocarina
+   remake, Klein's Gate, the Nyra opening - and it costs nothing to download and never goes out of
+   sync with the art. A shot is a from, a to, a look target and a duration; the look target can be a
+   function, so a shot can track something that is moving.
+
+   The easing is deliberate and it is the note from the Askew reel's comments that he flagged:
+   "that ease curve is half the magic. linear fall just reads as rain on a teal set." A camera that
+   lerps linearly between two points reads as a slideshow no matter how good the frame is. smootherstep
+   starts and ends at zero velocity, which is what a real dolly does. */
+function cutText(sh){
+  const T = $("cutT"), S = $("cutS");
+  if(!T || !S) return;
+  /* The text goes in SYNCHRONOUSLY and only the fade is deferred. It was the other way round -
+     both set inside a 220 ms timer - and qa/horse.mjs read the caption as empty: a scene whose
+     words depend on a timer firing is a scene that can play silently. The class toggle can wait a
+     frame because it is only the fade; the words cannot, because they are the content. */
+  T.classList.remove("in"); S.classList.remove("in");
+  T.textContent = sh.text || ""; S.textContent = sh.sub || "";
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if(sh.text) T.classList.add("in");
+    if(sh.sub)  S.classList.add("in");
+  }));
+}
+function cutPlay(I, shots, onDone){
+  if(!shots || !shots.length){ if(onDone) onDone(); return; }
+  /* Remember whether she was actually playing, because cutEnd has to put that back EXACTLY as it
+     was. The first version set active=false here and never restored it, so the reward for winning
+     the horse was being frozen in place next to it - qa/horse.mjs caught it by finding no interact
+     prompt on the horse she had just tamed. A scene that takes control owns putting it back. */
+  I.cut = {shots, i:0, t:0, onDone, wasActive: !!I.W.active};
+  I.W.active = false;                                    /* she does not walk through her own scene */
+  const el = $("cutscene"); el.classList.remove("hide");
+  requestAnimationFrame(() => el.classList.add("on"));
+  cutText(shots[0]);
+}
+function cutEnd(I){
+  const C = I.cut; if(!C) return;
+  I.cut = null;
+  const el = $("cutscene"); el.classList.remove("on");
+  $("cutT").classList.remove("in"); $("cutS").classList.remove("in");
+  setTimeout(() => el.classList.add("hide"), 650);
+  camRig(I, true); placeCamera(I, 1);                    /* snap the chase camera back, no swoop */
+  I.W.active = C.wasActive;                              /* hand control back exactly as it was */
+  I.W.target = null;                                     /* rescan from where she is standing now */
+  if(C.onDone) try{ C.onDone(); }catch(e){ DBG("cut onDone", e); }
+}
+function cutUpdate(I, dt){
+  const C = I.cut; if(!C) return;
+  const sh = C.shots[C.i];
+  C.t += dt;
+  const k = Math.max(0, Math.min(1, C.t / sh.dur));
+  const e = k*k*k*(k*(k*6 - 15) + 10);                   /* smootherstep: zero velocity at both ends */
+  const f = sh.from, o = sh.to;
+  camera.position.set(f[0]+(o[0]-f[0])*e, f[1]+(o[1]-f[1])*e, f[2]+(o[2]-f[2])*e);
+  const L = typeof sh.look === "function" ? sh.look() : sh.look;
+  if(L) camera.lookAt(L[0], L[1], L[2]);
+  if(C.t >= sh.dur){
+    C.i++; C.t = 0;
+    if(C.i >= C.shots.length){ cutEnd(I); return; }
+    cutText(C.shots[C.i]);
+  }
+}
+/* one tap or key anywhere skips the rest - never trap the player in a scene they have seen */
+addEventListener("pointerdown", () => { if(CUR && CUR.cut) cutEnd(CUR); }, true);
+addEventListener("keydown", () => { if(CUR && CUR.cut) cutEnd(CUR); }, true);
+
+/* ===================  THE HORSE  ===================
+   Her words: on Green you find a horse you like, feed it carrots, get on it, and ride it to reach
+   the rest. So the horse is not scenery you climb on - it is something you have to WIN, and the
+   winning is the point.
+
+   Nine horses wander Green and they each have a name, because "find one you like" only means
+   anything if they are telling apart. An untamed horse breaks away when she gets close; carrots
+   are the only thing that holds one still. Two carrots and it is hers, and that is the moment the
+   cut scene plays. Only a horse that trusts her can be ridden. */
+const HORSE_NAMES = ["Juniper","Cricket","Marlow","Sable","Pepper","Bramble","Indigo","Dove","Halo"];
+const CARROTS_TO_TAME = 2;
+function qNum(cfg, step){ const v = G.quest[cfg.key + ":" + step]; return typeof v === "number" ? v : 0; }
+function qAdd(cfg, step, n){ G.quest[cfg.key + ":" + step] = qNum(cfg, step) + n; save(); }
+/* A carrot: a tapered root with a leafy top. Lathe, not a cone - the silhouette is the whole read
+   at pickup distance and a cone reads as a traffic cone. */
+function carrotMesh(){
+  const g = new THREE.Group();
+  const pts = [];
+  for(let i=0;i<=8;i++){ const t = i/8; pts.push(new THREE.Vector2(.115*(1-t*t*.96)+.012, t*.78)); }
+  const root = new THREE.Mesh(new THREE.LatheGeometry(pts, 9), toon(0xE2752E, {roughness:.85}));
+  g.add(root);
+  for(let i=0;i<5;i++){
+    const a = i/5*Math.PI*2 + Math.random();
+    const leaf = new THREE.Mesh(new THREE.PlaneGeometry(.10, .42), toon(0x4E8C3F, {side:THREE.DoubleSide, roughness:1}));
+    leaf.position.set(Math.cos(a)*.05, .95, Math.sin(a)*.05);
+    leaf.rotation.set(-.42 + Math.random()*.2, -a, 0);
+    g.add(leaf);
+  }
+  g.userData.dyn = 1;
+  return g;
+}
+/* ===================  THE DISSOLVE  ===================
+   His reference reel spells its own recipe out in its captions: "Noise pushes our dissolve up and
+   down", then "Use a Step node to get our dissolve line". That is the whole effect and it is worth
+   writing down because it is not a fade:
+
+       mask  = a gradient down the surface, OFFSET by noise      <- ragged, not a straight line
+       alpha = step(threshold, mask)                             <- a hard edge, not a soft fade
+       edge  = the band where mask is just above the threshold   <- glows, and is what sells it
+
+   A fade makes a thing translucent; a dissolve makes it come APART, and the difference is entirely
+   the hard edge with a hot rim travelling across the surface. Driving the threshold from 0 to 1
+   eats the object away from one side.
+
+   This is a patch, not a material, so it works on whatever a thing is already made of - the
+   letter's paper, a note, a pickup - without rebuilding its look. */
+const dissolveNoise = (() => {
+  let t = null;
+  return () => {
+    if(t) return t;
+    const S = 128, cv = document.createElement("canvas"); cv.width = cv.height = S;
+    const c = cv.getContext("2d"), img = c.createImageData(S,S), px = img.data;
+    const g = [];
+    for(let o=0;o<3;o++){ const f = [6,16,40][o], a = new Float32Array(f*f);
+      for(let i=0;i<a.length;i++) a[i] = Math.random(); g.push({f,a}); }
+    const at = (o,x,y) => o.a[((y%o.f)+o.f)%o.f*o.f + ((x%o.f)+o.f)%o.f];
+    for(let y=0;y<S;y++) for(let x=0;x<S;x++){
+      let v = 0, amp = .56;
+      for(const o of g){
+        const fx = x/S*o.f, fy = y/S*o.f, x0 = Math.floor(fx), y0 = Math.floor(fy);
+        const tx = fx-x0, ty = fy-y0, sx = tx*tx*(3-2*tx), sy = ty*ty*(3-2*ty);
+        const a = at(o,x0,y0), b = at(o,x0+1,y0), cc = at(o,x0,y0+1), d = at(o,x0+1,y0+1);
+        v += (a+(b-a)*sx + ((cc+(d-cc)*sx)-(a+(b-a)*sx))*sy) * amp; amp *= .55;
+      }
+      const i = (y*S+x)*4, n = Math.max(0, Math.min(255, v*255));
+      px[i] = px[i+1] = px[i+2] = n; px[i+3] = 255;
+    }
+    c.putImageData(img,0,0);
+    t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  };
+})();
+function dissolvePatch(mat, col){
+  if(!mat || mat.userData.__dis) return mat;
+  mat.userData.__dis = {value:-1};                 /* -1 = not dissolving, so nothing is clipped */
+  mat.transparent = true;
+  const edge = new THREE.Color(col == null ? 0xFFD98A : col);
+  const prev = mat.onBeforeCompile;
+  /* ===============  TWO WAYS TO GET THIS WRONG, AND I GOT BOTH  ===============
+     1. Three's default customProgramCacheKey is `return this.onBeforeCompile.toString()`. Capturing
+        it and calling it as a bare `key()` drops `this` and throws inside three.min.js - which
+        surfaces as "Cannot read properties of undefined (reading 'onBeforeCompile')" from deep in
+        the renderer, nowhere near this line. It has to be called with the material as receiver.
+     2. Setting the cache key INSIDE onBeforeCompile is too late: the renderer asks for the key in
+        order to decide which program to build, so on the first compile it is still the old key and
+        the patched shader never gets built. The letter kept dissolving with the pre-tune shader and
+        a 3x change to the noise frequency changed nothing on screen - which is what gave it away.
+     Both are set up front, before anything compiles. */
+  const prevKey = mat.customProgramCacheKey;
+  mat.customProgramCacheKey = () => (typeof prevKey === "function" ? prevKey.call(mat) : "") + "|dis";
+  mat.onBeforeCompile = sh => {
+    if(prev) prev(sh);
+    sh.uniforms.uDis = mat.userData.__dis;
+    sh.uniforms.uDisNoise = {value: dissolveNoise()};
+    sh.uniforms.uDisEdge = {value: edge};
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vDisUv; varying float vDisY;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvDisUv = uv; vDisY = position.y;");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>",
+        "#include <common>\nvarying vec2 vDisUv; varying float vDisY;\nuniform float uDis; uniform sampler2D uDisNoise; uniform vec3 uDisEdge;")
+      .replace("#include <dithering_fragment>", [
+        "#include <dithering_fragment>",
+        "if(uDis >= 0.0){",
+        "  float n  = texture2D(uDisNoise, vDisUv * 7.0).r;",
+        "  float n2 = texture2D(uDisNoise, vDisUv * 19.0).r;",   /* a second octave so the edge is lacy, not lumpy */
+        "  float nn = n * 0.72 + n2 * 0.28;",
+        "  float grad = clamp(vDisUv.y, 0.0, 1.0);",
+        "  float mask = grad * 0.42 + nn * 0.88;",          /* noise pushes the line up and down */
+        "  float thr = uDis * 1.30 - 0.10;",
+        "  if(mask < thr) discard;",                        /* the step: a hard edge, never a fade */
+        "  float band = smoothstep(thr + 0.085, thr, mask);",
+        "  gl_FragColor.rgb = mix(gl_FragColor.rgb, uDisEdge, band);",
+        "  gl_FragColor.rgb += uDisEdge * pow(band, 1.6) * 2.4;",   /* hot rim - this is what sells it */
+        "}"
+      ].join("\n"));
+  };
+  mat.needsUpdate = true;
+  return mat;
+}
+/* Run the dissolve across an object and hide it when the burn has passed the far edge. Returns a
+   promise so a caller can wait for it without owning a timer. */
+const DISSOLVING = [];
+function dissolveAway(obj, dur, col){
+  if(!obj) return Promise.resolve();
+  const mats = [];
+  obj.traverse(o => { if(!o.isMesh || !o.material) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { dissolvePatch(m, col); mats.push(m); }); });
+  if(!mats.length){ obj.visible = false; return Promise.resolve(); }
+  return new Promise(res => {
+    DISSOLVING.push({obj, mats, t:0, dur: dur || 1.1, done: () => {
+      obj.visible = false;
+      mats.forEach(m => { if(m.userData.__dis) m.userData.__dis.value = -1; });   /* reset for reuse */
+      res();
+    }});
+  });
+}
+function dissolveUpdate(dt){
+  for(let i = DISSOLVING.length - 1; i >= 0; i--){
+    const d = DISSOLVING[i];
+    d.t += dt;
+    const k = Math.min(1, d.t / d.dur);
+    d.mats.forEach(m => { if(m.userData.__dis) m.userData.__dis.value = k; });
+    if(k >= 1){ d.done(); DISSOLVING.splice(i, 1); }
+  }
+}
 const RIDEABLE = {horse:1, cow:1};
 const RIDE_MUL = parseFloat(QS.get("ride")) || 3.2;
 const SADDLE_Y = parseFloat(QS.get("saddle")) || 1.30;
@@ -5641,7 +6223,10 @@ function updateCamera(I, dt, speed){
   /* the look point trails her a touch so steps and jumps don't jolt the frame */
   if(W.look.distanceTo(look) > 10) W.look.copy(look); else W.look.lerp(look, Math.min(1, dt*12));   /* a teleport snaps, a step trails */
   hatPhysics(W, dt);
-  placeCamera(I, dt);
+  /* while a cut scene is running it owns the camera outright - the chase rig would fight it and
+     the frame would crab sideways on every shot change */
+  dissolveUpdate(dt);
+  if(I.cut) cutUpdate(I, dt); else placeCamera(I, dt);
 }
 function placeCamera(I, dt){
   const W = I.W, portrait = innerHeight > innerWidth;
@@ -5870,7 +6455,16 @@ function islandUpdate(I, dt, t){
   for(const h of I.creatures){ const sh = h.userData.shoal; if(sh) sh.__t = 0; }
   I.creatures.forEach((h, hi) => { const u = h.userData; if(u.ridden) return;
     if(u.shallows){ shallowsUpdate(I, h, u, dt, t); return; }
-    u.a += u.sp*dt;
+    /* An untamed horse on Green breaks away when she gets close, and one that trusts her settles
+       and grazes. This is what makes a carrot worth picking up: without it the herd simply outruns
+       her forever, which is the "I hate riding the horse, it goes anywhere but where I want it"
+       complaint from the Nyra reel's own comments, and it is avoidable. */
+    if(u.horse != null && !u.ridden){
+      const pd = Math.hypot(W.x - h.position.x, W.z - h.position.z);
+      const want = u.tame ? (pd < 14 ? .18 : .7) : (pd < 10 ? 2.4 : 1);
+      u.spK = (u.spK == null ? 1 : u.spK + (want - u.spK) * Math.min(1, dt * 1.6));   /* ease, never snap */
+    }
+    u.a += u.sp*dt*(u.spK == null ? 1 : u.spK);
     if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
        radius walks straight into the sea. Pull the radius in until the step lands on land (with a
@@ -6103,7 +6697,9 @@ function nearest(I){
   const PRI = {letter:0, pen:0, secret:0, desk:.5, post:.8, ability:1, castle:2, npc:2.5, note:3, mount:3.5, dock:4};
   const add = (kind, d, extra) => cands.push(Object.assign({kind, d, pri:PRI[kind]}, extra));
   if(I.letterMesh && I.letterMesh.visible){ const d = Math.hypot(W.x-I.letterMesh.position.x, W.z-I.letterMesh.position.z);
-    if(d < 4.6 && Math.abs(W.y - cfg.letter.y) < 3.5) add("letter", d, {label: cfg.questSeeded ? "Take the paper" : "Take the letter"}); }
+    /* against the MESH's height, not cfg.letter.y - the authored number is where the letter was
+       said to be, the mesh is where it actually is, and those were 7 units apart */
+    if(d < 4.6 && Math.abs(W.y - I.letterMesh.position.y) < 3.9) add("letter", d, {label: cfg.questSeeded ? "Take the paper" : "Take the letter"}); }
   if(I.quest){
     const Q = I.quest;
     if(Q.pen.visible){ const d = Math.hypot(W.x-Q.pen.position.x, W.z-Q.pen.position.z);
@@ -6126,11 +6722,27 @@ function nearest(I){
     if(d < 5.2 && Math.abs(W.y+2-n.position.y) < 4.5){ const read = !!G.notes[cfg.key+":"+n.userData.i];
       add("note", d + (read ? 100 : 0), {obj:n, label: read ? "Read again" : "Read the note"}); } }
   { const d = Math.hypot(W.x-cfg.dock[0], W.z-cfg.dock[1]); if(d < 10) add("dock", d, {label: "Take the boat"}); }
+  /* carrots on the ground */
+  if(I.quest && I.quest.carrots) for(const c of I.quest.carrots){
+    if(c.userData.taken) continue;
+    const d = Math.hypot(W.x-c.position.x, W.z-c.position.z);
+    if(d < 3.2 && Math.abs(W.y - c.position.y) < 3) add("carrot", d - 1, {obj:c, label:"Pick the carrot"});
+  }
   if(W.mount) add("mount", 0, {label:"Get down"});
   else for(const h of (I.creatures||[])){
     if(h.userData.fly || !RIDEABLE[h.userData.type]) continue;
+    const u = h.userData;
     const d = Math.hypot(W.x-h.position.x, W.z-h.position.z);
-    if(d < 5.5 && Math.abs(W.y - h.position.y) < 4) add("mount", d, {obj:h, label:"Ride the "+h.userData.type});
+    if(d >= 5.5 || Math.abs(W.y - h.position.y) > 4) continue;
+    /* A horse on Green is not furniture. Until it trusts her she cannot get on it, and a carrot is
+       the only thing that will hold it still - which is the whole of what Lala asked for. Every
+       other rideable animal, and every other island, behaves exactly as it did. */
+    if(u.horse != null && !u.tame){
+      if(qNum(cfg, "carrots") > 0) add("feed", d, {obj:h, label:"Offer " + u.horseName + " a carrot"});
+      else add("horseshy", d + 40, {obj:h, label:u.horseName + " keeps her distance"});
+      continue;
+    }
+    add("mount", d, {obj:h, label: u.horseName ? ("Ride " + u.horseName) : ("Ride the " + u.type)});
   }
   if(!cands.length) return null;
   cands.sort((a,b) => (a.pri - b.pri) || (a.d - b.d));
@@ -6159,6 +6771,52 @@ function interact(){
     $("castleEye").textContent = all ? "The doors know your name" : "The doors are locked";
     $("castleBody").textContent = all ? "All four letters. The keep is open, and what's inside is the fifth song." : `Four letters open the keep. One waits on each island. ${got} of 4 found.`;
     $("bEnter").classList.toggle("hide", !all); W.active = false; ov("ovCastle");
+  } else if(t.kind === "carrot"){
+    t.obj.userData.taken = true; t.obj.visible = false;
+    G.quest["green:carrotTaken:" + t.obj.userData.ci] = true;
+    qAdd(cfg, "carrots", 1); syncHUD();
+    auChime([523,659]);
+    const n = qNum(cfg, "carrots");
+    toast("Carrot", n === 1 ? "The horses on this island are shy. This is why." : n + " carrots");
+
+  } else if(t.kind === "horseshy"){
+    toast(t.obj.userData.horseName + " will not let her near", "Find a carrot first");
+
+  } else if(t.kind === "feed"){
+    const h = t.obj, u = h.userData;
+    if(qNum(cfg, "carrots") <= 0){ toast("No carrots", "Find one first"); return; }
+    qAdd(cfg, "carrots", -1);
+    u.trust = (u.trust || 0) + 1;
+    qSet(cfg, "trust:" + u.horse, u.trust);
+    if(u.trust < CARROTS_TO_TAME){
+      auChime([392,523]);
+      toast(u.horseName + " takes it", "Still deciding about you");
+      syncHUD();
+      return;
+    }
+    /* ---- she has won the horse. This is the moment Lala asked for a scene on. ---- */
+    u.tame = true; G.quest["green:tame:" + u.horse] = true; save(); syncHUD();
+    auChime([392,523,659,784], .16, 1.15);
+    W.active = false;
+    const hp = () => [h.position.x, h.position.y + 1.5, h.position.z];
+    const ang = Math.atan2(W.x - h.position.x, W.z - h.position.z);
+    cutPlay(I, [
+      { dur: 3.2,
+        from:[h.position.x + Math.sin(ang)*7,   h.position.y + 2.6, h.position.z + Math.cos(ang)*7],
+        to:  [h.position.x + Math.sin(ang)*3.1, h.position.y + 1.9, h.position.z + Math.cos(ang)*3.1],
+        look: hp, text:"She chose you.", sub:u.horseName },
+      { dur: 3.6,
+        from:[h.position.x + Math.sin(ang+1.5)*9,  h.position.y + 3.2, h.position.z + Math.cos(ang+1.5)*9],
+        to:  [h.position.x + Math.sin(ang+3.0)*13, h.position.y + 7.5, h.position.z + Math.cos(ang+3.0)*13],
+        look: hp, text:"Green is bigger than it looks on foot.", sub:"" },
+      { dur: 4.0,
+        from:[h.position.x + 16, h.position.y + 16, h.position.z + 16],
+        to:  [h.position.x + 30, h.position.y + 38, h.position.z + 30],
+        look: hp, text:"Go and see it.", sub:"Interact to ride" }
+    ], () => {
+      toast(u.horseName + " is yours", "Interact to ride her");
+    });
+
   } else if(t.kind === "mount"){
     if(W.mount){ const h = W.mount; W.mount = null; h.userData.ridden = false;
       /* step off to her left, onto ground she can actually stand on */
@@ -6216,12 +6874,16 @@ function interact(){
     auChime([523,659,784,1047]); toast(cfg.ability.name, cfg.ability.hint);
   } else if(t.kind === "letter"){
     if(cfg.key === "moon"){          /* the fifth song, at the top of the rock — this is the ending */
-      I.letterMesh.visible = false; if(I.letterBeam) I.letterBeam.visible = false; G.finished = true; save();
+      /* it comes APART rather than blinking out - his reference, and the last thing the player
+         sees before the ending card, so it is the one that most deserves it */
+      dissolveAway(I.letterMesh, 1.5, 0xFFF0C0);
+      if(I.letterBeam) I.letterBeam.visible = false; G.finished = true; save();
       auChime([392,440,523,587,659,784,880,1047,1175,1319,1568],.16,1.6);
       $("endBody").textContent = "The fifth song was never hidden. It was waiting for someone who'd found the other four. — L";
       W.active = false; setTimeout(() => ov("ovEnd"), 2400); return;
     }
-    I.letterMesh.visible = false; I.letterBeam.visible = false;
+    dissolveAway(I.letterMesh, 1.15, 0xFFE9A8);
+    I.letterBeam.visible = false;
     if(cfg.questSeeded){
       qSet(cfg, "paper", true); syncHUD();
       auChime([392,523,659]); toast("Paper", qGet(cfg,"pen") ? "Now go and write it" : "Now find her pen");

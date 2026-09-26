@@ -16,8 +16,15 @@ export const OUT = ROOT + '/qa/out';
 import { readFileSync, writeFileSync, statSync, existsSync } from 'fs';
 export function ensureTestBuild(){
   const src = ROOT + '/index.html', dst = ROOT + '/index_test.html';
-  if(existsSync(dst) && statSync(dst).mtimeMs >= statSync(src).mtimeMs) return;
-  const hook = "window.__T = {ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat};";
+  /* The freshness check used to compare against index.html alone. But the hook line below is part
+     of the test build too, so editing THIS file - adding a function to __T, say - left every suite
+     running against a build that did not have it, and the failure reads as "the game does not
+     export that", not "your build is stale". Same class as HANDOFF 4.22: a cache is only correct
+     if it is keyed on everything that goes into it. This file's own mtime is now part of the key. */
+  const selfPath = new URL(import.meta.url).pathname;
+  const newest = Math.max(statSync(src).mtimeMs, statSync(selfPath).mtimeMs);
+  if(existsSync(dst) && statSync(dst).mtimeMs >= newest) return;
+  const hook = "window.__T = {tryJump, canStand, guideUpdate, objectiveOf, ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat, nearest, interact, objectiveOf, qGet, PROXIES, RIGS, hatPhysics, cutPlay, cutEnd, cutUpdate, qNum, dissolveAway, dissolveUpdate, dissolveCount: () => DISSOLVING.length};\nwindow.__goKeep = goKeep; window.__presentKeep = () => present(keep); window.__MODE = () => MODE;\nwindow.__keepState = () => ({bookRead, bubblesVisible: bubbles.filter(b=>b.visible).length, fifthVisible: bookG.userData.fifth.visible, glow: bookG.userData.glow.material.opacity, popped});\nwindow.__KW = KW; window.__outfitFor = outfitFor; window.__sizeOf = ty => (CREATURE_SHADOW[ty] != null ? CREATURE_SHADOW[ty] : .8);";
   const txt = readFileSync(src, 'utf8'); if(txt.includes('window.__T = {')) { writeFileSync(dst, txt); return; }
   /* index.html has more than one top-level "})();" — the hook must go in the LAST one (the game's IIFE),
      not the first, or it lands in a scope where ISL/goIsland do not exist and __T never appears. */
@@ -61,7 +68,7 @@ export async function open(opts = {}) {
     }
     if (opts.noRender) {
       // logic-only suites: skip the SwiftShader render (≈1 fps) so the update loop runs at the rAF rate
-      await page.evaluate(() => { window.__T.composer.render = () => { }; });
+      await page.evaluate(() => { if(window.__T && window.__T.composer) window.__T.composer.render = () => { }; });
       await page.waitForTimeout(300);
     }
   }

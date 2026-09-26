@@ -1492,3 +1492,191 @@ profile matched live exactly, and only then re-applied the edits.
 compare a checkable property (encoding profile, byte count, hash) against a known-good copy before
 committing. And a clean result from a check I just wrote myself is not evidence until I have shown the
 check can fail.
+
+### 4.29 — A material-class gate in three places, and nothing in the game cast a shadow
+
+`ART` has defaulted to `"real"` for weeks. `"real"` builds `MeshStandardMaterial`. Three separate
+places in `index.html` decided what to do by asking `material.isMeshToonMaterial`, which in the
+shipping art mode is false for every object in the game:
+
+- `:5249` — the shadow pass. Measured on Green: **53 of 1180 meshes cast, 7 received, 378 tall
+  objects cast nothing.** Not one tree, rock, building or creature darkened the ground under it.
+- `:1339` — the NPC tint. **No villager has ever been tinted.** Every one has been wearing the raw
+  GLB colour while the code that recolours them ran zero times.
+- `:3462` — the static batcher. Already found and fixed on Sept 15; the comment there is what made
+  me go looking for the other two.
+
+He described the game as "shit rendering on top of some flat shit." That is exactly what an object
+with no contact shadow looks like. Contact shadow is the cheapest cue in real-time rendering that a
+thing is *standing* somewhere rather than pasted in front of a picture, and the game had none.
+
+**Rule: never branch on a material class to decide a behaviour that belongs to the object.**
+Ask what the mesh IS — opaque? instanced? ground? airborne? — never which constructor made its
+material. A material class is an art-mode implementation detail; behaviour that depends on it
+silently becomes a no-op the moment the art mode changes, and nothing fails loudly.
+
+**Rule: any gate that can match zero objects must say so out loud.** The new pass ends with
+`DBG("SHADOWS", cfg.key, "cast", cast, "receive", recv)`. A pass that reports `cast 0` is a bug
+that announces itself; a pass that reports nothing hid this for weeks.
+
+Three things the fix itself got wrong before it was right, each worth keeping:
+
+1. **`I.fx` is an object, not an array.** My first version called `I.fx.forEach` and would have
+   thrown on boot — a crash shipped in the name of fixing a rendering bug. `:3460` already had the
+   correct traversal ten lines away. Read the existing reader before writing a new one.
+2. **A size test on a stale matrix is not a size test.** `Box3.setFromObject` measures in world
+   space. The pass ran before `updateMatrixWorld`, so three NPC rigs measured under 0.35 u in
+   bind-pose units and were silently rejected as "sub-blade detail". The pass now calls
+   `scene.updateMatrixWorld(true)` first, and skinned meshes skip the size test entirely.
+3. **A rig attaches after the island is built.** `attachRig()` runs when the GLB arrives, long after
+   `buildIslandBody()` has finished its one shadow pass — so Lala and every NPC were invisible to
+   it. Flags now get set at attach time too. Anything that joins the scene late needs the pass
+   applied to it, not the pass re-run.
+
+And one measurement rule: **a count going up is not the right things casting.** 53 → 334 looked
+like a win; `qa/shadowwho.mjs` was written to name the 289 objects still not casting, and only then
+could I say the remainder is cloud puffs, the sky dome, and distant NPCs the LOD drops on purpose
+at `:5821`. Verify the remainder, not the delta.
+
+### 4.30 — I spent a whole session grading paint on cardboard
+
+He said the game looks "like AI slop... paper thin... slapped together." I answered with, in order:
+a shadow pass, exponential fog, a colour grade, a macro-variation wash, and a blade rebuild. Every
+one of those was a real bug fixed and not one of them was his answer, and he told me so three times
+before I actually checked what the objects are made of:
+
+- **Luna's Keep** is `BoxGeometry(13,15,13)` + a `ConeGeometry` roof + four `CylinderGeometry`
+  towers + a `BoxGeometry` door. Six primitives, flat colours, **no texture map at all**. That is
+  the featureless cream wall filling his phone screenshot.
+- **The terrain** only exists as a mesh when `TERRAIN[key].peakM >= 12`. Below that the island is
+  extruded polygon slabs — which is why his home island is flat-shaded platforms with visible
+  polygon silhouettes.
+- **Trees** are spheres on cylinders. **Rocks** are dodecahedrons. **Ground textures** are canvases
+  drawn with `createRadialGradient`, tiled 104x.
+
+So the foundation is: Three.js primitives, flat vertex colours, and procedurally-drawn canvas
+textures. Every realism pass applied on top of that is paint on cardboard, and the cardboard is
+what he can see.
+
+**The rule: before grading a frame, check what the objects in it are made of.** A render that looks
+wrong has a cause at one of four layers — geometry, material, lighting, grade — and they are not
+interchangeable. Grading cannot fix geometry, and lighting cannot fix a material that has no map.
+Diagnose downward from geometry, not upward from the frame, because the frame is where all four
+layers look the same.
+
+**The rule: when he names the layer, work THAT layer.** "Very polygon, very blocky, very primitive"
+is a statement about geometry. I heard it and shipped a colour change, twice. He should not have to
+say the same thing three times in different words to get me to stop tuning the layer I had already
+opened.
+
+And one thing I did get right and should keep doing: the measurement that stopped a wrong fix.
+Grass spacing measured 0.39 m against a 0.5-0.7 m target for real ground cover, which killed the
+"add more grass" reflex before it cost anything. Measure the thing you are about to change.
+
+### 4.31 — A scene that takes control owns giving it back
+
+`cutPlay()` set `W.active = false` so she would not walk through her own cut scene. `cutEnd()` put
+the camera back and never put that flag back. So the reward for winning the horse was standing
+frozen next to it with no prompt and no way to move.
+
+`qa/horse.mjs` caught it, and only because the suite goes all the way to the end: it tames the
+horse, waits for the scene, then tries to RIDE. A suite that had stopped at "tame === true" would
+have reported a pass on a game that had just locked the player out.
+
+**The rule: every piece of state a takeover touches is restored by the same code that took it.**
+`cutPlay` now records `wasActive` and `cutEnd` writes exactly that back — not `true`, because a
+scene can legitimately play while an overlay is up and forcing `true` would hand control to a
+player who is reading a note.
+
+**The rule: a feature test ends at the thing the player wanted, not at the flag that says it
+worked.** The player did not want `tame === true`; they wanted to get on the horse.
+
+### 4.32 — The test build was keyed on half of its inputs
+
+`ensureTestBuild()` regenerates `index_test.html` when `index.html` is newer than it. But the build
+is index.html PLUS the `window.__T` hook line, and that hook lives in `_harness.mjs`. So adding
+`cutEnd` to the hook changed nothing: every suite kept running against a cached build without it,
+and the error read `window.__T.cutEnd is not a function` — which looks like the game failing to
+export something, not like a stale cache.
+
+This is HANDOFF 4.22 again in a different costume. Then it was a `sed` hook writing a stale build;
+now it is a freshness check that only knew about one of the two files it was combining.
+
+**The rule: a cache key covers every input to the thing being cached.** The check now takes
+`max(mtime(index.html), mtime(_harness.mjs))`.
+
+### 4.33 — Two test bugs that read exactly like game bugs
+
+Both of these had me looking for a fault in the game that was not there:
+
+1. **Wall clock is not game time.** `dt` is clamped to 0.05, so under SwiftShader at two frames a
+   second a 10.8 s cut scene takes minutes of real time. The suite waited 12 s, saw shot 0, and
+   reported the timeline "never advances". The timeline was fine. Assert on the game's own state,
+   and where the renderer's speed is the obstacle, drive the updater directly with a known `dt`.
+2. **A teleport that sets x and z but not y.** The mount scan tests `|W.y - horse.y| <= 4`. Moving
+   her beside the horse without grounding her left her old height in place and the prompt never
+   appeared. It looked identical to a broken prompt.
+
+**The rule: before reporting a game bug found by a suite, check the suite's own setup first** —
+the repro's setup is part of the repro (4.21), and that applies to the harness as much as the game.
+
+And one I got right by not trusting myself: the first timeline probe reimplemented the advance
+logic inside the test instead of calling `cutUpdate`. That is the "cheap proxy for the real source"
+failure from his own audit, and a green result from it would have meant nothing. `cutUpdate` is now
+exported to `__T` and the suite calls the real one.
+
+### 4.34 — The island's objective was buried, on every island
+
+`qa/letterground.mjs`, measured: Green's letter sits 7.35 units under the ground it stands on, Good
+Riddance's 4.37, and the same on Sanity and Town. The letter is the POINT of an island, and there
+is a cue beam that actively points the player at it.
+
+The cause is one line: `letter:{at:[22,-34], y:8.5}` on Green, and Green's High Rock is `h:8.5`. A
+mesa's `h` is its rise ABOVE the terrain under it, not its height above sea level — the ground at
+that point is 17.17. The letter was authored against the feature's own number instead of against
+the ground.
+
+This is HANDOFF 4.26, Luna's Keep, a second time: one hardcoded y where every neighbouring line
+calls `height(x, z)`. It survived that sweep because the in-game ground check skips the letter.
+
+Worse, the interact scan tested `|W.y - cfg.letter.y| < 3.5` — against the AUTHORED number, not
+against the mesh. So the two wrongs cancelled just enough for the prompt to appear if you were
+standing at the authored height, and the bug hid behind itself.
+
+**The rule: `height(x, z)` is the only authority on where the ground is, and a scan tests the OBJECT,
+never the number the object was authored from.** Both now do.
+
+**The rule: when a check is written to catch a class of bug, its skip list is part of the check.**
+The ground check skipped the letter, so it could never have found this. Anything skipped needs its
+own check or a written reason.
+
+### 4.35 — Two ways to lose a shader patch, and I found both
+
+The dissolve shipped, the burn appeared on screen, and then a 3x change to the noise frequency
+changed nothing at all. That is the tell: the shader running was not the shader I had written.
+
+1. **`customProgramCacheKey` was set inside `onBeforeCompile`.** The renderer asks for the cache key
+   in order to decide which program to build, so on the first compile it is still the old key and
+   the patched program is never built. The key has to be in place before anything compiles.
+2. **The previous key was called detached.** Three's default is
+   `customProgramCacheKey(){ return this.onBeforeCompile.toString(); }`. Capturing it and calling
+   `key()` drops `this` and throws from deep inside `three.min.js` — "Cannot read properties of
+   undefined (reading 'onBeforeCompile')" — with a stack that points at the renderer, not at the
+   line that did it. It needs `prevKey.call(mat)`.
+
+**The rule: when a visual change to a shader produces no visual change, suspect the program, not the
+parameters.** Tuning a value that does nothing looks exactly like a value that does not matter, and
+I nearly concluded the effect was too subtle instead of not running.
+
+### 4.36 — A syntax error in index.html reads as a harness failure
+
+Adjacent string literals on separate lines concatenate in C. In JavaScript they are a syntax error.
+One of those inside the dissolve patch killed the whole game IIFE, so `window.__T` was never created
+and every suite failed with `Cannot read properties of undefined (reading 'CUR')` — which reads as a
+broken harness, not as invalid JavaScript.
+
+`qa/syntax.mjs` is new and runs FIRST in `run_all.sh`: it parses every inline `<script>` with
+`new Function` and names the real fault in milliseconds.
+
+**The rule: the cheapest check runs first.** A boot test that takes forty seconds should never be
+what tells you the file does not parse.
