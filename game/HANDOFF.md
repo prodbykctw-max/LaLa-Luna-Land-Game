@@ -1680,3 +1680,55 @@ broken harness, not as invalid JavaScript.
 
 **The rule: the cheapest check runs first.** A boot test that takes forty seconds should never be
 what tells you the file does not parse.
+
+### 4.37 — The camera arm popped because it started at full speed
+
+The pull-in was `camDistCur += (arm - camDistCur) * min(1, dt * 14)`. An exponential lerp toward a
+target that STEPS — and `arm` steps, because a collider is either hit or it is not — puts its
+largest velocity on the very first frame. From 11 u to 3.5 u that is 1.75 u in one frame at 60 fps,
+which is exactly what the suite's 0.8 u threshold calls a pop.
+
+The open question on this task was whether the rate could be eased without reintroducing clipping.
+It can, because the two are not actually traded against each other: a critically damped spring
+starts at ZERO velocity and still reaches the target in about the same total time. It is the same
+note as the reference reel's comments — "that ease curve is half the magic, linear fall just reads
+as rain on a teal set" — and a camera is no different from rain.
+
+Same session, same paths, gr + green: **10 pops on the lerp, 4 on the spring.**
+
+Three things the fix got wrong on the way:
+
+1. **An explicit Euler step of a spring is not a spring.** `v += (-x*w*w - v*2*w)*dt` at the game's
+   dt clamp of 0.05 with w = 20 makes the damping term `-2v`, which flips the velocity's sign and
+   grows it. It went unstable in precisely the case it was written for: 423 u/s and the arm diving
+   to 2.13. The closed form `x(t) = (x0 + (v0 + w*x0)t) e^(-wt)` is a solution rather than an
+   approximation of one, and is stable at any dt.
+2. **`arm` is a floor on the way in, not a waypoint.** A spring coming down onto a target carries
+   momentum, and `arm` rises again the moment she clears the collider — so the arm was still
+   travelling inward and ended up tighter on her than anything had asked for (2.41 u against the
+   lerp's 3.51). Clamped on the pull-in direction only.
+3. **Correctness does not rest on the spring.** `CAM_PEN` is a hard ceiling on how far behind the
+   geometric limit the arm may ever fall, so the ease is free where there is room and gives way the
+   instant it would put the camera through something.
+
+### 4.38 — I could not measure what I wanted to, and said so instead of shipping a number
+
+`popCount` is per-FRAME and therefore frame-rate dependent, so the obvious improvement was units
+per second. Three attempts, three different numbers for the same motion:
+
+- **412 u/s** dividing by wall clock — two rAF callbacks landing 2 ms apart.
+- **141 u/s** dividing by the game's dt clamp, on the assumption the clamp was always active.
+- **0 u/s** from a probe that drove the player in a way that never moved the arm at all.
+
+The harness renders at roughly 0.4 fps with 2.4-second frames, wildly jittery. A velocity is a
+derivative, which is the least forgiving thing to compute on a clock like that.
+
+The one thing that went right: the second attempt recorded `clampWasActive` alongside the number
+rather than trusting the assumption behind it, and that flag is what showed the assumption was
+false. **Ship the check on your assumption next to the number that depends on it.**
+
+**The rule: a metric that gives three answers for one motion is not a metric, and it does not stay
+in the suite.** It was removed the same day, with the reason written where the next person will
+look, so it does not get rebuilt the same way. `popCount` is blunt but it is stable and comparable
+against every prior run in that file's history, which is what makes it usable for judging a change.
+Feel gets judged by eye on real hardware — that part is honestly outside what this harness can do.

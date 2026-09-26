@@ -384,7 +384,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-26a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-26b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -6228,6 +6228,9 @@ function updateCamera(I, dt, speed){
   dissolveUpdate(dt);
   if(I.cut) cutUpdate(I, dt); else placeCamera(I, dt);
 }
+const CAM_W_IN  = (() => { const v = parseFloat(QS.get("camw"));   return isNaN(v) ? 20 : v; })();   /* pull in */
+const CAM_W_OUT = (() => { const v = parseFloat(QS.get("camout")); return isNaN(v) ? 5  : v; })();   /* ease back out */
+const CAM_PEN   = (() => { const v = parseFloat(QS.get("campen")); return isNaN(v) ? 0.55 : v; })(); /* hard ceiling on lag behind the limit */
 function placeCamera(I, dt){
   const W = I.W, portrait = innerHeight > innerWidth;
   const want = portrait ? Math.max(W.camDist, CAM.portraitDist) : W.camDist;
@@ -6245,8 +6248,51 @@ function placeCamera(I, dt){
   for(let k = 1; k <= 12; k++){ const t = arm*k/12, px = W.look.x + dir.x*t, pz = W.look.z + dir.z*t, py = W.look.y + dir.y*t;
     if(I.inside(px,pz) && py < I.height(px,pz) + 1.1){ arm = Math.max(3.5, t - .8); break; }
     if(I.camBlobs && t > 3.5){ let hit = false; for(const b of I.camBlobs){ const ddx = px-b.x, ddy = py-b.y, ddz = pz-b.z; if(ddx*ddx+ddy*ddy+ddz*ddz < b.r*b.r){ hit = true; break; } } if(hit){ arm = Math.max(3.5, t - .8); break; } } }
-  /* pull in fast, ease back out slowly */
-  W.camDistCur += (arm - W.camDistCur)*Math.min(1, dt*(arm < W.camDistCur ? 14 : 3));
+  /* ===================  THE ARM POPPED BECAUSE IT STARTED AT FULL SPEED  ===================
+     This was `camDistCur += (arm - camDistCur) * min(1, dt * (pullingIn ? 14 : 3))`. An exponential
+     lerp toward a target that STEPS - and `arm` steps, because a collider is either hit or not -
+     puts its largest velocity on the very first frame. From 11 u to 3.5 u that is 7.5 * (14/60) =
+     1.75 u in one frame, which is exactly what qa/camera.mjs counts as a pop at its 0.8 u threshold.
+     Easing the rate down would only trade the pop for clipping, which is the question this was
+     parked on.
+
+     A critically damped spring answers both. It starts at ZERO velocity, accelerates, and settles
+     without overshoot, so there is no first frame lurch - and it can be tuned to reach the target
+     in about the same total time, so the camera is not inside the wall for any longer overall. It
+     is the same note as the reference reel's own comments: "that ease curve is half the magic.
+     linear fall just reads as rain on a teal set." A camera is no different.
+
+     Correctness does not rest on the spring, though. PEN is a hard ceiling on how far behind the
+     geometric limit the arm is ever allowed to be, so the ease is free where there is room and
+     gives way the moment it would actually put the camera through something.
+     ?camw= / ?camout= / ?campen= tune it; ?camspring=0 restores the old lerp exactly. */
+  const SPRING = QS.get("camspring") !== "0";
+  if(SPRING){
+    const pulling = arm < W.camDistCur;
+    const w = pulling ? CAM_W_IN : CAM_W_OUT;
+    if(W.camVel == null) W.camVel = 0;
+    /* The ANALYTIC critically damped solution, not a Euler step of it. The first version integrated
+       explicitly - `v += (-x*w*w - v*2*w) * dt` - and at the game's dt clamp of 0.05 with w = 20 the
+       damping term alone is `-2*w*dt*v` = -2v, which flips the velocity's sign and grows it. It went
+       unstable in exactly the situation it was written for: qa/camera.mjs measured a peak arm speed
+       of 423 u/s and the arm diving to 2.13 u, worse than the pop it replaced.
+       x(t) = (x0 + (v0 + w*x0)*t) * e^(-w*t) is the closed form for zeta = 1, and being a solution
+       rather than an approximation of one it is stable for any dt at all. */
+    const e = Math.exp(-w * dt);
+    const x0 = W.camDistCur - arm, v0 = W.camVel;
+    W.camDistCur = arm + (x0 + (v0 + w * x0) * dt) * e;
+    W.camVel = (v0 - w * (v0 + w * x0) * dt) * e;
+    if(W.camDistCur > arm + CAM_PEN){ W.camDistCur = arm + CAM_PEN; W.camVel = Math.min(W.camVel, 0); }
+    /* A spring coming down onto its target carries momentum, and `arm` is not a fixed target - it
+       rises again the moment she clears the collider, which can leave the arm still travelling
+       inward and take it BELOW what the geometry asked for. Measured: min distance 2.41 u against
+       the lerp's 3.51 and the arm's own 3.5 floor, so the camera was ending up tighter on her than
+       anything had requested. Coming in from outside, `arm` is a floor, not a waypoint. */
+    if(pulling && W.camDistCur < arm){ W.camDistCur = arm; W.camVel = 0; }
+    if(W.camDistCur < 1.2){ W.camDistCur = 1.2; W.camVel = Math.max(W.camVel, 0); }
+  } else {
+    W.camDistCur += (arm - W.camDistCur)*Math.min(1, dt*(arm < W.camDistCur ? 14 : 3));
+  }
   camera.position.copy(W.look).addScaledVector(dir, W.camDistCur);
   const gy = I.inside(camera.position.x, camera.position.z) ? I.height(camera.position.x, camera.position.z) + 1.0
            : (I.shoreOut ? Math.max(SEA_Y + 2.0, I.height(camera.position.x, camera.position.z) + 1.0) : -Infinity);   /* over the sea: stay above the swell */

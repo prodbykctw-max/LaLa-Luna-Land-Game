@@ -9,9 +9,10 @@ import { open, argIslands, out, OUT } from './_harness.mjs';
 import { writeFileSync } from 'fs';
 
 const SEG_MS = 3000, POP = 0.8;
+const EXTRA_Q = process.env.QA_QUERY || '';   /* QA_QUERY=camspring=0 node qa/camera.mjs gr */
 const results = {};
 for (const isl of argIslands()) {
-  const H = await open({ island: isl, viewport: { width: 1280, height: 720 }, noRender: true });
+  const H = await open({ island: isl, viewport: { width: 1280, height: 720 }, noRender: true, query: EXTRA_Q });
   const r = await H.page.evaluate(async ({ isl, SEG_MS, POP }) => {
     const T = window.__T, I = T.ISL[isl], W = I.W, cam = T.camera, cfg = I.cfg; W.active = true;
     const press = (c, down) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code: c, bubbles: true }));
@@ -33,6 +34,16 @@ for (const isl of argIslands()) {
       // metrics
       const yaw0 = rows[0].camYaw, yawN = rows[rows.length - 1].camYaw;
       let maxStep = 0, pops = [], dmin = 1e9, dmax = 0, yawPath = 0;
+      /* NO VELOCITY METRIC HERE, ON PURPOSE. Tried 2026-09-26, removed the same day. popCount is
+         per-FRAME and so frame-rate dependent, and the obvious improvement is units per second -
+         which cannot be measured in this harness. Three attempts gave three different numbers for
+         the same motion: 412 u/s dividing by wall clock (two rAF callbacks 2 ms apart), 141 u/s
+         dividing by the game's dt clamp, and 0 u/s from a probe that never moved the arm.
+         SwiftShader renders here at about 0.4 fps with 2.4 s frames, and a velocity is a derivative
+         - the least forgiving thing to compute on a clock that noisy.
+         popCount is blunt but STABLE, and comparable against every prior run in this file's
+         history, which is what makes it useful for judging a change. Feel gets judged by eye on
+         real hardware. Do not put a velocity back without fixing the clock first. */
       for (let i = 1; i < rows.length; i++) { const s = Math.abs(wrap(rows[i].camYaw - rows[i - 1].camYaw)); maxStep = Math.max(maxStep, s); yawPath += s;
         const dd = rows[i].dist - rows[i - 1].dist; if (Math.abs(dd) > POP) pops.push({ frame: i, from: +rows[i - 1].dist.toFixed(2), to: +rows[i].dist.toFixed(2), at: [rows[i].x, rows[i].z] });
         dmin = Math.min(dmin, rows[i].dist); dmax = Math.max(dmax, rows[i].dist); }
