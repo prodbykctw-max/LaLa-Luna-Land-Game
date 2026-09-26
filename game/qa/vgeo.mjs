@@ -3,11 +3,11 @@
    - grass clump height against her own body landmarks (no eyeballing)
    - unlit (MeshBasic) objects that are large and in shot
    - lantern globes: how many have a light within 2 u */
-import { open, argIslands, out } from './_harness.mjs';
+import { open, argIslands, out , AIRBORNE_SRC, SUPPORTED_SRC } from './_harness.mjs';
 const res = {};
 for (const island of argIslands()) {
   const H = await open({ island, viewport: { width: 640, height: 400 }, wait: 26000 });
-  const r = await H.page.evaluate(() => {
+  const r = await H.page.evaluate(([AIR_SRC, SUP_SRC]) => {
     const T = window.__T, I = T.CUR, S = I.scene, W = I.W;
     const box = new THREE.Box3(), c = new THREE.Vector3();
     const float = [], buried = [];
@@ -28,16 +28,9 @@ for (const island of argIslands()) {
        it bakes the static batch, so use the same one here instead of inventing a second list.
        Without it the audit reports every cloud 40-60 u up as a "floating object", which is what
        turned 93 real candidates into 349 and buried the actual defects in noise. */
-    const airborne = new Set();
-    const fx = I.fx || {};
-    for (const [k, v] of Object.entries(fx)) {
-      if (k === 'canopies' || k === 'bushes') continue;
-      const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null);
-      if (arr) arr.forEach(o => { if (o && o.isObject3D) { airborne.add(o); let q = o; while ((q = q.parent) && q !== S) airborne.add(q); } });
-      else if (v && v.isObject3D) airborne.add(v);
-    }
-    (I.notes || []).forEach(n => airborne.add(n));
-    (I.mist  || []).forEach(m => airborne.add(m));
+    /* the one shared rule - see AIRBORNE_SRC in qa/_harness.mjs */
+    const airborne = eval(AIR_SRC)(I, S);
+    const supported = eval(SUP_SRC)(I, S);
     const skipName = /^(sky|moon|rain|bow|beam|foam|star|cloud|bird|mote)/i;
     for (const o of S.children) {
       if (!o.visible || o.isLight || o.isCamera) continue;
@@ -70,7 +63,7 @@ for (const island of argIslands()) {
       const gap = box.min.y - h;
       const label = o.name || (o.userData && o.userData.kind) || (o.type === 'Group' ? 'group' : (o.geometry && o.geometry.type) || o.type);
       const tag = { name: label, x: +c.x.toFixed(1), z: +c.z.toFixed(1), gap: +gap.toFixed(2), h: +size.toFixed(1) };
-      if (gap > 1.2) float.push(tag);
+      if (gap > 1.2 && !supported(o, gap)) float.push(tag);   /* held up by something = not floating */
       else if (gap < -size * 0.75) buried.push(tag);
       /* lantern globes: small spheres held up high, anywhere inside this object */
       o.traverse(k => {
@@ -109,7 +102,7 @@ for (const island of argIslands()) {
       buried: buried.slice(0, 8), buriedCount: buried.length,
       globes: { total: globes.length, unlit: globes.filter(g => !g.lit).length, mats: [...new Set(globes.map(g=>g.mat))] },
       grass, landmarks: lm };
-  });
+  }, [AIRBORNE_SRC, SUPPORTED_SRC]);
   res[island] = r;
   console.error(`[vgeo] ${island}: floating ${r.floatCount}, buried ${r.buriedCount}, globes ${r.globes.total} (${r.globes.unlit} unlit), grass max ${r.grass && r.grass.maxWorld}`);
   await H.close();

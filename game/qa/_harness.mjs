@@ -77,3 +77,77 @@ export async function open(opts = {}) {
 
 export function argIslands(def = ISLANDS) { const a = process.argv.slice(2).filter(x => !x.startsWith('-')); return a.length ? a : def; }
 export function out(obj) { console.log(JSON.stringify(obj, null, 1)); }
+
+/* ===================  ONE SKIP RULE, SHARED  ===================
+   vgeo and idflag both ask "is this object sitting on the ground", and both therefore need the same
+   answer to "is this object supposed to be in the air". They drifted: vgeo skipped I.mist and
+   idflag did not, so idflag reported seven haze billboards as floaters; neither skipped creatures,
+   so three soaring pterosaurs came back as 27 u floaters and the two suites contradicted each other
+   on the same scene. Two copies of a rule is one copy too many.
+   Injected as source because it has to run in the page, where the scene actually is. */
+export const AIRBORNE_SRC = `(function(I, S){
+  const air = new Set();
+  const add = o => { if(o && o.isObject3D){ air.add(o); o.traverse(k => air.add(k)); } };
+  const fx = I.fx || {};
+  for(const [k, v] of Object.entries(fx)){
+    const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null);
+    if(arr) arr.forEach(o => { if(o && o.isObject3D){ add(o); let q = o; while((q = q.parent) && q !== S) air.add(q); } });
+    else add(v);
+  }
+  (I.notes || []).forEach(add);
+  (I.mist  || []).forEach(add);           /* haze billboards - they hang in the air on purpose */
+  (I.creatures || []).forEach(c => {      /* a bird or a dolphin is a creature, not an fx entry */
+    const u = c.userData || {};
+    if(u.fly || u.soar || u.water) add(c);
+  });
+  [I.sea, I.seaBed, I.moon, I.rain, I.bow, I.sky && I.sky.mesh, I.terrainMesh].forEach(add);
+  /* Things that hang on purpose and are not mistakes: the letter and the ability pickup both float
+     with a beam over them so she can find them, and a moon collectible is a moon. */
+  add(I.letterMesh); add(I.letterBeam); add(I.pickup); add(I.boat);   /* a boat sits on water, not on land */
+  (I.moons || []).forEach(add);
+  if(I.quest) Object.keys(I.quest).forEach(k => { const v = I.quest[k];
+    if(Array.isArray(v)) v.forEach(add); else add(v); });
+  /* THE GROTTO IS A CAVE. Its shell, its stalactites and its flowstone curtains are all authored
+     BELOW the terrain because that is what a cave is - sanity's two "buried LatheGeometry, 6 u
+     under" are flowstone down the back wall, exactly where they belong. Anything inside the
+     grotto's own radius is underground on purpose. */
+  if(I.grotto){
+    const g = I.grotto, rr = (g.r + 3) * (g.r + 3);
+    S.traverse(o => { const dx = o.position ? o.position.x - g.x : 1e9, dz = o.position ? o.position.z - g.z : 1e9;
+      if(dx*dx + dz*dz < rr) air.add(o); });
+  }
+  return air;
+})`;
+
+/* ===================  "FLOATING" MEANS UNSUPPORTED, NOT "ABOVE THE TERRAIN"  ===================
+   The audits called an object floating when its lowest point sat above the ground height at its
+   x/z. That is wrong for anything mounted on something else, and the world is full of those: Town's
+   market banners are PlaneGeometry(1.7 x 1.9) in #ffb059 hanging at y 8.4 off the buildings, which
+   is 5.65 u "above the ground" and exactly where a banner belongs.
+   A thing is floating when NOTHING HOLDS IT UP. So cast a ray straight down from it and look for
+   any other mesh in the gap: a banner finds its building, a lantern finds its post, and a rock
+   hovering over open meadow finds nothing and is still reported. Costs one raycast per candidate,
+   only for objects that already looked suspicious. */
+export const SUPPORTED_SRC = `(function(I, S){
+  const ray = new THREE.Raycaster();
+  const down = new THREE.Vector3(0, -1, 0);
+  const box = new THREE.Box3(), c = new THREE.Vector3();
+  return function supported(o, gap){
+    try{
+      box.setFromObject(o); box.getCenter(c);
+      const from = new THREE.Vector3(c.x, box.min.y - 0.05, c.z);
+      ray.set(from, down);
+      ray.far = gap + 0.6;
+      const self = new Set(); o.traverse(k => self.add(k));
+      const hits = ray.intersectObjects(S.children, true);
+      for(const h of hits){
+        if(self.has(h.object)) continue;
+        if(h.object.userData && h.object.userData.ground) continue;   /* the terrain is the gap, not the support */
+        const m = h.object.material;
+        if(m && (m.transparent && m.opacity < 0.5)) continue;          /* haze does not hold anything up */
+        return true;
+      }
+    }catch(e){}
+    return false;
+  };
+})`;

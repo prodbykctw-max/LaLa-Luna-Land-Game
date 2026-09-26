@@ -3,24 +3,17 @@
    flagged object against the island's own registries (I.props, I.npcs, I.stones, I.gateMeshes,
    I.extra, I.notes, I.canopies, I.bushes) and against cfg.features / cfg.places, so a defect comes
    back as "the keep, inside the hill" instead of a coordinate. */
-import { open, argIslands, out } from './_harness.mjs';
+import { open, argIslands, out , AIRBORNE_SRC } from './_harness.mjs';
 const res = {};
 for (const isl of argIslands()) {
   const H = await open({ island: isl, viewport: { width: 640, height: 400 }, wait: 26000 });
-  const r = await H.page.evaluate(() => {
+  const r = await H.page.evaluate((AIR_SRC) => {
     const T = window.__T, I = T.CUR, S = I.scene, W = I.W, cfg = I.cfg;
     const box = new THREE.Box3(), c = new THREE.Vector3();
     const reg = { props: I.props, npcs: I.npcs, stones: I.stones, gates: I.gateMeshes, extra: I.extra,
                   notes: I.notes, canopies: I.canopies, bushes: I.bushes, creatures: I.creatures };
-    const airborne = new Set();
-    const fx = I.fx || {};
-    for (const [k, v] of Object.entries(fx)) {
-      if (k === 'canopies' || k === 'bushes') continue;
-      const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null);
-      if (arr) arr.forEach(o => { if (o && o.isObject3D) { airborne.add(o); let q = o; while ((q = q.parent) && q !== S) airborne.add(q); } });
-      else if (v && v.isObject3D) airborne.add(v);
-    }
-    (I.notes || []).forEach(n => airborne.add(n));
+    /* the one shared rule - see AIRBORNE_SRC in qa/_harness.mjs */
+    const airborne = eval(AIR_SRC)(I, S);
     const whichReg = (o) => {
       for (const [k, arr] of Object.entries(reg)) {
         if (!Array.isArray(arr)) continue;
@@ -73,7 +66,7 @@ for (const isl of argIslands()) {
         nearFeature: nearestFeature(c.x, c.z), nearPlace: nearestPlace(c.x, c.z) });
     }
     return { island: I.cfg.key, flagged };
-  });
+  }, AIRBORNE_SRC);
   res[isl] = r;
   console.error(`[id] ${isl}: ${r.flagged.length} flagged`);
   r.flagged.forEach(f => console.error(`   ${f.verdict} (${f.x},${f.z}) gap ${f.gap} tall ${f.tall} ground ${f.groundHere} | reg=${f.registry} parts=${JSON.stringify(f.parts)} feat=${JSON.stringify(f.nearFeature)} place=${JSON.stringify(f.nearPlace)}`));

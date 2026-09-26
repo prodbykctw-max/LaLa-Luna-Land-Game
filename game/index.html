@@ -384,7 +384,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-26b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-26c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -5373,7 +5373,13 @@ function buildIslandBody(cfg){
       const dr = inked(new THREE.ConeGeometry(.6,1.4,10), BONE, 1.5); dr.position.y = -1.1; pk.add(dr); }
     const glow = new THREE.Mesh(new THREE.RingGeometry(1.4,2.0,22), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.28, side:THREE.DoubleSide}));
     glow.rotation.x = -Math.PI/2; glow.position.y = -1.5; pk.add(glow);
-    pk.position.set(a.at[0], (a.y != null ? a.y : height(a.at[0],a.at[1])) + 2.2, a.at[1]); scene.add(pk); I.pickup = pk;
+    /* Same trap as the letter (HANDOFF 4.34): an authored `a.y` is a number somebody typed, and the
+       ground moved under it. qa/vgeo measured Good Riddance's ability pickup sitting 2.99 u INSIDE
+       the hill with its own find-me beam pointing at it. height(x,z) is the floor; the authored
+       value can only raise it. */
+    const pgy = height(a.at[0], a.at[1]);
+    const py = (a.y != null ? (isFinite(pgy) ? Math.max(pgy, a.y) : a.y) : pgy) + 2.2;
+    pk.position.set(a.at[0], py, a.at[1]); scene.add(pk); I.pickup = pk;
   }
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
     const L = cfg.letter;

@@ -1732,3 +1732,46 @@ in the suite.** It was removed the same day, with the reason written where the n
 look, so it does not get rebuilt the same way. `popCount` is blunt but it is stable and comparable
 against every prior run in that file's history, which is what makes it usable for judging a change.
 Feel gets judged by eye on real hardware — that part is honestly outside what this harness can do.
+
+### 4.39 — The audit was wrong about 39 of its 41 complaints
+
+The board said "7 buried / 32 floating". Re-measured today it was 37 floating / 4 buried, and after
+fixing the audit it is **2**. Almost none of it was ever a game bug. What the audit was actually
+reporting, in order of size:
+
+- **Airborne creatures.** A bird, butterfly, pterosaur, dolphin or turtle is spawned into
+  `I.creatures`, not into `I.fx`, so every skip in both suites missed them. Three Good Riddance
+  "floaters" 27 u up were pterosaurs soaring. `qa/floatwho.mjs` settled it: of 75 creatures across
+  three islands, 33 are airborne or in water by design and **zero land creatures float more than
+  1 u**.
+- **Anything mounted on anything.** The audit asked "is the terrain below this?", which is not the
+  same question as "is this held up?". Town's market banners are `PlaneGeometry(1.7 x 1.9)` in
+  #ffb059 hanging at y 8.4 off the buildings — 5.65 u "above the ground" and exactly where a banner
+  belongs. `floating` now means UNSUPPORTED: a ray straight down that finds no other mesh in the
+  gap. That one change took 25 flags to 6.
+- **The grotto.** It is a cave. Its shell, stalactites and flowstone curtains are authored below the
+  terrain because that is what a cave is. Sanity's two "buried LatheGeometry, 6 u under" are
+  flowstone down its back wall.
+- **Things that hang on purpose** — the letter and the ability pickup both float with a find-me
+  beam over them, the boats sit on water, a moon collectible is a moon.
+
+Two real bugs came out of it, and both are the SAME bug as Luna's Keep (4.26) and the letter (4.34),
+which is now four times:
+- Good Riddance's **ability pickup** sat 2.99 u inside a hill, with its own beam pointing at it.
+  `a.y` is a number somebody typed and the ground moved under it. `height(x,z)` is the floor now;
+  an authored value can only raise it.
+
+**The rule: an audit's skip list is a claim about the world, and it has to be tested like one.**
+Every false positive here was the audit not knowing something the GAME already knew —
+`userData.fly` was right there. Ask the game.
+
+**The rule: two suites answering the same question share one implementation of it.** vgeo skipped
+`I.mist` and idflag did not, so they disagreed about seven haze billboards; neither knew about
+creatures, so they disagreed about three pterosaurs. `AIRBORNE_SRC` and `SUPPORTED_SRC` now live in
+`_harness.mjs` and both suites `eval` the same source in the page. Two copies of a rule is one copy
+too many.
+
+**Still open, honestly:** 2 flags remain and I have not identified them — a 7.9 u tall group 35.8 u
+under Good Riddance at (-14.3, 121.3), and a #ffebab sphere 10.4 u up over Sanity at (-120, -100),
+which looks like a lamp globe that has lost its post. Both are named here so the next pass starts
+from the coordinates rather than from the count.
