@@ -1775,3 +1775,42 @@ too many.
 under Good Riddance at (-14.3, 121.3), and a #ffebab sphere 10.4 u up over Sanity at (-120, -100),
 which looks like a lamp globe that has lost its post. Both are named here so the next pass starts
 from the coordinates rather than from the count.
+
+### 4.40 — The flowers were a flattened icosahedron
+
+`flowerField()` built its flower from `IcosahedronGeometry(.16)` squashed on Y — a coloured lump,
+320 of them, standing in for a flower. It is the clearest single example of what he meant by "very
+polygon, very blocky, very primitive": there was no flower in it at all.
+
+The library is authored in Blender now (`blender/flora.py` → `game/assets/flora.glb`), because what
+makes a petal read as a petal is that it CURVES and is round at the tip, and a curve is control
+points, not a primitive. Three species — daisy, buttercup, hanging bell — each at four growth
+stages, plus clover, two ferns, reeds and two mushrooms. **Eighteen pieces, 935 triangles for the
+whole library**, one material, species and shading carried in vertex colours.
+
+**The render is the only reason the first version is not what shipped.** Built blind it looked
+plausible in the numbers — 18 pieces, 705 tris, exports clean. Rendered, the petals were propeller
+blades. Three things were wrong and all three are proportion:
+- nearly 4x as long as wide. A petal is 2 to 2.5; past that it is a blade.
+- tapered to a needle. Petals are ROUND at the tip — they stay broad and then turn over.
+- the "cup" was a droop on the centre line at 2 segments, so there was no curve for the eye to
+  read. It is a real cross-section curl now, at 4 segments.
+
+**The rule: render an asset before believing it.** A triangle count, a clean export and a sensible
+parameter list say nothing about whether the shape reads as the thing it is meant to be. This is the
+same failure as grading a frame before checking what the objects are made of (4.30), one layer down.
+
+Cost, measured on Green at spawn: 1,638,635 tris without flora, 1,796,612 with — **+158k, +9.6%**,
+for 2,600 drift-seeded plants. `?flowers=0` turns it off, `?flowers=N` sets the count.
+
+Two notes for next time:
+- Scatter in DRIFTS, never uniformly. A uniform scatter at any density reads as wallpaper; a
+  clustered one reads as a meadow, because the eye needs somewhere bare to compare the dense part
+  against. Each sample seeds 9-16 within a varying radius.
+- The whole scene is at 1.6M triangles BEFORE flora, on a machine with an Intel UHD 620 and no
+  discrete GPU. Flora did not cause that, but it is the ceiling everything else is working under
+  and it has not been addressed.
+
+**Found while rendering, not yet fixed:** the mesas are flat-topped drums with vertical sides —
+`CylinderGeometry` standing in for a landform. It is the same class as the flowers and it dominates
+the mid-ground of Green.

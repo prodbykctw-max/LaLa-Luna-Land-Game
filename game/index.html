@@ -384,7 +384,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-26c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-29a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -2889,17 +2889,117 @@ function grassField(scene, n, origin, heightFn, cols, blocked){
   };
   return {mesh, mat, follow};
 }
+/* ===================  THE FLOWERS WERE A FLATTENED ICOSAHEDRON  ===================
+   This used to be `IcosahedronGeometry(.16)` squashed on Y - a blob, one per instance, tinted from
+   a list. It is the clearest example of what he meant by "very polygon, very blocky, very
+   primitive": there was no flower in it at all, only a coloured lump standing in for one.
+
+   The library is authored in Blender now (blender/flora.py, exported to assets/flora.glb) because
+   what makes a petal read as a petal is that it CURVES and is round at the tip, and a curve is
+   control points, not a primitive. Three species - daisy, buttercup, hanging bell - each at four
+   growth stages (bud, opening, full, spent), plus clover, two ferns, reeds and two mushrooms.
+   Eighteen pieces, 935 triangles for the WHOLE library, one material: species and shading ride in
+   vertex colours so every piece shares a single draw path.
+
+   "Every stage" is his ask and it is also the honest way to scatter: a field where every flower is
+   at the same stage is a pattern, and a field where they are not is a meadow.
+
+   It loads async and the field appears when it arrives - nothing blocks the first frame on it, and
+   if the fetch fails the island is simply a field without flowers rather than a black screen. */
+/* 320 was the old blob count and it read as a sprinkle on a field this size - the island is ~600 u
+   across at WORLD 4. ?flowers= overrides; phones get about half, because every instance is a draw
+   the tile-based GPU has to sort. */
+const FLOWER_N = (() => {
+  const q = parseInt(QS.get("flowers"));
+  if(isFinite(q)) return Math.max(0, q);
+  return (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? 1400 : 2600;
+})();
+const FLORA_WEIGHT = {
+  /* how much of the scatter each piece gets. Buds and spent blooms outnumber full ones, because in
+     a real meadow most flowers are not at their peak on the day you walk through it. */
+  flower_daisy_full: 10, flower_daisy_open: 9, flower_daisy_bud: 7, flower_daisy_spent: 5,
+  flower_buttercup_full: 9, flower_buttercup_open: 8, flower_buttercup_bud: 7, flower_buttercup_spent: 4,
+  flower_bell_full: 6, flower_bell_open: 5, flower_bell_bud: 5, flower_bell_spent: 3,
+  plant_clover: 12, plant_fern_small: 7, plant_fern_large: 4, plant_reed: 3,
+  plant_mushroom_a: 2, plant_mushroom_b: 2
+};
+let FLORA_GLTF = null, FLORA_PENDING = null;
+function loadFlora(){
+  if(FLORA_GLTF || FLORA_PENDING || !THREE.GLTFLoader) return FLORA_PENDING;
+  FLORA_PENDING = new Promise(res => {
+    new THREE.GLTFLoader().load("assets/flora.glb",
+      g => { FLORA_GLTF = g; res(g); },
+      undefined,
+      e => { DBG("flora load failed", e); res(null); });
+  });
+  return FLORA_PENDING;
+}
 function flowerField(scene, n, sampler, heightFn, cols){
-  const geo = new THREE.IcosahedronGeometry(.16, 0); geo.scale(1, .5, 1);
-  const mat = new THREE.MeshBasicMaterial({color:0xffffff});
-  const mesh = new THREE.InstancedMesh(geo, mat, n);
-  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), sc = new THREE.Vector3(1,1,1);
-  let k = 0;
-  for(let i=0;i<n/5;i++){ const s = sampler(); if(!s) continue; c.setHex(cols[(Math.random()*cols.length)|0]);
-    for(let j=0;j<5 && k<n;j++){ const x = s[0]+(Math.random()-.5)*2.4, z = s[1]+(Math.random()-.5)*2.4;
-      sc.setScalar(.8+Math.random()*.5); M.compose(new THREE.Vector3(x, heightFn(x,z)+.6, z), q, sc); mesh.setMatrixAt(k, M); mesh.setColorAt(k, c); k++; } }
-  mesh.count = k; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  scene.add(mesh); return mesh;
+  /* Collect the scatter points ONCE and share them across every piece, so a clover and a daisy can
+     stand in the same tuft instead of each species owning its own separate patches. */
+  /* Flowers grow in DRIFTS, not in an even sprinkle. A uniform scatter at any density reads as
+     wallpaper; a clustered one reads as a meadow, because the eye gets somewhere dense to land and
+     somewhere bare to compare it against. Each sample seeds a drift of 9-16 within ~2 u, and the
+     drift's own spread varies so they are not all the same size patch. */
+  const spots = [];
+  for(let i=0;i<Math.ceil(n/12);i++){
+    const s = sampler(); if(!s) continue;
+    const per = 9 + (Math.random()*8|0);
+    const spread = 1.3 + Math.random()*2.4;
+    for(let j=0;j<per;j++){
+      const a = Math.random()*Math.PI*2, r = Math.sqrt(Math.random())*spread;
+      spots.push([s[0]+Math.cos(a)*r, s[1]+Math.sin(a)*r]);
+    }
+  }
+  const group = new THREE.Group(); group.userData.dyn = 1; scene.add(group);
+  const out = {group, meshes:[]};
+  const p = loadFlora();
+  if(!p) return out;
+  p.then(gltf => {
+    if(!gltf) return;
+    const pieces = [];
+    gltf.scene.traverse(o => { if(o.isMesh && FLORA_WEIGHT[o.name] != null) pieces.push(o); });
+    if(!pieces.length){ DBG("flora: no known pieces in glb"); return; }
+    const total = pieces.reduce((a, o) => a + FLORA_WEIGHT[o.name], 0);
+    const M = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color();
+    const sc = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+    let cursor = 0;
+    for(const piece of pieces){
+      const share = Math.max(1, Math.round(spots.length * FLORA_WEIGHT[piece.name] / total));
+      const geo = piece.geometry.clone();
+      /* Authored at real-world scale in Blender - a daisy is 30 cm tall. The game's unit is about
+         0.55 m (her 3.07 u against a 1.68 m woman), and everything is then scaled by WORLD, so a
+         flower has to come up by that much or it is a speck in the grass. */
+      const S = 3.4;
+      geo.scale(S, S, S);
+      const mat = toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide, roughness:.92});
+      const mesh = new THREE.InstancedMesh(geo, mat, share);
+      let k = 0;
+      for(let i=0;i<share && cursor<spots.length;i++, cursor++){
+        const [x, z] = spots[cursor];
+        const gy = heightFn(x, z);
+        if(!isFinite(gy)) continue;
+        q.setFromAxisAngle(up, Math.random()*Math.PI*2);
+        const sv = .78 + Math.random()*.55;
+        sc.set(sv, sv*(.88+Math.random()*.28), sv);
+        M.compose(new THREE.Vector3(x, gy, z), q, sc);
+        mesh.setMatrixAt(k, M);
+        /* a gentle per-instance wash so a hundred daisies are not a hundred identical daisies;
+           cols is the island's own flower palette and still drives the tint */
+        c.setHex(cols[(Math.random()*cols.length)|0]);
+        c.offsetHSL(0, (Math.random()-.5)*.10, (Math.random()-.5)*.10);
+        c.lerp(new THREE.Color(0xffffff), .22);      /* tint, do not repaint - the vertex colours carry the species */
+        mesh.setColorAt(k, c);
+        k++;
+      }
+      mesh.count = k;
+      mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false;
+      group.add(mesh); out.meshes.push(mesh);
+    }
+    DBG("FLORA", pieces.length, "pieces,", out.meshes.reduce((a,m)=>a+m.count,0), "instances");
+  });
+  return out;
 }
 /* a butterfly's wing pair, drawn as a real silhouette (big forewing, smaller hindwing, notched trailing edge)
    rather than a rectangle. The two halves hinge on the body so the flap folds instead of spinning flat. */
@@ -4998,7 +5098,7 @@ function buildIslandBody(cfg){
       if(rr > .7) I.colliders.push({x:rx, z:rz, r:rr*.85}); }
   }
   /* wildflowers — instanced, planted in beds */
-  if(cfg.key !== "sanity") flowerField(scene, 320, () => { const s = sample(6, 66, true); return (s && cfg.beach && Math.hypot(s[0]-cfg.beach.x, s[1]-cfg.beach.z) < cfg.beach.r) ? null : s; }, height, cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4]);
+  if(cfg.key !== "sanity") flowerField(scene, FLOWER_N, () => { const s = sample(6, 66, true); return (s && cfg.beach && Math.hypot(s[0]-cfg.beach.x, s[1]-cfg.beach.z) < cfg.beach.r) ? null : s; }, height, cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4]);
   /* specific decor */
   const column = (x,z,h,tilt,col) => { const c = inked(new THREE.CylinderGeometry(.85,1.0,h,12), col||P.stone, 1.9);
     c.position.set(x, height(x,z)+h/2, z); c.rotation.z = tilt||0; scene.add(c); I.colliders.push({x,z,r:1.1}); return c; };

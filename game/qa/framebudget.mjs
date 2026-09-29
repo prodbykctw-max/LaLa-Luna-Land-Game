@@ -8,7 +8,7 @@ import { writeFileSync } from 'fs';
 
 const results = {};
 for (const isl of argIslands()) {
-  const H = await open({ island: isl, viewport: { width: 1100, height: 650 }, query: 'fps=1', wait: 15000 });
+  const H = await open({ island: isl, viewport: { width: 1100, height: 650 }, query: 'fps=1' + (process.env.QA_QUERY ? '&' + process.env.QA_QUERY : ''), wait: 15000 });
   const page = H.page;
   const readout = async () => { await page.waitForTimeout(2500); return page.evaluate(() => { const d = [...document.querySelectorAll('body > div')].find(d => d.style.top === '52px'); const m = d && d.textContent.match(/(\d+) fps · ([\d,]+) tris · (\d+) calls/); return m ? { tris: +m[2].replace(/,/g, ''), calls: +m[3] } : null; }); };
   const breakdown = await page.evaluate(() => {
