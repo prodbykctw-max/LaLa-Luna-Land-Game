@@ -7325,7 +7325,12 @@ load().then(() => {
   /* ?go=green|gr|sanity|town jumps straight onto an island — handy for playtesting one spot */
   const jump = new URLSearchParams(location.search).get("go");
   if(jump && ISL[jump] && jump !== "hub"){ CUR = ISL[jump]; goIsland(ISL[jump], true); ovNone(); CUR.W.active = true; tick(); return; }
-  if(new URLSearchParams(location.search).get("sail")){ CUR = ISL.hub; tick(); SAIL_LINES = ["Green. 4 Letters.", "Find what she left.", "Then find the letter."]; goSail(() => goIsland(ISL.green)); return; }
+  /* Preview shortcut: ?sail=moon opens the Luna-only boat approach without altering progression or saves. */
+  const sailPreview = new URLSearchParams(location.search).get("sail");
+  if(sailPreview){ const target = sailPreview === "moon" ? "moon" : "green"; CUR = ISL.hub; tick();
+    SAIL_TARGET = target;
+    SAIL_LINES = target === "moon" ? ["Lala Luna Land.", "The island that isn't on any map.", "Follow the moonlight."] : ["Green. 4 Letters.", "Find what she left.", "Then find the letter."];
+    goSail(() => goIsland(ISL[target])); return; }
   CUR = ISL.hub; goIsland(ISL.hub, true); ov("ovTitle"); CUR.W.active = false; tick();
 });
 })();
