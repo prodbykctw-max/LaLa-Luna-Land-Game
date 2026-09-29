@@ -384,7 +384,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-09-29a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-09-29b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -850,7 +850,51 @@ function macroNoise(){
 }
 const MACRO = (() => { const v = parseFloat(QS.get("macro")); return isNaN(v) ? 0.40 : Math.max(0, Math.min(1, v)); })();
 const MACRO_TILES = (() => { const v = parseFloat(QS.get("macrotiles")); return isNaN(v) ? 2.6 : Math.max(.2, v); })();
-const TEX = {meadow: grassGround(), sand: sandGround(), rock: mottle(9, 70, 1.6), macro: macroNoise()};
+/* BEDDED ROCK. `mottle` is isotropic - it has no up - so a cliff painted with it reads as one
+   creamy blob whichever way the light falls, which is exactly what the first textured pass of the
+   mesas looked like. Sedimentary rock has a direction: it is laid down in beds, the beds weather to
+   different tones, and the joint between two of them holds a shadow. This draws that - horizontal
+   beds of varying thickness and value, fine bedding planes inside each one, a dark seam between
+   them, and vertical erosion streaks washing down the face. It is a multiplier over the material
+   colour like the other ground textures, so it costs one canvas at boot and nothing per frame.
+   The caller is responsible for the one thing that makes it work: v must run with WORLD HEIGHT on
+   the steep parts, or the beds come out following the mesh instead of the horizon. */
+function beddedRock(){
+  const W = 256, H = 512, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0,0,W,H);
+  let y = 0;
+  while(y < H){
+    const th = 9 + Math.random()*46;                       /* bed thickness varies a lot */
+    const v = Math.round(214 + Math.random()*41);          /* and so does its tone */
+    ctx.fillStyle = `rgb(${v},${Math.round(v*.995)},${Math.round(v*.975)})`;
+    ctx.fillRect(0, y, W, th);
+    for(let k=0;k<th/2.2;k++){                             /* bedding planes inside the bed */
+      const yy = y + Math.random()*th, w = Math.round(v - 6 - Math.random()*22);
+      ctx.strokeStyle = `rgba(${w},${w},${Math.round(w*.97)},${.16 + Math.random()*.3})`;
+      ctx.lineWidth = .6 + Math.random()*1.5;
+      ctx.beginPath();
+      const x0 = -20 + Math.random()*40, x1 = W + Math.random()*40;
+      ctx.moveTo(x0, yy); ctx.bezierCurveTo(W*.3, yy + (Math.random()-.5)*3, W*.7, yy + (Math.random()-.5)*3, x1, yy + (Math.random()-.5)*2);
+      ctx.stroke();
+    }
+    const s = Math.round(v*.66);                           /* the seam between two beds holds shadow */
+    ctx.fillStyle = `rgba(${s},${s},${Math.round(s*.95)},.55)`;
+    ctx.fillRect(0, y, W, 1.6 + Math.random()*1.4);
+    y += th;
+  }
+  for(let i=0;i<70;i++){                                   /* water washing down the face */
+    const x = Math.random()*W, w = 1 + Math.random()*7, top = Math.random()*H*.5, len = H*(.3+Math.random()*.7);
+    const g = ctx.createLinearGradient(0, top, 0, top+len);
+    const d = Math.round(150 + Math.random()*70);
+    g.addColorStop(0, `rgba(${d},${d},${d},0)`); g.addColorStop(.35, `rgba(${d},${d},${d},${.10+Math.random()*.16})`);
+    g.addColorStop(1, `rgba(${d},${d},${d},0)`);
+    ctx.fillStyle = g; ctx.fillRect(x, top, w, len);
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1,1);
+  return t;
+}
+const TEX = {meadow: grassGround(), sand: sandGround(), rock: mottle(9, 70, 1.6), macro: macroNoise(), bed: beddedRock()};
 /* Recover the un-tiled uv by dividing vUv back out by the map's own repeat, then re-scale it to a
    couple of tiles across the mesh. Hooks in after <map_fragment> so it multiplies the final albedo. */
 function macroPatch(sh){
@@ -4923,7 +4967,87 @@ function buildIslandBody(cfg){
         if(f.crater && d < f.r*.28) h = f.h*Math.pow(1-.28, 1.35) - (f.r*.28-d)*.6;
         y = Math.max(y, h);
       }
-      if(f.type === "mesa" && d < f.r) y = Math.max(y, f.h);
+      /* ===============  A MESA WAS A STEP FUNCTION  ===============
+         This was `if(d < f.r) y = max(y, f.h)` - inside the radius the ground jumps to full height,
+         outside it does not. That is a cylinder BY DEFINITION, and the drum with vertical sides and
+         a machined-flat top that dominates Green's mid-ground is not a rendering artifact: the
+         terrain really is that shape, and the mesh was drawn to match it.
+
+         A mesa has three parts and the step had none of them: a broad top that is nearly but not
+         quite flat, a cliff band below it, and a talus apron of fallen rock easing out to the plain.
+         smoothstep across the outer band gives exactly that - flat where it meets the cap, steepest
+         in the middle, flat again where it meets the ground.
+
+         The plan outline is not a circle either. Two sine terms on the bearing push the rim in and
+         out by about a sixth of the radius, so the silhouette has bays and headlands instead of
+         being a perfect disc. The phase is seeded from the feature's own name so it is the same
+         mesa on every load, and the whole branch early-outs past 1.35r so this costs nothing for
+         the rest of the island. */
+      if(f.type === "mesa" && d < f.r*1.35){
+        if(f.__ph == null) f.__ph = (seedOf((f.name || "") + f.x + "," + f.z) % 6283) / 1000;
+        const ang = Math.atan2(z-f.z, x-f.x);
+        const R = f.r * (1 + Math.sin(ang*3 + f.__ph)*0.155 + Math.sin(ang*5 - f.__ph*1.7)*0.080
+                           + Math.sin(ang*8 + f.__ph*2.4)*0.038);
+        if(d < R){
+          const t = d / R;
+          /* TWO KINDS OF MESA, and the island files already tell them apart: `ink:true` marks the
+             ones that are meant to be rock - The High Rock, Bone Ledge, The Sea Stack - while the
+             hub's central rise and the town's plaza are just raised ground that she walks over. A
+             cliff on the plaza would be wrong and a cliff round the hub would trap her, so only the
+             inked ones get one. */
+          if(f.__ra == null){
+            f.__ra = (seedOf("ramp" + (f.name || "") + f.x) % 6283) / 1000;
+            /* A rock mesa gets one breach in the rim so she can get up - UNLESS the island's own
+               design says the top is air-only. Green's brief is "the letter is somewhere you can
+               only reach on the air", so a way up on foot would quietly defeat the glide gate. */
+            const L = cfg.letter;
+            f.__noRamp = !!(L && L.gate && Math.hypot(L.at[0]-f.x, L.at[1]-f.z) < f.r);
+          }
+          let h;
+          if(!f.ink){
+            /* raised ground: the old broad profile, walkable everywhere */
+            const CAP = 0.58;
+            if(t < CAP){ const c = t/CAP; h = f.h * (1 - 0.06*c*c); }
+            else { const u = (t-CAP)/(1-CAP); h = f.h * (1 - u*u*(3 - 2*u)); }
+          } else {
+            /* THE CLIFF HAS TO BE A CLIFF. The first version of this profile dropped the full
+               height over 42% of the radius - on Green, 17 units of fall across 22 units of ground,
+               a 38-degree slope - and it rendered as a smooth green dome. A mesa's defining feature
+               is that the drop is SHORT: broad cap, near-vertical band, then the apron. So the fall
+               now happens inside the first third of the outer band and the rest of it is talus. */
+            const dA = Math.abs((((ang - f.__ra) % 6.283185) + 9.42478) % 6.283185 - Math.PI);
+            const r0 = f.__noRamp ? 0 : Math.max(0, 1 - dA/0.62), rk = r0*r0*(3 - 2*r0);
+            const CAP = 0.70 - 0.34*rk;
+            if(t < CAP){
+              const c = t / CAP;
+              h = f.h * (1 - 0.06*c*c);                /* a shallow crown, not a machined disc */
+            } else {
+              const u = (t - CAP) / (1 - CAP);
+              const kA = 0.06, kB = 0.26 + 0.72*rk;    /* short fall on the cliff, long one on a ramp */
+              let s = Math.max(0, Math.min(1, (u - kA)/(kB - kA))); s = s*s*(3 - 2*s);
+              /* The two terms MUST sum to the crown's own height at u=0 or the cap gets a rim wall.
+                 The first draft was 0.94*(1-s) + 0.11*(1-u)^2, which is 1.05*h at u=0 - nearly two
+                 units ABOVE the cap - and the slope probe read a 75-degree step exactly where the
+                 ground is supposed to be flattest. A profile written in two pieces has to be checked
+                 at the seam; this one reads 0.94 at u=0 and exactly 0 at u=1. */
+              h = f.h * (0.94 - 0.83*s - 0.11*(1 - (1 - u)*(1 - u)));
+              /* GULLIES. A smooth cone of one colour reads as a sand dune - which is exactly what
+                 the first coloured pass of this looked like. What makes a cliff read as rock at
+                 distance is relief: water cuts channels down the face and the light catches the ribs
+                 between them. Painting that into a texture would be a lie the moment she stood on
+                 it, so it goes in the height field and the mesh picks it up for free, along with the
+                 walker. Zero at both ends of the band, and zero on the ramp. */
+              const cut = Math.sin(ang*9 + f.__ph*2.3)*.55 + Math.sin(ang*17 - f.__ph*1.1)*.45;
+              h -= f.h * .10 * Math.sin(Math.PI*u) * (cut*.5 + .5) * (1 - rk);
+            }
+          }
+          /* Beds are never laid perfectly level and never stay that way. A degree or two of dip
+             across the whole rock keeps the cap from reading as a machined disc from a low camera,
+             where it is the one edge of it you can see. */
+          if(f.ink) h *= 1 + Math.cos(ang - f.__ph)*0.035*t;
+          y = Math.max(y, h);
+        }
+      }
     }
     if(y > 0) return y;
     /* The shore. Used to return 0 everywhere, so anything off the island stood in the air over the
@@ -4994,9 +5118,103 @@ function buildIslandBody(cfg){
         const lg = new THREE.PointLight(0xFF8A4A, 1.6, 40); lg.position.set(f.x, height(f.x,f.z)+4, f.z); scene.add(lg);
       }
     } else {
-      const m = f.ink ? inked(new THREE.CylinderGeometry(f.r, f.r*1.06, f.h, 24), f.outer ? P.stone : P.grassDk, 2.0, {map:TEX.rock})
-                      : new THREE.Mesh(new THREE.CylinderGeometry(f.r, f.r*1.02, f.h, 32), toon(f.name === "The Square" ? P.stone : P.grassDk, {map:TEX.rock}));
-      m.position.set(f.x, f.h/2, f.z); m.traverse(k => k.userData.ground = true); scene.add(m);   /* a mesa IS the ground */
+      /* The hill has always been lathed from the height function itself, so the rock she sees and
+         the ground she stands on cannot disagree. The mesa got a CylinderGeometry instead - a drum,
+         authored independently of the terrain - and the only reason they ever matched is that the
+         terrain was a drum too. Now that a mesa has a real profile, the mesh is built the same way
+         the hill's is: by SAMPLING height(). A lathe cannot do it, because the rim is no longer a
+         circle, so this is a radial grid - 72 bearings by 40 rings, fine enough to carry the gullies
+         the height function cuts into the cliff - which matches any shape the
+         height function takes, including the bays in the rim.
+
+         The first version of this grid carried NO uv attribute, so `map:TEX.rock` sampled nothing
+         and the whole landform rendered as one flat untextured green. That is the exact class of
+         fault HANDOFF 4.40 is about: the code was right about the SHAPE and I did not look at the
+         SURFACE. Two things fix it, and both are measured off the geometry rather than authored:
+           - uv runs on real arc length. v accumulates the 3D distance travelled outward along each
+             bearing, u runs the circumference, both divided by TILE, so the texture is the same
+             size on the flat cap as it is down the cliff. A planar uv would have smeared the cliff.
+           - vertex colour is chosen by SLOPE, not by radius. Rock is exposed where the ground is
+             too steep to hold soil; grass sits where it is not. That is why a real mesa has a
+             cliff band, and deriving it from |grad h| means it follows the bays in the rim and
+             the talus fans for free instead of being a ring I drew at a radius I picked. */
+      const SEG = 72, RINGS = 40, RMAX = f.r * 1.34;
+      /* Rings are NOT spread evenly in radius. A mesa's cliff is about a tenth of the radius wide
+         and most of its height, so an even grid puts three or four rings on the one part of the
+         shape that carries all the detail - and the beds in the texture came out as a herringbone
+         because v (world height) was being interpolated across triangles far taller than a bed.
+         Half the rings now land in the band between 0.64r and 0.90r, which is where the cliff is. */
+      const ringT = k => k < .25 ? k/.25*.64
+                       : k < .75 ? .64 + (k-.25)/.50*.26
+                       :           .90 + (k-.75)/.25*.44;
+      /* uv. u runs the circumference, v runs OUTWARD ARC LENGTH on flat ground and WORLD HEIGHT on
+         steep ground, blended by the same steepness that picks the colour. That mix is the whole
+         trick: on the cap, v behaving like distance makes the grass tile normally, and on the cliff,
+         v behaving like height makes the beds in TEX.bed come out horizontal and line up right round
+         the rim - including across the bays - instead of following the mesh and shearing. */
+      const TU = 13, TV = 18;                            /* world units per texture tile (it is drawn 1:2) */
+      const stoneOnly = f.name === "The Square" || f.outer;
+      const capC  = new THREE.Color().setHex(stoneOnly ? P.stone : P.grassDk);
+      const rockC = new THREE.Color().setHex(P.stone);
+      const scree = rockC.clone().lerp(capC, .45);       /* the talus is broken rock with weeds in it */
+      /* A cliff is not one colour. Beds laid down in different conditions weather to different
+         tones, so the face reads as a stack of warm and cool layers with the crevices between them
+         in shadow. One flat cream - which is what this looked like before - reads as a sand dune. */
+      const rockDk = rockC.clone().multiplyScalar(.58);  /* the crevice between two beds */
+      const rockWm = rockC.clone().lerp(new THREE.Color().setHex(P.wood), .30);
+      const rockCl = rockC.clone().lerp(new THREE.Color().setHex(P.water), .16).multiplyScalar(.92);
+      const ph = (seedOf((f.name || "") + f.x + "," + f.z) % 6283) / 1000;
+      const pos = [], uv = [], col = [], idx = [];
+      const acc = new Float32Array(SEG);                 /* arc length outward, per bearing */
+      const pvx = new Float32Array(SEG), pvy = new Float32Array(SEG), pvz = new Float32Array(SEG);
+      const y0 = height(f.x, f.z), EPS = 1.1, vc = new THREE.Color();
+      for(let ri=0; ri<=RINGS; ri++){
+        const rr = f.r * ringT(ri / RINGS);
+        for(let si=0; si<SEG; si++){
+          const a = si / SEG * Math.PI * 2;
+          const lx = Math.cos(a) * rr, lz = Math.sin(a) * rr;
+          const y = ri === 0 ? y0 : height(f.x + lx, f.z + lz);
+          if(ri > 0) acc[si] += Math.hypot(lx - pvx[si], y - pvy[si], lz - pvz[si]);
+          pvx[si] = lx; pvy[si] = y; pvz[si] = lz;
+          pos.push(lx, y - 0.05, lz);                    /* a hair under, so it never z-fights the meadow */
+          /* slope from the height field itself */
+          const gx = (height(f.x+lx+EPS, f.z+lz) - height(f.x+lx-EPS, f.z+lz)) / (2*EPS);
+          const gz = (height(f.x+lx, f.z+lz+EPS) - height(f.x+lx, f.z+lz-EPS)) / (2*EPS);
+          const slope = Math.hypot(gx, gz);
+          /* break the boundary so it is not a clean contour line */
+          const n = Math.sin(a*7.3 + rr*0.21) * .5 + Math.sin(a*3.1 - rr*0.37) * .5;
+          const st = Math.max(0, Math.min(1, (slope - .50 + n*.16) / .80));
+          uv.push(a * f.r / TU, (acc[si]*(1 - st) + y*st) / TV);
+          vc.copy(capC).lerp(scree, Math.min(1, st*2)).lerp(rockC, Math.max(0, st*2-1));
+          /* SEDIMENTARY BANDING. A cliff of one flat colour reads as a sand dune, which is what the
+             first pass of this looked like. Real strata are horizontal beds, so the band index is
+             taken from WORLD Y and nothing else - which means the bands line up across the bays and
+             round the whole rim by themselves, exactly as a real bed does, and cost one sine each. */
+          /* TEX.bed carries the beds themselves; the vertex colour carries the slow drift in TONE
+             from one group of beds to the next, which a tiling texture cannot do because it repeats. */
+          if(st > 0){
+            const bd = Math.sin(y*0.31 + ph*3)*.6 + Math.sin(y*0.74 - ph)*.4;
+            vc.lerp(bd > 0 ? rockWm : rockCl, st * Math.min(1, Math.abs(bd)*1.7) * .9);
+            vc.lerp(rockDk, st * .10);
+          }
+          col.push(vc.r, vc.g, vc.b);
+        }
+      }
+      for(let ri=0; ri<RINGS; ri++) for(let si=0; si<SEG; si++){
+        const a0 = ri*SEG + si, a1 = ri*SEG + (si+1)%SEG;
+        const b0 = (ri+1)*SEG + si, b1 = (ri+1)*SEG + (si+1)%SEG;
+        idx.push(a0, b0, b1, a0, b1, a1);
+      }
+      const mg = new THREE.BufferGeometry();
+      mg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      mg.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+      mg.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+      mg.setIndex(idx);
+      mg.computeVertexNormals();
+      const mex = {map: f.ink ? TEX.bed : (stoneOnly ? TEX.rock : TEX.meadow),
+                   side:THREE.DoubleSide, roughness:1, vertexColors:true};
+      const m = f.ink ? inked(mg, 0xffffff, 2.0, mex) : new THREE.Mesh(mg, toon(0xffffff, mex));
+      m.position.set(f.x, 0, f.z); m.traverse(k => k.userData.ground = true); scene.add(m);   /* a mesa IS the ground */
     }
   });
 
@@ -6082,6 +6300,44 @@ function npcStand(I, x, z){
   if(I.cfg.grotto && Math.hypot(x-I.cfg.grotto.x, z-I.cfg.grotto.z) < I.cfg.grotto.r + 1) return false;
   return true;
 }
+/* ===============  A CLIFF YOU CAN WALK UP IS NOT A CLIFF  ===============
+   The old mesa was a step in the height field - inside the radius the ground jumped to full height
+   - so the walker's "no rise over 2.2 units in one step" rule stopped her at the base by accident.
+   A real cliff face is steep but FINITE, and that rule is per-step, not per-slope: walk into an
+   80-degree wall slowly enough and every individual step clears 2.2, so she strolled straight up
+   Green's High Rock and onto the cap. Green's own brief is "the letter is somewhere you can only
+   reach on the air". The rule the drum was enforcing by accident is now stated on purpose: ground
+   this steep is not standable. Scoped to the inked mesas - the ones the island files mark as rock -
+   and skipped inside the cap, so it costs four height() samples only when she is actually at a
+   cliff, and it cannot affect the hills, the plaza or the hub rise. */
+function tooSteep(I, x, z){
+  for(const f of (I.cfg.features || [])){
+    if(f.type !== "mesa" || !f.ink) continue;
+    const d = Math.hypot(x - f.x, z - f.z);
+    if(d > f.r*1.34 || d < f.r*0.55) continue;
+    const E = .55, h = I.height;
+    const gx = (h(x+E, z) - h(x-E, z))/(2*E), gz = (h(x, z+E) - h(x, z-E))/(2*E);
+    if(Math.hypot(gx, gz) > 1.45) return true;        /* steeper than about 55 degrees */
+  }
+  return false;
+}
+/* ===============  ONE PLACE DECIDES WHERE A FOOT MAY GO  ===============
+   This rule used to live inline in walkerUpdate's tryMove, and qa/traversal.mjs carried its own
+   copy of it - a copy that had drifted to a 1.5-unit step limit against the game's 2.2, so the
+   stuck-spot sweep was clearing ground the real walker refuses. Same class as the mesa gate test
+   that re-implemented the gate it was guarding (4.42). It is exported through __T now, so a test
+   that wants to know whether she can take a step asks the game instead of remembering the answer. */
+function stepOK(I, x, z, nx, nz, grounded){
+  if(!canStand(I, nx, nz)) return false;
+  const hNow = I.height(x, z), hNew = I.height(nx, nz);
+  if(grounded && hNew - hNow > 2.2) return false;   /* she steps up a low ledge instead of being stopped by it */
+  /* ...and she cannot walk UP a cliff face. Not in canStand, because that is about standing:
+     gliding over the face has to keep working (it is how Green's letter is meant to be reached at
+     all) and so does coming back DOWN one, or a bad landing leaves her stuck on the face with every
+     neighbour refused. Grounded, uphill and steep - all three, or she goes. */
+  if(grounded && hNew > hNow && tooSteep(I, nx, nz)) return false;
+  return true;
+}
 function canStand(I, x, z){
   if(I.inside(x,z)) {
     if(I.cfg.gate && !abilityOf(I).gateOpen && Math.abs(x - I.cfg.gate.x) < 1.6 && z > I.cfg.gate.zMin-2 && z < I.cfg.gate.zMax+2) return false;
@@ -6168,10 +6424,8 @@ function walkerUpdate(I, dt, t){
   }
   if(curSpeed > .02){
     const mx = W.vx*dt, mz = W.vz*dt;
-    const hNow = I.height(W.x,W.z);
     const tryMove = (nx,nz) => {
-      if(!canStand(I,nx,nz)) return false;
-      if(W.grounded && I.height(nx,nz) - hNow > 2.2) return false;      /* she steps up a low ledge instead of being stopped by it */
+      if(!stepOK(I, W.x, W.z, nx, nz, W.grounded)) return false;
       W.x = nx; W.z = nz; return true;
     };
     /* blocked on an axis means the velocity on that axis is spent, not carried into the next frame -
@@ -6196,7 +6450,7 @@ function walkerUpdate(I, dt, t){
       if(!G.visited[k]){ G.visited[k] = true; save(); toast("Travel unlocked", q.name); }
     }
   }
-  const ground = I.height(W.x,W.z), wasGrounded = W.grounded;
+  let ground = I.height(W.x,W.z); const wasGrounded = W.grounded;
   W.vy += GRAV*dt;
   if(!W.grounded && jumpHeld && ab.glide && W.vy < GLIDE_VY){ W.vy = GLIDE_VY; W.gliding = true; }
   else if(W.grounded || !jumpHeld) W.gliding = false;
@@ -6216,6 +6470,28 @@ function walkerUpdate(I, dt, t){
      sprint covers more ground per frame and meets a bigger drop; a fall past that is a real ledge
      and still becomes a fall. qa/downhill.mjs walks the steepest descent on every island. */
   const stepDown = Math.max(0.75, (curSpeed || 0) * dt * 3.2);
+  /* ===============  A CLIFF SHEDS YOU  ===============
+     Blocking the uphill step was not enough on its own. With it in place she could still JUMP up a
+     cliff a metre at a time - land on the face, jump again from there - and hop onto Green's cap
+     without ever using the glide the island gates that letter behind. What was missing is that a
+     cliff face is not a place you can come to rest. So when the ground she has just met is too
+     steep to stand on, she slides off it: step down the gradient until the ground under her is
+     something a person could stand on, and land there instead. Gliding over the face is untouched,
+     because she is not meeting the ground at all; so is dropping down one, which is what this does. */
+  if(W.y <= ground && tooSteep(I, W.x, W.z)){
+    const E = .55;
+    for(let k = 0; k < 40; k++){
+      const gx = (I.height(W.x+E, W.z) - I.height(W.x-E, W.z))/(2*E);
+      const gz = (I.height(W.x, W.z+E) - I.height(W.x, W.z-E))/(2*E);
+      const m = Math.hypot(gx, gz); if(m < 1e-3) break;
+      const nx = W.x - gx/m*1.4, nz = W.z - gz/m*1.4;
+      if(!canStand(I, nx, nz)) break;
+      W.x = nx; W.z = nz;
+      if(!tooSteep(I, W.x, W.z)) break;
+    }
+    ground = I.height(W.x, W.z);
+    if(W.y < ground) W.y = ground;
+  }
   if(W.y <= ground){ if(!W.grounded){ W.landVy = W.vy; if(W.vy < -8) auStep(false); } W.y = ground; W.vy = 0; W.grounded = true; W.gliding = false; }
   else if(wasGrounded && W.vy <= 0 && (W.y - ground) <= stepDown){ W.y = ground; W.vy = 0; W.grounded = true; W.gliding = false; }
   else W.grounded = false;
