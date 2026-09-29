@@ -6986,6 +6986,37 @@ function applySeated(R){
 }
 for(let i=0;i<7;i++){ const a = Math.random()*Math.PI*2, r = 120+Math.random()*140;
   const far = inked(new THREE.SphereGeometry(15+Math.random()*9,10,8), 0x4E9C74, 1.8); far.scale.y = .55; far.position.set(Math.cos(a)*r,1,Math.sin(a)*r-60); sail.add(far); }
+/* Luna Land's approach is an explorable-looking open-water arrival, not a blank loading ride.
+   It is only shown for the hidden-island crossing: layered islets, moonlit water and butterflies
+   sit in the same world-space route that the boat travels through. */
+const sRoute = new THREE.Group(); sail.add(sRoute);
+const sRouteButterflies = [];
+function sailIslet(x,z,r,col,palms){
+  const g=new THREE.Group(), rock=inked(new THREE.SphereGeometry(r,14,10),col,1.45);
+  rock.scale.set(1,.32,1); rock.position.y=.05; g.add(rock);
+  const shore=new THREE.Mesh(new THREE.RingGeometry(r*.80,r*1.13,32),new THREE.MeshBasicMaterial({color:0xF4D9AB,transparent:true,opacity:.88,side:THREE.DoubleSide}));
+  shore.rotation.x=-Math.PI/2; shore.position.y=.16; g.add(shore);
+  for(let i=0;i<palms;i++){ const a=i/palms*Math.PI*2+.4,d=r*(.22+(i%2)*.18);
+    const trunk=inked(new THREE.CylinderGeometry(.16,.24,3.3,7),0x78503E,1.1); trunk.position.set(Math.cos(a)*d,1.6,Math.sin(a)*d); trunk.rotation.z=Math.sin(a*2)*.13; g.add(trunk);
+    const crown=new THREE.Mesh(new THREE.ConeGeometry(1.65,2.1,6),new THREE.MeshBasicMaterial({color:0x4EA17F})); crown.position.set(Math.cos(a)*d,3.75,Math.sin(a)*d); crown.rotation.y=a; g.add(crown); }
+  g.position.set(x,0,z); sRoute.add(g); return g;
+}
+const sMoonLand=sailIslet(0,-170,30,0x5A9B78,5);
+sailIslet(-66,-208,18,0x4F8B72,3); sailIslet(72,-226,22,0x4A9378,4);
+{ const tower=inked(new THREE.CylinderGeometry(1.7,2.4,15,10),0xF6E6D0,1.4),roof=inked(new THREE.ConeGeometry(3.1,4.2,10),0xB75A7C,1.4);
+  tower.position.set(-5,7.5,1); roof.position.set(-5,17,1); sMoonLand.add(tower,roof);
+  const lamp=new THREE.Mesh(new THREE.SphereGeometry(1.1,12,10),new THREE.MeshBasicMaterial({color:MOON})); lamp.position.set(-5,18.7,1); sMoonLand.add(lamp); }
+for(let i=0;i<18;i++){ const b=new THREE.Group(),wingM=new THREE.MeshBasicMaterial({color:[0xFFF2A6,0xF6A7D7,0xBDB6FF][i%3],transparent:true,opacity:.88,side:THREE.DoubleSide});
+  const l=new THREE.Mesh(new THREE.CircleGeometry(.38,8),wingM),rr=new THREE.Mesh(new THREE.CircleGeometry(.38,8),wingM.clone()); l.position.x=-.23; rr.position.x=.23; b.add(l,rr);
+  b.position.set((Math.random()-.5)*56,4+Math.random()*16,-128-Math.random()*80); b.userData={a:Math.random()*Math.PI*2,r:12+Math.random()*28,y:b.position.y,sp:.35+Math.random()*.45}; sRoute.add(b); sRouteButterflies.push(b); }
+sRoute.visible=false;
+let SAIL_TARGET="";
+function setSailTarget(key){
+  const luna=key==="moon",a=sSea.userData.mat.uniforms.a.value,b=sSea.userData.mat.uniforms.b.value;
+  a.setHex(luna?0x136F86:0x5AA0C8); b.setHex(luna?0x71DDD0:0x86C4E0);
+  sSky.mat.uniforms.top.value.setHex(luna?0x172044:0x4A3A63); sSky.mat.uniforms.mid.value.setHex(luna?0x76529C:0xF0A56D); sSky.mat.uniforms.bot.value.setHex(luna?0x71D8D0:0xA8DCD8);
+  sRoute.visible=luna; sMoon.visible=true;
+}
 let sailT = 0, sailDone = null, SAIL_LINES = []; const SAIL_DUR = 7.2;
 
 /* the keep interior — bubbles */
@@ -7064,7 +7095,7 @@ function setMode(m){
   $("cap").classList.toggle("on", m === "sail"); $("hud").classList.toggle("hide", m === "sail");
   $("prompt").classList.remove("on");
 }
-async function goSail(after){ loadRig("lala"); ovNone(); await toBlack(); sailT = 0; sBoat.position.set(0,0,0);
+async function goSail(after){ loadRig("lala"); ovNone(); await toBlack(); sailT = 0; sBoat.position.set(0,0,0); setSailTarget(SAIL_TARGET);
   applyOutfit(sRider, outfitFor(CUR && CUR.cfg));
   CUR = null; setMode("sail"); sailDone = after; await fromBlack(); }
 async function goIsland(I, skipFade){
@@ -7105,7 +7136,7 @@ function renderDock(){
     const got = G.letters.filter(Boolean).length;
     const st = c.hub ? `${got} of 4 letters · the keep` : (G.letters[c.idx] ? `Letter ${c.glyph} recovered` : (G.abilities[c.ability.key] ? `${c.ability.name} found — letter still out there` : "Unexplored"));
     d.innerHTML = `<h3>${c.hub ? "Home Island" : c.name}</h3><div class="s">${c.hub ? "Luna's Keep" : c.song}</div><div class="st">${st}</div>`;
-    d.onclick = () => { SAIL_LINES = c.hub ? ["Home, then.", `${got} of four.`, "The keep is waiting."] : [`${c.name}. ${c.song}.`, "Find what she left. Wear it.", "Then find the letter."]; preloadRigs(ISL[c.key]); goSail(() => goIsland(ISL[c.key])); };
+    d.onclick = () => { SAIL_TARGET = c.key; SAIL_LINES = c.hub ? ["Home, then.", `${got} of four.`, "The keep is waiting."] : [`${c.name}. ${c.song}.`, "Find what she left. Wear it.", "Then find the letter."]; preloadRigs(ISL[c.key]); goSail(() => goIsland(ISL[c.key])); };
     list.appendChild(d);
   });
 }
@@ -7235,7 +7266,7 @@ function tick(){
         $("valL").textContent = "A door in the water"; $("weather").textContent = "Step through";
         toast("The fifth song", "It isn't in this room. Step through.");
         KW.active = false;
-        setTimeout(() => { SAIL_LINES = ["The island that isn't on any map.", "She's been here the whole time.", "Top of the rock."];
+        setTimeout(() => { SAIL_TARGET = "moon"; SAIL_LINES = ["The island that isn't on any map.", "She's been here the whole time.", "Top of the rock."];
           goSail(() => goIsland(ISL.moon)); }, 2400); } }
     present(keep);
   } else {
@@ -7251,6 +7282,7 @@ function tick(){
     if(sRider.mixer){ sRider.mixer.update(dt); applySeated(sRider); }
     hatPhysics(sRider, dt);
     if(sBoat.userData.sail) sBoat.userData.sail.rotation.y = Math.PI/2 + .3 + Math.sin(T*1.1)*.05;
+    if(sRoute.visible) sRouteButterflies.forEach((b,i) => { const u=b.userData,a=u.a+T*u.sp; b.position.x=Math.cos(a)*u.r+(i%3-1)*18; b.position.y=u.y+Math.sin(a*2.2)*1.4; b.rotation.y=a+Math.PI/2; b.children[0].rotation.z=Math.sin(T*11+i)*.65; b.children[1].rotation.z=-Math.sin(T*11+i)*.65; });
     const k = sailT/SAIL_DUR;
     if(!window.__T || !window.__T.__freeze){ camera.position.set(sBoat.position.x+9+k*14, 5.5+k*9, sBoat.position.z+15+k*10);
     camera.lookAt(sBoat.position.x, sBoat.position.y+2.5, sBoat.position.z); }
