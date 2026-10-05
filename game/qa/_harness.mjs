@@ -24,7 +24,7 @@ export function ensureTestBuild(){
   const selfPath = new URL(import.meta.url).pathname;
   const newest = Math.max(statSync(src).mtimeMs, statSync(selfPath).mtimeMs);
   if(existsSync(dst) && statSync(dst).mtimeMs >= newest) return;
-  const hook = "window.__T = {tryJump, canStand, guideUpdate, objectiveOf, ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat, nearest, interact, objectiveOf, qGet, PROXIES, RIGS, hatPhysics, cutPlay, cutEnd, cutUpdate, qNum, dissolveAway, dissolveUpdate, dissolveCount: () => DISSOLVING.length, walkerUpdate, stepOK, tooSteep, keys, setJoy: (x,y) => { joy.x = x; joy.y = y; }};\nwindow.__goKeep = goKeep; window.__presentKeep = () => present(keep); window.__MODE = () => MODE;\nwindow.__keepState = () => ({bookRead, bubblesVisible: bubbles.filter(b=>b.visible).length, fifthVisible: bookG.userData.fifth.visible, glow: bookG.userData.glow.material.opacity, popped});\nwindow.__KW = KW; window.__outfitFor = outfitFor; window.__sizeOf = ty => (CREATURE_SHADOW[ty] != null ? CREATURE_SHADOW[ty] : .8);";
+  const hook = "window.__T = {tryJump, canStand, guideUpdate, objectiveOf, ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat, nearest, interact, objectiveOf, qGet, PROXIES, RIGS, hatPhysics, cutPlay, cutEnd, cutUpdate, qNum, dissolveAway, dissolveUpdate, dissolveCount: () => DISSOLVING.length, walkerUpdate, stepOK, tooSteep, audioInit, introPlay, musSetIsland, ov, get AU(){return AU;}, get MUS(){return MUS;}, keys, setJoy: (x,y) => { joy.x = x; joy.y = y; }};\nwindow.__goKeep = goKeep; window.__presentKeep = () => present(keep); window.__MODE = () => MODE;\nwindow.__keepState = () => ({bookRead, bubblesVisible: bubbles.filter(b=>b.visible).length, fifthVisible: bookG.userData.fifth.visible, glow: bookG.userData.glow.material.opacity, popped});\nwindow.__KW = KW; window.__outfitFor = outfitFor; window.__sizeOf = ty => (CREATURE_SHADOW[ty] != null ? CREATURE_SHADOW[ty] : .8);";
   const txt = readFileSync(src, 'utf8'); if(txt.includes('window.__T = {')) { writeFileSync(dst, txt); return; }
   /* index.html has more than one top-level "})();" — the hook must go in the LAST one (the game's IIFE),
      not the first, or it lands in a scope where ISL/goIsland do not exist and __T never appears. */
@@ -41,7 +41,10 @@ export async function open(opts = {}) {
   const port = opts.port || (8100 + Math.floor(Math.random() * 800));
   const srv = spawn('python3', ['-m', 'http.server', String(port)], { cwd: ROOT, stdio: 'ignore' });
   await new Promise(r => setTimeout(r, 900));
-  const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
+  const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist',
+      /* the score only schedules while the AudioContext is RUNNING, and headless has no user
+         gesture to resume it with, so qa/music.mjs would measure a suspended context forever */
+      '--autoplay-policy=no-user-gesture-required'] });
   const ctxOpts = opts.mobile
     ? { viewport: opts.viewport || { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1, userAgent: devices['iPhone 13'].userAgent }
     : { viewport: opts.viewport || { width: 1280, height: 720 } };
@@ -65,6 +68,15 @@ export async function open(opts = {}) {
       // title screen: click "Step outside"
       await page.evaluate(() => { const b = document.getElementById('bBegin'); if (b) b.click(); });
       await page.waitForTimeout(500);
+      /* That button now starts the opening cinematic, which owns the camera for eighteen seconds of
+         GAME time - minutes of wall clock here. Every hub suite that boots and immediately measures
+         the camera would have been measuring a cut scene instead of the chase rig. End it, exactly
+         the way a player's first tap does, so "booted" keeps meaning the same thing it meant before
+         the opening existed. qa/intro.mjs is the one suite that wants it, and passes keepIntro. */
+      if (!opts.keepIntro) {
+        await page.evaluate(() => { if (window.__T && window.__T.CUR && window.__T.CUR.cut) window.__T.cutEnd(window.__T.CUR); });
+        await page.waitForTimeout(400);
+      }
     }
     if (opts.noRender) {
       // logic-only suites: skip the SwiftShader render (≈1 fps) so the update loop runs at the rAF rate

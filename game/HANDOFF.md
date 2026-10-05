@@ -1956,3 +1956,119 @@ contact sheet the flora library was judged against in 4.40, and it is the only p
 eighteen pieces actually look like.
 
 Nothing was deleted from his machine — ignoring a file leaves it where it is.
+
+### 4.46 — The game had no music and no opening. Both exist now.
+
+**MUSIC.** There was a full ambient bed — surf, wind, rain, thunder, birds, chimes — and no score.
+It is synthesized, for the same reason everything else here is: one HTML file on Pages, and five
+streamed tracks would outweigh the rest of the game and still not loop cleanly.
+
+What makes five generated pieces one score rather than five loops is a shared MOTIF. `THEME` is
+seven scale degrees — her phrase — and each island plays it in its own key, mode, tempo and chord
+progression. Sanity plays it slow in aeolian with a bell over it; Town plays the same seven notes
+bright and quick in major. The ear hears the shape before it notices the key.
+
+Nothing loops. An eighth-note scheduler walks a grid and decides each step from the bar position and
+a seeded random, so phrases recur without recurring identically and there is no seam. Voices: a
+detuned triangle pad on the triad, a sine bass two octaves down, a bell (fundamental plus the
+partial a twelfth up decaying three times faster — that partial is the entire difference between a
+bell and a beep), and the theme on the island's lead voice. A cut scene is the one time the music is
+allowed to be the loudest thing in the room: the bus swells and the filter opens.
+
+`?music=0` off, `?music=0.5` quieter. The existing mute button already covers it — everything runs
+through `AU.master`.
+
+**Two scheduler faults, both found by measuring rather than listening.** `qa/music.mjs` counts the
+oscillators actually started, reads the frequencies asked for, and checks every pitch is a note of
+that island's scale.
+- Catching up AFTER the loop meant any gap — the context suspended with the tab hidden, the first
+  resume after the opening gesture — left the clock behind and the loop emptied the backlog in one
+  pump. Web Audio clamps a past start time to "now", so it arrived as one chord of up to 64 notes:
+  18 eighths in a six-second window where the tempo allows fourteen.
+- Hard-resetting the clock instead threw away the bar phase and dropped the count to four. The
+  reason it kept falling behind is the useful part: **`setInterval` is starved by long frames**, and
+  a long frame is not hypothetical here — the harness renders at about 0.4 fps and his own machine
+  runs Town in the twenties. A music scheduler whose lookahead is shorter than one frame stutters.
+  It now steps the grid forward silently over anything already past (a note whose moment has gone is
+  not played late, it is not played), schedules three seconds ahead, and pumps from `tick()` as well
+  as from the interval, so the render loop itself drives the clock.
+
+Measured on all six islands: 0 notes dropped except where the pump gap exceeded the 3 s lookahead,
+0 pitches outside the island's scale, 24–49 oscillators per six seconds.
+
+**THE OPENING.** The game opened on a static card over a static island. Everything an opening needs
+was already built and unused: the cut-scene rig from the horse quest drives shots with captions, and
+the hub has a castle, a moon and a sea to fly over. Press "Step outside" and the camera comes in off
+the water from the south, drops over the dock, skims the grounds and finds the keep, with the
+premise arriving a line at a time over the island it describes. It ends through `cutEnd` like every
+other scene, so the global tap-to-skip already covers it. `?intro=0` skips it.
+
+Two things this broke and the fixes:
+- The harness clicks "Step outside" to get past the title card, so **every hub-booting suite would
+  have been measuring the cut-scene camera instead of the chase rig**. The harness now ends the
+  scene after clicking unless a suite passes `keepIntro`, so "booted" still means what it meant.
+- `qa/intro.mjs`'s first version polled the shot index in wall clock for 154 seconds and watched
+  shot 0 the whole time. dt is clamped to 0.05, so a 4.6 s shot needs 92 frames, and 154 seconds of
+  wall clock here is about sixty. HANDOFF 4.33 again: **game time is not wall time.** It steps
+  `cutUpdate` on a controlled clock now.
+
+The far two shots were authored at 412 and 268 units out and the aerial fog ate the island at both.
+Rendered, looked at, moved to 338 and 240. 4.40 keeps earning its place.
+
+### 4.47 — The UI audit, measured at the viewport it is judged at
+
+`qa/uiaudit.mjs` reads tap targets from `getBoundingClientRect`, contrast from the pixels actually
+behind the text (sampled off the canvas, because most of this UI sits over a live 3D scene and "the
+background colour" is not a CSS value), and font size from `getComputedStyle`, at 390x844 and
+1280x720. Clickables are found by computed cursor and handler, not by tag name — C17.
+
+Found and fixed:
+- "Step outside", "Go ashore" and "Put it back" measured **169.6 x 42** on a phone. 42 is two pixels
+  under the 44 a thumb needs, and those are the three buttons the game is driven from.
+- The Sound / Secrets / Travel chips and the action button's own label were **8 px uppercase with
+  .2em tracking** on a 390-wide screen. The tap targets were already 44 px; the letters were the
+  problem.
+- Contrast passed everywhere — the lowest ratio in the HUD is 14.6:1.
+
+And a fault in the audit itself: `cursor:pointer` inherits, so the label span inside the 78x78 action
+button reported itself as a 49.9x10 tap target. Nobody taps the span. It reports only the outermost
+clickable in a chain now.
+
+### 4.48 — The sea was being drawn on top of the land
+
+His words, again: "look at the water where the grass should be and lines in it."
+
+The three sea-wave terms were `.5 + .4 + .22`, which can line up at **+1.12**. The sea plane sits at
+`SEA_Y -1.1`, so a crest reached **y +0.02** — and the beach slab's top face is at **-0.12**, the
+meadow's at **0**. The crest was above the beach and level with the grass. The sea is one plane
+running under the whole island with `depthWrite` on, so every row of the swell that cleared the
+ground won the depth test and every row that did not lost it: horizontal blue striping lying across
+the grass. At a low camera a tenth of a unit of overlap smears across a third of the frame.
+
+Measured before the fix by `qa/flood.mjs`: **Home Island, sea over land on 26 of 48 bearings, in a
+band up to 40.5 units wide. Green, 22 of 48, 18.5 units.**
+
+HANDOFF already carries a "water is where the grass is" entry. That fix was real and it fixed a
+DIFFERENT cause — a void under the island you could see the sea through — and left this one standing,
+because this cause is amplitude, not geometry.
+
+`WAVE = .58` scales all three terms so the crest lands at **-0.45**, a third of a unit under the
+lowest ground anywhere on an island. Scaling the wave rather than lowering `SEA_Y` leaves the
+waterline, the wade depths, the dock, the foam rings and the camera's over-water floor exactly where
+they were measured. The fragment shader gets `vW` normalised, so the colour mix and the glint
+thresholds keep the contrast they were tuned at while the displacement shrinks.
+
+**The probe was wrong twice before it was right, both times in the direction of a false pass:**
+- It recomputed the crest from its own copy of `.5+.4+.22` and went on reporting the pre-fix number
+  after the amplitude had already changed. A probe carrying its own copy of the thing it measures is
+  measuring itself. It samples the game's `seaHeight` over 600 points now.
+- It walked 48 rays out from the origin and called the hub clean while a frame plainly showed sea
+  over land on its east side. Rays from one point miss a bay, a spit, anything behind a headland. It
+  grid-samples the whole bounding square now: **15,268 land samples on Home Island, 0 flooded.**
+
+**Still open, and named rather than waved at:** at the waterline itself there is a narrower comb of
+stripes over the wet shelf OUTSIDE the coastline. That is not sea over land — the grid probe proves
+the land is clear — it is the sea's 10-unit vertex spacing meeting a shallow 0.33-per-unit beach
+slope at a grazing angle, with the water's alpha far too high for water that is a few centimetres
+deep. The fix is a shallow-water band: fade the sea toward transparent where it is thin, and put a
+real surf line along the coast. That is its own task and it is next.
