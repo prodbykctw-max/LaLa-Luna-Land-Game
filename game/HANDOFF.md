@@ -1814,3 +1814,125 @@ Two notes for next time:
 **Found while rendering, not yet fixed:** the mesas are flat-topped drums with vertical sides —
 `CylinderGeometry` standing in for a landform. It is the same class as the flowers and it dominates
 the mid-ground of Green.
+
+### 4.41 — A mesa was a step function, and the mesh was drawn to match it
+
+`height()` had `if(f.type === "mesa" && d < f.r) y = Math.max(y, f.h)`. Inside the radius the ground
+jumps to full height; outside it does not. **That is a cylinder by definition** — the drum with
+vertical sides and a machined-flat top that dominates Green's mid-ground was never a rendering
+artifact. The terrain really was that shape, and the mesh, `CylinderGeometry(f.r, f.r*1.06, f.h, 24)`
+positioned at `f.h/2`, was authored independently and only ever agreed with the ground because both
+were drums. (The hill has always been lathed from the height function itself, which is why nothing
+can ever sit inside a hill slope.)
+
+Both are replaced. The height function gives a cap / cliff / talus profile with a non-circular rim
+seeded from the feature's own name, and the mesh is a 72 x 40 radial grid that SAMPLES `height()`,
+so it matches whatever shape the profile takes — including the bays in the rim. The islands already
+told the two kinds of mesa apart and nobody had used it: `ink:true` marks the ones meant to be rock
+(The High Rock, Bone Ledge, The Sea Stack); the hub's central rise and the town plaza are raised
+ground and keep the old broad, walkable profile.
+
+**Four separate things had to be looked at, and each one was invisible in the code that preceded it.**
+
+1. **Shape.** The first profile dropped the full height over 42% of the radius — on Green, 17 units
+   of fall across 22 units of ground. That is a 38-degree slope, and it rendered as a smooth green
+   dome. A mesa's defining feature is that the drop is SHORT. The fall now happens inside the first
+   third of the outer band; the rest of the band is talus apron.
+2. **Surface.** The radial grid carried no `uv` attribute, so `map: TEX.rock` sampled nothing and the
+   whole landform rendered as one flat untextured green. Exactly 4.40's fault one layer over: right
+   about the shape, never looked at the surface.
+3. **Material.** With uv added it became a cream dune, because `mottle` is isotropic — it has no up.
+   Rock is BEDDED. `beddedRock()` draws horizontal beds of varying thickness and tone, bedding planes
+   inside each, a dark seam between them and vertical erosion streaks. It only works because v runs
+   with **world height** on the steep parts (blended from arc length on the flat by the same
+   steepness that picks the vertex colour), so the beds come out horizontal and line up right round
+   the rim instead of following the mesh.
+4. **Relief.** Water cuts gullies down a cliff face and the light catches the ribs between them.
+   That went in the HEIGHT FIELD, not a texture — a painted gully is a lie the moment she stands on
+   it — so the mesh and the walker get it for free.
+
+Rock vs grass is chosen by **slope**, not radius: rock is exposed where the ground is too steep to
+hold soil. That follows the bays and the talus fans by itself instead of being a ring drawn at a
+radius I picked.
+
+A seam bug worth remembering: the outer profile was written as `0.94*(1-s) + 0.11*(1-u)^2`, which is
+**1.05 h at u = 0** — nearly two units ABOVE the cap — so the cap got a rim wall and the slope probe
+read 75 degrees exactly where the ground is meant to be flattest. **A profile written in two pieces
+has to be evaluated at the seam.**
+
+Cost: 5,760 triangles per mesa, up from about 100.
+
+### 4.42 — The old drum was enforcing a gate by accident, and I removed it
+
+Green's brief is *"the letter is somewhere you can only reach on the air."* Nothing in the code says
+that. What enforced it was the drum: a vertical step in the height field, and the walker's rule is
+`if(W.grounded && height(next) - hNow > 2.2) return false`. Crossing a vertical wall changes height
+by 17 units in any step, however small, so she was stopped at the base.
+
+A real cliff face is steep but FINITE, and that rule is **per step, not per slope**. Walk into an
+80-degree wall slowly enough and every individual step clears 2.2. `qa/mesagate.mjs` drives her at
+the rock from eight bearings with the game's own walker: she strolled up The High Rock and onto the
+cap on four of them.
+
+Two rules now, and it took both:
+- **She cannot walk UP a cliff.** In `tryMove`, gated on grounded AND uphill AND steep — all three.
+  Not in `canStand`, because gliding over the face has to keep working (it is how the letter is meant
+  to be reached at all) and so does coming back down, or a bad landing leaves her stuck on the face
+  with every neighbour refused. The first version put it in `canStand` and made Bone Ledge
+  unreachable even with the boots.
+- **A cliff sheds you.** The first rule alone still let her hop up a metre at a time — land on the
+  face, jump again from there — onto Green's cap with no glide at all. So when the ground she has
+  met is too steep to stand on she slides down the gradient until it is not, and lands there.
+
+**Three wrong versions of this test passed before one was right, and every one of them was wrong in
+a way that looks like a pass:**
+- It re-implemented the move gate inline instead of calling `walkerUpdate`. A gate test that can
+  drift from the thing it guards is worth nothing. `__T` now exports `walkerUpdate`, `keys` and
+  `setJoy`, so movement tests drive the real integration.
+- The stick is CAMERA-relative (`ang = atan2(-ix,-iz) + camYaw`). Pushed in world axes, three of the
+  eight bearings ended 300 units AWAY from the rock and the run still reported a pass.
+- It scored "did she get up" as the highest y she touched. That read 37 on gr — she had walked over
+  The Caldera on the way — and 14.9 within a radius of Bone Ledge, where the island's own terrain
+  grid is higher than the rock. **On the cap is a position, not a height.**
+
+**Measured against the shipped build, not assumed:** gr's brief says *"there's a ledge on this
+island nobody reaches on foot"*, and on `2026-09-29a` she walks straight onto Bone Ledge from bearing
+180. The island's terrain grid reaches 14.9 next to a cap at 11.3, so there is no cliff on that side
+to stop her. That is an island LAYOUT defect, it predates all of this, and it is still open — the new
+rules close the walk but she can still hop on from the high ground. Named here so it is not lost:
+**Bone Ledge, gr, bearing 180 from the centre at (160, 48).**
+
+### 4.43 — One place decides where a foot may go
+
+Following 4.42 out: the step rule now lives in `stepOK(I, x, z, nx, nz, grounded)`, `tryMove` calls
+it, and `__T` exports it. `qa/traversal.mjs` had carried its own copy since it was written — with a
+**1.5-unit step limit against the game's 2.2** — so the stuck-spot sweep had been judging ground by
+a rule the walker does not use, in both directions, for as long as it has existed. It asks the game
+now. `__T` also exports `walkerUpdate`, `keys` and `setJoy` so movement tests drive the real
+integration instead of a remembered copy of it.
+
+Verified on this build: traversal green traps 0 / pockets 0 / stalls 0 / buried 0, gr the same;
+camera-goal-inside-a-mesh 1522 on green against **1511 measured on the shipped `2026-09-29a`**, a
+difference of 11 in 36,322 samples. `downhill` ok on all five islands, `jumpok` ok, `letterground`
+clear on all four, `console_load` clean on all five, ground audit green 0/0 and town 0/0 with gr's
+one pre-existing buried group at (-14.3, 121.3) unchanged.
+
+### 4.44 — The handoff and the QA suites were committed to the wrong folder
+
+`2026-09-29b` shipped correctly — `game/index.html` is right and the live build is right. But the
+HANDOFF entries for it and the three changed QA files went to the REPO ROOT instead of `game/`,
+because the cloud workspace had been flattened (`index.html` beside `qa/` and `HANDOFF.md`) while
+the repo nests all three under `game/`. The root already carried a stale duplicate `HANDOFF.md` from
+`273119f`, so the write landed on a real file and nothing complained. Net effect: `game/HANDOFF.md`
+stopped at 4.40, and `game/qa/_harness.mjs` and `game/qa/traversal.mjs` never got the fixes 4.43 is
+about — the exported `stepOK` and the corrected sweep. A test suite that was fixed in a folder
+nothing runs from is not fixed.
+
+**The rule: the deploy path is read from the repo, not remembered from the workspace.** Before
+committing, list the repo's own tree and map every file to the path it actually occupies there.
+A flattened scratch copy is a convenience for Claude and is never the layout of record. This is C13
+("read the deploy source from the platform itself") applied one level down, to paths inside the repo
+rather than the branch the platform serves.
+
+Corrected here: `game/HANDOFF.md` and `game/qa/` are canonical, and the duplicates at the root are
+removed so there is one of each.

@@ -16,10 +16,13 @@ for (const isl of argIslands()) {
     const SPEED = 8.6, dt = 1 / 60, step = SPEED * dt;              // one 60fps frame of movement (index.html:1658,1686)
     const dirs = [];
     for (let k = 0; k < 8; k++) dirs.push([Math.sin(k * Math.PI / 4), Math.cos(k * Math.PI / 4)]);
-    // exact replica of tryMove + collider slide (index.html:1689-1700)
+    // the game's own step rule (__T.stepOK) plus the collider slide
     const move = (x, z, ux, uz) => {
-      const hNow = I.height(x, z), mx = ux * step, mz = uz * step;
-      const tm = (nx, nz) => { if (!T.canStand(I, nx, nz)) return null; if (I.height(nx, nz) - hNow > 1.5) return null; return [nx, nz]; };
+      const mx = ux * step, mz = uz * step;
+      /* Ask the GAME whether a step is legal. This line used to re-implement the rule with a
+         1.5-unit limit against the game's 2.2, so the sweep judged ground by a rule the walker
+         does not use. __T.stepOK is the same function tryMove calls. */
+      const tm = (nx, nz) => T.stepOK(I, x, z, nx, nz, true) ? [nx, nz] : null;
       let p = tm(x + mx, z + mz) || tm(x + mx, z) || tm(x, z + mz);
       if (!p) return null;
       for (const c of I.colliders) { if (c.camOnly) continue; const rr = c.r + .5, dx = p[0] - c.x, dz = p[1] - c.z, d = Math.hypot(dx, dz);
