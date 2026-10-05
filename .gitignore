@@ -15,10 +15,24 @@ game/index_test.html
 # file: game/index.html. The root index.html is the Pages redirect and stays.
 game/index-*.html
 game/index_*.html
-"Claude outputs/*.html"
+# A quoted pattern does NOT work - git reads the quotes as literal characters, so
+# "Claude outputs/*.html" has never matched anything since the day it was added.
+# The whole folder is a scratch dump for files handed back during a session and
+# nothing in it is part of the game, so the whole folder goes.
+Claude outputs/
 
 # Deploy scratch. The commit message used to be written to game/commitmsg.txt,
 # which left the working tree permanently dirty with an untracked file after
 # every single deploy. It is staged outside the repo now; this line covers the
 # copies already sitting in working trees.
 game/commitmsg.txt
+
+# Deploy scratch that lands at the REPO ROOT. The rule above only covered
+# game/commitmsg.txt, and the commit message for 2026-09-29b was written to
+# COMMITMSG.txt at the root instead - same flattened-workspace mistake as
+# HANDOFF 4.44 - so it sat untracked through two deploys.
+COMMITMSG*.txt
+
+# Probe output from the headless Blender runs: a throwaway mesh and the script
+# that made it, both regenerated every time an asset is built.
+blender/_probe.*

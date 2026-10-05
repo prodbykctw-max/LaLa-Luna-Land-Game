@@ -1936,3 +1936,23 @@ rather than the branch the platform serves.
 
 Corrected here: `game/HANDOFF.md` and `game/qa/` are canonical, and the duplicates at the root are
 removed so there is one of each.
+
+### 4.45 — Untracked scratch had been sitting in the working tree for weeks
+
+`git status` on his clone listed 28 untracked files: a `Claude outputs/` folder of 24 session
+hand-backs, two root `COMMITMSG*.txt` files, and the Blender probe mesh and script. None of it is
+part of the game, and a status that is never empty is a status nobody reads — which is how the
+wrong-folder HANDOFF write in 4.44 went unnoticed.
+
+Three gaps in `.gitignore`, now closed:
+- `"Claude outputs/*.html"` was written **in quotes**. Git reads those as literal characters, so the
+  pattern had never matched anything since the day it was added. The whole folder is ignored now.
+- The deploy-scratch rule covered `game/commitmsg.txt` only, and `2026-09-29b`'s message went to
+  `COMMITMSG.txt` at the REPO ROOT — the same flattened-workspace mistake as 4.44.
+- `blender/_probe.glb` and `blender/_probe.py` are regenerated on every asset build.
+
+`blender/flora_sheet.png` is the opposite case and is committed rather than ignored: it is the
+contact sheet the flora library was judged against in 4.40, and it is the only picture of what those
+eighteen pieces actually look like.
+
+Nothing was deleted from his machine — ignoring a file leaves it where it is.
