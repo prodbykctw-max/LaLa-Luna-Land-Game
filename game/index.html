@@ -390,7 +390,7 @@ button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-05a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-06a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -443,10 +443,35 @@ const SEA_Y = -1.1;
    camera's over-water floor all exactly where they were measured. The shader below uses the same
    constant, because the analytic height here and the displaced vertices there have to agree. */
 const WAVE = .58;
-function seaHeight(x, z, t, base){
+/* How far out the swell takes to reach full height. Inside this, the water is running out of depth
+   and the wave is running out of energy - which is the whole reason the waterline stops sawing back
+   and forth across the beach. */
+const SHORE_FADE = 46;
+const shoreDamp = d => { const k = Math.max(0, Math.min(1, d / SHORE_FADE)); return k*k*(3 - 2*k); };
+function seaHeight(x, z, t, base, damp){
   const py = -z;   /* the sea plane is rotated -90 deg about x, so its local y runs along world -z */
-  return (base == null ? SEA_Y : base)
-       + (Math.sin(x*.055 + t*1.05)*.5 + Math.sin(py*.07 - t*.8)*.4 + Math.sin((x+py)*.11 + t*1.6)*.22) * WAVE;
+  const w = (Math.sin(x*.055 + t*1.05)*.5 + Math.sin(py*.07 - t*.8)*.4 + Math.sin((x+py)*.11 + t*1.6)*.22) * WAVE;
+  return (base == null ? SEA_Y : base) + w * (damp == null ? 1 : damp);
+}
+/* The shore mask the sea shader samples: one small single-channel texture per island holding
+   distance-to-coastline, normalised by SHORE_FADE. 160 x 160 over the island's bounding square is
+   about 26k coastDist calls at build time and 100 KB on the card - the mask only has to be smooth,
+   not sharp, because all it does is scale a wave. */
+function shoreMaskTexture(coastDist, R){
+  const N = 160, data = new Uint8Array(N*N*4);
+  for(let j=0;j<N;j++){
+    const z = -R + (j + .5) * (2*R/N);
+    for(let i=0;i<N;i++){
+      const x = -R + (i + .5) * (2*R/N);
+      const v = Math.round(shoreDamp(coastDist(x, z)) * 255);
+      const k = (j*N + i)*4; data[k] = data[k+1] = data[k+2] = v; data[k+3] = 255;
+    }
+  }
+  const t = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  t.minFilter = t.magFilter = THREE.LinearFilter;
+  t.needsUpdate = true;
+  return t;
 }
 const shelfGround = d => d <= SHELF_FLAT ? -.12 : -.12 - Math.min(1.4, (d - SHELF_FLAT)/(SHELF_EDGE - SHELF_FLAT))*SHELF_DROP;
 /* Hand-authored landmark radii (the town square's stalls and lamps, the crowd rings) were pinned
@@ -471,7 +496,7 @@ document.body.appendChild(renderer.domElement);
 ["contextmenu","selectstart","dragstart","gesturestart","gesturechange","gestureend"].forEach(ev =>
   addEventListener(ev, e => e.preventDefault(), {passive:false}));
 addEventListener("dblclick", e => e.preventDefault(), {passive:false});
-const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .1, 900 * (1 + (WORLD - 1) * 0.7));   /* far enough to see across a bigger island */
+const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, innerWidth/innerHeight, .4, 900 * (1 + (WORLD - 1) * 0.7));   /* far enough to see across a bigger island */
 /* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
@@ -1177,14 +1202,44 @@ function seaMesh(a, b){
     /* vW is handed to the fragment NORMALISED (w/wv), so the colour mix, the crest highlight and
        the glint thresholds below keep the contrast they were tuned at while the actual displacement
        gets smaller. Scaling the wave must not flatten how the water LOOKS. */
-    uniforms:{t:{value:0}, wv:{value:WAVE}, a:{value:new THREE.Color(a)}, b:{value:new THREE.Color(b)}, m:{value:new THREE.Color(MOON)}},
-    vertexShader:`uniform float t; uniform float wv; varying float vW; varying vec2 vP; varying vec3 vV;
-      void main(){ vec3 p=position; float w=(sin(p.x*.055+t*1.05)*.5+sin(p.y*.07-t*.8)*.4+sin((p.x+p.y)*.11+t*1.6)*.22)*wv;
-        p.z+=w; vW=w/wv; vP=p.xy; vV = cameraPosition - (modelMatrix*vec4(p,1.0)).xyz; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
-    fragmentShader:`uniform vec3 a,b,m; uniform float t; varying float vW; varying vec2 vP; varying vec3 vV;
+    uniforms:{t:{value:0}, wv:{value:WAVE}, uMask:{value:null}, uMaskR:{value:1}, uHasMask:{value:0},
+              a:{value:new THREE.Color(a)}, b:{value:new THREE.Color(b)}, m:{value:new THREE.Color(MOON)}},
+    /* ===============  THE SWASH ZONE WAS A COMB  ===============
+       Scaling the wave stopped the sea being drawn on top of the LAND, but it left a narrower band
+       of stripes over the wet shelf just outside the coastline, and that one is not a depth fight -
+       it is the real waterline moving with the swell, sampled on a mesh whose vertices are ten
+       units apart. A swell that rises and falls over a beach sloping a third of a unit per unit
+       sweeps the waterline back and forth about two units, and on a 10 u grid seen at a grazing
+       angle that comes out as a sawtooth comb instead of a moving edge.
+
+       Real water does not do this because real water runs out of energy in the shallows. So the
+       shader gets a SHORE MASK - one small texture per island holding distance-to-coastline - and
+       damps the wave to nothing as it comes in. The waterline stops oscillating, the comb goes, and
+       the same mask pays for the surf line in the fragment shader below, which is what a shore is
+       supposed to have anyway. The analytic seaHeight() applies the identical damp, because
+       splashes, ripples and anything floating are positioned from it. */
+    vertexShader:`uniform float t; uniform float wv; uniform sampler2D uMask; uniform float uMaskR; uniform float uHasMask;
+      varying float vW; varying vec2 vP; varying vec3 vV; varying float vSh;
+      void main(){ vec3 p=position;
+        /* the plane is rotated -90deg about x, so its local y runs along world -z */
+        vec2 wxz = vec2(p.x, -p.y);
+        float sh = 1.0;
+        if(uHasMask > .5){ vec2 uv = wxz/(2.0*uMaskR) + 0.5;
+          sh = (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) ? 1.0 : texture2D(uMask, uv).r; }
+        vSh = sh;
+        float w=(sin(p.x*.055+t*1.05)*.5+sin(p.y*.07-t*.8)*.4+sin((p.x+p.y)*.11+t*1.6)*.22)*wv*sh;
+        p.z+=w; vW=w/max(.0001, wv*sh); vP=p.xy; vV = cameraPosition - (modelMatrix*vec4(p,1.0)).xyz; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
+    fragmentShader:`uniform vec3 a,b,m; uniform float t; varying float vW; varying vec2 vP; varying vec3 vV; varying float vSh;
       void main(){ vec3 c=mix(a,b,smoothstep(-.2,.6,vW));
         float sp = sin(vP.x*1.9+t*2.3)*sin(vP.y*2.3-t*1.7)*sin(vP.x*.37-vP.y*.53+t*.7); sp = smoothstep(.72,1.0,sp);      /* glints */
         c=mix(c,m,step(.92,vW)*.35 + sp*.4);
+        /* SURF. The mask that quiets the wave also says how close this fragment is to the shore, so
+           the white water costs nothing extra: a band that lives in the last stretch before the
+           beach, broken up by a slow travelling wave so it reads as swash arriving rather than a
+           painted ring. */
+        float surf = smoothstep(.34, .02, vSh);
+        float run  = sin(vP.x*.085 + vP.y*.11 - t*1.25)*.5 + .5;
+        c = mix(c, vec3(1.0), surf * (.22 + .5*run*run) * .85);
         /* Real water is clear when you look down into it and a mirror when you look across it. Looking
            down shows the sand shelf (pale, shallow) or the dark seabed (deep); at grazing angles it goes
            opaque, which is what makes the far sea read as a surface instead of a blue sheet. */
@@ -5262,8 +5317,15 @@ function buildIslandBody(cfg){
     for(const s of stoneXZ) if(Math.hypot(x-s[0], z-s[1]) < 3.3) return 0;
     return shelfGround(cd);
   };
-  const I = {cfg, scene, sky, moon, key, sea, inside, height, coastDist, shoreOut, seaY:seaHeight, water:null, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
+  const I = {cfg, scene, sky, moon, key, sea, inside, height, coastDist, shoreOut, /* The analytic sea surface has to apply the SAME damp the shader does, or every splash, ripple,
+     foam ring and floating prop near the shore sits at a height the water is no longer at. */
+    seaY:(x, z, t, base) => seaHeight(x, z, t, base, shoreDamp(coastDist(x, z))), water:null, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
   I.stars = starMesh;
+  /* hand the sea its shore mask now that coastDist exists (the mesh is built before it) */
+  { const R = TMAX + 90;
+    const mu = sea.userData.mat.uniforms;
+    mu.uMask.value = shoreMaskTexture(coastDist, R); mu.uMaskR.value = R; mu.uHasMask.value = 1;
+    I.shoreMask = mu.uMask.value; }
 
   /* ground */
   if(POLY){

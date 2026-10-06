@@ -2072,3 +2072,75 @@ the land is clear — it is the sea's 10-unit vertex spacing meeting a shallow 0
 slope at a grazing angle, with the water's alpha far too high for water that is a few centimetres
 deep. The fix is a shallow-water band: fade the sea toward transparent where it is thin, and put a
 real surf line along the coast. That is its own task and it is next.
+
+### 4.49 — The near plane was the whole story
+
+His words, for the third time: "look at the water where the grass should be and lines in it."
+
+4.48 scaled the swell so the sea could not be drawn on top of the land, and the grid probe proved
+it: 0 flooded land samples out of 80,000 on six islands. A narrower comb of stripes stayed, over the
+wet shelf OUTSIDE the coastline, and 4.48 guessed at the cause - the sea's 10-unit vertex spacing
+meeting a shallow beach, with the waterline sawing back and forth as the swell rose and fell.
+
+That guess was wrong, and the way it was proved wrong is the useful part. The shore mask below
+damps the wave to **exactly zero swing at the coastline** - measured, 0.000 units of movement where
+it used to be over two - and the comb was still there afterwards, unchanged. A fix that removes the
+proposed cause without removing the symptom means the cause was wrong.
+
+It is DEPTH PRECISION. The camera was `PerspectiveCamera(fov, aspect, .1, 2790)`. A near plane of
+0.1 against a far plane of 2790 is a 27,900:1 ratio, and a depth buffer spends almost all of its
+resolution in the first few units. Two surfaces within tens of centimetres of each other 250 units
+away - the sea plane and the beach shelf it intersects at a shallow angle - are indistinguishable
+to it, so the winner alternates from one scanline to the next. That is the comb, and it is also why
+the striping always looked like rows rather than a shape.
+
+**Near is now 0.4.** 7,000:1 instead of 27,900:1, four times the precision everywhere in the scene,
+and the stripes are gone from the frame entirely - shoreline, shelf and all. Nothing clips: the
+chase arm's hard floor is 1.2 units, which puts the camera 1.77 from her head and 3.17 from her
+feet, and a frame rendered at that minimum shows her hat, hair and shoulders whole.
+`qa/nearclip.mjs` measures all of that rather than assuming it.
+
+This is worth remembering beyond the water. Every z-fight in this game has been running on a depth
+buffer crippled by its own near plane, and 0.1 was never chosen - it is three.js's default.
+
+### 4.50 — The sea now runs out of energy at the shore
+
+Kept, because it is right even though it was not the fix. The sea shader gets a SHORE MASK: one
+160x160 single-channel texture per island holding distance-to-coastline, built from the island's own
+`coastDist` at load (about 26k samples, 100 KB on the card). The vertex shader samples it by world
+position and scales the wave by it, so the swell comes in off a full 1.12 units offshore to nothing
+at the beach - measured at 0.000 at the coastline, 0.206 at 14 units out, 1.069 at 46.
+
+`I.seaY` applies the identical damp, because every splash, ripple, foam ring and floating prop is
+positioned from the analytic height, and a shader that disagrees with it puts the foam somewhere the
+water is not.
+
+The same mask pays for a surf band in the fragment shader at no extra cost - white water in the last
+stretch before the beach, broken by a slow travelling wave so it reads as swash arriving rather than
+a painted ring.
+
+### 4.51 — A raw count is not a finding
+
+I told him "more than half your world doesn't receive light" off `qa/matcensus.mjs` totals: 630
+unlit against 599 lit on Green, 502/326 on Home Island, and so on. I called it the cause of the
+flatness he has been complaining about for weeks.
+
+It was wrong. The suite's own breakdown - which I had not read - says what those meshes are:
+
+| island | unlit | sky/cloud/moon | translucent fx | lantern orbs | opaque solids |
+|---|---|---|---|---|---|
+| Home Island | 502 | 345 | 129 | 17 | **11** |
+| Good Riddance | 527 | 325 | 147 | 26 | **29** |
+| Sanity | 528 | 188 | 270 | 52 | **18** |
+| Green | 630 | 299 | 196 | 20 | **115** |
+| Town | 709 | 290 | 204 | 130 | **85** |
+
+Clouds, stars, the moon, glows, beams, foam and lantern globes are all SUPPOSED to be unlit. And of
+Green's 115 opaque solids, 100 are butterfly parts - 20 butterflies at one body, two antennae and
+two wings each, the antennae being cylinders six millimetres across. Town is the same story. The
+genuinely-should-be-lit count is in the teens per island, not the hundreds.
+
+**The rule: a count is not a finding until it is broken down.** The number was dramatic, it
+confirmed something he had been saying, and it went out without the one extra look that would have
+killed it. That is C8 - good news and satisfying news both get the HIGHER evidence bar, not the
+lower one - applied to a diagnosis instead of to a status.

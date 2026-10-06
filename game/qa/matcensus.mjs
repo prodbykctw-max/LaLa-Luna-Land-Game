@@ -17,7 +17,14 @@ for (const island of argIslands()) {
         if (!m || m.type !== 'MeshBasicMaterial') continue;
         let vol = 0, h = 0;
         try { box.setFromObject(o); box.getSize(sz); vol = sz.x * sz.y * sz.z; h = sz.y; } catch (e) { }
+        /* NAME the thing. The kind buckets below are heuristics on geometry and colour, and a
+           heuristic is not a licence to convert 115 meshes - "60 near-black cylinders" is not
+           something anyone can act on. Walk up the parent chain for whatever label exists. */
+        let path = [], n = o;
+        while (n && path.length < 5) { path.push(n.name || (n.userData && n.userData.kind) || n.type); n = n.parent; }
         rows.push({
+          path: path.filter(Boolean).join('<'),
+          inst: !!o.isInstancedMesh, count: o.count || 1,
           geo: o.geometry ? o.geometry.type : '?',
           col: m.color ? '#' + m.color.getHexString() : '-',
           transparent: !!m.transparent,
@@ -36,11 +43,12 @@ for (const island of argIslands()) {
       : (r.geo === 'SphereGeometry' && r.h < 1.6) ? 'small emissive sphere (lantern/orb)'
       : 'OPAQUE SOLID — should probably be lit';
     const g = {};
-    for (const x of rows) { const k = kind(x); (g[k] = g[k] || { n: 0, geos: {}, cols: {} }); g[k].n++;
-      g[k].geos[x.geo] = (g[k].geos[x.geo] || 0) + 1; g[k].cols[x.col] = (g[k].cols[x.col] || 0) + 1; }
-    const top = o => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    for (const x of rows) { const k = kind(x); (g[k] = g[k] || { n: 0, geos: {}, cols: {}, paths: {} }); g[k].n++;
+      g[k].geos[x.geo] = (g[k].geos[x.geo] || 0) + 1; g[k].cols[x.col] = (g[k].cols[x.col] || 0) + 1;
+      g[k].paths[x.path] = (g[k].paths[x.path] || 0) + 1; }
+    const top = (o, n) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n || 5);
     const outg = {};
-    for (const k in g) outg[k] = { count: g[k].n, geos: top(g[k].geos), cols: top(g[k].cols) };
+    for (const k in g) outg[k] = { count: g[k].n, geos: top(g[k].geos), cols: top(g[k].cols), paths: top(g[k].paths, 10) };
     let std = 0; S.traverse(o => { if (!o.isMesh) return; const ms = Array.isArray(o.material) ? o.material : [o.material];
       for (const m of ms) if (m && (m.type === 'MeshStandardMaterial' || m.type === 'MeshToonMaterial')) std++; });
     return { basic: rows.length, lit: std, groups: outg };
