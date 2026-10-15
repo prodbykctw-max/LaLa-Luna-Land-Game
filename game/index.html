@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
@@ -1002,6 +1002,161 @@ const PHOTO = !GROUNDQ ? null : (() => {
     t.repeat.set(1/GSCALE, 1/GSCALE); t.anisotropy = 8; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
   return {diff: mk("assets/ground/meadow_diff.jpg", true), nor: mk("assets/ground/meadow_nor.jpg", false)};
 })();
+/* ===================  REAL TREES (?trees=real)  ===================
+   The trees were seven ink-outlined spheres on a cylinder - a lollipop, the clearest "cartoon" tell
+   left once the ground went photographic. A real broadleaf reads as real because of three things:
+   a silhouette made of hundreds of leaves (never a smooth ball), light that falls through it in
+   patches, and bark. So:
+     - a leaf-CLUSTER card, built offline (tools/make_foliage.py) from Poly Haven's CC0 photographed
+       island_tree_02 leaves, alpha-cut, laid in dozens of cards per tree around the old lobe layout;
+     - every card's normal points out of the crown, so the canopy shades as one soft mass with a lit
+       side and a shadow side instead of as flat paper (the classic foliage-normal trick);
+     - photo bark (Poly Haven bark_brown_02, CC0) on the bent trunk, and branches up into the crown;
+     - the whole island's trees are TWO draw calls (one merged trunk mesh, one merged leaf mesh), and
+       the leaves sway in the wind on the GPU.
+   Palms keep the old fronds for now. Old trees stay the default until he picks. */
+const TREESQ = QS.get("trees") === "real";
+const LEAF_CARDS = (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? 60 : 96;
+const TREE_TEX = !TREESQ ? null : (() => {
+  const L = new THREE.TextureLoader();
+  const mk = (url, srgb, wrap) => { const t = L.load(url); t.wrapS = t.wrapT = wrap ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+    t.anisotropy = 4; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+  return {leaf: mk("assets/trees/foliage_diff.jpg", true, false), leafA: mk("assets/trees/foliage_alpha.jpg", false, false),
+          bark: mk("assets/trees/bark_diff.jpg", true, true), barkN: mk("assets/trees/bark_nor.jpg", false, true)};
+})();
+function forestBuilder(P){
+  const mk = () => ({pos:[], nor:[], uv:[], sw:[], col:[], idx:[]});
+  const TR = mk(), LF = mk();
+  const v = new THREE.Vector3(), n = new THREE.Vector3(), NM = new THREE.Matrix3();
+  const barkTint = new THREE.Color(P.wood).lerp(new THREE.Color(0xFFFFFF), .62);
+  const addGeo = (B, g, m4, sway, us, vs, tint) => {
+    const PA = g.attributes.position, NA = g.attributes.normal, UA = g.attributes.uv, base = B.pos.length/3;
+    NM.getNormalMatrix(m4);
+    for(let i=0;i<PA.count;i++){
+      v.fromBufferAttribute(PA, i).applyMatrix4(m4); B.pos.push(v.x, v.y, v.z);
+      n.fromBufferAttribute(NA, i).applyMatrix3(NM).normalize(); B.nor.push(n.x, n.y, n.z);
+      B.uv.push(UA.getX(i)*us, UA.getY(i)*vs); B.sw.push(sway); B.col.push(tint.r, tint.g, tint.b);
+    }
+    const I = g.index; if(I) for(let i=0;i<I.count;i++) B.idx.push(base + I.getX(i)); else for(let i=0;i<PA.count;i++) B.idx.push(base + i);
+  };
+  const branch = (m4base, from, to, r0, r1) => {
+    const d = new THREE.Vector3().subVectors(to, from), len = d.length(); if(len < .05) return;
+    const g = new THREE.CylinderGeometry(r1, r0, len, 6, 1, true); g.translate(0, len/2, 0);
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), d.normalize());
+    const m = new THREE.Matrix4().compose(from, q, new THREE.Vector3(1,1,1)).premultiply(m4base);
+    addGeo(TR, g, m, 0, 1, Math.max(1, len/1.6), barkTint); g.dispose();
+  };
+  /* one leaf-cluster card. c: centre, out: the crown's outward direction here (also its shading normal),
+     hang: leaves dangle (willow) instead of reaching up and out */
+  const fwd = new THREE.Vector3(), rt = new THREE.Vector3(), upv = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const card = (c, out, size, tint, hang, sway) => {
+    fwd.set(Math.random()-.5, Math.random()-.5, Math.random()-.5).multiplyScalar(2.4).add(out).normalize();
+    tmp.copy(hang ? new THREE.Vector3(0,-1,0) : out).addScaledVector(new THREE.Vector3(0,1,0), hang ? 0 : .6);
+    upv.copy(tmp).addScaledVector(fwd, -tmp.dot(fwd)); if(upv.lengthSq() < 1e-4) upv.set(0,1,0); upv.normalize();
+    rt.crossVectors(upv, fwd).normalize();
+    const a = (Math.random()-.5)*.7, ca = Math.cos(a), sa = Math.sin(a);
+    const R = rt.clone().multiplyScalar(ca).addScaledVector(upv, sa), U = upv.clone().multiplyScalar(ca).addScaledVector(rt, -sa);
+    const hw = size*.5, base = LF.pos.length/3;
+    const corners = [[-1,-1,0,0],[1,-1,1,0],[1,1,1,1],[-1,1,0,1]];
+    for(const [sx, sy, u, vv] of corners){
+      LF.pos.push(c.x + R.x*sx*hw + U.x*sy*hw, c.y + R.y*sx*hw + U.y*sy*hw, c.z + R.z*sx*hw + U.z*sy*hw);
+      LF.nor.push(out.x, out.y, out.z); LF.uv.push(u, vv); LF.sw.push(sway); LF.col.push(tint.r, tint.g, tint.b);
+    }
+    LF.idx.push(base, base+1, base+2, base, base+2, base+3);
+  };
+  const leafTint = (shade) => new THREE.Color(1,1,1).multiplyScalar(shade).offsetHSL((Math.random()-.5)*.03, (Math.random()-.5)*.08, 0);
+  const crownOf = (center, lobes, R, count, hang, m4) => {
+    const tot = lobes.reduce((a, l) => a + l[3]*l[3], 0);
+    const lc = new THREE.Vector3(), cpos = new THREE.Vector3(), out = new THREE.Vector3();
+    for(const [x, y, z, r] of lobes){
+      lc.set(x*R, y*R, z*R).add(center);
+      const k = Math.max(3, Math.round(count * r*r / tot));
+      for(let i=0;i<k;i++){
+        const d = new THREE.Vector3(Math.random()*2-1, Math.random()*2-1, Math.random()*2-1); if(d.lengthSq() > 1 || d.lengthSq() < .01){ i--; continue; }
+        d.normalize();
+        const shell = .30 + .70*Math.pow(Math.random(), .45);          /* most cards near the surface, some inside to block the view through */
+        cpos.copy(lc).addScaledVector(d, r*R*shell); cpos.y -= (cpos.y - lc.y)*.14;
+        if(hang) cpos.y -= Math.random()*r*R*.9;
+        out.subVectors(cpos, center); out.y += R*.35; out.normalize();
+        const tint = leafTint(.58 + .40*shell + (d.y > 0 ? .06 : -.08));
+        const wc = cpos.clone().applyMatrix4(m4), wo = out.clone().transformDirection(m4);
+        card(wc, wo, R*r*(1.0 + Math.random()*.45), tint, hang, 1);
+      }
+    }
+  };
+  const tree = (sc, kind, x, y, z, rotY) => {
+    const m4 = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), rotY), new THREE.Vector3(1,1,1));
+    const willow = kind === "willow", hs = willow ? sc*1.35 : sc;
+    const h = willow ? 5.4*hs : 3.6*sc, lean = (Math.random()-.5)*.14;
+    /* trunk: the old bent, flared cylinder, now in photo bark; u wraps twice, v one tile per ~1.6 u */
+    const tg = (() => { const g = new THREE.CylinderGeometry(.24*hs, .44*hs, h, 10, 7); const pa = g.attributes.position;
+      for(let i=0;i<pa.count;i++){ const yy = pa.getY(i), t = (yy + h/2)/h;
+        pa.setX(i, pa.getX(i) + Math.sin(t*Math.PI*.9)*(willow?.16:.07)*h);
+        const flare = 1 + Math.pow(Math.max(0, 1 - t*4), 2)*.9; pa.setX(i, pa.getX(i)*flare); pa.setZ(i, pa.getZ(i)*flare); }
+      g.computeVertexNormals(); g.translate(0, h/2, 0); return g; })();
+    const trunkM = new THREE.Matrix4().makeRotationZ(lean).premultiply(m4);
+    addGeo(TR, tg, trunkM, 0, 2, h/1.6, barkTint); tg.dispose();
+    const R = willow ? 2.9*hs : (2.3 + Math.random()*.5)*sc*1.06;
+    const center = new THREE.Vector3(Math.sin(lean)*h*.9 + (willow ? .9*hs : 0), h - .3*sc + R*.15, 0);
+    const lobes = willow ? [[0,0,0,1.1],[.75,-.18,.42,.8],[-.68,-.14,-.48,.78],[.2,.2,-.75,.68],[-.28,.14,.72,.7]]
+                         : [[0,.35,0,1.0],[.85,-.1,.5,.72],[-.8,-.15,.55,.7],[.2,-.2,-.9,.74],[-.45,.55,-.4,.62],[.55,.5,.4,.6],[0,1.05,0,.55]];
+    /* branches from the upper trunk out to each lobe, so the crown is held up by something */
+    const top = new THREE.Vector3(Math.sin(lean)*h*.75, h*.72, 0);
+    lobes.forEach(([lx, ly, lz, lr], i) => { if(i === 0 && !willow) return;
+      const to = new THREE.Vector3(lx*R*.75, ly*R*.75, lz*R*.75).add(center);
+      branch(m4, top, to, .13*hs*lr, .04*hs);
+      const mid = top.clone().lerp(to, .55), off = new THREE.Vector3(Math.random()-.5, .4, Math.random()-.5).multiplyScalar(R*.5);
+      branch(m4, mid, mid.clone().add(off), .05*hs, .02*hs); });
+    branch(m4, top, center.clone().add(new THREE.Vector3(0, R*.5, 0)), .14*hs, .05*hs);
+    crownOf(center, lobes, R, willow ? LEAF_CARDS*1.3 : LEAF_CARDS, willow, m4);
+    return {r: 2.0*sc, h};
+  };
+  const bush = (sc, x, y, z) => {
+    const m4 = new THREE.Matrix4().makeTranslation(x, y, z);
+    crownOf(new THREE.Vector3(0, .25*sc, 0), [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]], sc*1.05, 12, false, m4);
+  };
+  const finish = (scene, I) => {
+    const out = [];
+    const geoOf = B => { const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(B.pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(B.nor, 3));
+      g.setAttribute("uv", new THREE.Float32BufferAttribute(B.uv, 2)); g.setAttribute("color", new THREE.Float32BufferAttribute(B.col, 3));
+      g.setAttribute("aSway", new THREE.Float32BufferAttribute(B.sw, 1)); g.setIndex(B.idx); g.computeBoundingSphere(); return g; };
+    if(TR.pos.length){
+      const tm = new THREE.MeshStandardMaterial({map:TREE_TEX.bark, normalMap:TREE_TEX.barkN, vertexColors:true, roughness:.94, metalness:0, envMapIntensity:.30});
+      tm.color.multiplyScalar(.92);
+      const mesh = new THREE.Mesh(geoOf(TR), tm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh); out.push(mesh);
+    }
+    if(LF.pos.length){
+      const uni = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}};
+      const lm = new THREE.MeshStandardMaterial({map:TREE_TEX.leaf, alphaMap:TREE_TEX.leafA, alphaTest:.42, side:THREE.DoubleSide,
+        vertexColors:true, roughness:.78, metalness:0, envMapIntensity:.38});
+      lm.color.setRGB(.90, .96, .84);
+      const swayV = `#include <begin_vertex>
+        { float ph = position.x*.21 + position.z*.17;
+          float gust = sin(uTime*.9 + ph*.4)*.5 + .5;
+          transformed.x += (sin(uTime*1.3 + ph) * .10 + sin(uTime*5.7 + ph*3.1) * .025) * aSway * (.5 + gust);
+          transformed.z += (cos(uTime*1.1 + ph*1.3) * .08 + cos(uTime*6.3 + ph*2.3) * .022) * aSway * (.5 + gust);
+          transformed.y += sin(uTime*4.9 + ph*2.7) * .02 * aSway; }`;
+      lm.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uPlayer = uni.uPlayer;
+        sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aSway; uniform float uTime; uniform vec3 uPlayer;")
+          .replace("#include <begin_vertex>", swayV);
+        /* both faces of a card shade with the crown's outward normal - three would flip it on the back face,
+           and half the leaves would go black */
+        sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>",
+          "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;")
+          /* light through the leaves: the shadow side of a crown is never black, it glows faintly green */
+          .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05);");
+      };
+      lm.customProgramCacheKey = () => "realleaf";
+      const mesh = new THREE.Mesh(geoOf(LF), lm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1;
+      mesh.customDepthMaterial = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, alphaMap:TREE_TEX.leafA, alphaTest:.42});
+      scene.add(mesh); out.push(mesh); I.treeWind = uni;
+    }
+    DBG("real trees", TR.pos.length/3, "trunk verts", LF.pos.length/12, "leaf cards");
+    return out;
+  };
+  return {tree, bush, finish};
+}
 /* one place that builds a meadow surface, old or photographic */
 /* how much of the island's own grass tint survives over the photo: a little by day (keeps the palette),
    most of it at night, or Sanity's moonlit meadow comes out daylight-green */
@@ -2948,15 +3103,17 @@ function shoreFoam(scene, POLY){
 function shelfStrip(POLY, P, night){
   const OFFS = [6,7,8,9,10,11,12,13,14,15,17,19.5,22.5,26,30];
   const rings = OFFS.map(d => polyOffset(POLY, d)), n = POLY.length, R = rings.length;
-  const sand = new THREE.Color(P.sand).multiplyScalar(night ? .40 : .70), deep = new THREE.Color(P.water).multiplyScalar(.45), c = new THREE.Color();
+  const sand = new THREE.Color(P.sand), deep = new THREE.Color(P.water).multiplyScalar(.45), c = new THREE.Color();
   const pos = [], uv = [], col = [], idx = [];
   for(let r=0;r<R;r++) for(let i=0;i<n;i++){
     const d = OFFS[r], x = rings[r][i][0], z = rings[r][i][1];
     let y = d <= 15 ? shelfGround(d) : shelfGround(15) + (-6.6 - shelfGround(15)) * Math.pow((d - 15)/15, 1.3);
     if(d > 10) y += (Math.sin(x*.09 + z*.05) * .5 + Math.sin(x*.031 - z*.077) * .5) * .45 * Math.min(1, (d - 10)/5);   /* sandbars */
     y -= .01;
-    const k = Math.min(1, Math.max(0, (-.12 - y) / 6.5));
-    c.copy(sand).lerp(deep, Math.pow(k, .8));
+    /* above the waterline the shelf IS the beach, so it matches the beach slab exactly (a darker shelf
+       drew a dark stripe along every shore); it only goes wet-dark at the waterline and deep-dark below */
+    const k = Math.min(1, Math.max(0, (SEA_Y - y) / 5.5));
+    c.copy(sand).multiplyScalar(1 - .22*Math.min(1, Math.max(0, (d - 6.5)/2.5))).lerp(deep, Math.pow(k, .7) * (night ? 1 : .9));
     pos.push(x, y, z); uv.push(x, -z); col.push(c.r, c.g, c.b);
   }
   for(let r=0;r<R-1;r++) for(let i=0;i<n;i++){ const j=(i+1)%n, a=r*n+i, b=(r+1)*n+i, cc=r*n+j, d=(r+1)*n+j; idx.push(a,cc,b, b,cc,d); }
@@ -3024,7 +3181,21 @@ function swashSheet(scene, POLY, P, night){
         /* the next wave as a bore rolling in over the shallows before it runs up */
         float xb = mix(-3.6, 0.0, smoothstep(.80, 1.0, tau));
         float bore = exp(-abs(x - xb)*1.8) * smoothstep(.80, .86, tau) * smoothstep(.15, .50, churn + .15);
-        float foam = clamp(max(max(front, max(lace*.80, bub*.6)), max(mark*.75, bore*.9)), 0.0, 1.0);
+        /* REANIMAL beach (his clip, 2026-10-15): the surf is not lines, it is MASSES - thick, frothy mounds
+           of foam that surge up in lobes, lit on top and shadowed underneath, with dark gaps between the
+           clumps, and that sink and thin out as the water drains. So: a foam mass that is thick right
+           behind the front and decays as the wave drains, cut into bubble clumps by a noise whose
+           threshold drops as the mass thickens (sparse froth where thin, near-solid where thick), and
+           shaded from a second noise sample offset toward the light so every clump has relief. */
+        float mass = exp(-max(0.0, f - x)*.42) * cov * mix(1.0, .20, smoothstep(UP, .92, tau));
+        mass = max(mass, max(bore*1.05, mark*.55));
+        float F = clamp(mass, 0.0, 1.0);
+        vec2 fq = vXZ*2.6 + vec2(t*.12, -t*.08) + vec2(n*7.1, n*3.3);
+        float b1 = swFbm(fq*.38)*.62 + swFbm(fq)*.38, b2 = swFbm((fq + vec2(.30, .22))*.38)*.62 + swFbm(fq + vec2(.30, .22))*.38;
+        float clump = smoothstep(.66 - F*.56, .74 - F*.56, b1) * smoothstep(.0, .25, F);
+        float foam = clamp(max(clump*min(1.0, F*1.5), max(lace*.55, bub*.4)), 0.0, 1.0);
+        float relief = clamp(.80 + (b1 - b2)*4.2 + (b1 - .5)*.35, .48, 1.18);
+        relief *= mix(.82, 1.0, smoothstep(.0, .6, clump));           /* the thin edge of a clump sits in its own shadow */
         /* the thin sheet itself: clearest where it is thick, almost nothing at the running edge */
         float sheet = cov * (.26 + .30*smoothstep(0.0, 1.8, f - x)) * smoothstep(-1.2, .4, x);
         /* sand it has wetted: dark and glossy inside this wave's reach, drying slowly above it */
@@ -3033,8 +3204,8 @@ function swashSheet(scene, POLY, P, night){
         float edge = smoothstep(1.5, 2.6, vD) * (1.0 - smoothstep(10.8, 12.0, vD));
         vec3 col = uWet; float a = wet;
         col = mix(col, uSheet*uLum, sheet / max(.001, a + sheet*(1.0-a))); a = a + sheet*(1.0-a);
-        float fa = min(.90, foam);
-        col = mix(col, vec3(.95,.97,1.0)*uLum, fa / max(.001, a + fa*(1.0-a))); a = a + fa*(1.0-a);
+        float fa = min(.95, foam);
+        col = mix(col, vec3(.95,.97,1.0)*relief*uLum, fa / max(.001, a + fa*(1.0-a))); a = a + fa*(1.0-a);
         gl_FragColor = vec4(col, a * edge * uOp);
         #include <fog_fragment>
       }`,
@@ -5888,6 +6059,9 @@ function buildIslandBody(cfg){
     [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]].forEach(([x,y,z,r],i) => {
       const b = inked(new THREE.SphereGeometry(r*sc,8,6), i%2?P.leaf2:P.leaf, 1.5); b.scale.y = .62; b.position.set(x*sc,y*sc,z*sc); g.add(b); });
     return g; };
+  const FOREST = TREESQ ? forestBuilder(P) : null;
+  /* the camera arm still needs to know where crowns are: an invisible marker per real crown */
+  const crownMarker = (x, y, z, r) => { const mk = new THREE.Mesh(new THREE.SphereGeometry(r, 6, 4), new THREE.MeshBasicMaterial()); mk.visible = false; mk.position.set(x, y, z); scene.add(mk); canopies.push(mk); };
   /* groves: most trees cluster round a handful of centres, the rest are loners */
   const groves = []; for(let k=0;k<5;k++){ const s = sample(cfg.trees.min+6, cfg.trees.max-6, true); if(s) groves.push(s); }
   for(let i=0;i<cfg.trees.n;i++){
@@ -5899,13 +6073,16 @@ function buildIslandBody(cfg){
     const [x,z] = s, sc = cfg.trees.s[0] + Math.random()*(cfg.trees.s[1]-cfg.trees.s[0]), y = height(x,z);
     if(I.colliders.some(c => Math.hypot(c.x-x, c.z-z) < 2.2*sc)) continue;         /* no trunks inside trunks */
     const kind = cfg.trees.palm ? "palm" : (cfg.trees.willow && i % 5 === 0 ? "willow" : "tree");
-    const t = makeTree(sc, kind); t.g.position.set(x,y,z); t.g.rotation.y = Math.random()*Math.PI*2; scene.add(t.g);
+    if(FOREST && kind !== "palm"){ const ry = Math.random()*Math.PI*2, rt = FOREST.tree(sc, kind, x, y, z, ry); crownMarker(x, y + rt.h, z, 2.2*sc); }
+    else { const t = makeTree(sc, kind); t.g.position.set(x,y,z); t.g.rotation.y = Math.random()*Math.PI*2; scene.add(t.g); }
     I.colliders.push({x, z, r:(kind==="palm" ? .5 : .55)*sc, camR:(kind==="palm" ? .6 : 1.7)*sc});
     if(Math.random() < .55){ const a = Math.random()*Math.PI*2, d = (1.6+Math.random()*1.4)*sc, bx = x+Math.cos(a)*d, bz = z+Math.sin(a)*d;
-      if(inside(bx,bz)){ const b = makeBush(.7+Math.random()*.7); b.position.set(bx, height(bx,bz)+.25, bz); scene.add(b); bushes.push(b); } }
+      if(inside(bx,bz)){ const bs = .7+Math.random()*.7; if(FOREST) FOREST.bush(bs, bx, height(bx,bz), bz); else { const b = makeBush(bs); b.position.set(bx, height(bx,bz)+.25, bz); scene.add(b); bushes.push(b); } } }
   }
   /* loose bushes in the open */
-  for(let i=0;i<14;i++){ const s = sample(10, 60, true); if(!s) continue; const b = makeBush(.8+Math.random()*.9); b.position.set(s[0], height(s[0],s[1])+.25, s[1]); scene.add(b); bushes.push(b); }
+  for(let i=0;i<14;i++){ const s = sample(10, 60, true); if(!s) continue; const bs = .8+Math.random()*.9;
+    if(FOREST) FOREST.bush(bs, s[0], height(s[0],s[1]), s[1]); else { const b = makeBush(bs); b.position.set(s[0], height(s[0],s[1])+.25, s[1]); scene.add(b); bushes.push(b); } }
+  if(FOREST) I.forest = FOREST.finish(scene, I);
   I.canopies = canopies; I.bushes = bushes;
   /* rocks — in families of 2-4, half-sunk */
   for(let i=0;i<12;i++){
@@ -7332,6 +7509,7 @@ function tryJump(){
 function islandUpdate(I, dt, t){
   const cfg = I.cfg, W = I.W;
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
+  if(I.treeWind){ I.treeWind.uTime.value = t; I.treeWind.uPlayer.value.set(W.x, W.y, W.z); }
   if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
   I.sea.userData.mat.uniforms.t.value = t;
