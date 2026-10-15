@@ -3,7 +3,7 @@
 import { open, argIslands, out } from './_harness.mjs';
 const shots = {};
 for (const isl of argIslands(['green'])) {
-  for (const [tag, q] of [['new', 'guide=off']]) {
+  for (const [tag, q] of (process.env.ONLYNEW ? [['new', 'guide=off']] : [['old', 'guide=off&trees=old'], ['new', 'guide=off']])) {
     const H = await open({ island: isl, query: q, wait: 26000 });
     const info = await H.page.evaluate(() => {
       const I = window.__T.CUR, W = I.W, [sx, sz] = I.cfg.spawn;

@@ -405,9 +405,10 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15h";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15i";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
+const SURFQ = QS.get("surf") === "1";      /* breaking swells rolling into the beach - IN PROGRESS, opt-in until it passes review */
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* opt-in REANIMAL-style night look, Sanity only */
 /* ---- art direction ----
@@ -1014,7 +1015,7 @@ const PHOTO = !GROUNDQ ? null : (() => {
      - photo bark (Poly Haven bark_brown_02, CC0) on the bent trunk, and branches up into the crown;
      - the whole island's trees are TWO draw calls (one merged trunk mesh, one merged leaf mesh), and
        the leaves sway in the wind on the GPU.
-   Palms keep the old fronds for now. */
+   Palms get the same treatment with photo fronds and palm bark. */
 const TREESQ = QS.get("trees") !== "old";   /* default since 2026-10-15 (his pick); ?trees=old restores the sphere trees */
 const LEAF_CARDS = (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? 60 : 96;
 const TREE_TEX = !TREESQ ? null : (() => {
@@ -1022,7 +1023,9 @@ const TREE_TEX = !TREESQ ? null : (() => {
   const mk = (url, srgb, wrap) => { const t = L.load(url); t.wrapS = t.wrapT = wrap ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
     t.anisotropy = 4; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
   return {leaf: mk("assets/trees/foliage_diff.jpg", true, false), leafA: mk("assets/trees/foliage_alpha.jpg", false, false),
-          bark: mk("assets/trees/bark_diff.jpg", true, true), barkN: mk("assets/trees/bark_nor.jpg", false, true)};
+          bark: mk("assets/trees/bark_diff.jpg", true, true), barkN: mk("assets/trees/bark_nor.jpg", false, true),
+          palm: mk("assets/trees/palm_diff.jpg", true, true), palmN: mk("assets/trees/palm_nor.jpg", false, true),
+          frond: mk("assets/trees/frond_diff.jpg", true, false), frondA: mk("assets/trees/frond_alpha.jpg", false, false)};
 })();
 function forestBuilder(P, night){
   const mk = () => ({pos:[], nor:[], uv:[], sw:[], col:[], idx:[]});
@@ -1115,29 +1118,71 @@ function forestBuilder(P, night){
     const m4 = new THREE.Matrix4().makeTranslation(x, y, z);
     crownOf(new THREE.Vector3(0, .25*sc, 0), [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]], sc*1.05, 12, false, m4);
   };
+  /* ---- palms (Good Riddance, Town Square) ----
+     A ringed, curving trunk in photo palm bark, and a crown of arching fronds: each frond is a strip
+     of 7 segments that leaves the crown pitched up, then falls away under its own weight, with a
+     slight V fold along the rachis. The frond card is built offline (tools/make_frond.py) from
+     Poly Haven's CC0 shrub_02 leaves used as leaflets. The oldest fronds hang dead and brown. */
+  const PT = mk(), FR = mk();
+  const palmTint = new THREE.Color(P.wood).lerp(new THREE.Color(0xFFFFFF), .70);
+  const palm = (sc, x, y, z, rotY) => {
+    const m4 = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), rotY), new THREE.Vector3(1,1,1));
+    const h = 7.5*sc*(.88 + Math.random()*.28), lean = .10 + Math.random()*.13;
+    const tg = new THREE.CylinderGeometry(.19*sc, .29*sc, h, 10, 12, true); tg.translate(0, h/2, 0);
+    const pa = tg.attributes.position;
+    for(let i=0;i<pa.count;i++){ const t = Math.max(0, pa.getY(i)/h), fl = 1 + Math.pow(Math.max(0, 1 - t*6), 2)*.7;
+      pa.setX(i, pa.getX(i)*fl + lean*h*Math.pow(t, 1.7)); pa.setZ(i, pa.getZ(i)*fl); }
+    tg.computeVertexNormals();
+    addGeo(PT, tg, m4, 0, 1.5, h/1.3, palmTint); tg.dispose();
+    const top = new THREE.Vector3(lean*h, h - .1*sc, 0);
+    const NF = 11 + (Math.random()*4|0), v = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+    const NM4 = new THREE.Matrix3().getNormalMatrix(m4);
+    for(let k=0;k<NF;k++){
+      const dead = k >= NF - 2;
+      const a = k/NF*Math.PI*2 + Math.random()*.35, dx = Math.cos(a), dz = Math.sin(a);
+      const pitch = dead ? -.9 - Math.random()*.4 : .15 + Math.random()*.75;
+      const L = (dead ? 3.0 : 3.8 + Math.random()*1.0)*sc, Wd = (dead ? .9 : 1.55)*sc;
+      const droop = (dead ? .02 : .10 + Math.random()*.08)/sc;
+      const tint = dead ? new THREE.Color(.62, .48, .30) : new THREE.Color(1,1,1).multiplyScalar(.80 + Math.random()*.25).offsetHSL((Math.random()-.5)*.03, 0, 0);
+      const S = 7, base = FR.pos.length/3, sx = -dz, sz = dx;
+      for(let s2=0;s2<=S;s2++){
+        const tt = s2/S, al = L*tt;
+        const hz = Math.cos(pitch)*al, vy = Math.sin(pitch)*al - droop*al*al;
+        const cx = top.x + dx*hz, cy = top.y + vy, cz = top.z + dz*hz;
+        const hw = Wd*.5*(1 - .25*tt), fold = -Wd*.14*(1 - tt*.5);
+        for(const side of [-1, 1]){
+          v.set(cx + sx*hw*side, cy + fold, cz + sz*hw*side).applyMatrix4(m4); FR.pos.push(v.x, v.y, v.z);
+          v.set(dx*.35, 1, dz*.35).applyMatrix3(NM4).normalize(); FR.nor.push(v.x, v.y, v.z);
+          FR.uv.push(side < 0 ? 0 : 1, tt); FR.sw.push(tt*1.4); FR.col.push(tint.r, tint.g, tint.b);
+        }
+      }
+      for(let s2=0;s2<S;s2++){ const q = base + s2*2; FR.idx.push(q, q+1, q+3, q, q+3, q+2); }
+    }
+    return {r: 1.3*sc, h};
+  };
   const finish = (scene, I) => {
     const out = [];
     const geoOf = B => { const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(B.pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(B.nor, 3));
       g.setAttribute("uv", new THREE.Float32BufferAttribute(B.uv, 2)); g.setAttribute("color", new THREE.Float32BufferAttribute(B.col, 3));
       g.setAttribute("aSway", new THREE.Float32BufferAttribute(B.sw, 1)); g.setIndex(B.idx); g.computeBoundingSphere(); return g; };
-    if(TR.pos.length){
-      const tm = new THREE.MeshStandardMaterial({map:TREE_TEX.bark, normalMap:TREE_TEX.barkN, vertexColors:true, roughness:.94, metalness:0, envMapIntensity:.30});
-      tm.color.multiplyScalar(.92);
-      const mesh = new THREE.Mesh(geoOf(TR), tm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh); out.push(mesh);
-    }
-    if(LF.pos.length){
-      const uni = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}};
-      const lm = new THREE.MeshStandardMaterial({map:TREE_TEX.leaf, alphaMap:TREE_TEX.leafA, alphaTest:.42, side:THREE.DoubleSide,
+    const barkMesh = (B, map, nor) => {
+      const tm = new THREE.MeshStandardMaterial({map, normalMap:nor, vertexColors:true, roughness:.94, metalness:0, envMapIntensity:.30});
+      tm.color.multiplyScalar(night ? .45 : .92);
+      const mesh = new THREE.Mesh(geoOf(B), tm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh); out.push(mesh);
+    };
+    const uni = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}};
+    const swayV = `#include <begin_vertex>
+      { float ph = position.x*.21 + position.z*.17;
+        float gust = sin(uTime*.9 + ph*.4)*.5 + .5;
+        transformed.x += (sin(uTime*1.3 + ph) * .10 + sin(uTime*5.7 + ph*3.1) * .025) * aSway * (.5 + gust);
+        transformed.z += (cos(uTime*1.1 + ph*1.3) * .08 + cos(uTime*6.3 + ph*2.3) * .022) * aSway * (.5 + gust);
+        transformed.y += sin(uTime*4.9 + ph*2.7) * .02 * aSway; }`;
+    const leafMesh = (B, map, alphaMap, key) => {
+      const lm = new THREE.MeshStandardMaterial({map, alphaMap, alphaTest:.42, side:THREE.DoubleSide,
         vertexColors:true, roughness:.78, metalness:0, envMapIntensity:.38});
       lm.color.setRGB(.90, .96, .84);
       if(night) lm.color.setRGB(.34, .40, .46);     /* moonlit: the leaves sit in the island's dark palette instead of glowing */
-      const swayV = `#include <begin_vertex>
-        { float ph = position.x*.21 + position.z*.17;
-          float gust = sin(uTime*.9 + ph*.4)*.5 + .5;
-          transformed.x += (sin(uTime*1.3 + ph) * .10 + sin(uTime*5.7 + ph*3.1) * .025) * aSway * (.5 + gust);
-          transformed.z += (cos(uTime*1.1 + ph*1.3) * .08 + cos(uTime*6.3 + ph*2.3) * .022) * aSway * (.5 + gust);
-          transformed.y += sin(uTime*4.9 + ph*2.7) * .02 * aSway; }`;
       lm.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uPlayer = uni.uPlayer;
         sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aSway; uniform float uTime; uniform vec3 uPlayer;")
           .replace("#include <begin_vertex>", swayV);
@@ -1148,15 +1193,20 @@ function forestBuilder(P, night){
           /* light through the leaves: the shadow side of a crown is never black, it glows faintly green */
           .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05) * " + (night ? ".25" : "1.0") + ";");
       };
-      lm.customProgramCacheKey = () => "realleaf";
-      const mesh = new THREE.Mesh(geoOf(LF), lm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1;
-      mesh.customDepthMaterial = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, alphaMap:TREE_TEX.leafA, alphaTest:.42});
-      scene.add(mesh); out.push(mesh); I.treeWind = uni;
-    }
-    DBG("real trees", TR.pos.length/3, "trunk verts", LF.pos.length/12, "leaf cards");
+      lm.customProgramCacheKey = () => key;
+      const mesh = new THREE.Mesh(geoOf(B), lm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1;
+      mesh.customDepthMaterial = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, alphaMap, alphaTest:.42});
+      scene.add(mesh); out.push(mesh);
+    };
+    if(TR.pos.length) barkMesh(TR, TREE_TEX.bark, TREE_TEX.barkN);
+    if(PT.pos.length) barkMesh(PT, TREE_TEX.palm, TREE_TEX.palmN);
+    if(LF.pos.length) leafMesh(LF, TREE_TEX.leaf, TREE_TEX.leafA, "realleaf");
+    if(FR.pos.length) leafMesh(FR, TREE_TEX.frond, TREE_TEX.frondA, "realfrond");
+    if(out.length) I.treeWind = uni;
+    DBG("real trees", TR.pos.length/3, "trunk verts", LF.pos.length/12, "leaf cards", FR.idx.length/6, "frond quads");
     return out;
   };
-  return {tree, bush, finish};
+  return {tree, bush, palm, finish};
 }
 /* one place that builds a meadow surface, old or photographic */
 /* how much of the island's own grass tint survives over the photo: a little by day (keeps the palette),
@@ -3101,6 +3151,115 @@ function shoreFoam(scene, POLY){
    The sheet lies ON the beach (rings at fixed offsets from the coast, each at shelfGround), from the
    meadow edge to under the water; seaward of the waterline the sea surface covers it by depth, so
    the surf foam simply disappears under the water instead of floating on top of it. */
+/* ===================  BREAKERS  ===================
+   His clips (REANIMAL, 2026-10-15): the sea does not stop dead at the beach. Swells come in as long
+   ridges, rise as the water shallows, pitch forward and break into thick white water that runs up
+   the sand. Our sea is deliberately damped flat near the coast (SHORE_FADE) so the waterline does
+   not saw across the beach, and wading/splashes are positioned from that same analytic height - so
+   the breakers are a separate VISUAL layer: a band of water from just above the waterline out to
+   26 u, displaced in its vertex shader into one travelling swell per stretch of shore. It runs on
+   the same swash clock as the run-up, so the wave you watch break is the one that then climbs the
+   sand. It is only visible where it stands up off the sea surface; where it is flat it fades out. */
+function resamplePoly(p, step){
+  const out = [];
+  for(let i=0;i<p.length;i++){ const a = p[i], b = p[(i+1)%p.length], L = Math.hypot(b[0]-a[0], b[1]-a[1]), k = Math.max(1, Math.round(L/step));
+    for(let j=0;j<k;j++) out.push([a[0] + (b[0]-a[0])*j/k, a[1] + (b[1]-a[1])*j/k]); }
+  /* two Chaikin passes so the offset rings far out do not fold at the corners */
+  let q = out;
+  for(let pass=0; pass<2; pass++){ const r = []; for(let i=0;i<q.length;i++){ const a = q[i], b = q[(i+1)%q.length];
+    r.push([a[0]*.75 + b[0]*.25, a[1]*.75 + b[1]*.25], [a[0]*.25 + b[0]*.75, a[1]*.25 + b[1]*.75]); } q = r; }
+  return q;
+}
+function breakers(scene, POLY, P, PS, night, amp){
+  const base = resamplePoly(POLY, 6);
+  const OFFS = []; for(let d = 7.5; d <= 35.01; d += .75) OFFS.push(d);
+  const rings = OFFS.map(d => polyOffset(base, d)), n = base.length, R = rings.length;
+  const pos = [], aD = [], aO = [], idx = [];
+  for(let r=0;r<R;r++) for(let i=0;i<n;i++){
+    const a = rings[r][i], b = rings[Math.min(R-1, r+1)][i], c = rings[Math.max(0, r-1)][i];
+    let ox = b[0]-c[0], oz = b[1]-c[1]; const l = Math.hypot(ox, oz) || 1; ox /= l; oz /= l;      /* outward, seaward */
+    pos.push(a[0], SEA_Y, a[1]); aD.push(OFFS[r]); aO.push(ox, oz);
+  }
+  for(let r=0;r<R-1;r++) for(let i=0;i<n;i++){ const j=(i+1)%n, a=r*n+i, b=(r+1)*n+i, c=r*n+j, d=(r+1)*n+j; idx.push(a,c,b, b,c,d); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("aD", new THREE.Float32BufferAttribute(aD, 1));
+  g.setAttribute("aO", new THREE.Float32BufferAttribute(aO, 2));
+  g.setIndex(idx); g.computeBoundingSphere(); g.boundingSphere.radius += 4;
+  const NOISE = `
+    float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+    float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+      return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x), mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x), f.y); }
+    ${SWASH_CLOCK}`;
+  const mat = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {t:{value:0}, uOp:{value:1}, uAmp:{value:amp},
+      uDeep:{value:new THREE.Color(P.water).multiplyScalar(night ? .55 : .80)}, uLit:{value:new THREE.Color(P.waterHi).lerp(new THREE.Color(0x9FF0E0), night ? .10 : .35)},
+      uSky:{value:new THREE.Color(PS.skyMid).lerp(new THREE.Color(PS.skyTop), .35)}, uLum:{value: night ? .50 : 1.0},
+      uLight:{value:new THREE.Vector3(-.5, .75, .35).normalize()}}]),
+    vertexShader:`attribute float aD; attribute vec2 aO;
+      uniform float t, uAmp;
+      varying float vH, vRel, vBrk, vA, vX; varying vec2 vXZ; varying vec3 vN, vV;
+      ${NOISE}
+      #include <fog_pars_vertex>
+      void main(){
+        vec4 wp = modelMatrix*vec4(position,1.0); vec2 xz = wp.xz;
+        float x = 9.0 - aD;                                  /* <0 seaward of the still waterline */
+        vec2 ck = swClock(xz, t); float n = ck.x, tau = ck.y;
+        float p = clamp((tau - .38)/.62, 0.0, 1.0);          /* the NEXT wave, on its way in */
+        float xr = mix(-27.0, -0.6, p*p*(3.0-2.0*p)*.35 + p*.65);
+        float set = swH((n+1.0)*1.37 + 4.1);
+        float A = uAmp * (.50 + .65*set) * (.55 + .8*swFbm(xz*.028 + n*1.7)) * smoothstep(.22, .52, swFbm(xz*.019 + vec2(n*2.3, n*.7)));   /* sets, and gaps where nothing is breaking */
+        float xb = -6.5 - 3.5*swFbm(xz*.05 + n);             /* where this one breaks: varies along the shore */
+        float grow = mix(.45, 1.15, smoothstep(-27.0, xb, xr));
+        float brk = smoothstep(xb + .2, xb + 3.8, xr);       /* 0 standing up, 1 broken and running */
+        float Ah = A * grow * (1.0 - brk*.80) * smoothstep(1.0, .55, p) + A*.18*brk*(1.0 - smoothstep(.85, 1.0, p));
+        Ah *= smoothstep(-27.0, -22.0, xr);                  /* grows out of the swell, no popping in */
+        float dx = x - xr;
+        float wf = mix(1.9, 1.1, brk), wb = 6.5;
+        float e = dx > 0.0 ? exp(-dx*dx/(wf*wf)) : exp(-dx*dx/(wb*wb));
+        float h = Ah * e;
+        float dhdx = dx > 0.0 ? -2.0*dx/(wf*wf)*h : -2.0*dx/(wb*wb)*h;
+        wp.y = ${SEA_Y.toFixed(3)} - .08 + h;
+        vH = h; vA = max(Ah, .001); vRel = dx; vBrk = brk; vX = x; vXZ = xz;
+        /* x grows landward = -aO, so a slope dh/dx tilts the normal seaward */
+        vN = normalize(vec3(aO.x*dhdx, 1.0, aO.y*dhdx));
+        vV = cameraPosition - wp.xyz;
+        vec4 mvPosition = viewMatrix*wp; gl_Position = projectionMatrix*mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader:`uniform float t, uOp, uLum; uniform vec3 uDeep, uLit, uSky, uLight;
+      varying float vH, vRel, vBrk, vA, vX; varying vec2 vXZ; varying vec3 vN, vV;
+      ${NOISE}
+      #include <fog_pars_fragment>
+      void main(){
+        vec3 N = normalize(vN), V = normalize(vV);
+        float k = clamp(vH / vA, 0.0, 1.0);
+        /* body: dark on the long back, glassy and light through the thin lip on the steep face */
+        float face = smoothstep(-.4, .9, vRel) * smoothstep(.35, .95, k);
+        float F = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+        vec3 back = mix(uDeep*1.15, uSky, clamp(.30 + F*.8, 0.0, .75));   /* the long back reads like the sea it rises out of */
+        vec3 col = mix(back, uLit, face*.85);
+        float dif = max(dot(N, uLight), 0.0);
+        col *= .72 + .40*dif;
+        col += pow(max(dot(reflect(-uLight, N), V), 0.0), 60.0) * .35;
+        /* white water: the crest feathers as it steepens, and once it pitches the whole front goes to foam */
+        vec2 fq = vXZ*2.4 + vec2(t*.5, -t*.3);
+        float b1 = swFbm(fq*.4)*.62 + swFbm(fq)*.38, b2 = swFbm((fq + vec2(.3,.22))*.4)*.62 + swFbm(fq + vec2(.3,.22))*.38;
+        float cap = smoothstep(.72, .97, k) * smoothstep(-.6, .4, vRel) * .65;
+        float white = max(cap, vBrk * smoothstep(-2.2, .2, vRel) * (1.0 - smoothstep(1.5, 3.5, vRel)) * smoothstep(.05, .30, k + .2));
+        float clump = smoothstep(.68 - white*.6, .76 - white*.6, b1);
+        float fm = clamp(clump * min(1.0, white*1.6), 0.0, 1.0);
+        float relief = clamp(.82 + (b1 - b2)*4.0, .5, 1.15);
+        col = mix(col, vec3(.95,.97,1.0)*relief, fm);
+        col *= uLum;
+        float a = smoothstep(.03, .16, vH) * mix(.35, .92, face) * (1.0 - smoothstep(-.4, .2, vX));
+        a = max(a*.92, fm*smoothstep(.0, .05, vH));
+        gl_FragColor = vec4(col, a * uOp);
+        #include <fog_fragment>
+      }`,
+    transparent:true, depthWrite:false, fog:true, side:THREE.DoubleSide});
+  const m = new THREE.Mesh(g, mat); m.renderOrder = 1; m.frustumCulled = false; scene.add(m); return m;
+}
 function shelfStrip(POLY, P, night){
   const OFFS = [6,7,8,9,10,11,12,13,14,15,17,19.5,22.5,26,30];
   const rings = OFFS.map(d => polyOffset(POLY, d)), n = POLY.length, R = rings.length;
@@ -5837,6 +5996,7 @@ function buildIslandBody(cfg){
     shelf.receiveShadow = true; GROUND(shelf); scene.add(shelf);
     /* the wet line: a dark, breathing strip of sand where the swash reaches */
     if(SWASHQ) I.foam.push(swashSheet(scene, POLY, P, isNight));
+    if(SURFQ) I.foam.push(breakers(scene, POLY, P, PS, isNight, cfg.key === "sanity" ? 1.35 : cfg.key === "town" ? .80 : 1.0));
     else { I.wetBand = new THREE.Mesh(ringBand(polyOffset(POLY, 2.6), polyOffset(POLY, 6.3), -.085, -.085),
                                new THREE.MeshBasicMaterial({color:0x1E2C3A, transparent:true, opacity:.18, depthWrite:false}));
     I.wetBand.renderOrder = 1; GROUND(I.wetBand); scene.add(I.wetBand);
@@ -6074,7 +6234,7 @@ function buildIslandBody(cfg){
     const [x,z] = s, sc = cfg.trees.s[0] + Math.random()*(cfg.trees.s[1]-cfg.trees.s[0]), y = height(x,z);
     if(I.colliders.some(c => Math.hypot(c.x-x, c.z-z) < 2.2*sc)) continue;         /* no trunks inside trunks */
     const kind = cfg.trees.palm ? "palm" : (cfg.trees.willow && i % 5 === 0 ? "willow" : "tree");
-    if(FOREST && kind !== "palm"){ const ry = Math.random()*Math.PI*2, rt = FOREST.tree(sc, kind, x, y, z, ry); crownMarker(x, y + rt.h, z, 2.2*sc); }
+    if(FOREST){ const ry = Math.random()*Math.PI*2, rt = kind === "palm" ? FOREST.palm(sc, x, y, z, ry) : FOREST.tree(sc, kind, x, y, z, ry); crownMarker(x, y + rt.h, z, (kind === "palm" ? 2.6 : 2.2)*sc); }
     else { const t = makeTree(sc, kind); t.g.position.set(x,y,z); t.g.rotation.y = Math.random()*Math.PI*2; scene.add(t.g); }
     I.colliders.push({x, z, r:(kind==="palm" ? .5 : .55)*sc, camR:(kind==="palm" ? .6 : 1.7)*sc});
     if(Math.random() < .55){ const a = Math.random()*Math.PI*2, d = (1.6+Math.random()*1.4)*sc, bx = x+Math.cos(a)*d, bz = z+Math.sin(a)*d;
