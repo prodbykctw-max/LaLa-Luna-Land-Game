@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* opt-in REANIMAL-style night look, Sanity only */
@@ -987,11 +987,37 @@ function beddedRock(){
   return t;
 }
 const TEX = {meadow: grassGround(), sand: sandGround(), rock: mottle(9, 70, 1.6), macro: macroNoise(), bed: beddedRock()};
+/* ?ground=real — the meadow as a photograph. The procedural canvas above tiles ~120 times per world
+   unit (ExtrudeGeometry's uv IS world units), so it was always sub-pixel: the ground was a flat tint
+   with a macro wash on it, which is most of why the island read as a cartoon. This swaps in a
+   photo-scanned, tileable grass albedo + normal map (Poly Haven "leafy_grass", CC0, regraded greener)
+   sized by ?gscale= (world units per tile, default 5). Colour is carried by the photo, so the cel
+   tint P.grass is not multiplied over it. */
+const GROUNDQ = QS.get("ground") === "real";
+const GSCALE = Math.max(.5, parseFloat(QS.get("gscale")) || 5);
+const PHOTO = !GROUNDQ ? null : (() => {
+  const L = new THREE.TextureLoader();
+  const mk = (url, srgb) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(1/GSCALE, 1/GSCALE); t.anisotropy = 8; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+  return {diff: mk("assets/ground/meadow_diff.jpg", true), nor: mk("assets/ground/meadow_nor.jpg", false)};
+})();
+/* one place that builds a meadow surface, old or photographic */
+function meadowMat(col, extra){
+  if(!GROUNDQ){
+    const m = toon(col, Object.assign({map:TEX.meadow, roughness:1, envMapIntensity:.16}, extra||{}));
+    return m;
+  }
+  const c = new THREE.Color(col).lerp(new THREE.Color(0xFFFFFF), .78);     /* just enough island tint to stay in-palette */
+  const m = toon(c, Object.assign({map:PHOTO.diff, normalMap:PHOTO.nor, roughness:.96, envMapIntensity:.22}, extra||{}));
+  if(m.normalScale) m.normalScale.set(.9, .9);
+  m.userData.macroDiv = 1 / GSCALE * 28 / MACRO_TILES;     /* macro wash: one tile per ~28 world units */
+  return m;
+}
 /* Recover the un-tiled uv by dividing vUv back out by the map's own repeat, then re-scale it to a
    couple of tiles across the mesh. Hooks in after <map_fragment> so it multiplies the final albedo. */
-function macroPatch(sh){
+function macroPatch(sh, div){
   sh.uniforms.uMacro = {value: TEX.macro};
-  sh.uniforms.uMacroDiv = {value: 26 * WORLD};
+  sh.uniforms.uMacroDiv = {value: div || 26 * WORLD};
   sh.uniforms.uMacroTiles = {value: MACRO_TILES};
   sh.uniforms.uMacroAmt = {value: MACRO};
   sh.fragmentShader = sh.fragmentShader
@@ -1005,7 +1031,7 @@ function withMacro(mat){
   if(!mat || MACRO <= 0.001) return mat;
   if(!mat.userData.patches) mat.userData.patches = [];
   if(mat.userData.patches.some(x => x[0] === "macro")) return mat;
-  mat.userData.patches.push(["macro", macroPatch]);
+  mat.userData.patches.push(["macro", sh => macroPatch(sh, mat.userData.macroDiv)]);
   mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));
   mat.customProgramCacheKey = () => mat.userData.patches.map(([n]) => n).join("_");
   mat.needsUpdate = true;
@@ -3107,7 +3133,7 @@ function clumpGeometry(){
   /* A clump is BLADES individual blades, not two crossed cards. Each blade is a narrow tapered
      strip that arcs outward and over, so one instance reads as a tuft of grass instead of one
      flat X. 5 blades x 2 segments = 20 tris, against 12 for the old pair of cards. */
-  const BLADE_BASE = (() => { const v = parseFloat(QS.get("blade")); return isNaN(v) ? 0.74 : Math.max(0, Math.min(1, v)); })();
+  const BLADE_BASE = (() => { const v = parseFloat(QS.get("blade")); return isNaN(v) ? (GROUNDQ ? 0.95 : 0.74) : Math.max(0, Math.min(1, v)); })();
   /* ===================  SPIKES, NOT GRASS  ===================
      His words: "it looks natural, looks scale, not spikes... very polygon, very blocky, very
      primitive." He is describing GEOMETRY, and he is right - no colour or grade pass can answer it.
@@ -3132,7 +3158,7 @@ function clumpGeometry(){
     const dx = Math.cos(a), dz = Math.sin(a);
     const lean = .26 + Math.random()*.42;                   /* how far it arcs out from the centre */
     const h    = .66 + Math.random()*1.02;                  /* blades in one clump differ a lot in height */
-    const w0   = .021 + Math.random()*.013;                 /* a strand, not a ribbon */
+    const w0   = GROUNDQ ? .030 + Math.random()*.018 : .021 + Math.random()*.013;   /* a strand, not a ribbon (?ground=real: a real blade, wider) */
     const root = .038;                                      /* blades start slightly off centre */
     const curl = (Math.random()*2-1) * .30;                 /* its own sideways plane, so a tuft is not a shuttlecock */
     const droop= .30 + Math.random()*.30;                   /* how hard it lies over at the tip */
@@ -5016,6 +5042,7 @@ function terrainMesh(POLY, key, maxR, P){
   for(const p of inner){ minX=Math.min(minX,p[0]); maxX=Math.max(maxX,p[0]); minZ=Math.min(minZ,p[1]); maxZ=Math.max(maxZ,p[1]); }
   const RES = 132, pos=[], col=[], idx=[];
   const lo = new THREE.Color(P.grass), hi = new THREE.Color(P.grassDk), rock = new THREE.Color(P.stone), c = new THREE.Color();
+  if(GROUNDQ){ const w = new THREE.Color(0xFFFFFF); lo.lerp(w,.78); hi.lerp(w,.5); }   /* the photo carries the green; keep only the elevation shading */
   const T = TERRAIN[key], amp = T.amp;
   const ix = new Int32Array(RES*RES).fill(-1);
   let n = 0;
@@ -5039,7 +5066,12 @@ function terrainMesh(POLY, key, maxR, P){
   g.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute("color", new THREE.Float32BufferAttribute(col,3));
   g.setIndex(idx); g.computeVertexNormals();
-  const m = new THREE.Mesh(g, withMacro(toon(0xFFFFFF, {vertexColors:true, map:TEX.meadow, roughness:1, envMapIntensity:.16})));
+  if(GROUNDQ){                                   /* same (x, -z) mapping the flat slab gets from ExtrudeGeometry */
+    const P3 = pos, uv = new Float32Array(P3.length/3*2);
+    for(let k=0;k<P3.length/3;k++){ uv[k*2] = P3[k*3]; uv[k*2+1] = -P3[k*3+2]; }
+    g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  }
+  const m = new THREE.Mesh(g, withMacro(meadowMat(0xFFFFFF, {vertexColors:true})));
   m.receiveShadow = true; m.castShadow = true; m.userData.dyn = 1;   /* never batched: it is already one mesh */
   return m;
 }
@@ -5490,7 +5522,7 @@ function buildIslandBody(cfg){
        Anything that changes SEA_Y or seaBed's -7 must keep these deeper than both. */
     const SLAB_BOTTOM = -10;
     scene.add(GROUND(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16}))));   /* the beach, a hair below the meadow */
-    scene.add(GROUND(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   withMacro(toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16}))))); /* top face at y=0 = the walkable height */
+    scene.add(GROUND(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   withMacro(meadowMat(P.grass))))); /* top face at y=0 = the walkable height */
     { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }
     /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
        down through the shallows shows real ground under her feet instead of a blue plane on nothing */
@@ -5507,7 +5539,7 @@ function buildIslandBody(cfg){
        above the seabed at -7. Keep the top faces exactly where they were and drop the bottoms. */
     const sand = new THREE.Mesh(new THREE.CylinderGeometry(l.r+5, l.r, 10, 48), toon(P.sand, {map:TEX.sand}));
     sand.position.set(l.x,-5.12,l.z); GROUND(sand); scene.add(sand);
-    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 10, 48), withMacro(toon(P.grass, {map:TEX.meadow, roughness:1, envMapIntensity:.16})));
+    const grass = new THREE.Mesh(new THREE.CylinderGeometry(l.r-1, l.r-3, 10, 48), withMacro(meadowMat(P.grass)));
     grass.position.set(l.x,-5,l.z); GROUND(grass); scene.add(grass);
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
@@ -6332,7 +6364,7 @@ function buildIslandBody(cfg){
   I.fx = {
     foam:I.foam, wet:I.wetBand,
     waders: POLY ? shoreBirds(scene, POLY, cfg, height, shoreOut, cfg.key === "sanity" ? 4 : 7, cfg.key === "sanity" ? 0x9AA0B4 : 0xE2D8C6) : [],
-    grass: grassField(scene, GRASS_N, cfg.spawn, height, cfg.grassCols, noGrass),
+    grass: grassField(scene, GRASS_N, cfg.spawn, height, GROUNDQ ? cfg.grassCols.map(h => new THREE.Color(h).lerp(new THREE.Color(0x86C443), .80).getHex()) : cfg.grassCols, noGrass),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),
