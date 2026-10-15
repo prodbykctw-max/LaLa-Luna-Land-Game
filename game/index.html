@@ -405,8 +405,9 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
+const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* opt-in REANIMAL-style night look, Sanity only */
 /* ---- art direction ----
@@ -1281,12 +1282,20 @@ function moonPair(pos, r){
                      melts into the horizon the way the land does.
    Vertex displacement and the uMask interface are untouched, so floating props and splashes still
    sit on the surface. */
+/* The swash clock, shared by the beach sheet (swashSheet) and the sea's surf foam, so a bore breaking
+   in the shallows is the same wave that then runs up the sand there. Needs h21/vn defined first. */
+const SWASH_CLOCK = `
+  float swFbm(vec2 p){ return vn(p)*.55 + vn(p*2.07+3.1)*.30 + vn(p*4.13-1.7)*.15; }
+  float swH(float x){ return fract(sin(x*91.345)*47453.1); }
+  vec2 swClock(vec2 xz, float t){ float ph = swFbm(xz*.011)*2.8 + swFbm(xz*.0035 + 7.0)*1.6; float w = t/7.6 + ph; return vec2(floor(w), fract(w)); }
+`;
 const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
   uniform vec3 uLight, uTop, uMid, uBot, uFogCol; uniform float uFogD, uNight;
   varying float vW; varying vec2 vP; varying vec3 vV; varying float vSh;
   float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
   float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
     return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x), mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x), f.y); }
+  ${SWASH_CLOCK}
   vec3 skyAt(vec3 d){ float h=d.y*.5+.5; vec3 c=mix(uBot,uMid,smoothstep(.49,.60,h)); return mix(c,uTop,smoothstep(.62,.90,h)); }
   vec2 wave(vec2 p, vec2 d, float k, float A, float tt){ return d*(A*k*cos(k*dot(p,d) + sqrt(9.8*k)*.55*tt)); }
   void main(){
@@ -1325,7 +1334,11 @@ const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
     float surf = smoothstep(.34, .02, vSh);
     float fn = vn(p*.9 + vec2(t*.30,t*.20))*.55 + vn(p*2.3 - vec2(t*.35,0.))*.45;
     float run = sin(vP.x*.085 + vP.y*.11 - t*1.25)*.5 + .5;
-    float foam = smoothstep(.40, .72, fn + surf*.60*(.45+run)) * surf;
+    /* the surf breaks on the swash clock: each stretch of shore foams up as its next wave rolls in and
+       goes quiet while that wave is up the beach, so the shoreline never pulses all at once */
+    float swt = swClock(p, t).y;
+    float surge = clamp(smoothstep(.62, .92, swt) + 1.0 - smoothstep(.0, .30, swt), 0.0, 1.0);
+    float foam = smoothstep(.40, .72, fn + surf*.60*(.45+run*.4)*(.35 + surge)) * surf * mix(.30, 1.15, surge);
     float crest = smoothstep(.62, .98, vW) * smoothstep(.50, .78, fn) * .55;
     vec3 foamCol = mix(b, vec3(1.0), .78) * mix(1.0, .82, uNight);
     float fm = clamp(foam*.95 + crest, 0., 1.);
@@ -2916,6 +2929,117 @@ function shoreFoam(scene, POLY){
       }`,
     transparent:true, depthWrite:false, side:THREE.DoubleSide, fog:true});
   const m = new THREE.Mesh(g, mat); m.position.y = -.06; m.renderOrder = 2; scene.add(m); return m;
+}
+/* ===================  SWASH  ===================
+   His note, 2026-10-15: "water never comes up evenly like that... the ocean is a whole bunch of
+   different currents" - the reference is REANIMAL's beach run, the foam coming up the sand. The old
+   band was sine stripes sliding across a flat sheet at one height, so the whole coast breathed in
+   step. Real swash has four things that sheet did not:
+     - every stretch of shore is on its own clock: waves arrive obliquely and in sets, so one cove is
+       running up while the next is draining (phase from a slow world-space noise, no seam anywhere);
+     - every wave runs up a different distance, and the reach varies along the shore in tongues and
+       cusps a few metres wide (reach from noise keyed to the wave index, plus a big one every few);
+     - the uprush is fast and the backwash slow: a turbulent foam front shoots up, stops, and the
+       sheet drains back leaving a thin lace of foam and a fading swash mark at the high point;
+     - the sand it covered stays dark and glossy for a while after.
+   The sheet lies ON the beach (rings at fixed offsets from the coast, each at shelfGround), from the
+   meadow edge to under the water; seaward of the waterline the sea surface covers it by depth, so
+   the surf foam simply disappears under the water instead of floating on top of it. */
+function shelfStrip(POLY, P, night){
+  const OFFS = [6,7,8,9,10,11,12,13,14,15,17,19.5,22.5,26,30];
+  const rings = OFFS.map(d => polyOffset(POLY, d)), n = POLY.length, R = rings.length;
+  const sand = new THREE.Color(P.sand).multiplyScalar(night ? .40 : .70), deep = new THREE.Color(P.water).multiplyScalar(.45), c = new THREE.Color();
+  const pos = [], uv = [], col = [], idx = [];
+  for(let r=0;r<R;r++) for(let i=0;i<n;i++){
+    const d = OFFS[r], x = rings[r][i][0], z = rings[r][i][1];
+    let y = d <= 15 ? shelfGround(d) : shelfGround(15) + (-6.6 - shelfGround(15)) * Math.pow((d - 15)/15, 1.3);
+    if(d > 10) y += (Math.sin(x*.09 + z*.05) * .5 + Math.sin(x*.031 - z*.077) * .5) * .45 * Math.min(1, (d - 10)/5);   /* sandbars */
+    y -= .01;
+    const k = Math.min(1, Math.max(0, (-.12 - y) / 6.5));
+    c.copy(sand).lerp(deep, Math.pow(k, .8));
+    pos.push(x, y, z); uv.push(x, -z); col.push(c.r, c.g, c.b);
+  }
+  for(let r=0;r<R-1;r++) for(let i=0;i<n;i++){ const j=(i+1)%n, a=r*n+i, b=(r+1)*n+i, cc=r*n+j, d=(r+1)*n+j; idx.push(a,cc,b, b,cc,d); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  { const nr = g.attributes.normal; let up = 0; for(let i=0;i<nr.count;i++) up += nr.getY(i);
+    if(up < 0){ const a = g.index.array; for(let i=0;i<a.length;i+=3){ const t = a[i+1]; a[i+1] = a[i+2]; a[i+2] = t; } g.computeVertexNormals(); } }
+  return g;
+}
+function swashSheet(scene, POLY, P, night){
+  const OFFS = []; for(let d = 1.5; d <= 12.01; d += .5) OFFS.push(d);
+  const rings = OFFS.map(d => polyOffset(POLY, d)), n = POLY.length, R = rings.length;
+  const pos = [], aD = [], idx = [];
+  for(let r=0;r<R;r++) for(let i=0;i<n;i++){ pos.push(rings[r][i][0], shelfGround(OFFS[r]) + .025, rings[r][i][1]); aD.push(OFFS[r]); }
+  for(let r=0;r<R-1;r++) for(let i=0;i<n;i++){ const j=(i+1)%n, a=r*n+i, b=(r+1)*n+i, c=r*n+j, d=(r+1)*n+j; idx.push(a,c,b, b,c,d); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("aD", new THREE.Float32BufferAttribute(aD, 1));
+  g.setIndex(idx); g.computeVertexNormals();
+  { const nr = g.attributes.normal; let up = 0; for(let i=0;i<nr.count;i++) up += nr.getY(i);
+    if(up < 0){ const a = g.index.array; for(let i=0;i<a.length;i+=3){ const t = a[i+1]; a[i+1] = a[i+2]; a[i+2] = t; } } }
+  const WL = 9.0;   /* where the still sea meets the shelf: shelfGround(d) = SEA_Y */
+  const sheetCol = new THREE.Color(P.waterHi).lerp(new THREE.Color(0xFFFFFF), .35);
+  const wetCol = new THREE.Color(P.sand).multiplyScalar(.32);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {t:{value:0}, uOp:{value:1}, uWL:{value:WL},
+      uLum:{value: night ? .46 : 1.0}, uSheet:{value:sheetCol}, uWet:{value:wetCol}}]),
+    vertexShader:`attribute float aD; varying float vD; varying vec2 vXZ;
+      #include <fog_pars_vertex>
+      void main(){ vD = aD; vec4 wp = modelMatrix*vec4(position,1.0); vXZ = wp.xz;
+        vec4 mvPosition = viewMatrix*wp; gl_Position = projectionMatrix*mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader:`uniform float t, uOp, uWL, uLum; uniform vec3 uSheet, uWet; varying float vD; varying vec2 vXZ;
+      #include <fog_pars_fragment>
+      float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+      float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+        return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x), mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x), f.y); }
+      ${SWASH_CLOCK}
+      void main(){
+        float x = uWL - vD;                                   /* how far up the beach from the still waterline */
+        vec2 ck = swClock(vXZ, t); float n = ck.x, tau = ck.y; /* this stretch of shore's own clock */
+        /* this wave's reach, here: tongues along the shore, sets, and a big one every few */
+        float set = swH(n*1.37 + 4.1);
+        float A = mix(.15, 1.0, swFbm(vXZ*.055 + vec2(n*3.7, n*1.3))) * (.60 + .55*set) + step(.80, set)*.40;
+        float wig = (swFbm(vXZ*.33 + vec2(n*5.1, n*2.3)) - .5) * 1.8;   /* the scalloped edge of the tongue */
+        float Rw = max(.5, 1.2 + 5.8*A + wig);
+        const float UP = .27;
+        float f = tau < UP ? Rw * (1.0 - pow(1.0 - tau/UP, 2.4))
+                           : Rw * (1.0 - smoothstep(UP, .97, tau));
+        float cov = 1.0 - smoothstep(f - .22, f + .06, x);    /* under the moving sheet */
+        float sUp = 1.0 - smoothstep(UP - .02, UP + .30, tau);  /* the turbulent front, while it is still running */
+        float churn = swFbm(vXZ*2.4 + vec2(t*.21, -t*.13));
+        float churn2 = swFbm(vXZ*5.3 - vec2(t*.33, t*.17));
+        /* foam: a thick churned front, a lace that thins behind it and drains, a line left at the high point */
+        float front = exp(-max(0.0, f - x)*.85) * cov * sUp * smoothstep(.14, .46, churn*.7 + churn2*.3 + .24);
+        float lv = swFbm(vXZ*.95 + vec2(n*11.0, 0.0) + vec2(0.0, (tau < UP ? -1.0 : .4)*f*.35));
+        float lace = (1.0 - smoothstep(.02, .085, abs(lv - .5))) * cov * mix(.95, .30, tau);
+        float bub = smoothstep(.62, .80, churn2) * cov * (.25 + .55*sUp);              /* loose bubbles in the sheet */
+        float mark = (1.0 - smoothstep(.05, .38, abs(x - Rw))) * smoothstep(UP - .04, UP + .06, tau) * (1.0 - smoothstep(.50, 1.0, tau))
+                   * smoothstep(.28, .58, swFbm(vXZ*1.7 + n));
+        /* the next wave as a bore rolling in over the shallows before it runs up */
+        float xb = mix(-3.6, 0.0, smoothstep(.80, 1.0, tau));
+        float bore = exp(-abs(x - xb)*1.8) * smoothstep(.80, .86, tau) * smoothstep(.15, .50, churn + .15);
+        float foam = clamp(max(max(front, max(lace*.80, bub*.6)), max(mark*.75, bore*.9)), 0.0, 1.0);
+        /* the thin sheet itself: clearest where it is thick, almost nothing at the running edge */
+        float sheet = cov * (.26 + .30*smoothstep(0.0, 1.8, f - x)) * smoothstep(-1.2, .4, x);
+        /* sand it has wetted: dark and glossy inside this wave's reach, drying slowly above it */
+        float wet = (1.0 - smoothstep(Rw - .25, Rw + .6, x)) * .40 + (1.0 - smoothstep(0.0, 7.0, x)) * .12;
+        wet *= smoothstep(-.6, .6, x);
+        float edge = smoothstep(1.5, 2.6, vD) * (1.0 - smoothstep(10.8, 12.0, vD));
+        vec3 col = uWet; float a = wet;
+        col = mix(col, uSheet*uLum, sheet / max(.001, a + sheet*(1.0-a))); a = a + sheet*(1.0-a);
+        float fa = min(.90, foam);
+        col = mix(col, vec3(.95,.97,1.0)*uLum, fa / max(.001, a + fa*(1.0-a))); a = a + fa*(1.0-a);
+        gl_FragColor = vec4(col, a * edge * uOp);
+        #include <fog_fragment>
+      }`,
+    transparent:true, depthWrite:false, fog:true, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-4});
+  const m = new THREE.Mesh(g, mat); m.renderOrder = 2; scene.add(m); return m;
 }
 /* Splashes and rings. A pool of ring meshes that ride the actual wave height as they spread and fade,
    and one Points cloud of droplets thrown up with real gravity that die when they fall back through the
@@ -5530,14 +5654,21 @@ function buildIslandBody(cfg){
     { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }
     /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
        down through the shallows shows real ground under her feet instead of a blue plane on nothing */
-    const shelf = new THREE.Mesh(ringBand(polyOffset(POLY, SHELF_FLAT), polyOffset(POLY, 15), shelfGround(SHELF_FLAT) - .01, shelfGround(15) - .01),
+    /* With the new swash the shelf's outer edge became the most obvious straight line on the coast: the
+       light sand stopped dead at offset 15 and the dark seabed began, and through the shallows that read
+       as a ruled line drawn along the whole shore. Now (default; ?swash=old keeps the old band) it runs
+       on out to 30 u, falling away towards the seabed and darkening with depth, with low sandbars in it,
+       so the shallows fade into deep water instead of stepping. */
+    const shelf = SWASHQ ? new THREE.Mesh(shelfStrip(POLY, P, isNight), toon(0xFFFFFF, {vertexColors:true, map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}))
+                         : new THREE.Mesh(ringBand(polyOffset(POLY, SHELF_FLAT), polyOffset(POLY, 15), shelfGround(SHELF_FLAT) - .01, shelfGround(15) - .01),
                                  toon(new THREE.Color(P.sand).multiplyScalar(.70), {map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}));
     shelf.receiveShadow = true; GROUND(shelf); scene.add(shelf);
     /* the wet line: a dark, breathing strip of sand where the swash reaches */
-    I.wetBand = new THREE.Mesh(ringBand(polyOffset(POLY, 2.6), polyOffset(POLY, 6.3), -.085, -.085),
+    if(SWASHQ) I.foam.push(swashSheet(scene, POLY, P, isNight));
+    else { I.wetBand = new THREE.Mesh(ringBand(polyOffset(POLY, 2.6), polyOffset(POLY, 6.3), -.085, -.085),
                                new THREE.MeshBasicMaterial({color:0x1E2C3A, transparent:true, opacity:.18, depthWrite:false}));
     I.wetBand.renderOrder = 1; GROUND(I.wetBand); scene.add(I.wetBand);
-    I.foam.push(shoreFoam(scene, POLY));
+    I.foam.push(shoreFoam(scene, POLY)); }
   } else cfg.lobes.forEach(l => {
     /* same floating-slab fix for the legacy circular islands: 3 and 3.2 tall left their undersides
        above the seabed at -7. Keep the top faces exactly where they were and drop the bottoms. */
