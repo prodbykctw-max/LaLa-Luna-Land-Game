@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15h";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
@@ -1014,8 +1014,8 @@ const PHOTO = !GROUNDQ ? null : (() => {
      - photo bark (Poly Haven bark_brown_02, CC0) on the bent trunk, and branches up into the crown;
      - the whole island's trees are TWO draw calls (one merged trunk mesh, one merged leaf mesh), and
        the leaves sway in the wind on the GPU.
-   Palms keep the old fronds for now. Old trees stay the default until he picks. */
-const TREESQ = QS.get("trees") === "real";
+   Palms keep the old fronds for now. */
+const TREESQ = QS.get("trees") !== "old";   /* default since 2026-10-15 (his pick); ?trees=old restores the sphere trees */
 const LEAF_CARDS = (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? 60 : 96;
 const TREE_TEX = !TREESQ ? null : (() => {
   const L = new THREE.TextureLoader();
@@ -1024,7 +1024,7 @@ const TREE_TEX = !TREESQ ? null : (() => {
   return {leaf: mk("assets/trees/foliage_diff.jpg", true, false), leafA: mk("assets/trees/foliage_alpha.jpg", false, false),
           bark: mk("assets/trees/bark_diff.jpg", true, true), barkN: mk("assets/trees/bark_nor.jpg", false, true)};
 })();
-function forestBuilder(P){
+function forestBuilder(P, night){
   const mk = () => ({pos:[], nor:[], uv:[], sw:[], col:[], idx:[]});
   const TR = mk(), LF = mk();
   const v = new THREE.Vector3(), n = new THREE.Vector3(), NM = new THREE.Matrix3();
@@ -1131,6 +1131,7 @@ function forestBuilder(P){
       const lm = new THREE.MeshStandardMaterial({map:TREE_TEX.leaf, alphaMap:TREE_TEX.leafA, alphaTest:.42, side:THREE.DoubleSide,
         vertexColors:true, roughness:.78, metalness:0, envMapIntensity:.38});
       lm.color.setRGB(.90, .96, .84);
+      if(night) lm.color.setRGB(.34, .40, .46);     /* moonlit: the leaves sit in the island's dark palette instead of glowing */
       const swayV = `#include <begin_vertex>
         { float ph = position.x*.21 + position.z*.17;
           float gust = sin(uTime*.9 + ph*.4)*.5 + .5;
@@ -1145,7 +1146,7 @@ function forestBuilder(P){
         sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>",
           "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;")
           /* light through the leaves: the shadow side of a crown is never black, it glows faintly green */
-          .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05);");
+          .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05) * " + (night ? ".25" : "1.0") + ";");
       };
       lm.customProgramCacheKey = () => "realleaf";
       const mesh = new THREE.Mesh(geoOf(LF), lm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1;
@@ -6059,7 +6060,7 @@ function buildIslandBody(cfg){
     [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]].forEach(([x,y,z,r],i) => {
       const b = inked(new THREE.SphereGeometry(r*sc,8,6), i%2?P.leaf2:P.leaf, 1.5); b.scale.y = .62; b.position.set(x*sc,y*sc,z*sc); g.add(b); });
     return g; };
-  const FOREST = TREESQ ? forestBuilder(P) : null;
+  const FOREST = TREESQ ? forestBuilder(P, cfg.key === "sanity") : null;
   /* the camera arm still needs to know where crowns are: an invisible marker per real crown */
   const crownMarker = (x, y, z, r) => { const mk = new THREE.Mesh(new THREE.SphereGeometry(r, 6, 4), new THREE.MeshBasicMaterial()); mk.visible = false; mk.position.set(x, y, z); scene.add(mk); canopies.push(mk); };
   /* groves: most trees cluster round a handful of centres, the rest are loners */
