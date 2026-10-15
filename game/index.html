@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* opt-in REANIMAL-style night look, Sanity only */
@@ -987,13 +987,13 @@ function beddedRock(){
   return t;
 }
 const TEX = {meadow: grassGround(), sand: sandGround(), rock: mottle(9, 70, 1.6), macro: macroNoise(), bed: beddedRock()};
-/* ?ground=real — the meadow as a photograph. The procedural canvas above tiles ~120 times per world
+/* The meadow as a photograph (was opt-in ?ground=real; now the default). The procedural canvas above tiles ~120 times per world
    unit (ExtrudeGeometry's uv IS world units), so it was always sub-pixel: the ground was a flat tint
    with a macro wash on it, which is most of why the island read as a cartoon. This swaps in a
    photo-scanned, tileable grass albedo + normal map (Poly Haven "leafy_grass", CC0, regraded greener)
    sized by ?gscale= (world units per tile, default 5). Colour is carried by the photo, so the cel
    tint P.grass is not multiplied over it. */
-const GROUNDQ = QS.get("ground") === "real";
+const GROUNDQ = QS.get("ground") !== "old";   /* default since 2026-10-15 (his pick); ?ground=old restores the painted meadow */
 const GSCALE = Math.max(.5, parseFloat(QS.get("gscale")) || 5);
 const PHOTO = !GROUNDQ ? null : (() => {
   const L = new THREE.TextureLoader();
@@ -1002,12 +1002,15 @@ const PHOTO = !GROUNDQ ? null : (() => {
   return {diff: mk("assets/ground/meadow_diff.jpg", true), nor: mk("assets/ground/meadow_nor.jpg", false)};
 })();
 /* one place that builds a meadow surface, old or photographic */
+/* how much of the island's own grass tint survives over the photo: a little by day (keeps the palette),
+   most of it at night, or Sanity's moonlit meadow comes out daylight-green */
+let MEADOW_KEEP = .78;
 function meadowMat(col, extra){
   if(!GROUNDQ){
     const m = toon(col, Object.assign({map:TEX.meadow, roughness:1, envMapIntensity:.16}, extra||{}));
     return m;
   }
-  const c = new THREE.Color(col).lerp(new THREE.Color(0xFFFFFF), .78);     /* just enough island tint to stay in-palette */
+  const c = new THREE.Color(col).lerp(new THREE.Color(0xFFFFFF), MEADOW_KEEP);     /* just enough island tint to stay in-palette */
   const m = toon(c, Object.assign({map:PHOTO.diff, normalMap:PHOTO.nor, roughness:.96, envMapIntensity:.22}, extra||{}));
   if(m.normalScale) m.normalScale.set(.9, .9);
   m.userData.macroDiv = 1 / GSCALE * 28 / MACRO_TILES;     /* macro wash: one tile per ~28 world units */
@@ -5042,7 +5045,7 @@ function terrainMesh(POLY, key, maxR, P){
   for(const p of inner){ minX=Math.min(minX,p[0]); maxX=Math.max(maxX,p[0]); minZ=Math.min(minZ,p[1]); maxZ=Math.max(maxZ,p[1]); }
   const RES = 132, pos=[], col=[], idx=[];
   const lo = new THREE.Color(P.grass), hi = new THREE.Color(P.grassDk), rock = new THREE.Color(P.stone), c = new THREE.Color();
-  if(GROUNDQ){ const w = new THREE.Color(0xFFFFFF); lo.lerp(w,.78); hi.lerp(w,.5); }   /* the photo carries the green; keep only the elevation shading */
+  if(GROUNDQ){ const w = new THREE.Color(0xFFFFFF); lo.lerp(w, MEADOW_KEEP); hi.lerp(w, MEADOW_KEEP*.64); }   /* the photo carries the green; keep only the elevation shading */
   const T = TERRAIN[key], amp = T.amp;
   const ix = new Int32Array(RES*RES).fill(-1);
   let n = 0;
@@ -5224,6 +5227,7 @@ function buildIslandBody(cfg){
      (PS), a low raking moon key, almost no fill, a cool rim to keep silhouettes, heavier fog, and a
      grade that crushes and tints the darks. Everything else about the island is untouched. */
   const DARK = DARKQ && cfg.key === "sanity";
+  MEADOW_KEEP = cfg.key === "sanity" ? .18 : .78;
   const PS = DARK ? Object.assign({}, P, { skyTop:0x03050E, skyMid:0x0C1530, skyBot:0x1A2A52, fog:0x0B1530, grassDk:0x0A1420 }) : P;
   const fogCol = new THREE.Color(PS.fog).lerp(new THREE.Color(PS.skyBot), AERIAL);
   /* ===================  THERE WAS NO AIR IN THE FIRST 212 UNITS  ===================
@@ -5550,7 +5554,17 @@ function buildIslandBody(cfg){
       const pts = [new THREE.Vector2(f.r+.6, -.6)];
       for(let k=28;k>=0;k--){ const d = f.r*(k/28); pts.push(new THREE.Vector2(Math.max(d, .001), height(f.x + d, f.z) - .05)); }
       const lg2 = new THREE.LatheGeometry(pts, 48);
-      const m = new THREE.Mesh(lg2, f.crater ? canyonMaterial(P) : toon(P.grassDk, {side:THREE.DoubleSide, map:TEX.meadow}));
+      /* ?ground=real: same overlap as the mesa below - the lathe and the terrain mesh are both sampled
+         from the ground, so the hill takes the photo meadow on the terrain's world-planar uv */
+      const photoHill = GROUNDQ && !f.crater;
+      if(photoHill){
+        const LP = lg2.attributes.position, luv = lg2.attributes.uv;
+        for(let k=0;k<LP.count;k++) luv.setXY(k, f.x + LP.getX(k), -(f.z + LP.getZ(k)));
+        luv.needsUpdate = true;
+      }
+      const m = new THREE.Mesh(lg2, f.crater ? canyonMaterial(P)
+              : photoHill ? withMacro(meadowMat(P.grass, {side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2}))
+              : toon(P.grassDk, {side:THREE.DoubleSide, map:TEX.meadow}));
       if(f.crater) canyonStripes(lg2, f.h);
       m.position.set(f.x, 0, f.z); m.userData.ground = true; scene.add(m);   /* a hill IS the ground */
       if(f.crater){
@@ -5599,7 +5613,16 @@ function buildIslandBody(cfg){
          the rim - including across the bays - instead of following the mesh and shearing. */
       const TU = 13, TV = 18;                            /* world units per texture tile (it is drawn 1:2) */
       const stoneOnly = f.name === "The Square" || f.outer;
-      const capC  = new THREE.Color().setHex(stoneOnly ? P.stone : P.grassDk);
+      /* ?ground=real: a grass mesa is the SAME ground as the terrain mesh it sits in, and the two overlap
+         wherever height() and terrainAt() agree. With the old shared mint tint that overlap was invisible;
+         once the terrain became a photograph, every overlap showed the mesa's old flat colour through it
+         in teal islands and z-fight stripes (the hub's castle hill, 2026-10-15 phone screenshot). So a grass
+         mesa now takes the photo meadow, on the exact world-planar uv the terrain uses, with the terrain's
+         own tint - where they overlap they now draw the same pixels - and a polygon offset so the overlap
+         resolves to one surface instead of flickering between two. */
+      const photoMesa = GROUNDQ && !f.ink && !stoneOnly;
+      const capC  = new THREE.Color().setHex(stoneOnly ? P.stone : (photoMesa ? P.grass : P.grassDk));
+      if(photoMesa) capC.lerp(new THREE.Color(0xFFFFFF), MEADOW_KEEP);
       const rockC = new THREE.Color().setHex(P.stone);
       const scree = rockC.clone().lerp(capC, .45);       /* the talus is broken rock with weeds in it */
       /* A cliff is not one colour. Beds laid down in different conditions weather to different
@@ -5629,7 +5652,8 @@ function buildIslandBody(cfg){
           /* break the boundary so it is not a clean contour line */
           const n = Math.sin(a*7.3 + rr*0.21) * .5 + Math.sin(a*3.1 - rr*0.37) * .5;
           const st = Math.max(0, Math.min(1, (slope - .50 + n*.16) / .80));
-          uv.push(a * f.r / TU, (acc[si]*(1 - st) + y*st) / TV);
+          if(photoMesa) uv.push(f.x + lx, -(f.z + lz));
+          else uv.push(a * f.r / TU, (acc[si]*(1 - st) + y*st) / TV);
           vc.copy(capC).lerp(scree, Math.min(1, st*2)).lerp(rockC, Math.max(0, st*2-1));
           /* SEDIMENTARY BANDING. A cliff of one flat colour reads as a sand dune, which is what the
              first pass of this looked like. Real strata are horizontal beds, so the band index is
@@ -5658,7 +5682,9 @@ function buildIslandBody(cfg){
       mg.computeVertexNormals();
       const mex = {map: f.ink ? TEX.bed : (stoneOnly ? TEX.rock : TEX.meadow),
                    side:THREE.DoubleSide, roughness:1, vertexColors:true};
-      const m = f.ink ? inked(mg, 0xffffff, 2.0, mex) : new THREE.Mesh(mg, toon(0xffffff, mex));
+      const m = f.ink ? inked(mg, 0xffffff, 2.0, mex)
+              : photoMesa ? new THREE.Mesh(mg, withMacro(meadowMat(0xFFFFFF, {side:THREE.DoubleSide, vertexColors:true, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2})))
+              : new THREE.Mesh(mg, toon(0xffffff, mex));
       m.position.set(f.x, 0, f.z); m.traverse(k => k.userData.ground = true); scene.add(m);   /* a mesa IS the ground */
     }
   });
@@ -6364,7 +6390,7 @@ function buildIslandBody(cfg){
   I.fx = {
     foam:I.foam, wet:I.wetBand,
     waders: POLY ? shoreBirds(scene, POLY, cfg, height, shoreOut, cfg.key === "sanity" ? 4 : 7, cfg.key === "sanity" ? 0x9AA0B4 : 0xE2D8C6) : [],
-    grass: grassField(scene, GRASS_N, cfg.spawn, height, GROUNDQ ? cfg.grassCols.map(h => new THREE.Color(h).lerp(new THREE.Color(0x86C443), .80).getHex()) : cfg.grassCols, noGrass),
+    grass: grassField(scene, GRASS_N, cfg.spawn, height, GROUNDQ ? cfg.grassCols.map(h => new THREE.Color(h).lerp(new THREE.Color(0x86C443), cfg.key === "sanity" ? .55 : .80).getHex()) : cfg.grassCols, noGrass),
     canopies:I.canopies, bushes:I.bushes,
     bf: cfg.bf ? butterflies(scene, cfg.bf.n, height, cfg.bf.cols) : null,
     birds: birdFlock(scene, cfg.birds, cfg.key==="sanity" ? 0x0B0E24 : 0x2E2838),

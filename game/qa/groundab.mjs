@@ -2,7 +2,7 @@
 import { open, argIslands, out } from './_harness.mjs';
 const shots = {}; const errs = {};
 for (const isl of argIslands(['green'])) {
-  for (const [tag, q] of [['old','guide=off'], ['new','guide=off&ground=real']]) {
+  for (const [tag, q] of [['old','guide=off&ground=old'], ['new','guide=off']]) {
     const H = await open({ island: isl, query: q, wait: 26000 });
     await H.page.evaluate(() => {
       const T = window.__T, I = T.CUR, W = I.W;
