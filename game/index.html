@@ -405,8 +405,9 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
+const WATERQ = QS.get("water") === "real";   /* opt-in physically-shaded sea (islands) */
 const DARKQ = QS.get("dark") === "1";   /* opt-in REANIMAL-style night look, Sanity only */
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1236,13 +1237,84 @@ function moonPair(pos, r){
     new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.13, side:THREE.DoubleSide}));
   g.add(h); g.position.copy(pos); g.userData.halo = h; return g;
 }
-function seaMesh(a, b){
+
+/* ===================  THE SEA, AS WATER  (?water=real)  ===================
+   The shipped sea is a colour ramp with sine glints: it has no normals, so it cannot reflect anything,
+   and it is a flat sheet of alpha, so it cannot be seen through. That is why it reads as a painted
+   plane. Real water is three things at once and this shader does all three, in one pass:
+     1 reflection  - per-pixel normals from a sum of travelling waves; the reflected ray samples the
+                     island's OWN sky gradient, weighted by Fresnel, so it is a mirror at a grazing angle
+                     and clear looking down. The moon/sun adds a sharp glitter path from fine ripples.
+     2 body        - shallow water is the light tint and nearly transparent (you see the shelf, with
+                     caustics dancing on it); deep water is the dark tint and opaque. The existing shore
+                     mask is the depth.
+     3 air         - exponential fog applied here (a ShaderMaterial gets none for free), so the far sea
+                     melts into the horizon the way the land does.
+   Vertex displacement and the uMask interface are untouched, so floating props and splashes still
+   sit on the surface. */
+const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
+  uniform vec3 uLight, uTop, uMid, uBot, uFogCol; uniform float uFogD, uNight;
+  varying float vW; varying vec2 vP; varying vec3 vV; varying float vSh;
+  float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+  float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+    return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x), mix(h21(i+vec2(0.,1.)),h21(i+vec2(1.,1.)),f.x), f.y); }
+  vec3 skyAt(vec3 d){ float h=d.y*.5+.5; vec3 c=mix(uBot,uMid,smoothstep(.49,.60,h)); return mix(c,uTop,smoothstep(.62,.90,h)); }
+  vec2 wave(vec2 p, vec2 d, float k, float A, float tt){ return d*(A*k*cos(k*dot(p,d) + sqrt(9.8*k)*.55*tt)); }
+  void main(){
+    vec3 V = normalize(vV); float dist = length(vV);
+    vec2 p = vec2(vP.x, -vP.y);                              /* world x,z */
+    float fade = 1.0 - smoothstep(55., 300., dist);          /* fine detail dies with distance, no shimmer */
+    vec2 g = wave(p, normalize(vec2(.8,.6)),  .09, 1.00, t) + wave(p, normalize(vec2(-.5,.85)), .17, .60, t)
+           + wave(p, normalize(vec2(.95,-.3)), .31, .38, t) + wave(p, normalize(vec2(-.2,-.98)), .62, .22, t);
+    vec2 gd = (wave(p, normalize(vec2(.6,.8)), 1.7, .10, t) + wave(p, normalize(vec2(-.9,.4)), 2.9, .07, t)
+             + wave(p, normalize(vec2(.3,-.95)), 4.6, .05, t)) * fade;
+    float S = mix(.70, .26, smoothstep(30., 420., dist));
+    vec3 N  = normalize(vec3(-g.x*S, 1.0, -g.y*S));
+    vec3 Nd = normalize(vec3(-(g.x*S+gd.x*1.6), 1.0, -(g.y*S+gd.y*1.6)));
+    vec3 R = reflect(-V, N); R.y = abs(R.y);
+    float cosT = clamp(dot(normalize(mix(vec3(0.,1.,0.), N, .5)), V), 0.0, 1.0);   /* Fresnel from a calmer normal: no net of bright/dark cells */
+    float F = .03 + .97*pow(1.0-cosT, 5.0);
+    vec3 Rg = reflect(-V, vec3(0.,1.,0.));
+    vec3 refl = skyAt(normalize(mix(Rg, R, .45)));        /* the sky is smooth; ripples only nudge what it shows */
+    /* body: shallow = light tint, deep = dark tint; the shore mask is the depth */
+    float depthK = smoothstep(0.0, .85, vSh);
+    vec3 body = mix(b*1.12, a*.82, depthK);
+    body += b * .22 * pow(max(vW, 0.0), 2.0);                /* light through the thin part of a wave */
+    float c1 = vn(p*.95 + vec2(t*.24,-t*.17)), c2 = vn(p*1.45 - vec2(t*.19,t*.29));
+    float caus = pow(clamp(1.0 - abs(c1-c2)*2.2, 0., 1.), 6.0);
+    body += b * caus * (1.0-depthK) * .55 * fade;            /* caustics on the shelf */
+    vec3 L = normalize(uLight);
+    vec3 Rd = reflect(-V, Nd);
+    float glit = (pow(max(dot(Rd, L), 0.0), 380.0) * 6.0 + pow(max(dot(Rd, L), 0.0), 70.0) * .9) * fade;
+    float path = pow(max(dot(R, L), 0.0), 24.0) * .38;
+    vec3 c = mix(body, refl, F);
+    c += m * (glit + path) * (.55 + .45*uNight);
+    /* fine sparkle on the ripple tops, as in a clear stream: small, sharp, travelling, and gone with distance */
+    float spk = smoothstep(.90, .985, vn(p*4.2 + vec2(t*.65,t*.45))) * smoothstep(.55, .9, vn(p*.6 - vec2(t*.2,0.)));
+    c += m * spk * (.30 + .30*uNight) * fade * (.4 + F);
+    /* foam: where the shelf runs out, and on the steepest crests, broken up by noise so it is never a ring */
+    float surf = smoothstep(.34, .02, vSh);
+    float fn = vn(p*.9 + vec2(t*.30,t*.20))*.55 + vn(p*2.3 - vec2(t*.35,0.))*.45;
+    float run = sin(vP.x*.085 + vP.y*.11 - t*1.25)*.5 + .5;
+    float foam = smoothstep(.40, .72, fn + surf*.60*(.45+run)) * surf;
+    float crest = smoothstep(.62, .98, vW) * smoothstep(.50, .78, fn) * .55;
+    vec3 foamCol = mix(b, vec3(1.0), .78) * mix(1.0, .82, uNight);
+    float fm = clamp(foam*.95 + crest, 0., 1.);
+    c = mix(c, foamCol, fm);
+    float fogF = 1.0 - exp(-(uFogD*uFogD)*dist*dist);
+    c = mix(c, uFogCol, clamp(fogF, 0., 1.));
+    float al = mix(.30, .96, smoothstep(0.0, .75, vSh));
+    al = max(max(al, F + .12), fm);
+    gl_FragColor = vec4(c, clamp(al, 0., 1.)); }`;
+function seaMesh(a, b, real){
   const mat = new THREE.ShaderMaterial({
     /* vW is handed to the fragment NORMALISED (w/wv), so the colour mix, the crest highlight and
        the glint thresholds below keep the contrast they were tuned at while the actual displacement
        gets smaller. Scaling the wave must not flatten how the water LOOKS. */
     uniforms:{t:{value:0}, wv:{value:WAVE}, uMask:{value:null}, uMaskR:{value:1}, uHasMask:{value:0},
-              a:{value:new THREE.Color(a)}, b:{value:new THREE.Color(b)}, m:{value:new THREE.Color(MOON)}},
+              a:{value:new THREE.Color(a)}, b:{value:new THREE.Color(b)}, m:{value:new THREE.Color(MOON)},
+              uLight:{value:new THREE.Vector3(-25,40,15)}, uTop:{value:new THREE.Color(0x335577)}, uMid:{value:new THREE.Color(0x6688AA)},
+              uBot:{value:new THREE.Color(0x99BBCC)}, uFogCol:{value:new THREE.Color(0x99BBCC)}, uFogD:{value:.002}, uNight:{value:0}},
     /* ===============  THE SWASH ZONE WAS A COMB  ===============
        Scaling the wave stopped the sea being drawn on top of the LAND, but it left a narrower band
        of stripes over the wet shelf just outside the coastline, and that one is not a depth fight -
@@ -1268,7 +1340,7 @@ function seaMesh(a, b){
         vSh = sh;
         float w=(sin(p.x*.055+t*1.05)*.5+sin(p.y*.07-t*.8)*.4+sin((p.x+p.y)*.11+t*1.6)*.22)*wv*sh;
         p.z+=w; vW=w/max(.0001, wv*sh); vP=p.xy; vV = cameraPosition - (modelMatrix*vec4(p,1.0)).xyz; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
-    fragmentShader:`uniform vec3 a,b,m; uniform float t; varying float vW; varying vec2 vP; varying vec3 vV; varying float vSh;
+    fragmentShader: real ? REAL_SEA_FRAG : `uniform vec3 a,b,m; uniform float t; varying float vW; varying vec2 vP; varying vec3 vV; varying float vSh;
       void main(){ vec3 c=mix(a,b,smoothstep(-.2,.6,vW));
         float sp = sin(vP.x*1.9+t*2.3)*sin(vP.y*2.3-t*1.7)*sin(vP.x*.37-vP.y*.53+t*.7); sp = smoothstep(.72,1.0,sp);      /* glints */
         c=mix(c,m,step(.92,vW)*.35 + sp*.4);
@@ -5187,7 +5259,14 @@ function buildIslandBody(cfg){
      for the ground itself. Once the slabs were deepened to -10 the audit reported the island as the
      most buried object on the island. Mark it and skip it. */
   const GROUND = o => { if(o) o.userData.ground = true; return o; };
-  const sea = seaMesh(P.water, P.waterHi); sea.position.y = SEA_Y; GROUND(sea); scene.add(sea);
+  const sea = seaMesh(P.water, P.waterHi, WATERQ); sea.position.y = SEA_Y; GROUND(sea); scene.add(sea);
+  if(WATERQ){
+    const su = sea.userData.mat.uniforms;
+    /* the glitter path comes from the moon on the night island and from the key light by day */
+    if(isNight) su.uLight.value.set(...cfg.moon.pos); else su.uLight.value.set(-25, 40, 15);
+    su.uTop.value.set(PS.skyTop); su.uMid.value.set(PS.skyMid); su.uBot.value.set(PS.skyBot);
+    su.uFogCol.value.copy(fogCol); su.uFogD.value = (scene.fog && scene.fog.density) || .0016; su.uNight.value = isNight ? 1 : 0;
+  }
   scene.add(GROUND(seaBed(P.water)));
   /* stars scale with how dark the island's sky is — Sanity (the night song, full moon) gets a real
      field, the golden-hour islands a faint scatter. */
