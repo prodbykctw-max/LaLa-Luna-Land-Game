@@ -405,9 +405,9 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
-const WATERQ = QS.get("water") === "real";   /* opt-in physically-shaded sea (islands) */
+const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* opt-in REANIMAL-style night look, Sanity only */
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1238,7 +1238,7 @@ function moonPair(pos, r){
   g.add(h); g.position.copy(pos); g.userData.halo = h; return g;
 }
 
-/* ===================  THE SEA, AS WATER  (?water=real)  ===================
+/* ===================  THE SEA, AS WATER  (default; ?water=old restores the previous sea)  ===================
    The shipped sea is a colour ramp with sine glints: it has no normals, so it cannot reflect anything,
    and it is a flat sheet of alpha, so it cannot be seen through. That is why it reads as a painted
    plane. Real water is three things at once and this shader does all three, in one pass:
