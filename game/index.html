@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15j";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-15k";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1496,7 +1496,7 @@ const SWASH_CLOCK = `
   vec2 swClock(vec2 xz, float t){ float ph = swFbm(xz*.011)*2.8 + swFbm(xz*.0035 + 7.0)*1.6; float w = t/7.6 + ph; return vec2(floor(w), fract(w)); }
 `;
 const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
-  uniform vec3 uLight, uTop, uMid, uBot, uFogCol; uniform float uFogD, uNight;
+  uniform vec3 uLight, uTop, uMid, uBot, uFogCol; uniform float uFogD, uNight, uStreak;
   varying float vW; varying vec2 vP; varying vec3 vV; varying float vSh;
   float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
   float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -1546,6 +1546,16 @@ const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
     float surge = clamp(smoothstep(.62, .92, swt) + 1.0 - smoothstep(.0, .30, swt), 0.0, 1.0);
     float foam = smoothstep(.40, .72, fn + surf*.60*(.45+run*.4)*(.35 + surge)) * surf * mix(.30, 1.15, surge);
     float crest = smoothstep(.62, .98, vW) * smoothstep(.50, .78, fn) * .55;
+    /* FOAM STREAKS on open water (his boat clip): old whitecap foam does not vanish, it is drawn out
+       by the wind into a marbled net of lines and patches that drift and slowly fade. Wind-aligned,
+       stretched noise; the lines are where it crosses its midpoint; a slow patch mask breaks it up so
+       it lies in rafts, not a uniform texture. */
+    { vec2 wd = normalize(vec2(.86, .51)); vec2 q = vec2(dot(p, wd), dot(p, vec2(-wd.y, wd.x)));
+      float m = vn(q*vec2(.045, .16) + vec2(t*.10, 0.0))*.62 + vn(q*vec2(.11, .38) - vec2(t*.07, t*.02))*.38;
+      float net = (1.0 - smoothstep(.010, .045, abs(m - .5))) * smoothstep(.30, .72, vn(p*.55 + vec2(t*.08, -t*.05)));   /* broken into lace, never a clean contour */
+      float raft = smoothstep(.45, .78, vn(p*.012 + vec2(t*.006, 0.0))) ;
+      float st = net * raft * fade * smoothstep(.25, .9, vSh) * (.45 + .55*smoothstep(.2, .9, vW*.5 + .5));
+      crest = max(crest, st * uStreak); }
     vec3 foamCol = mix(b, vec3(1.0), .78) * mix(1.0, .82, uNight);
     float fm = clamp(foam*.95 + crest, 0., 1.);
     c = mix(c, foamCol, fm);
@@ -1562,7 +1572,7 @@ function seaMesh(a, b, real){
     uniforms:{t:{value:0}, wv:{value:WAVE}, uMask:{value:null}, uMaskR:{value:1}, uHasMask:{value:0},
               a:{value:new THREE.Color(a)}, b:{value:new THREE.Color(b)}, m:{value:new THREE.Color(MOON)},
               uLight:{value:new THREE.Vector3(-25,40,15)}, uTop:{value:new THREE.Color(0x335577)}, uMid:{value:new THREE.Color(0x6688AA)},
-              uBot:{value:new THREE.Color(0x99BBCC)}, uFogCol:{value:new THREE.Color(0x99BBCC)}, uFogD:{value:.002}, uNight:{value:0}},
+              uBot:{value:new THREE.Color(0x99BBCC)}, uFogCol:{value:new THREE.Color(0x99BBCC)}, uFogD:{value:.002}, uNight:{value:0}, uStreak:{value:.42}},
     /* ===============  THE SWASH ZONE WAS A COMB  ===============
        Scaling the wave stopped the sea being drawn on top of the LAND, but it left a narrower band
        of stripes over the wet shelf just outside the coastline, and that one is not a depth fight -
@@ -5756,7 +5766,7 @@ function buildIslandBody(cfg){
     /* the glitter path comes from the moon on the night island and from the key light by day */
     if(isNight) su.uLight.value.set(...cfg.moon.pos); else su.uLight.value.set(-25, 40, 15);
     su.uTop.value.set(PS.skyTop); su.uMid.value.set(PS.skyMid); su.uBot.value.set(PS.skyBot);
-    su.uFogCol.value.copy(fogCol); su.uFogD.value = (scene.fog && scene.fog.density) || .0016; su.uNight.value = isNight ? 1 : 0;
+    su.uFogCol.value.copy(fogCol); su.uFogD.value = (scene.fog && scene.fog.density) || .0016; su.uNight.value = isNight ? 1 : 0; su.uStreak.value = cfg.key === "sanity" ? .80 : cfg.key === "town" ? .30 : .45;
   }
   scene.add(GROUND(seaBed(P.water)));
   /* stars scale with how dark the island's sky is — Sanity (the night song, full moon) gets a real
