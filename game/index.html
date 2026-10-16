@@ -378,6 +378,7 @@ const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the b
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* ?dark=1 holds Sanity at the full dark look, ?dark=0 at the light one; by default it moves between them with the clock and the weather */
 const DARKMODE = QS.get("dark");
+const LIGHTQ = QS.get("light") !== "old";   /* real light: god rays + sun glare, low golden-hour sun, soft shadows that follow the view, moon shadows on Sanity; ?light=old restores */
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
    ink outlines, no stepped ramp. "toon" is the original cel look, kept so the two can be compared
@@ -583,7 +584,230 @@ function applyLookMix(m){
 function present(scene){
   const want = scene.userData.lookMix != null ? scene.userData.lookMix : (scene.userData.darkLook ? 1 : 0);
   if(LOOK_MIX < 0 || Math.abs(want - LOOK_MIX) > .004) applyLookMix(want);
+  if(LIGHTQ) lightFrame(scene);   /* LIGHTQ hook */
   renderPass.scene = scene; composer.render();
+}
+/* ===================  REAL LIGHT  (?light=old restores)  ===================
+   His words: no sunbeams through the trees or the mist, no glare off the sun, and the moon does not
+   throw shadows. Three separate faults, three separate fixes, all in this block:
+   1  LIGHT SHAFTS. Screen-space light scattering: every pixel that is open air (sky, or anything the
+      fog has already swallowed) near the sun is an emitter; everything solid between the camera and
+      the air is an occluder. That emitter image is smeared radially toward the sun in two passes
+      (a coarse comb of taps, then a fine box that exactly fills the gaps between them), which is a
+      continuous box blur of the full ray with no banding, and the start of every ray is jittered by
+      interleaved gradient noise so the steps cannot line up into rings. Half resolution on desktop,
+      a third on phones; the passes are skipped outright when the sun is behind the camera.
+   2  GLARE. A soft veil round the sun only while the sun itself is actually visible - the same air
+      mask, read at the sun - plus a faint lift of the blacks when looking into it. No ghost chain.
+   3  SHADOWS. Golden hour with the key light at 54 degrees is noon light under a sunset sky; the key
+      comes down to 30 degrees on the day islands (same bearing), the frustum follows the VIEW rather
+      than sitting centred on her and wasting half the map behind the camera, it snaps to whole
+      shadow texels so edges stop crawling as she walks, and the filter is a rotated 16-tap Poisson
+      disc on the hardware compare (soft, no stair-steps). On Sanity the key comes FROM the moon you
+      can see, and is strong enough over the fill to carve real shadows at night.
+   The composer targets also carry a real depth texture (24-bit, which is also finer than the 16-bit
+   depth buffer they had) and go half-float where the GPU can render to it, so the darks of the night
+   island stop stepping in 8-bit linear. */
+const LIGHT = (() => {
+  if(!LIGHTQ) return null;
+  const L = {ok:false, phone: matchMedia("(pointer:coarse)").matches || innerWidth < 820};
+  try{
+    const caps = renderer.capabilities, ext = renderer.extensions;
+    const depthOK = caps.isWebGL2 || ext.has("WEBGL_depth_texture");
+    let halfOK = caps.isWebGL2 && (ext.has("EXT_color_buffer_float") || ext.has("EXT_color_buffer_half_float"));
+    /* an 8-bit target clamped everything at 1.0 for free and the grade's S-curve relies on that (it
+       turns negative above ~1.5); a half-float target does not clamp, so the grade clamps instead -
+       exactly what the 8-bit store did. If the grade's text has moved, stay 8-bit. */
+    if(halfOK){
+      const gm = gradePass.material, k0 = "vec4 c=texture2D(tDiffuse,vUv);";
+      if(gm && gm.fragmentShader.includes(k0)){ gm.fragmentShader = gm.fragmentShader.replace(k0, k0 + " c.rgb=min(c.rgb,vec3(1.0));"); gm.needsUpdate = true; }
+      else halfOK = false;
+    }
+    L.half = halfOK;
+    /* soft shadows: PCF branch replaced by a rotated Poisson disc, radius from light.shadow.radius */
+    const ch = THREE.ShaderChunk.shadowmap_pars_fragment, a = ch.indexOf("#if defined( SHADOWMAP_TYPE_PCF )"), b = ch.indexOf("#elif defined( SHADOWMAP_TYPE_PCF_SOFT )");
+    if(a >= 0 && b > a){
+      const P = [[-.94201624,-.39906216],[.94558609,-.76890725],[-.09418410,-.92938870],[.34495938,.29387760],[-.91588581,.45771432],[-.81544232,-.87912464],[-.38277543,.27676845],[.97484398,.75648379],[.44323325,-.97511554],[.53742981,-.47373420],[-.26496911,-.41893023],[.79197514,.19090188],[-.24188840,.99706507],[-.81409955,.91437590],[.19984126,.78641367],[.14383161,-.14100790]];
+      const taps = P.map(p => `shadow += texture2DCompare( shadowMap, shadowCoord.xy + R * vec2(${p[0].toFixed(6)}, ${p[1].toFixed(6)}), shadowCoord.z );`).join("\n");
+      THREE.ShaderChunk.shadowmap_pars_fragment = ch.slice(0, a) + `#if defined( SHADOWMAP_TYPE_PCF )
+        vec2 texelSize = vec2( 1.0 ) / shadowMapSize;
+        float lAng = 6.2831853 * fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) );
+        float lS = sin( lAng ), lC = cos( lAng );
+        mat2 R = mat2( lC, lS, -lS, lC ) * ( texelSize.x * shadowRadius );
+        shadow = 0.0;
+        ${taps}
+        shadow *= ( 1.0 / 16.0 );
+      ` + ch.slice(b);
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+    }
+    if(!depthOK) return L;
+    for(const rt of [composer.renderTarget1, composer.renderTarget2]){
+      if(halfOK) rt.texture.type = THREE.HalfFloatType;
+      const dt = new THREE.DepthTexture();
+      if(rt.stencilBuffer){ dt.format = THREE.DepthStencilFormat; dt.type = THREE.UnsignedInt248Type; }
+      else { dt.format = THREE.DepthFormat; dt.type = THREE.UnsignedIntType; }
+      dt.minFilter = dt.magFilter = THREE.NearestFilter;
+      rt.depthTexture = dt; rt.depthBuffer = true;
+    }
+    const tp = {minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter, format:THREE.RGBAFormat, depthBuffer:false, stencilBuffer:false};
+    if(halfOK) tp.type = THREE.HalfFloatType;
+    L.scale = L.phone ? .34 : .5; L.N = L.phone ? 14 : 22;
+    L.rtM = new THREE.WebGLRenderTarget(4, 4, tp); L.rtA = new THREE.WebGLRenderTarget(4, 4, tp); L.rtB = new THREE.WebGLRenderTarget(4, 4, tp);
+    const VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`;
+    L.mask = new THREE.ShaderMaterial({
+      uniforms:{tColor:{value:null}, tDepth:{value:null}, sunUV:{value:new THREE.Vector2()}, aspect:{value:1}, cNear:{value:.4}, cFar:{value:1000},
+                fogD:{value:.002}, sunCol:{value:new THREE.Color()}, core:{value:.0035}, halo:{value:.03}},
+      vertexShader:VS,
+      fragmentShader:`#include <packing>
+        uniform sampler2D tColor, tDepth; uniform vec2 sunUV; uniform float aspect, cNear, cFar, fogD, core, halo; uniform vec3 sunCol; varying vec2 vUv;
+        void main(){
+          float z = texture2D(tDepth, vUv).x;
+          float d = -perspectiveDepthToViewZ(z, cNear, cFar);
+          float fogA = 1.0 - exp(-fogD*fogD*d*d);
+          /* open air: the cleared sky, or geometry the fog has already swallowed */
+          float air = z >= 0.99999 ? 1.0 : smoothstep(0.62, 0.98, fogA);
+          vec2 dv = (vUv - sunUV) * vec2(aspect, 1.0); float r2 = dot(dv, dv);
+          vec3 sc = min(texture2D(tColor, vUv).rgb, vec3(1.0));
+          /* the disc itself (a moon is a mesh, not sky): bright pixels right at the light count as air */
+          air = max(air, smoothstep(.62, .9, max(sc.r, max(sc.g, sc.b))) * step(r2, core * 10.0));
+          vec3 e = air * (sunCol * (exp(-r2/core) + .12*exp(-r2/halo)) + sc * .15 * exp(-r2/(halo*1.6)));
+          gl_FragColor = vec4(e, air); }`,
+      depthTest:false, depthWrite:false});
+    const BLUR = n => `uniform sampler2D tIn; uniform vec2 sunUV; uniform float stepK, decay, jit; varying vec2 vUv;
+        void main(){
+          vec2 delta = (sunUV - vUv) * stepK;
+          float j = fract(52.9829189*fract(dot(gl_FragCoord.xy + jit, vec2(0.06711056, 0.00583715))));
+          vec2 uv = vUv + delta * (j - .5);
+          vec3 acc = vec3(0.0); float w = 1.0, ws = 0.0;
+          for(int i = 0; i < ${n}; i++){ acc += texture2D(tIn, uv).rgb * w; ws += w; w *= decay; uv += delta; }
+          gl_FragColor = vec4(acc / ws, 1.0); }`;
+    const blurMat = () => new THREE.ShaderMaterial({uniforms:{tIn:{value:null}, sunUV:{value:new THREE.Vector2()}, stepK:{value:.05}, decay:{value:1}, jit:{value:0}},
+      vertexShader:VS, fragmentShader:BLUR(L.N), depthTest:false, depthWrite:false});
+    L.blur1 = blurMat(); L.blur2 = blurMat();
+    L.comp = new THREE.ShaderMaterial({
+      uniforms:{tColor:{value:null}, tShaft:{value:null}, tMask:{value:null}, sunUV:{value:new THREE.Vector2()}, aspect:{value:1}, kShaft:{value:0}, kGlare:{value:0}, sunCol:{value:new THREE.Color()}},
+      vertexShader:VS,
+      fragmentShader:`uniform sampler2D tColor, tShaft, tMask; uniform vec2 sunUV; uniform float aspect, kShaft, kGlare; uniform vec3 sunCol; varying vec2 vUv;
+        void main(){
+          vec3 s = texture2D(tShaft, vUv).rgb * kShaft;
+          /* is the sun itself in open air? five taps of the air mask round it */
+          vec2 su = clamp(sunUV, vec2(.004), vec2(.996)), o = vec2(.012/aspect, .012);
+          float vis = (texture2D(tMask, su).a*2.0 + texture2D(tMask, su + o).a + texture2D(tMask, su - o).a
+                     + texture2D(tMask, su + vec2(o.x, -o.y)).a + texture2D(tMask, su + vec2(-o.x, o.y)).a) / 6.0;
+          vec2 dv = (vUv - sunUV) * vec2(aspect, 1.0); float r2 = dot(dv, dv);
+          vec3 g = sunCol * vis * kGlare * (exp(-r2/.003)*.30 + exp(-sqrt(r2)*5.0)*.08 + .015);
+          /* tiny noise so the long smooth gradients never step in the 8-bit output */
+          float n = fract(52.9829189*fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - .5;
+          vec3 a = s + g; a += n * (1.0/255.0) * step(.002, a.r + a.g);
+          vec4 c = texture2D(tColor, vUv);
+          /* screen blend: the light lifts a pixel toward white but never past it */
+          c.rgb = clamp(c.rgb, 0.0, 1.0);
+          c.rgb += clamp(a, 0.0, 1.0) * (1.0 - c.rgb);
+          gl_FragColor = c; }`,
+      depthTest:false, depthWrite:false});
+    L.quad = new THREE.FullScreenQuad(null);
+    const pass = new THREE.Pass(); pass.needsSwap = true; pass.enabled = false;
+    pass.render = (r, writeBuffer, readBuffer) => {
+      const w = readBuffer.width, h = readBuffer.height, sw = Math.max(2, Math.round(w*L.scale)), sh = Math.max(2, Math.round(h*L.scale));
+      if(L.rtM.width !== sw || L.rtM.height !== sh){ L.rtM.setSize(sw, sh); L.rtA.setSize(sw, sh); L.rtB.setSize(sw, sh); }
+      const ac = r.autoClear; r.autoClear = false;
+      const mu = L.mask.uniforms; mu.tColor.value = readBuffer.texture; mu.tDepth.value = readBuffer.depthTexture;
+      L.quad.material = L.mask; r.setRenderTarget(L.rtM); r.clear(); L.quad.render(r);
+      L.blur1.uniforms.tIn.value = L.rtM.texture; L.quad.material = L.blur1; r.setRenderTarget(L.rtA); r.clear(); L.quad.render(r);
+      L.blur2.uniforms.tIn.value = L.rtA.texture; L.quad.material = L.blur2; r.setRenderTarget(L.rtB); r.clear(); L.quad.render(r);
+      L.comp.uniforms.tColor.value = readBuffer.texture; L.comp.uniforms.tShaft.value = L.rtB.texture; L.comp.uniforms.tMask.value = L.rtM.texture;
+      L.quad.material = L.comp; r.setRenderTarget(writeBuffer); L.quad.render(r);
+      r.autoClear = ac;
+    };
+    L.pass = pass;
+    composer.insertPass(pass, composer.passes.indexOf(gradePass));
+    L.ok = true;
+  }catch(e){ DBG("light pass failed, shafts off", e); L.ok = false; }
+  L.v = new THREE.Vector3(); L.f = new THREE.Vector3(); L.x = new THREE.Vector3(); L.y = new THREE.Vector3(); L.m = new THREE.Matrix4();
+  /* the golden-hour sun: the old bearing (from -x,+z), 30 degrees up instead of 54 */
+  const EL = 30*Math.PI/180, hx = -25, hz = 15, hl = Math.hypot(hx, hz);
+  L.dayDir = new THREE.Vector3(hx/hl*Math.cos(EL), Math.sin(EL), hz/hl*Math.cos(EL));
+  L.E = L.phone ? 54 : 62;          /* shadow half-extent, world units */
+  return L;
+})();
+/* build time, once per island: shadow camera, filter radius, the key's strength for the lower sun */
+function lightInit(I){
+  const L = LIGHT, s = I.sun, night = I.cfg.key === "sanity";
+  I.sunDir = (night ? new THREE.Vector3(...I.cfg.moon.pos).normalize() : L.dayDir.clone());
+  const sh = s.shadow, E = L.E;
+  sh.camera.left = -E; sh.camera.right = E; sh.camera.top = E; sh.camera.bottom = -E;
+  sh.camera.near = 1; sh.camera.far = 340; sh.camera.updateProjectionMatrix();
+  sh.radius = L.phone ? 2.2 : 2.8;
+  sh.bias = -0.0004; sh.normalBias = .06;
+  /* a 30-degree sun lands 0.62 of the 54-degree sun's light on flat ground; give back part of it so
+     the ground keeps its value while sunlit faces get the warmer, harder read a low sun has */
+  if(!night) s.intensity *= 1.22;
+  /* the sea's glitter path lies under the same sun */
+  const su = I.sea && I.sea.userData && I.sea.userData.mat && I.sea.userData.mat.uniforms;
+  if(!night && su && su.uLight) su.uLight.value.copy(I.sunDir);
+  I.lightFog0 = (I.scene.fog && I.scene.fog.density) || .002;
+  /* the moon is 280 u out and the night fog swallowed it into a dark disc: a full moon sits beyond the
+     weather, so it is not fogged; cloud and storm dim it instead (lightFrame) */
+  if(night && I.moon) I.moon.traverse(o => { if(o.material && o !== I.moon.userData.halo){   /* the flat halo ring stays in the fog: the glare does that job now */ o.material.fog = false; o.material.needsUpdate = true;
+    o.userData.lightCol0 = o.material.color.clone(); o.userData.lightOp0 = o.material.opacity; } });
+  /* the flat halo ring is a hard-edged disc once the moon is bright; the glare pass draws the real halo */
+  if(night && I.moon && I.moon.userData.halo) I.moon.userData.halo.visible = false;
+  I.lightK = {hub:1, green:1, town:.9, gr:.55, sanity:.75}[I.cfg.key];
+  if(I.lightK == null) I.lightK = .8;
+}
+/* every frame, after islandUpdate placed the key: aim it, centre its frustum ahead of the view, snap */
+function lightKey(I){
+  const L = LIGHT, s = I.sun, W = I.W; if(!s || !I.sunDir) return;
+  if(I.cfg.key === "sanity"){
+    /* the key comes from the moon she can see: direction from her to it, never below 18 degrees */
+    if(I.moon) I.moon.getWorldPosition(L.v); else L.v.set(...I.cfg.moon.pos);
+    L.v.x -= W.x; L.v.y -= W.y; L.v.z -= W.z; L.v.normalize();
+    const mn = Math.sin(18*Math.PI/180);
+    if(L.v.y < mn){ const hh = Math.hypot(L.v.x, L.v.z) || 1, c = Math.cos(Math.asin(mn)); L.v.set(L.v.x/hh*c, mn, L.v.z/hh*c); }
+    I.sunDir.copy(L.v);
+  }
+  const d = I.sunDir, E = s.shadow.camera.right;
+  camera.getWorldDirection(L.f); L.f.y = 0; if(L.f.lengthSq() < 1e-6) L.f.set(0, 0, -1); L.f.normalize();
+  const cx = W.x + L.f.x*E*.38, cy = W.y, cz = W.z + L.f.z*E*.38;
+  /* light-space basis exactly as the shadow camera's lookAt builds it (up = +y) */
+  L.x.set(0, 1, 0).cross(d).normalize(); L.y.copy(d).cross(L.x);
+  const ws = 2*E / s.shadow.mapSize.x;
+  const a = cx*L.x.x + cy*L.x.y + cz*L.x.z, b = cx*L.y.x + cy*L.y.y + cz*L.y.z;
+  const da = Math.round(a/ws)*ws - a, db = Math.round(b/ws)*ws - b;
+  s.target.position.set(cx + L.x.x*da + L.y.x*db, cy + L.x.y*da + L.y.y*db, cz + L.x.z*da + L.y.z*db);
+  s.position.copy(s.target.position).addScaledVector(d, 170);
+}
+/* every frame, before the composer: how strong the shafts and the glare are, and where the sun is */
+function lightFrame(scene){
+  const L = LIGHT; if(!L || !L.ok) return;
+  const I = (typeof CUR !== "undefined" && CUR && CUR.scene === scene) ? CUR : null;
+  if(!I || !I.sun || !I.sunDir){ L.pass.enabled = false; return; }
+  const d = I.sunDir;
+  camera.getWorldDirection(L.f);
+  const facing = L.f.dot(d);
+  let k = I.lightK * Math.max(0, Math.min(1, (facing - .02)/.40));
+  /* weather: none under the thick of the cloud */
+  if(I.dn){ const st = I.dn.storm || 0, ck = 1 - Math.min(1, Math.max(0, (st - .10)/.40)); k *= ck;
+    if(I.moon) I.moon.traverse(o => { if(o.userData.lightCol0){ o.material.color.copy(o.userData.lightCol0).multiplyScalar(.12 + .88*ck); o.material.opacity = o.userData.lightOp0 * (.15 + .85*ck); } }); }
+  else if(I.overcast && I.overcast.key0 > 0){ const oc = Math.max(0, Math.min(1, (1 - I.sun.intensity/I.overcast.key0)/.74)); k *= 1 - Math.min(1, Math.max(0, (oc - .08)/.45)); }
+  const fog = I.scene.fog, fd = (fog && fog.density) || I.lightFog0;
+  k *= Math.max(.8, Math.min(1.4, Math.sqrt(fd / I.lightFog0)));     /* thicker air shows the beams more */
+  if(I.cfg.key === "sanity" && I.moon) I.moon.getWorldPosition(L.v).project(camera);
+  else L.v.copy(camera.position).addScaledVector(d, Math.min(1000, camera.far*.9)).project(camera);
+  const ux = L.v.x*.5 + .5, uy = L.v.y*.5 + .5;
+  const off = Math.max(Math.abs(ux - .5), Math.abs(uy - .5)) - .5;   /* how far outside the frame the sun is */
+  k *= 1 - Math.max(0, Math.min(1, (off - .15)/.9));
+  if(k < .01){ L.pass.enabled = false; return; }
+  L.pass.enabled = true;
+  const asp = camera.aspect, col = I.sun.color;
+  const mu = L.mask.uniforms; mu.sunUV.value.set(ux, uy); mu.aspect.value = asp; mu.cNear.value = camera.near; mu.cFar.value = camera.far;
+  mu.fogD.value = fd; mu.sunCol.value.copy(col);
+  /* coarse comb over 85% of the way to the sun, then a fine box exactly one comb step long */
+  const N = L.N, dens = .85;
+  for(const [m, sk, dc] of [[L.blur1, dens/N, .965], [L.blur2, dens/(N*N), 1]]){
+    const u = m.uniforms; u.sunUV.value.set(ux, uy); u.stepK.value = sk; u.decay.value = dc; u.jit.value = (m === L.blur1 ? 0 : 17.3); }
+  const cu = L.comp.uniforms; cu.sunUV.value.set(ux, uy); cu.aspect.value = asp; cu.sunCol.value.copy(col);
+  cu.kShaft.value = (I.cfg.key === "sanity" ? .8 : 1)*k; cu.kGlare.value = (I.cfg.key === "sanity" ? .45 : 1)*k;
 }
 addEventListener("resize", () => {
   camera.aspect = innerWidth/innerHeight; camera.fov = innerHeight > innerWidth ? 66 : 56; camera.updateProjectionMatrix();
@@ -8898,6 +9122,7 @@ function buildIslandBody(cfg){
   key.shadow.camera.left = -70; key.shadow.camera.right = 70; key.shadow.camera.top = 70; key.shadow.camera.bottom = -70;
   key.shadow.bias = -0.0008; key.shadow.normalBias = .05;
   scene.add(key.target); I.sun = key;
+  if(LIGHTQ) lightInit(I);   /* LIGHTQ hook */
   I.sunOff = DARK ? [-36, 32, 20] : [-25, 40, 15];   /* the dark moon rakes low across the ground */
   I.dark = DARK; scene.userData.darkLook = DARK;
   /* ===================  SANITY: CLOCK AND WEATHER  ===================
@@ -9684,7 +9909,7 @@ function sanitySky(I, dt, t){
   if(CUR === I){ try{ gradePass.uniforms.airCol.value.copy(fog.color); }catch(e){} }
   S.hemi.intensity = S.hemi0 + (.20 - S.hemi0)*m; S.hemi.color.lerpColors(S.hC0, S.hC1, m); S.hemi.groundColor.lerpColors(S.hG0, S.hG1, m);
   if(S.bounce) S.bounce.intensity = .22 + (.07 - .22)*m;
-  if(S.rim){ S.rim.intensity = .28 + (.60 - .28)*m; S.rim.color.lerpColors(S.rimC0, S.rimC1, m); }
+  if(S.rim){ S.rim.intensity = (.28 + (.60 - .28)*m) * (LIGHTQ ? 1 - .45*m : 1); S.rim.color.lerpColors(S.rimC0, S.rimC1, m); }   /* LIGHTQ hook */
   I.sunOff = [-25 - 11*m, 40 - 8*m, 15 + 5*m];
   if(S.su){ S.su.uTop.value.copy(S.sky.top.value); S.su.uMid.value.copy(S.sky.mid.value); S.su.uBot.value.copy(S.sky.bot.value);
     S.su.uFogCol.value.copy(fog.color); S.su.uFogD.value = fog.density; S.su.uStreak.value = .80 + .20*st; }
@@ -9698,7 +9923,7 @@ function sanitySky(I, dt, t){
   }
   I.flash = Math.max(0, (I.flash || 0) - dt*4);
   I.sky.mat.uniforms.flash.value = I.flash*.9; $("flash").style.opacity = I.flash*.35;
-  I.key.intensity = .55 + I.flash*2.5;
+  I.key.intensity = (LIGHTQ ? .55 + .55*m*(1 - .7*st) : .55) + I.flash*2.5;   /* LIGHTQ hook: the moon key carries real shadows at night */
   /* rain */
   if(I.rainFX){ const ra = Math.max(0, st - .22)/.78;
     rainUpdate(I, dt, t, ra, [2.5 + 7*st, 1.2 + 1.5*st], 1 - .7*m, I.flash || 0);
@@ -9718,6 +9943,7 @@ function islandUpdate(I, dt, t){
   const cfg = I.cfg, W = I.W;
   WET.value = I.wet || 0;
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
+  if(LIGHTQ) lightKey(I);   /* LIGHTQ hook */
   if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); }
   if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
