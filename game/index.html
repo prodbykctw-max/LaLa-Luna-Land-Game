@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-15l";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-16a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1202,7 +1202,7 @@ function forestBuilder(P, night){
     if(PT.pos.length) barkMesh(PT, TREE_TEX.palm, TREE_TEX.palmN);
     if(LF.pos.length) leafMesh(LF, TREE_TEX.leaf, TREE_TEX.leafA, "realleaf");
     if(FR.pos.length) leafMesh(FR, TREE_TEX.frond, TREE_TEX.frondA, "realfrond");
-    if(out.length) I.treeWind = uni;
+    if(out.length) (I.treeWinds || (I.treeWinds = [])).push(uni);
     DBG("real trees", TR.pos.length/3, "trunk verts", LF.pos.length/12, "leaf cards", FR.idx.length/6, "frond quads");
     return out;
   };
@@ -1280,6 +1280,22 @@ function rockField(P, night){
     return mesh;
   };
   return {add, finish};
+}
+/* Built stone (ruin columns, the arch, the lighthouse, bones) in the same CC0 photo rock, no ink
+   outline. su/sv: how many texture tiles across the geometry's own u and v. */
+function stoneMesh(geo, col, su, sv, night){
+  const uv = geo.attributes.uv; if(uv){ for(let i=0;i<uv.count;i++) uv.setXY(i, uv.getX(i)*su, uv.getY(i)*sv); uv.needsUpdate = true; }
+  const m = new THREE.Mesh(geo, toon(new THREE.Color(col).lerp(new THREE.Color(0xFFFFFF), .45).multiplyScalar(night ? .5 : 1), {map:ROCK_TEX.boulder, normalMap:ROCK_TEX.boulderN, roughness:.9}));
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+/* a little weathering: push the vertices of a primitive in and out so its edges are not machined */
+function weather(geo, amt, freq){
+  const pa = geo.attributes.position, v = new THREE.Vector3();
+  for(let i=0;i<pa.count;i++){ v.fromBufferAttribute(pa, i);
+    const n = Math.sin(v.x*freq*1.7 + v.y*freq*.9) * Math.sin(v.z*freq*1.3 - v.y*freq*1.1) + .5*Math.sin(v.x*freq*4.1 + v.z*freq*3.3);
+    v.multiplyScalar(1 + n*amt); pa.setXYZ(i, v.x, v.y, v.z); }
+  geo.computeVertexNormals(); return geo;
 }
 /* one place that builds a meadow surface, old or photographic */
 /* how much of the island's own grass tint survives over the photo: a little by day (keeps the palette),
@@ -6346,11 +6362,14 @@ function buildIslandBody(cfg){
   /* wildflowers — instanced, planted in beds */
   if(cfg.key !== "sanity") flowerField(scene, FLOWER_N, () => { const s = sample(6, 66, true); return (s && cfg.beach && Math.hypot(s[0]-cfg.beach.x, s[1]-cfg.beach.z) < cfg.beach.r) ? null : s; }, height, cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4]);
   /* specific decor */
-  const column = (x,z,h,tilt,col) => { const c = inked(new THREE.CylinderGeometry(.85,1.0,h,12), col||P.stone, 1.9);
+  const DROCKS = ROCKQ ? rockField(P, cfg.key === "sanity") : null;        /* decor stones, merged after the decor below */
+  const DFOREST = TREESQ ? forestBuilder(P, cfg.key === "sanity") : null;    /* decor foliage (moss, ferns) */
+  const column = (x,z,h,tilt,col) => { const c = ROCKQ ? stoneMesh(weather(new THREE.CylinderGeometry(.85,1.0,h,24,10), .035, 1.6), col||P.stone, 3, h/2.6, cfg.key === "sanity")
+                                                  : inked(new THREE.CylinderGeometry(.85,1.0,h,12), col||P.stone, 1.9);
     c.position.set(x, height(x,z)+h/2, z); c.rotation.z = tilt||0; scene.add(c); I.colliders.push({x,z,r:1.1}); return c; };
   if(cfg.decor === "ruins"){
     [[14,18],[20,10],[19,-2],[10,-8],[0,-6],[-7,2],[-4,14],[5,21]].forEach(([x,z],i) => column(x*WORLD,z*WORLD,5.5+(i%3)*1.6,(i%4===0)?.16:0));
-    const arch = inked(new THREE.TorusGeometry(4.6,.85,8,20,Math.PI), P.stone, 2.0); arch.position.set(7*WORLD,height(7*WORLD,6*WORLD),6*WORLD); scene.add(arch);
+    const arch = ROCKQ ? stoneMesh(weather(new THREE.TorusGeometry(4.6,.85,12,40,Math.PI), .04, 1.4), P.stone, 7, 2, false) : inked(new THREE.TorusGeometry(4.6,.85,8,20,Math.PI), P.stone, 2.0); arch.position.set(7*WORLD,height(7*WORLD,6*WORLD),6*WORLD); scene.add(arch);
     /* A real stream, not a blue rectangle laid on the grass. The water is a ribbon that follows a
        curved path and sits at the terrain height at every step, sunk slightly into a darker cut
        bank that is drawn a little wider and a little lower, so it reads as a channel in the ground.
@@ -6389,6 +6408,7 @@ function buildIslandBody(cfg){
         for(const sgn of [-1,1]){
           const rx = x + sgn*(w + 1.0 + Math.random()*.7), rz = z + (Math.random()-.5)*1.8;
           const r = .28 + Math.random()*.34;
+          if(DROCKS){ DROCKS.add(r*1.1, rx, height(rx,rz) + r*.10, rz, Math.random()*6.28); continue; }
           const st = inked(new THREE.IcosahedronGeometry(r, 0), P.stone, 1.2);
           st.position.set(rx, height(rx,rz) + r*.34, rz);
           st.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
@@ -6397,7 +6417,8 @@ function buildIslandBody(cfg){
       }
     })();
     const bw = 5*Math.sqrt(WORLD);
-    const bridge = inked(new THREE.BoxGeometry(bw,.4,3.6), P.wood, 1.6); bridge.position.set(-2.6*WORLD,1.0,33*WORLD); bridge.rotation.y=.35; scene.add(bridge);
+    const bridge = TREESQ ? (() => { const g = new THREE.BoxGeometry(bw,.4,3.6); const m = new THREE.Mesh(g, toon(new THREE.Color(P.wood).lerp(new THREE.Color(0xFFFFFF), .5), {map:TREE_TEX.bark, normalMap:TREE_TEX.barkN, roughness:.9})); m.castShadow = m.receiveShadow = true; return m; })()
+                         : inked(new THREE.BoxGeometry(bw,.4,3.6), P.wood, 1.6); bridge.position.set(-2.6*WORLD,1.0,33*WORLD); bridge.rotation.y=.35; scene.add(bridge);
 
     /* moss-spiral tunnel — a coiled, moss-wrapped branch arch you walk through
        on the way to the bridge, after the misty-forest reference photo */
@@ -6408,8 +6429,9 @@ function buildIslandBody(cfg){
       const t = i/(arcCount-1);
       const rad = 7.2 - t*5.0;
       const yBase = height(spC.x, spC.z) + 1.2 + t*3.6;
-      const arm = inked(new THREE.TorusGeometry(rad, .5-t*.16, 8, 22, Math.PI*1.55),
-        i%2 ? P.wood : mossDk, 1.7);
+      const arm = TREESQ ? (() => { const g = weather(new THREE.TorusGeometry(rad, .5-t*.16, 10, 44, Math.PI*1.55), .05, 1.2); const uv = g.attributes.uv; for(let k=0;k<uv.count;k++) uv.setXY(k, uv.getX(k)*rad*2.2, uv.getY(k));
+            const m = new THREE.Mesh(g, toon(new THREE.Color(i%2 ? P.wood : mossDk).lerp(new THREE.Color(0xFFFFFF), .45), {map:TREE_TEX.bark, normalMap:TREE_TEX.barkN, roughness:.92})); m.castShadow = m.receiveShadow = true; return m; })()
+                         : inked(new THREE.TorusGeometry(rad, .5-t*.16, 8, 22, Math.PI*1.55), i%2 ? P.wood : mossDk, 1.7);
       arm.position.set(spC.x, yBase, spC.z - 7 + t*13);
       arm.rotation.set(Math.PI*.42, t*2.4, Math.PI/2);
       scene.add(arm);
@@ -6417,13 +6439,14 @@ function buildIslandBody(cfg){
     }
     for(let i=0;i<18;i++){
       const s = sample(4, 42, true); if(!s) continue;
+      if(DFOREST){ DFOREST.bush(.55 + Math.random()*.7, s[0], height(s[0],s[1]) - .15, s[1]); continue; }
       const clump = inked(new THREE.SphereGeometry(.55+Math.random()*.85, 8, 6), Math.random()<.5?mossDk:mossLt, 1.4);
       clump.scale.y = .5; clump.position.set(s[0], height(s[0],s[1])+.28, s[1]); scene.add(clump);
     }
     for(let i=0;i<10;i++){
       const a = Math.random()*Math.PI*2, r = 2.5+Math.random()*4;
       const vx = spC.x+Math.cos(a)*r, vz = spC.z+Math.sin(a)*r;
-      const vine = inked(new THREE.CylinderGeometry(.05,.09,2.6+Math.random()*2.4,5), mossDk, 1.1);
+      const vine = TREESQ ? new THREE.Mesh(new THREE.CylinderGeometry(.05,.09,2.6+Math.random()*2.4,6), toon(new THREE.Color(mossDk).lerp(new THREE.Color(0xFFFFFF), .4), {map:TREE_TEX.bark})) : inked(new THREE.CylinderGeometry(.05,.09,2.6+Math.random()*2.4,5), mossDk, 1.1);
       vine.position.set(vx, height(vx,vz)+3.6+Math.random()*2.2, vz); vine.rotation.z = (Math.random()-.5)*.35;
       scene.add(vine);
     }
@@ -6435,7 +6458,8 @@ function buildIslandBody(cfg){
       leaves.material = toon(0xffffff, {side:THREE.DoubleSide}); scene.add(leaves);
       for(let i=0;i<arcCount;i++){ const t = i/(arcCount-1), rad = 7.2 - t*5.0, cy = height(spC.x, spC.z) + 1.2 + t*3.6, cz = spC.z - 7 + t*13;
         for(let k=0;k<5;k++){ const a = Math.PI*.2 + Math.random()*Math.PI*.6; const mx = spC.x + Math.cos(a)*rad*.98, my = cy + Math.sin(a)*rad*.98*.42, mz = cz + (Math.random()-.5)*.6;
-          const cushion = inked(new THREE.SphereGeometry(.28+Math.random()*.3, 7, 5), Math.random()<.5?mossDk:mossLt, 1.1); cushion.scale.set(1.4,.6,1); cushion.position.set(mx, my, mz); scene.add(cushion);
+          if(DFOREST) DFOREST.bush(.30 + Math.random()*.25, mx, my - .2, mz);
+          else { const cushion = inked(new THREE.SphereGeometry(.28+Math.random()*.3, 7, 5), Math.random()<.5?mossDk:mossLt, 1.1); cushion.scale.set(1.4,.6,1); cushion.position.set(mx, my, mz); scene.add(cushion); }
           if(Math.random()<.6){ const lf = new THREE.Mesh(new THREE.PlaneGeometry(.5,.34), stdMat({color:0x4F8A5C, gradientMap:GRAD, side:THREE.DoubleSide})); lf.position.set(mx, my-.35, mz); lf.rotation.set(.4, Math.random()*6, 0); scene.add(lf); } } }
       const mistTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const ctx = cv.getContext("2d"); const g = ctx.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,"rgba(255,255,255,.55)"); g.addColorStop(1,"rgba(255,255,255,0)"); ctx.fillStyle = g; ctx.fillRect(0,0,128,128); return new THREE.CanvasTexture(cv); })();
       I.mist = [];
@@ -6444,17 +6468,18 @@ function buildIslandBody(cfg){
   }
   if(cfg.decor === "bones"){
     for(let i=0;i<7;i++){ const s = sample(20,56,true); if(!s) continue;
-      const rib = inked(new THREE.TorusGeometry(3+Math.random()*3,.32,6,14,Math.PI), 0xE8DEC8, 1.6);
+      const rr0 = 3+Math.random()*3; const rib = ROCKQ ? stoneMesh(weather(new THREE.TorusGeometry(rr0,.32,8,30,Math.PI), .05, 2.0), 0xE8DEC8, 5, 1, false) : inked(new THREE.TorusGeometry(rr0,.32,6,14,Math.PI), 0xE8DEC8, 1.6);
       rib.position.set(s[0], height(s[0],s[1]), s[1]); rib.rotation.y = Math.random()*3; scene.add(rib); }
     for(let i=0;i<5;i++){ const s = sample(20,50,true); if(!s) continue;
-      const skull = inked(new THREE.SphereGeometry(1.4,10,8), 0xE8DEC8, 1.8); skull.scale.set(1.2,.9,1.6);
+      const skull = ROCKQ ? stoneMesh(weather(new THREE.SphereGeometry(1.4,24,18), .06, 1.5), 0xE8DEC8, 2, 1.4, false) : inked(new THREE.SphereGeometry(1.4,10,8), 0xE8DEC8, 1.8); skull.scale.set(1.2,.9,1.6);
       skull.position.set(s[0], height(s[0],s[1])+1, s[1]); scene.add(skull); I.colliders.push({x:s[0],z:s[1],r:1.6}); }
     for(let i=0;i<5;i++){ const s = sample(10,40,true); if(!s) continue;
+      if(DFOREST){ DFOREST.bush(1.3 + Math.random()*.5, s[0], height(s[0],s[1]) - .1, s[1]); continue; }
       const fern = inked(new THREE.ConeGeometry(2.2,3.2,5), P.leaf2, 1.5); fern.position.set(s[0],height(s[0],s[1])+1.4,s[1]); fern.rotation.x=Math.PI; scene.add(fern); }
   }
   if(cfg.decor === "lighthouse"){
     const lhx=-30*WORLD, lhz=-25*WORLD, base = height(lhx,lhz);
-    const tower = inked(new THREE.CylinderGeometry(1.6,2.2,11,12), P.stone, 2.0); tower.position.set(lhx, base+5.5, lhz); scene.add(tower);
+    const tower = ROCKQ ? stoneMesh(new THREE.CylinderGeometry(1.6,2.2,11,28,6), P.stone, 4, 4, true) : inked(new THREE.CylinderGeometry(1.6,2.2,11,12), P.stone, 2.0); tower.position.set(lhx, base+5.5, lhz); scene.add(tower);
     I.colliders.push({x:lhx, z:lhz, r:2.6});
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(1.2,12,10), new THREE.MeshBasicMaterial({color:MOON})); lamp.position.set(lhx, base+11.6, lhz); scene.add(lamp);
     const beam = new THREE.SpotLight(0xFFF0C0, 2.2, 160, .35, .5); beam.position.set(lhx, base+11.6, lhz); scene.add(beam);
@@ -6979,6 +7004,8 @@ function buildIslandBody(cfg){
 
   /* bake every static inked prop into two big meshes (toon + ink) so hundreds of draw calls become two —
      shadow pass, ink pass and main pass all shrink. Anything that moves or changes stays a separate object. */
+  if(DROCKS) DROCKS.finish(scene);
+  if(DFOREST) DFOREST.finish(scene, I);
   mergeStatics(I, scene);
   /* ===============  SHADOWS: JUDGE THE MESH, NEVER THE MATERIAL CLASS  ===============
      This gate used to read `o.material.isMeshToonMaterial`. ART defaults to "real", which builds
@@ -7758,7 +7785,7 @@ function tryJump(){
 function islandUpdate(I, dt, t){
   const cfg = I.cfg, W = I.W;
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
-  if(I.treeWind){ I.treeWind.uTime.value = t; I.treeWind.uPlayer.value.set(W.x, W.y, W.z); }
+  if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); }
   if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
   I.sea.userData.mat.uniforms.t.value = t;
