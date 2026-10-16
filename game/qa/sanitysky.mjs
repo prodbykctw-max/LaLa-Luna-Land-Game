@@ -2,7 +2,7 @@
 import { open, out } from './_harness.mjs';
 const H = await open({ island: 'sanity', query: 'guide=off', wait: 26000 });
 await H.page.evaluate(() => { const I = window.__T.CUR, W = I.W, [dx, dz] = I.cfg.dock;
-  const lx = -30*4, lz = -25*4, x = dx*.55 + lx*.45, z = dz*.55 + lz*.45;
+  const lx = -30*4, lz = -25*4, x = dx*.85 + lx*.15, z = dz*.85 + lz*.15;
   W.x = x; W.z = z; W.y = I.height(x, z); const yaw = Math.atan2(lx - x, lz - z); W.camYaw = yaw; W.heading = yaw; });
 const shots = [];
 for (const [tag, sky] of [['noon', {hour: 12, storm: 0}], ['dusk', {hour: 19, storm: 0}], ['night', {hour: 23.5, storm: 0}], ['storm', {hour: 23.5, storm: 1}]]) {
