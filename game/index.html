@@ -1421,9 +1421,12 @@ function flowerMeadow(scene, n, origin, heightFn, blocked){
    most of it at night, or Sanity's moonlit meadow comes out daylight-green */
 let MEADOW_KEEP = .78;
 function meadowMat(col, extra){
+  const SF = SHORE_FIELD;      /* SHORE: the island being built - its meadow turns to sand along a ragged edge at the coast */
+  const shoreOn = m => { if(SF && m.isMeshStandardMaterial){ m.userData.patches = (m.userData.patches || []).concat([["shore", sh => shoreMeadowPatch(sh, SF, SF.sandCol)]]);
+    m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh)); m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_"); } return m; };
   if(!GROUNDQ){
     const m = toon(col, Object.assign({map:TEX.meadow, roughness:1, envMapIntensity:.16}, extra||{}));
-    return m;
+    return shoreOn(m);
   }
   const c = new THREE.Color(col).lerp(new THREE.Color(0xFFFFFF), MEADOW_KEEP);     /* just enough island tint to stay in-palette */
   const m = toon(c, Object.assign({map:PHOTO.diff, normalMap:PHOTO.nor, roughness:.96, envMapIntensity:.22}, extra||{}));
@@ -1441,7 +1444,7 @@ function meadowMat(col, extra){
     m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
     m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
   }
-  return m;
+  return shoreOn(m);
 }
 /* Recover the un-tiled uv by dividing vUv back out by the map's own repeat, then re-scale it to a
    couple of tiles across the mesh. Hooks in after <map_fragment> so it multiplies the final albedo. */
@@ -3617,6 +3620,7 @@ function resamplePoly(p, step){
   let q = out;
   for(let pass=0; pass<2; pass++){ const r = []; for(let i=0;i<q.length;i++){ const a = q[i], b = q[(i+1)%q.length];
     r.push([a[0]*.75 + b[0]*.25, a[1]*.75 + b[1]*.25], [a[0]*.25 + b[0]*.75, a[1]*.25 + b[1]*.75]); } q = r; }
+  if(p.__rough) q.__rough = true;      /* SHORE: far offsets of a roughened coast follow its smoothed copy */
   return q;
 }
 function breakers(scene, POLY, P, PS, night, amp){
@@ -3752,14 +3756,14 @@ function swashSheet(scene, POLY, P, night){
   const wetCol = new THREE.Color(P.sand).multiplyScalar(.32);
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {t:{value:0}, uOp:{value:1}, uWL:{value:WL},
-      uLum:{value: night ? .46 : 1.0}, uSheet:{value:sheetCol}, uWet:{value:wetCol}}]),
+      uLum:{value: night ? .46 : 1.0}, uSheet:{value:sheetCol}, uWet:{value:wetCol}, uRainWet:{value:0}}]),
     vertexShader:`attribute float aD; varying float vD; varying vec2 vXZ;
       #include <fog_pars_vertex>
       void main(){ vD = aD; vec4 wp = modelMatrix*vec4(position,1.0); vXZ = wp.xz;
         vec4 mvPosition = viewMatrix*wp; gl_Position = projectionMatrix*mvPosition;
         #include <fog_vertex>
       }`,
-    fragmentShader:`uniform float t, uOp, uWL, uLum; uniform vec3 uSheet, uWet; varying float vD; varying vec2 vXZ;
+    fragmentShader:`uniform float t, uOp, uWL, uLum, uRainWet; uniform vec3 uSheet, uWet; varying float vD; varying vec2 vXZ;
       #include <fog_pars_fragment>
       float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
       float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -3811,7 +3815,7 @@ function swashSheet(scene, POLY, P, night){
         float wet = (1.0 - smoothstep(Rw - .25, Rw + .6, x)) * .40 + (1.0 - smoothstep(0.0, 7.0, x)) * .12;
         wet *= smoothstep(-.6, .6, x);
         float edge = smoothstep(1.5, 2.6, vD) * (1.0 - smoothstep(10.8, 12.0, vD));
-        vec3 col = uWet; float a = wet;
+        vec3 col = uWet * (1.0 - .5*uRainWet); float a = min(.95, wet * (1.0 + .35*uRainWet));
         col = mix(col, uSheet*uLum, sheet / max(.001, a + sheet*(1.0-a))); a = a + sheet*(1.0-a);
         float fa = min(.95, foam);
         col = mix(col, vec3(.95,.97,1.0)*relief*uLum, fa / max(.001, a + fa*(1.0-a))); a = a + fa*(1.0-a);
@@ -3819,7 +3823,568 @@ function swashSheet(scene, POLY, P, night){
         #include <fog_fragment>
       }`,
     transparent:true, depthWrite:false, fog:true, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-4});
+  if(SHOREQ) mat.uniforms.uRainWet = WET;                       /* SHORE: the swash's wet sand soaks darker in the rain too */
   const m = new THREE.Mesh(g, mat); m.renderOrder = 2; scene.add(m); return m;
+}
+/* ===================  THE SHORE  (default; ?shore=old restores the smooth coast and the painted sand)  ===================
+   His notes, 2026-10-16: every island is a smooth blob; the grass sits on the sand in a hard straight
+   line; Sanity's beach is a flat painted strip; and wet sand should go much darker. All four come from
+   the same place - the coast was 72 straight 25-50 u segments from Natural Earth, the meadow slab
+   stopped on a polygon 2.5 u inside it, and the sand was a canvas that tiled 104 times per unit (so it
+   was a flat tint at any distance). This pass:
+     - COAST: the outline is resampled to 6 u and pushed in and out by three octaves of noise (bays
+       ~150 u, coves ~60 u, wiggle ~24 u, up to ~18 u either way) plus two to four sharper rocky points
+       per island. Displacement is exactly zero round everything she uses - spawn, the pier and its
+       landing, notes, NPCs, named places, features, stepping stones, the letter, pickups - and it runs
+       AFTER every one of those was placed, so not one position moves. Coves are kept rounder than the
+       widest wave band (concave radius >= 14 u) so nothing built by offsetting the coast folds, and
+       offsets past 8 u follow a smoothed copy of the coast (the shelf and the breakers far out follow
+       the bays, not every wiggle). Everything on the shore - sand slab, shelf, swash, breakers, the
+       sea's shore mask, wading, the height she walks on - is still derived from this one polygon.
+     - ROCK: rocky points get a mass of big boulders running out into the surf with a few standing
+       offshore; about a quarter of the remaining coast is a rocky shore - a low broken rock ledge right
+       at the waterline with boulders and pebbles below it, wet and dark under the tide line. Same CC0
+       photo rock as everything else, one merged mesh, real colliders.
+     - SAND: Poly Haven's CC0 aerial_beach_01 scan (footprint-free wind ripples), albedo + normal map,
+       one tile per 7 u. A damp band of darker, smoother, glossier sand along the water with a ragged
+       top and a faint wrack line, and the whole beach darkens ~50% and goes glossy as the rain soaks in.
+     - EDGE: the meadow itself turns to sand over a ragged 3-14 u band (distance to the coast + two
+       noise octaves, so the line wanders and breaks into scrubby patches); the dense grass stops on the
+       same line; sparse, tall, pale dune-grass clumps grow out of the sand edge; driftwood and pebbles
+       lie along the high-tide line.
+   One field per island drives it: a small texture holding signed distance to the coast (+-16 u),
+   shared by the meadow, the sand and the CPU (which grass may grow where), so the drawn edge and the
+   grass that stops at it are the same line. */
+const SHOREQ = QS.get("shore") !== "old";
+const SHORE_PHONE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
+const SAND_TILE = 7;                       /* world units per tile of the sand photo */
+const SHORE_FMAX = 16;                     /* the field holds signed coast distance clamped to +-this */
+let SHORE_FIELD = null;                    /* the island being built: meadowMat picks its sand edge up from here */
+/* periodic value-noise fbm in two channels, 128 x 128 - sampled the same way on the GPU and the CPU */
+const SHORE_NOISE = !SHOREQ ? null : (() => {
+  const N = 128, ch = [new Float32Array(N*N), new Float32Array(N*N)];
+  let s = 90210; const rnd = () => (s = (s*16807) % 2147483647) / 2147483647;
+  const oct = f => { const L = new Float32Array(f*f); for(let i=0;i<f*f;i++) L[i] = rnd();
+    return (u, v) => { const x = u*f, y = v*f, i = Math.floor(x), j = Math.floor(y), fx = x-i, fy = y-j, sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy);
+      const i0 = i%f, i1 = (i+1)%f, j0 = j%f, j1 = (j+1)%f;
+      return (L[j0*f+i0]*(1-sx) + L[j0*f+i1]*sx)*(1-sy) + (L[j1*f+i0]*(1-sx) + L[j1*f+i1]*sx)*sy; }; };
+  for(const c of ch){ const os = [oct(4), oct(8), oct(16), oct(32)], W = [.52, .26, .14, .08];
+    let lo = 1e9, hi = -1e9;
+    for(let j=0;j<N;j++) for(let i=0;i<N;i++){ let v = 0; for(let k=0;k<4;k++) v += os[k](i/N, j/N)*W[k]; c[j*N+i] = v; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    for(let k=0;k<N*N;k++) c[k] = (c[k] - lo)/(hi - lo); }
+  const data = new Uint8Array(N*N*4), q = [new Uint8Array(N*N), new Uint8Array(N*N)];
+  for(let k=0;k<N*N;k++){ q[0][k] = Math.round(ch[0][k]*255); q[1][k] = Math.round(ch[1][k]*255);
+    data[k*4] = q[0][k]; data[k*4+1] = q[1][k]; data[k*4+2] = 0; data[k*4+3] = 255; }
+  const tex = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter; tex.generateMipmaps = true; tex.needsUpdate = true;
+  /* bilinear, texel centres, wrapped - what texture2D does at the base level */
+  const at = (c, u, v) => { const x = u*N - .5, y = v*N - .5, i = Math.floor(x), j = Math.floor(y), fx = x-i, fy = y-j;
+    const w = a => ((a % N) + N) % N, A = q[c];
+    const i0 = w(i), i1 = w(i+1), j0 = w(j), j1 = w(j+1);
+    return ((A[j0*N+i0]*(1-fx) + A[j0*N+i1]*fx)*(1-fy) + (A[j1*N+i0]*(1-fx) + A[j1*N+i1]*fx)*fy) / 255; };
+  return {tex, at};
+})();
+const SHORE_TEX = !SHOREQ ? null : (() => {
+  const L = new THREE.TextureLoader();
+  const mk = (url, srgb) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+    if(srgb) t.encoding = THREE.sRGBEncoding; t.repeat.set(1/SAND_TILE, 1/SAND_TILE); return t; };
+  return {sand: mk("assets/shore/sand_diff.jpg", true), sandN: mk("assets/shore/sand_nor.jpg", false)};
+})();
+/* integer-hash value noise for the CPU-only decisions (coast displacement, where the rocks go) */
+const shH = (i, j, s) => { let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(s, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+const shVN = (x, z, s) => { const i = Math.floor(x), j = Math.floor(z), fx = x-i, fz = z-j, u = fx*fx*(3-2*fx), v = fz*fz*(3-2*fz);
+  return (shH(i,j,s)*(1-u) + shH(i+1,j,s)*u)*(1-v) + (shH(i,j+1,s)*(1-u) + shH(i+1,j+1,s)*u)*v; };
+/* Offsets past 8 u from a roughened coast follow a smoothed copy of it (blended in by 40 u), so the
+   shelf, breakers and the sea animals' ring follow the bays without folding in every cove. */
+function shoreBlendPoly(p, d){
+  const k = Math.max(0, Math.min(1, (Math.abs(d) - 8)/32)), a = k*k*(3 - 2*k);
+  if(a <= 0) return p;
+  if(!p.__sm){ let q = p.map(v => [v[0], v[1]]); const n = q.length;
+    for(let it=0; it<30; it++){ const r = []; for(let i=0;i<n;i++){ const A = q[(i-1+n)%n], B = q[i], C = q[(i+1)%n];
+      r.push([B[0]*.5 + (A[0] + C[0])*.25, B[1]*.5 + (A[1] + C[1])*.25]); } q = r; }
+    p.__sm = q; }
+  const S = p.__sm; return p.map((v, i) => [v[0] + (S[i][0] - v[0])*a, v[1] + (S[i][1] - v[1])*a]);
+}
+/* Nearest-coast and inside tests on a grid of segment buckets. The roughened coast has ~8x the
+   vertices; the walker, every decor scatter and every frame's height() ask these, so they get a
+   spatial index. Answers are identical to the brute-force loops (same formulas, same segments). */
+function coastAccel(P){
+  const C = 12, n = P.length;
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for(const p of P){ x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
+  x0 -= 2*C; z0 -= 2*C; x1 += 2*C; z1 += 2*C;
+  const nx = Math.ceil((x1 - x0)/C), nz = Math.ceil((z1 - z0)/C);
+  const cells = Array.from({length: nx*nz}, () => []), rows = Array.from({length: nz}, () => []);
+  for(let i=0, j=n-1; i<n; j=i++){
+    const a = P[j], b = P[i];
+    const ci0 = Math.floor((Math.min(a[0], b[0]) - x0)/C), ci1 = Math.floor((Math.max(a[0], b[0]) - x0)/C);
+    const cj0 = Math.floor((Math.min(a[1], b[1]) - z0)/C), cj1 = Math.floor((Math.max(a[1], b[1]) - z0)/C);
+    for(let cj=cj0; cj<=cj1; cj++){ rows[cj].push(i); for(let ci=ci0; ci<=ci1; ci++) cells[cj*nx + ci].push(i); }
+  }
+  const segD = (k, x, z) => { const j = (k - 1 + n) % n, ax = P[j][0], az = P[j][1], ex = P[k][0]-ax, ez = P[k][1]-az, L = ex*ex+ez*ez || 1;
+    let u = ((x-ax)*ex + (z-az)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
+    const dx = x-(ax+ex*u), dz = z-(az+ez*u); return dx*dx+dz*dz; };
+  const brute = (x, z) => { let best = 1e18; for(let k=0;k<n;k++){ const d = segD(k, x, z); if(d < best) best = d; } return Math.sqrt(best); };
+  const dist = (x, z) => {
+    const ci = Math.floor((x - x0)/C), cj = Math.floor((z - z0)/C);
+    if(ci < 0 || cj < 0 || ci >= nx || cj >= nz) return brute(x, z);
+    let best = 1e18;
+    for(let r=0; r<=7; r++){
+      if(r > 0 && Math.sqrt(best) <= (r - 1)*C) return Math.sqrt(best);
+      for(let j=cj-r; j<=cj+r; j++){ if(j < 0 || j >= nz) continue;
+        const edge = j === cj-r || j === cj+r;
+        for(let i=ci-r; i<=ci+r; i += (edge ? 1 : 2*r || 1)){ if(i < 0 || i >= nx) continue;
+          const L = cells[j*nx + i]; for(let k=0;k<L.length;k++){ const d = segD(L[k], x, z); if(d < best) best = d; } } }
+    }
+    return best < 1e17 && Math.sqrt(best) <= 6*C ? Math.sqrt(best) : brute(x, z);
+  };
+  const inside = (x, z) => {
+    const cj = Math.floor((z - z0)/C); if(cj < 0 || cj >= nz) return false;
+    let c = false; const L = rows[cj];
+    for(let k=0;k<L.length;k++){ const i = L[k], j = (i - 1 + n) % n;
+      const xi = P[i][0], zi = P[i][1], xj = P[j][0], zj = P[j][1];
+      if(((zi>z)!==(zj>z)) && (x < (xj-xi)*(z-zi)/(zj-zi)+xi)) c = !c; }
+    return c; };
+  return {dist, inside};
+}
+/* Roughen the coastline in place. Runs once per island, after every gameplay position is final. */
+function shoreRoughen(POLY, cfg, TMAX){
+  const seed = seedOf("shore:" + cfg.key) & 0xffff;
+  /* 1. resample to ~6 u */
+  const base = [];
+  for(let i=0;i<POLY.length;i++){ const a = POLY[i], b = POLY[(i+1)%POLY.length], L = Math.hypot(b[0]-a[0], b[1]-a[1]), k = Math.max(1, Math.round(L/6));
+    for(let j=0;j<k;j++) base.push([a[0] + (b[0]-a[0])*j/k, a[1] + (b[1]-a[1])*j/k]); }
+  const n = base.length;
+  const wind = (() => { let A = 0; for(let i=0;i<n;i++){ const a = base[i], b = base[(i+1)%n]; A += a[0]*b[1]-b[0]*a[1]; } return A > 0 ? 1 : -1; })();
+  /* outward normals from a lightly smoothed copy, so displacement directions never cross */
+  let sm = base.map(v => [v[0], v[1]]);
+  for(let it=0; it<6; it++){ const r = []; for(let i=0;i<n;i++){ const A = sm[(i-1+n)%n], B = sm[i], C2 = sm[(i+1)%n]; r.push([B[0]*.5+(A[0]+C2[0])*.25, B[1]*.5+(A[1]+C2[1])*.25]); } sm = r; }
+  const nrm = sm.map((v, i) => { const a = sm[(i-1+n)%n], c = sm[(i+1)%n]; let tx = c[0]-a[0], tz = c[1]-a[1]; const l = Math.hypot(tx, tz) || 1;
+    return [tz/l*wind, -tx/l*wind]; });
+  /* 2. what must not move: everything she can walk to, talk to, pick up or land at */
+  const prot = [], add = (x, z, r) => { if(isFinite(x) && isFinite(z)) prot.push([x, z, r]); };
+  const sp = cfg.spawn, dk = cfg.dock;
+  add(sp[0], sp[1], 26);
+  for(let t=0; t<=1.0001; t+=.05){ const z1 = dk[1] + DOCK_LEN/2; add(sp[0] + (dk[0]-sp[0])*t, sp[1] + (z1-sp[1])*t, 26); }
+  (cfg.notes||[]).forEach(q => add(q.x, q.z, 14));
+  (cfg.npcs||[]).forEach(q => add(q.at[0], q.at[1], 16));
+  (cfg.places||[]).forEach(q => add(q.x, q.z, Math.min(q.r*.5, 30) + 10));
+  (cfg.features||[]).forEach(f => add(f.x, f.z, f.outer ? (f.r||6) + 40 : (f.r||6)*.6 + 10));
+  (cfg.stones||[]).forEach(s => add(s[0], s[1], 18));
+  ["ability", "pen", "secret", "letter", "desk", "postman", "mailbox"].forEach(k => { const o = cfg[k]; if(o && o.at) add(o.at[0], o.at[1], 14); });
+  if(cfg.beach) add(cfg.beach.x, cfg.beach.z, cfg.beach.r + 14);
+  if(cfg.grotto) add(cfg.grotto.x, cfg.grotto.z, cfg.grotto.r + 14);
+  if(cfg.gate) for(let z=cfg.gate.zMin; z<=cfg.gate.zMax; z+=8) add(cfg.gate.x, z, 12);
+  const mask = base.map(v => { let m = 1; for(const [x, z, r] of prot){ const d = Math.hypot(v[0]-x, v[1]-z); if(d < r + 45){ const k = Math.max(0, (d - r)/45); m = Math.min(m, k*k*(3-2*k)); } } return m; });
+  /* 3. displacement: bays, coves, wiggle (+ is seaward) */
+  const inOrig = (x, z) => polyInside(base, x, z);
+  const D = new Float32Array(n);
+  for(let i=0;i<n;i++){ if(mask[i] <= 0) continue;
+    const [x, z] = base[i];
+    let d = 13*(shVN(x/150, z/150, seed)*2-1) + 5*(shVN(x/60, z/60, seed+1)*2-1) + 1.3*(shVN(x/24, z/24, seed+2)*2-1);
+    D[i] = d;
+  }
+  /* 4. two to four rocky points, well apart, where nothing is protected */
+  const heads = [];
+  { const want = Math.max(2, Math.min(4, Math.round(n*6/700))), cand = [];
+    for(let i=0;i<n;i++) if(mask[i] > .97) cand.push(i);
+    cand.sort((a, b) => (D[b] + shH(b, 3, seed)*6) - (D[a] + shH(a, 3, seed)*6));
+    for(const i of cand){ if(heads.length >= want) break;
+      if(heads.some(h => { const g = Math.abs(h.i - i); return Math.min(g, n - g)*6 < 170; })) continue;
+      heads.push({i, h: 8 + shH(i, 5, seed)*5, s: 9 + shH(i, 6, seed)*4}); }
+    for(const h of heads) for(let k=-8; k<=8; k++){ const i = (h.i + k + n) % n; D[i] += h.h * Math.exp(-(k*6)*(k*6)/(2*h.s*h.s)) * Math.min(1, mask[i]*1.05); } }
+  /* never pinch a narrow neck, never reach across a narrow channel, never cut into high ground */
+  for(let i=0;i<n;i++){ if(!D[i]) continue;
+    const [x, z] = base[i], [ox, oz] = nrm[i]; let d = D[i] * mask[i];
+    if(d < 0){ const t = -2*d + 10; if(!inOrig(x - ox*t, z - oz*t)) d *= .25;
+      const tx = x + ox*d, tz = z + oz*d;
+      const h = Math.max(terrainAt(cfg.key, tx, tz, TMAX), terrainAt(cfg.key, tx - ox*4, tz - oz*4, TMAX));
+      d *= Math.max(0, Math.min(1, 1 - (h - .25)/1.0)); }
+    else if(d > 0){ const t = 2*d + 12; if(inOrig(x + ox*t, z + oz*t)) d *= .25; }
+    D[i] = d; }
+  /* 5. move, then round off any cove tighter than r = 14 u (and any point sharper than 6 u) */
+  const q = base.map((v, i) => [v[0] + nrm[i][0]*D[i], v[1] + nrm[i][1]*D[i]]);
+  for(let it=0; it<40; it++){
+    for(let i=0;i<n;i++){ const g = Math.min(1, mask[i]*3.3); if(g <= 0) continue;
+      const a = q[(i-1+n)%n], c = q[(i+1)%n], mx = (a[0]+c[0])*.5, mz = (a[1]+c[1])*.5;
+      const L2 = Math.hypot(c[0]-a[0], c[1]-a[1]) || 1, L = L2*.5, lx = (c[1]-a[1])/L2*wind, lz = -(c[0]-a[0])/L2*wind;   /* the local outward normal */
+      const b = (q[i][0]-mx)*lx + (q[i][1]-mz)*lz;
+      const lo = -L*L/28, hi = L*L/12;
+      const want = b < lo ? lo : b > hi ? hi : b;
+      if(want !== b){ const k = (b - want)*g; q[i][0] -= lx*k; q[i][1] -= lz*k; } } }
+  for(let i=0;i<n;i++) D[i] = (q[i][0]-base[i][0])*nrm[i][0] + (q[i][1]-base[i][1])*nrm[i][1];
+  POLY.length = 0; q.forEach(v => POLY.push(v));
+  POLY.__rough = true; POLY.__acc = coastAccel(POLY);
+  return {n, D, mask, nrm, heads, seed};
+}
+/* The field: signed distance to the coast (+ out to sea), +-SHORE_FMAX, ~1.5 u texels over the
+   island's bounds. Distances are rasterised per segment (each one only touches the texels within
+   16 u of it) and the sign comes from a scanline fill, so it builds in a few milliseconds. */
+function shoreField(POLY){
+  const M = 22, F = SHORE_FMAX;
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for(const p of POLY){ x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
+  x0 -= M; z0 -= M; x1 += M; z1 += M;
+  const MAXN = SHORE_PHONE ? 768 : 1024;
+  const C = Math.max(1.35, (x1 - x0)/MAXN, (z1 - z0)/MAXN);
+  const nx = Math.ceil((x1 - x0)/C), nz = Math.ceil((z1 - z0)/C);
+  const dist = new Float32Array(nx*nz).fill(F), n = POLY.length;
+  for(let i=0, j=n-1; i<n; j=i++){
+    const ax = POLY[j][0], az = POLY[j][1], ex = POLY[i][0]-ax, ez = POLY[i][1]-az, L = ex*ex+ez*ez || 1;
+    const i0 = Math.max(0, Math.floor((Math.min(ax, ax+ex) - F - x0)/C)), i1 = Math.min(nx-1, Math.ceil((Math.max(ax, ax+ex) + F - x0)/C));
+    const j0 = Math.max(0, Math.floor((Math.min(az, az+ez) - F - z0)/C)), j1 = Math.min(nz-1, Math.ceil((Math.max(az, az+ez) + F - z0)/C));
+    for(let tj=j0; tj<=j1; tj++){ const z = z0 + (tj + .5)*C;
+      for(let ti=i0; ti<=i1; ti++){ const x = x0 + (ti + .5)*C;
+        let u = ((x-ax)*ex + (z-az)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
+        const d = Math.hypot(x-(ax+ex*u), z-(az+ez*u)), k = tj*nx + ti; if(d < dist[k]) dist[k] = d; } }
+  }
+  const data = new Uint8Array(nx*nz), xs = [];
+  for(let tj=0; tj<nz; tj++){ const z = z0 + (tj + .5)*C; xs.length = 0;
+    for(let i=0, j=n-1; i<n; j=i++){ const zi = POLY[i][1], zj = POLY[j][1];
+      if((zi > z) !== (zj > z)) xs.push((POLY[j][0]-POLY[i][0])*(z-zi)/(zj-zi) + POLY[i][0]); }
+    xs.sort((a, b) => a - b);
+    let s = 0;
+    for(let ti=0; ti<nx; ti++){ const x = x0 + (ti + .5)*C;
+      while(s < xs.length && xs[s] <= x) s++;
+      const inn = ((xs.length - s) & 1) === 1;                 /* odd crossings to the right: inside */
+      const k = tj*nx + ti, sd = inn ? -dist[k] : dist[k];
+      data[k] = Math.round((sd + F)/(2*F)*255); } }
+  const tex = new THREE.DataTexture(data, nx, nz, THREE.LuminanceFormat);
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.magFilter = tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false; tex.unpackAlignment = 1; tex.needsUpdate = true;
+  const W = nx*C, H = nz*C;
+  const sd = (x, z) => { const fx0 = (x - x0)/C - .5, fz0 = (z - z0)/C - .5;
+    const i = Math.floor(fx0), j = Math.floor(fz0), fx = fx0 - i, fz = fz0 - j;
+    const cl = (a, m) => a < 0 ? 0 : a > m-1 ? m-1 : a, i0 = cl(i, nx), i1 = cl(i+1, nx), j0 = cl(j, nz), j1 = cl(j+1, nz);
+    const v = (data[j0*nx+i0]*(1-fx) + data[j0*nx+i1]*fx)*(1-fz) + (data[j1*nx+i0]*(1-fx) + data[j1*nx+i1]*fx)*fz;
+    return v/255*2*F - F; };
+  /* how much of the meadow has turned to sand here - the shader's shoreSandK(), line for line */
+  const sandK = (x, z) => {
+    const inl = -sd(x, z);
+    const n1 = SHORE_NOISE.at(0, x/90, z/90), n2 = SHORE_NOISE.at(1, x/14 + .37, z/14 + .37);
+    const edgeIn = 3.0 + 9.0*n1, t = (inl - edgeIn)/1.6 + (n2 - .5)*3.2;
+    const ss = (a, b, v) => { const k = Math.max(0, Math.min(1, (v - a)/(b - a))); return k*k*(3 - 2*k); };
+    return Math.max(1 - ss(-.5, .5, t), 1 - ss(2.6, 3.4, inl)); };
+  return {tex, sd, sandK, min:new THREE.Vector2(x0, z0), inv:new THREE.Vector2(1/W, 1/H)};
+}
+/* GLSL twins of the above */
+const SHORE_GLSL = `
+  uniform sampler2D uShF, uShN; uniform vec2 uShMin, uShInv; uniform float uShWet;
+  varying vec3 vShW;
+  float shoreSD(vec2 w){ return texture2D(uShF, (w - uShMin)*uShInv).r * ${(2*SHORE_FMAX).toFixed(1)} - ${SHORE_FMAX.toFixed(1)}; }
+  float shoreSandK(vec3 w){
+    float inl = -shoreSD(w.xz);
+    float n1 = texture2D(uShN, w.xz/90.0).r, n2 = texture2D(uShN, w.xz/14.0 + .37).g;
+    float edgeIn = 3.0 + 9.0*n1, t = (inl - edgeIn)/1.6 + (n2 - .5)*3.2;
+    return max(1.0 - smoothstep(-.5, .5, t), 1.0 - smoothstep(2.6, 3.4, inl)); }`;
+function shoreUniforms(sh, F){
+  sh.uniforms.uShF = {value: F.tex}; sh.uniforms.uShN = {value: SHORE_NOISE.tex};
+  sh.uniforms.uShMin = {value: F.min}; sh.uniforms.uShInv = {value: F.inv}; sh.uniforms.uShWet = WET;
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vShW;")
+    .replace("#include <project_vertex>", "#include <project_vertex>\nvShW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+}
+/* the meadow (grass slab, terrain, hill and mesa skirts) turns to sand along a ragged edge near the coast */
+function shoreMeadowPatch(sh, F, sandCol){
+  shoreUniforms(sh, F);
+  sh.uniforms.uShSand = {value: SHORE_TEX.sand}; sh.uniforms.uShSandN = {value: SHORE_TEX.sandN}; sh.uniforms.uShCol = {value: sandCol};
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", "#include <common>\n" + SHORE_GLSL + "\nuniform sampler2D uShSand, uShSandN; uniform vec3 uShCol; float shK;")
+    .replace("#include <color_fragment>", `#include <color_fragment>
+      shK = shoreSandK(vShW) * (1.0 - smoothstep(4.0, 9.0, vShW.y));      /* up the foot of a coastal slope, never onto a hilltop */
+      if(shK > .001){
+        vec2 suv = vec2(vShW.x, -vShW.z) / ${SAND_TILE.toFixed(1)};
+        vec3 sc = sRGBToLinear(texture2D(uShSand, suv)).rgb * uShCol;
+        sc *= .88 + .24*texture2D(uShN, vShW.xz/52.0).g;
+        diffuseColor.rgb = mix(diffuseColor.rgb, sc, shK);
+        diffuseColor.rgb *= 1.0 - .26*uShWet*shK;
+      }`)
+    .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+      #if defined( TANGENTSPACE_NORMALMAP ) && ! defined( USE_TANGENT )
+      if(shK > .001){ vec3 sN = texture2D(uShSandN, vec2(vShW.x, -vShW.z) / ${SAND_TILE.toFixed(1)}).xyz * 2.0 - 1.0;
+        normal = normalize(mix(normal, perturbNormal2Arb(-vViewPosition, geometryNormal, sN, faceDirection), shK)); }
+      #endif`)
+    .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
+      material.specularRoughness = mix(material.specularRoughness, mix(.93, .26, uShWet), shK);`);
+}
+/* the beach and the shelf: photo sand, a damp band along the water, a wrack line, and rain */
+function shoreSandPatch(sh, F){
+  shoreUniforms(sh, F);
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", "#include <common>\n" + SHORE_GLSL + "\nfloat shD;")
+    .replace("#include <color_fragment>", `#include <color_fragment>
+      { float sd = shoreSD(vShW.xz);
+        float nB = texture2D(uShN, vShW.xz/60.0).r, nF = texture2D(uShN, vShW.xz/9.0 + .5).g;
+        float dampAt = 2.6 + 2.8*nB;                                   /* the top of the damp band wanders */
+        shD = smoothstep(dampAt - .8, dampAt + 1.8, sd + (nF - .5)*1.5);
+        float tone = texture2D(uShN, vShW.xz/23.0 + .21).r;
+        diffuseColor.rgb *= (.90 + .20*tone) * mix(1.0, .56, shD);
+        diffuseColor.rgb *= mix(vec3(1.0), vec3(.93, .97, 1.04), shD);        /* damp sand runs a touch cooler */
+        float wr = 1.0 - smoothstep(.0, .30, abs(sd - (dampAt - 1.5) - (nF - .5)*1.3));
+        diffuseColor.rgb *= 1.0 - .13*wr*(1.0 - shD);                   /* the last high tide's line */
+        diffuseColor.rgb *= 1.0 - .26*uShWet; }`)
+    .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+      normal = normalize(mix(normal, geometryNormal, shD*.55));          /* water smooths the ripples out */`)
+    .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
+      material.specularRoughness = mix(material.specularRoughness, .40, shD*.75);
+      material.specularRoughness = mix(material.specularRoughness, .20, uShWet*.9);
+      #ifdef USE_FOG
+      { float fr = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 5.0);
+        totalEmissiveRadiance += fogColor * fr * (.10*shD + .28*uShWet); }      /* wet sand mirrors the sky at a low angle */
+      #endif`);
+}
+function shoreSandMat(col, F, extra){
+  const m = toon(col, Object.assign({map:SHORE_TEX.sand, normalMap:SHORE_TEX.sandN, roughness:.95, envMapIntensity:.18}, extra || {}));
+  if(m.normalScale) m.normalScale.set(1, 1);
+  if(m.isMeshStandardMaterial){
+    m.userData.patches = (m.userData.patches || []).concat([["shoresand", sh => shoreSandPatch(sh, F)]]);
+    m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
+    m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
+  }
+  return m;
+}
+/* rocks for the shore: the island's photo rock, triplanar, with a wet dark band under the tide line */
+function shoreRockBuilder(P, night){
+  const pos = [], nor = [], idx = [], ob = [];
+  const v = new THREE.Vector3(), m4 = new THREE.Matrix4(), nm = new THREE.Matrix3(), qq = new THREE.Quaternion(), eu = new THREE.Euler();
+  const hsh = (x, y, z) => { const s = Math.sin(x*127.1 + y*311.7 + z*74.7)*43758.5453; return s - Math.floor(s); };
+  const vn3 = (x, y, z) => { const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z), fx = x-ix, fy = y-iy, fz = z-iz;
+    const sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy), sz = fz*fz*(3-2*fz); let r = 0;
+    for(let a=0;a<2;a++) for(let b=0;b<2;b++) for(let c=0;c<2;c++) r += hsh(ix+a, iy+b, iz+c) * (a?sx:1-sx) * (b?sy:1-sy) * (c?sz:1-sz);
+    return r; };
+  /* indexed (welded) icospheres: a third of the vertices to shade, in the main and the shadow pass */
+  const geos = [0, 1, 2, 3].map(d => { const g = new THREE.IcosahedronGeometry(1, d), pa = g.attributes.position, key = new Map(), P3 = [], ix = [];
+    for(let i=0;i<pa.count;i++){ const k = pa.getX(i).toFixed(4) + "," + pa.getY(i).toFixed(4) + "," + pa.getZ(i).toFixed(4);
+      let j = key.get(k); if(j == null){ j = P3.length/3; key.set(k, j); P3.push(pa.getX(i), pa.getY(i), pa.getZ(i)); } ix.push(j); }
+    g.dispose(); const w = new THREE.BufferGeometry(); w.setAttribute("position", new THREE.Float32BufferAttribute(P3, 3)); w.setIndex(ix); return w; });
+  let tris = 0;
+  /* r: size; sx/sy/sz: stretch (x runs along ry); flat: how hard the top is planed off (ledges) */
+  const add = (r, x, y, z, ry, sx, sy, sz, det, flat) => {
+    const g0 = geos[Math.max(0, Math.min(3, det - (SHORE_PHONE && det > 1 ? 1 : 0)))], pa = g0.attributes.position, seed = Math.random()*100;
+    const cuts = []; for(let c=0; c<(det ? 3 : 1); c++){ const a = Math.random()*6.283, b = (Math.random()*.9 - .2);   /* 1-3 fracture planes, mostly on the sides and top */
+      const cb = Math.sqrt(1 - b*b); cuts.push([Math.cos(a)*cb, b, Math.sin(a)*cb, .55 + Math.random()*.3]); }
+    const P2 = new Float32Array(pa.count*3);
+    for(let i=0;i<pa.count;i++){
+      v.fromBufferAttribute(pa, i);
+      const d = 1 + .42*(vn3(v.x*1.3+seed, v.y*1.3, v.z*1.3)-.5) + .20*(vn3(v.x*3.1, v.y*3.1+seed, v.z*3.1)-.5) + .08*(vn3(v.x*7, v.y*7, v.z*7+seed)-.5);
+      v.multiplyScalar(d);
+      for(const [px, py, pz, k] of cuts){ const e = v.x*px + v.y*py + v.z*pz - k; if(e > 0){ v.x -= px*e*.92; v.y -= py*e*.92; v.z -= pz*e*.92; } }   /* broken faces */
+      if(v.y < -.25) v.y = -.25 + (v.y + .25)*.25;                  /* settled, flat underside */
+      if(flat && v.y > .45) v.y = .45 + (v.y - .45)*(1 - flat);        /* a ledge has a planed, weathered top */
+      P2[i*3] = v.x*sx*r; P2[i*3+1] = v.y*sy*r; P2[i*3+2] = v.z*sz*r;
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(P2, 3)); g.setIndex(g0.index ? g0.index.clone() : null);
+    g.computeVertexNormals();
+    m4.compose(v.set(x, y, z), qq.setFromEuler(eu.set((Math.random()-.5)*.22, ry, (Math.random()-.5)*.22)), new THREE.Vector3(1,1,1));
+    nm.getNormalMatrix(m4);
+    const ga = g.attributes.position, na = g.attributes.normal, base = pos.length/3;
+    for(let i=0;i<ga.count;i++){
+      v.fromBufferAttribute(ga, i); ob.push(v.x + seed, v.y, v.z);
+      v.applyMatrix4(m4); pos.push(v.x, v.y, v.z);
+      v.fromBufferAttribute(na, i).applyMatrix3(nm).normalize(); nor.push(v.x, v.y, v.z);
+    }
+    if(g.index){ const I = g.index; for(let i=0;i<I.count;i++) idx.push(base + I.getX(i)); tris += I.count/3; }
+    else { for(let i=0;i<ga.count;i++) idx.push(base + i); tris += ga.count/3; }
+    g.dispose();
+  };
+  const finish = scene => {
+    geos.forEach(g => g.dispose());
+    if(!pos.length) return null;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+    g.setAttribute("aObj", new THREE.Float32BufferAttribute(ob, 3)); g.setIndex(idx); g.computeBoundingSphere();
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2), 2));
+    const col = new THREE.Color(P.stone).lerp(new THREE.Color(0xFFFFFF), .50).multiplyScalar(night ? .42 : .90);
+    const mat = new THREE.MeshStandardMaterial({color:col, map:ROCK_TEX.boulder, roughness:.90, metalness:0, envMapIntensity:.32, flatShading:true});
+    mat.onBeforeCompile = sh => {
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 aObj; varying vec3 vObj; varying vec3 vObjN; varying float vWY;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = aObj; vObjN = normal; vWY = (modelMatrix * vec4(position, 1.0)).y;");
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vObj; varying vec3 vObjN; varying float vWY; float shWB;")
+        .replace("#include <map_fragment>", `{ vec3 bw = pow(abs(normalize(vObjN)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
+            vec3 q = vObj * .42;
+            vec4 tx = texture2D(map, q.zy)*bw.x + texture2D(map, q.xz)*bw.y + texture2D(map, q.xy)*bw.z;
+            tx = mapTexelToLinear(tx);
+            float cav = smoothstep(-.6, .4, vObjN.y);
+            diffuseColor.rgb *= tx.rgb * mix(.62, 1.0, cav);
+            /* below the tide line the rock is wet, darker, with a green-brown weed film right at the water */
+            shWB = 1.0 - smoothstep(-.70, .05, vWY + (tx.g - .45)*.9);
+            float weed = shWB * (1.0 - smoothstep(-1.25, -.55, vWY)) * smoothstep(-1.9, -1.2, vWY);
+            diffuseColor.rgb *= mix(1.0, .52, shWB);
+            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(.62, .70, .42), weed*.65); }`)
+        .replace("#include <lights_physical_fragment>", "#include <lights_physical_fragment>\nmaterial.specularRoughness = mix(material.specularRoughness, .34, shWB*.85);");
+    };
+    mat.customProgramCacheKey = () => "shorerock";
+    const mesh = new THREE.Mesh(g, mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh);
+    DBG("shore rocks", Math.round(tris), "tris");
+    return mesh;
+  };
+  return {add, finish};
+}
+/* merge a list of BufferGeometries (position/normal/uv, indexed or not) into one */
+function shoreMerge(list){
+  const pos = [], nor = [], uv = [], idx = []; let base = 0;
+  for(const g of list){ const p = g.attributes.position, nn = g.attributes.normal, u = g.attributes.uv;
+    for(let i=0;i<p.count;i++){ pos.push(p.getX(i), p.getY(i), p.getZ(i)); nor.push(nn.getX(i), nn.getY(i), nn.getZ(i)); uv.push(u ? u.getX(i) : 0, u ? u.getY(i) : 0); }
+    if(g.index) for(let i=0;i<g.index.count;i++) idx.push(base + g.index.getX(i)); else for(let i=0;i<p.count;i++) idx.push(base + i);
+    base += p.count; g.dispose(); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeBoundingSphere();
+  return g;
+}
+/* Rocky points, rocky shore, pebbles and driftwood. Called once the trees are down (their colliders
+   are known) and before the grass is scattered (so it grows round the rocks). */
+function shoreRocks(scene, I, R, P, night){
+  if(!R || !ROCKQ) return;
+  const POLY = I.cfg.poly, n = POLY.length, seed = R.seed;
+  const RB = shoreRockBuilder(P, night);
+  const NC = I.colliders.length;           /* rocks may pile on each other, never on a tree, an NPC or a prop */
+  const free = (x, z, r) => { for(let k=0;k<NC;k++){ const c = I.colliders[k], q = c.r + r; if((x-c.x)*(x-c.x) + (z-c.z)*(z-c.z) < q*q) return false; } return true; };
+  const ground = (x, z) => I.height(x, z);
+  const collide = (x, z, r, sx, sz, ry) => {           /* a long rock gets two circles along its length */
+    if(I.shoreOut(x, z) > WADE_MAX + 2) return;
+    const ax = Math.cos(ry), az = -Math.sin(ry), L = Math.max(0, (sx - sz)*r*.5), rr = r*sz*.85;
+    if(L < rr*.5) I.colliders.push({x, z, r: r*Math.max(sx, sz)*.8});
+    else { I.colliders.push({x: x + ax*L, z: z + az*L, r: rr}); I.colliders.push({x: x - ax*L, z: z - az*L, r: rr}); } };
+  const tan = i => { const a = POLY[(i-1+n)%n], c = POLY[(i+1)%n], l = Math.hypot(c[0]-a[0], c[1]-a[1]) || 1; return [(c[0]-a[0])/l, (c[1]-a[1])/l]; };
+  const out = i => R.nrm[i];
+  const at = (i, d, s) => { const [tx, tz] = tan(i), [ox, oz] = out(i); return [POLY[i][0] + ox*d + tx*s, POLY[i][1] + oz*d + tz*s]; };
+  const ryOf = i => { const [tx, tz] = tan(i); return Math.atan2(-tz, tx); };
+  const scale = SHORE_PHONE ? .55 : 1;
+  const nearHead = i => R.heads.some(h => { const g = Math.abs(h.i - i); return Math.min(g, n - g) <= 6; });
+  let nRocks = 0;
+  /* rocky points: a mass of boulders from the grass out into the surf, a few standing offshore */
+  for(const h of R.heads){
+    for(let k=-5; k<=5; k++){ const i = (h.i + k + n) % n; if(R.mask[i] < .9) continue;
+      const cnt = Math.round((1.5 + (5 - Math.abs(k))*.5) * (SHORE_PHONE ? .7 : 1));
+      for(let c=0;c<cnt;c++){
+        const d = -5 + Math.random()*13, s = (Math.random()-.5)*6, [x, z] = at(i, d, s);
+        const r = (1.5 + Math.random()*2.0) * (1 - Math.abs(k)/9) * (d > 4 ? .8 : 1), sx = .9 + Math.random()*.6, sz = .8 + Math.random()*.5, sy = .55 + Math.random()*.30;
+        if(!free(x, z, r*.6)) continue;
+        const ry = ryOf(i) + (Math.random()-.5)*1.2;
+        RB.add(r, x, ground(x, z) - r*sy*.12, z, ry, sx, sy, sz, r > 2.4 ? 3 : 2, .25); nRocks++;
+        collide(x, z, r, sx, sz, ry);
+      }
+      if(Math.abs(k) <= 2) for(let c=0;c<(SHORE_PHONE ? 1 : 2);c++){        /* standing out in the water */
+        const d = 12 + Math.random()*9, [x, z] = at(i, d, (Math.random()-.5)*10), r = 1.3 + Math.random()*1.6, sy = .7 + Math.random()*.35;
+        RB.add(r, x, ground(x, z) + r*sy*.15, z, Math.random()*6.28, .9 + Math.random()*.4, sy, .8 + Math.random()*.4, 2, .15); nRocks++;
+        collide(x, z, r, 1, 1, 0); }
+    }
+  }
+  /* rocky stretches: a low, broken ledge along the waterline with boulders and pebbles below it */
+  for(let i=0;i<n;i++){
+    if(R.mask[i] < .92) continue;
+    const [px, pz] = POLY[i];
+    const rocky = shVN(px/170, pz/170, seed + 7) > .60 || nearHead(i);
+    if(!rocky) continue;
+    if(Math.random() > scale) continue;
+    if(Math.random() < .80){                               /* the ledge, with gaps */
+      const d = -1.2 + Math.random()*3.2, [x, z] = at(i, d, (Math.random()-.5)*3), r = .8 + Math.random()*.9;
+      const sx = 1.6 + Math.random()*1.0, sz = .8 + Math.random()*.35, sy = .55 + Math.random()*.45;
+      if(free(x, z, r*.7)){ const ry = ryOf(i) + (Math.random()-.5)*.5;
+        RB.add(r, x, ground(x, z) - r*sy*.15, z, ry, sx, sy, sz, r > 1.6 ? 3 : 2, .55); nRocks++; collide(x, z, r, sx, sz, ry); }
+    }
+    if(Math.random() < .55){                               /* boulders below it, into the swash */
+      const d = 2.5 + Math.random()*8.5, [x, z] = at(i, d, (Math.random()-.5)*5), r = .45 + Math.random()*1.0, sy = .55 + Math.random()*.3;
+      if(free(x, z, r*.6)){ RB.add(r, x, ground(x, z) - r*sy*.1, z, Math.random()*6.28, .9 + Math.random()*.5, sy, .8 + Math.random()*.4, 2, .2); nRocks++; collide(x, z, r, 1, 1, 0); }
+    }
+    for(let c=0;c<3;c++){                                  /* pebbles and cobbles */
+      const d = .8 + Math.random()*6, [x, z] = at(i, d, (Math.random()-.5)*6), r = .07 + Math.random()*.22;
+      RB.add(r, x, ground(x, z) - r*.1, z, Math.random()*6.28, 1 + Math.random()*.4, .55 + Math.random()*.25, .9, 0, 0);
+    }
+  }
+  /* pebbles strewn along the high-tide line everywhere else, thinly */
+  for(let i=0;i<n;i+=2){ if(R.mask[i] < .5 || Math.random() > .35*scale) continue;
+    const k = 2 + (Math.random()*4|0), [cx, cz] = at(i, 1 + Math.random()*2.5, 0);
+    for(let c=0;c<k;c++){ const x = cx + (Math.random()-.5)*2.2, z = cz + (Math.random()-.5)*2.2, r = .05 + Math.random()*.13;
+      RB.add(r, x, ground(x, z) - r*.12, z, Math.random()*6.28, 1 + Math.random()*.4, .5 + Math.random()*.25, .9, 0, 0); } }
+  I.shoreRocks = RB.finish(scene);
+  /* driftwood: bleached, half-buried, along the wrack line */
+  if(TREE_TEX){
+    const logs = [];
+    for(let i=0;i<n;i++){ if(R.mask[i] < .6 || Math.random() > .16*scale) continue;
+      const [x, z] = at(i, .8 + Math.random()*2.6, (Math.random()-.5)*4);
+      if(!free(x, z, .5)) continue;
+      const len = 1.4 + Math.random()*3.4, rad = .07 + Math.random()*.13, a = ryOf(i) + (Math.random()-.5)*1.6;
+      const ax = Math.cos(a), az = -Math.sin(a), bend = (Math.random()-.5)*.5, y0 = ground(x, z) + rad*.35;
+      const pts = [];
+      for(let k=0;k<4;k++){ const t = k/3 - .5; pts.push(new THREE.Vector3(x + ax*t*len - az*bend*(1 - 4*t*t)*len*.25, y0 + (k === 3 ? rad*.6 : 0), z + az*t*len + ax*bend*(1 - 4*t*t)*len*.25)); }
+      const cv = new THREE.CatmullRomCurve3(pts), tg = new THREE.TubeGeometry(cv, 8, rad, 6, false);
+      const uv = tg.attributes.uv; for(let k=0;k<uv.count;k++) uv.setXY(k, uv.getX(k)*len/1.6, uv.getY(k)*.6);
+      { const tp = tg.attributes.position;                 /* close the ends: a broken log tapers, it is not a pipe */
+        for(const [ring, t] of [[0, 0], [8, 1]]){ const c0 = cv.getPointAt(t); for(let j=0;j<=6;j++){ const vi = ring*7 + j;
+          tp.setXYZ(vi, c0.x + (tp.getX(vi)-c0.x)*.3, c0.y + (tp.getY(vi)-c0.y)*.3, c0.z + (tp.getZ(vi)-c0.z)*.3); } }
+        tg.computeVertexNormals(); }
+      logs.push(tg);
+      if(Math.random() < .5){                              /* a broken-off branch stub */
+        const t = (Math.random()-.5)*.6, bx = x + ax*t*len, bz = z + az*t*len, ba = a + (Math.random() < .5 ? 1 : -1)*(.6 + Math.random()*.6), bl = .4 + Math.random()*.7;
+        const bg = new THREE.CylinderGeometry(rad*.35, rad*.6, bl, 5, 1); bg.translate(0, bl/2, 0); bg.rotateZ(-Math.PI/2 + .25); bg.rotateY(ba); bg.translate(bx, y0 + rad*.2, bz);
+        logs.push(bg); }
+      /* lying in it, not on it: a darker settled scar in the sand comes free with the sand's own shading */
+    }
+    if(logs.length){
+      const g = shoreMerge(logs);
+      const mat = toon(new THREE.Color(0xD8D2C6).multiplyScalar(night ? .55 : 1), {map:TREE_TEX.bark, normalMap:TREE_TEX.barkN, roughness:.95, envMapIntensity:.25});
+      const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; m.userData.dyn = 1; scene.add(m); I.shoreWood = m;
+    }
+  }
+  DBG("shore", I.cfg.key, "rocks", nRocks, "heads", R.heads.length);
+}
+/* Dune grass: sparse, tall, pale clumps growing out of the sand edge and the top of the beach, in
+   patches. The fine-grass card photo, one instanced draw, swaying gently, collapsing far away. */
+function shoreDuneGrass(scene, I, P, blocked){
+  if(!FINEGRASS || !I.shoreF) return;
+  const POLY = I.cfg.poly, n = POLY.length, F = I.shoreF, seed = seedOf("dune:" + I.cfg.key) & 0xffff;
+  const want = Math.round(n * (SHORE_PHONE ? 1.6 : 3.0)), M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+  const c = new THREE.Color(), gc = new THREE.Color(P.grass), sand = new THREE.Color(P.sand), straw = new THREE.Color(0xD6C99A);
+  const mat = toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide, map:GRASS_TEX.map, alphaMap:GRASS_TEX.alpha, alphaTest:.42, roughness:.9});
+  const mesh = new THREE.InstancedMesh(CLUMP, mat, want);
+  let k = 0, tries = 0;
+  while(k < want && tries < want*12){ tries++;
+    const i = (Math.random()*n)|0, a = POLY[(i-1+n)%n], b = POLY[(i+1)%n];
+    let ox = b[1]-a[1], oz = -(b[0]-a[0]); const l = Math.hypot(ox, oz) || 1; ox /= l; oz /= l;
+    const d = -12 + Math.random()*14.5, s = (Math.random()-.5)*6;
+    let x = POLY[i][0] + ox*d + oz*s, z = POLY[i][1] + oz*d - ox*s;
+    const sd = F.sd(x, z);
+    if(sd > 2.4 || sd < -13) continue;
+    if(shVN(x/34, z/34, seed) < .48) continue;                        /* in patches */
+    const sk = sd > 0 ? 1 : F.sandK(x, z);
+    if(sk < .25 || (sd < 0 && Math.random() > sk*1.2) || (sd > 0 && Math.random() > .55)) continue;
+    if(blocked(x, z)) continue;
+    const cl = 1 + (Math.random()*2|0);
+    for(let j=0;j<cl && k<want;j++){
+      const jx = x + (Math.random()-.5)*1.4, jz = z + (Math.random()-.5)*1.4;
+      q.setFromAxisAngle(up, Math.random()*Math.PI);
+      const hgt = .75 + Math.random()*.55, wd = .55 + Math.random()*.35;
+      sc.set(wd, hgt, wd*(.8 + Math.random()*.4));
+      pv.set(jx, I.height(jx, jz) + .01, jz);
+      M.compose(pv, q, sc); mesh.setMatrixAt(k, M);
+      c.copy(gc).lerp(sand, .40 + Math.random()*.25).lerp(straw, Math.random()*.35).lerp(new THREE.Color(1,1,1), .62);
+      mesh.setColorAt(k, c); k++;
+    }
+  }
+  if(!k) return;
+  mat.color.setScalar(I.cfg.key === "sanity" ? 1.05 : 1.45);
+  const uT = {value:0};
+  mat.userData.patches = (mat.userData.patches || []).concat([["dune", sh => {
+    sh.uniforms.uDT = uT;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uDT;")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+        { vec3 io = (modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0)).xyz;
+          float w = uv.y*uv.y, ph = dot(io.xz, vec2(.86, .51))*.13 - uDT*1.3;
+          float g = sin(ph)*.5 + .5; g *= g;
+          transformed.xz += vec2(.86, .51) * (.06 + .16*g + .03*sin(uDT*3.1 + io.x*1.3)) * w;
+          transformed *= 1.0 - smoothstep(95.0, 135.0, distance(io.xz, cameraPosition.xz)); }`);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;"); }]]);
+  mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));
+  mat.customProgramCacheKey = () => mat.userData.patches.map(([nn]) => nn).join("_");
+  mesh.count = k;
+  mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false; mesh.userData.dyn = 1;
+  mesh.onBeforeRender = () => { uT.value = performance.now()*.001; };
+  scene.add(mesh); I.duneGrass = mesh;
+  DBG("dune grass", I.cfg.key, k);
 }
 /* Splashes and rings. A pool of ring meshes that ride the actual wave height as they spread and fade,
    and one Points cloud of droplets thrown up with real gravity that die when they fall back through the
@@ -5348,6 +5913,7 @@ function polyInside(p, x, z){ let c = false; for(let i=0, j=p.length-1; i<p.leng
   const xi=p[i][0], zi=p[i][1], xj=p[j][0], zj=p[j][1];
   if(((zi>z)!==(zj>z)) && (x < (xj-xi)*(z-zi)/(zj-zi)+xi)) c = !c; } return c; }
 function polyOffset(p, d){                      /* move each vertex along its averaged outward normal */
+  if(p.__rough) p = shoreBlendPoly(p, d);       /* SHORE: past 8 u a roughened coast is offset from its smoothed copy */
   const n = p.length, out = [];
   const wind = (() => { let A=0; for(let i=0;i<n;i++){ const a=p[i], b=p[(i+1)%n]; A += a[0]*b[1]-b[0]*a[1]; } return A > 0 ? 1 : -1; })();
   for(let i=0;i<n;i++){ const a=p[(i-1+n)%n], b=p[i], c=p[(i+1)%n];
@@ -6525,10 +7091,10 @@ function buildIslandBody(cfg){
   if(night > .12){ starMesh = starField(P, Math.round(140 + night*900)); starMesh.material.opacity = .25 + night*.7; sky.mesh.add(starMesh); }
 
   const POLY = polyOf(cfg); cfg.poly = POLY; if(COASTS[cfg.key]) cfg.coast = COASTS[cfg.key];
-  const inside = POLY ? ((x,z) => polyInside(POLY, x, z)) : ((x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r));
+  const inside = POLY ? ((x,z) => POLY.__acc ? POLY.__acc.inside(x, z) : polyInside(POLY, x, z)) : ((x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r));
   /* distance to the waterline (unsigned), and how far out to sea a point is (0 on land) */
   const coastDist = POLY
-    ? ((x,z) => { let best = 1e18; for(let i=0, j=POLY.length-1; i<POLY.length; j=i++){
+    ? ((x,z) => { if(POLY.__acc) return POLY.__acc.dist(x, z); let best = 1e18; for(let i=0, j=POLY.length-1; i<POLY.length; j=i++){
           const ax = POLY[j][0], az = POLY[j][1], ex = POLY[i][0]-ax, ez = POLY[i][1]-az, L = ex*ex+ez*ez || 1;
           let u = ((x-ax)*ex + (z-az)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
           const dx = x-(ax+ex*u), dz = z-(az+ez*u), d = dx*dx+dz*dz; if(d < best) best = d; }
@@ -6607,6 +7173,7 @@ function buildIslandBody(cfg){
       cfg.spawn = [sx, sz];
     } }
   const TMAX = (COASTS[cfg.key] ? COASTS[cfg.key].maxR : 90) * WORLD;
+  const SHORE_R = SHOREQ && POLY ? shoreRoughen(POLY, cfg, TMAX) : null;   /* SHORE: coves and points, now every position is final */
   const stoneXZ = cfg.stones || [];
   const height = (x,z) => {
     /* The real ground under everything else - but only on land. The elevation grid is a square over
@@ -6723,6 +7290,7 @@ function buildIslandBody(cfg){
     const mu = sea.userData.mat.uniforms;
     mu.uMask.value = shoreMaskTexture(coastDist, R); mu.uMaskR.value = R; mu.uHasMask.value = 1;
     I.shoreMask = mu.uMask.value; }
+  if(SHORE_R){ I.shoreR = SHORE_R; I.shoreF = shoreField(POLY); I.shoreF.sandCol = new THREE.Color(P.sand).multiplyScalar(TOON3D ? .76 : .55); SHORE_FIELD = I.shoreF; }   /* SHORE */
 
   /* ground */
   if(POLY){
@@ -6739,7 +7307,7 @@ function buildIslandBody(cfg){
        through the sea floor. There is nothing under it to see. A few extra side triangles, no more.
        Anything that changes SEA_Y or seaBed's -7 must keep these deeper than both. */
     const SLAB_BOTTOM = -10;
-    scene.add(GROUND(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16}))));   /* the beach, a hair below the meadow */
+    scene.add(GROUND(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, I.shoreF ? shoreSandMat(P.sand, I.shoreF) : toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16}))));   /* the beach, a hair below the meadow */
     scene.add(GROUND(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   withMacro(meadowMat(P.grass))))); /* top face at y=0 = the walkable height */
     { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }
     /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
@@ -6749,7 +7317,7 @@ function buildIslandBody(cfg){
        as a ruled line drawn along the whole shore. Now (default; ?swash=old keeps the old band) it runs
        on out to 30 u, falling away towards the seabed and darkening with depth, with low sandbars in it,
        so the shallows fade into deep water instead of stepping. */
-    const shelf = SWASHQ ? new THREE.Mesh(shelfStrip(POLY, P, isNight), toon(0xFFFFFF, {vertexColors:true, map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}))
+    const shelf = SWASHQ ? new THREE.Mesh(shelfStrip(POLY, P, isNight), I.shoreF ? shoreSandMat(0xFFFFFF, I.shoreF, {vertexColors:true, side:THREE.DoubleSide}) : toon(0xFFFFFF, {vertexColors:true, map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}))
                          : new THREE.Mesh(ringBand(polyOffset(POLY, SHELF_FLAT), polyOffset(POLY, 15), shelfGround(SHELF_FLAT) - .01, shelfGround(15) - .01),
                                  toon(new THREE.Color(P.sand).multiplyScalar(.70), {map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}));
     shelf.receiveShadow = true; GROUND(shelf); scene.add(shelf);
@@ -7019,6 +7587,7 @@ function buildIslandBody(cfg){
       if(rr > .7) I.colliders.push({x:rx, z:rz, r:rr*.85}); }
   }
   if(ROCKS) I.rockMesh = ROCKS.finish(scene);
+  if(SHORE_R) shoreRocks(scene, I, SHORE_R, P, isNight);              /* SHORE: rocky points, rocky shore, pebbles, driftwood */
   /* wildflowers — instanced, planted in beds */
   if(cfg.key !== "sanity") flowerField(scene, FLOWER_N, () => { const s = sample(6, 66, true); return (s && cfg.beach && Math.hypot(s[0]-cfg.beach.x, s[1]-cfg.beach.z) < cfg.beach.r) ? null : s; }, height, cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4]);
   /* specific decor */
@@ -7552,7 +8121,8 @@ function buildIslandBody(cfg){
   const GRASS_EDGE = POLY ? polyOffset(POLY, -0.5) : null;      /* the hard stop, out in the sand */
   const GRASS_SOFT = POLY ? polyOffset(POLY, -0.5 - GRASS_FADE) : null;   /* full density inside this */
   const noGrass = (x,z) => {
-    if(POLY){
+    if(POLY && I.shoreF){ if(!inside(x, z) || I.shoreF.sandK(x, z) > .42 + (Math.random() - .5)*.2) return true; }   /* SHORE: stops on the drawn sand edge */
+    else if(POLY){
       if(!polyInside(GRASS_EDGE, x, z)) return true;
       if(!polyInside(GRASS_SOFT, x, z)){
         /* in the fade band: keep roughly a third of the blades, thinning outward */
@@ -7649,6 +8219,9 @@ function buildIslandBody(cfg){
     DBG("CARROTS", placed, "tamed", I.creatures.filter(c => c.userData.tame).length);
   }
 
+  if(SHORE_R) shoreDuneGrass(scene, I, P, (x, z) => (Math.abs(x-cfg.dock[0]) < 6 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2+4)   /* SHORE */
+      || (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)
+      || I.colliders.some(c => (x-c.x)*(x-c.x) + (z-c.z)*(z-c.z) < (c.r+.5)*(c.r+.5)) || I.noGrass.some(q => (x-q.x)*(x-q.x) + (z-q.z)*(z-q.z) < q.r*q.r));
   /* weather + fx */
   I.water = waterFx(scene);
   I.fx = {
@@ -7833,6 +8406,7 @@ function buildIslandBody(cfg){
   }
   if(HORIZONQ) horizonBuild(I);   /* DISTANCE: far sea, haze band, far land (?horizon=old) */
   wetAll(scene);     /* again: the people, animals and anything added after the bake get wet too */
+  SHORE_FIELD = null;
   return I;
 }
 
