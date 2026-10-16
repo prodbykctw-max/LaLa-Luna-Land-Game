@@ -410,7 +410,8 @@ const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
-const DARKQ = QS.get("dark") === "1";   /* opt-in REANIMAL-style night look, Sanity only */
+const DARKQ = QS.get("dark") === "1";   /* ?dark=1 holds Sanity at the full dark look, ?dark=0 at the light one; by default it moves between them with the clock and the weather */
+const DARKMODE = QS.get("dark");
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
    ink outlines, no stepped ramp. "toon" is the original cel look, kept so the two can be compared
@@ -599,9 +600,23 @@ function applyLook(name){
   document.body.classList.toggle("dark", name === "dark");
   LOOK_NOW = name;
 }
+/* Sanity now moves between the two looks with the clock and the weather, so the grade blends
+   instead of switching: lookMix 0 = day look, 1 = dark look. */
+let LOOK_MIX = -1;
+function applyLookMix(m){
+  if(LOOK_EXP0 === null) LOOK_EXP0 = renderer.toneMappingExposure;
+  const A = LOOKS.day, B = LOOKS.dark, u = gradePass.uniforms, l = (a, b) => a + (b - a)*m;
+  u.vig.value = l(A.vig, B.vig); u.sat.value = l(A.sat, B.sat); u.shadowTint.value = l(A.tint, B.tint);
+  u.shadowDesat.value = l(A.desat, B.desat); u.contrast.value = l(A.contrast, B.contrast);
+  u.lift.value.set(l(A.lift[0], B.lift[0]), l(A.lift[1], B.lift[1]), l(A.lift[2], B.lift[2]));
+  renderer.toneMappingExposure = l(LOOK_EXP0, B.exp);
+  bloomPass.strength = l(A.bloom[0], B.bloom[0]); bloomPass.radius = l(A.bloom[1], B.bloom[1]); bloomPass.threshold = l(A.bloom[2], B.bloom[2]);
+  document.body.classList.toggle("dark", m > .5);
+  LOOK_MIX = m; LOOK_NOW = m > .5 ? "dark" : "day";
+}
 function present(scene){
-  const want = scene.userData.darkLook ? "dark" : "day";
-  if(want !== LOOK_NOW) applyLook(want);
+  const want = scene.userData.lookMix != null ? scene.userData.lookMix : (scene.userData.darkLook ? 1 : 0);
+  if(LOOK_MIX < 0 || Math.abs(want - LOOK_MIX) > .004) applyLookMix(want);
   renderPass.scene = scene; composer.render();
 }
 addEventListener("resize", () => {
@@ -5893,17 +5908,18 @@ function buildIslandBody(cfg){
      go black - and the key only has enough contrast left to describe shape. */
   const hemi = DARK ? .20 : TOON3D ? (isNight ? .30 : .44)
              : REAL   ? (isNight ? .08 : .12) : (isNight ? .38 : .5);
-  scene.add(new THREE.HemisphereLight(PS.skyBot, PS.grassDk, hemi));
+  const hemiL = new THREE.HemisphereLight(PS.skyBot, PS.grassDk, hemi); scene.add(hemiL);
+  let bounceL = null, rimL = null;
   const keyI = DARK ? 2.0 : TOON3D ? (isNight ? .78 : 1.35)
              : REAL   ? (isNight ? .95 : 2.0) : (isNight ? .55 : .95);
   const key = new THREE.DirectionalLight(P.key, keyI); key.position.set(-25,40,15); scene.add(key);
   if(TOON3D){
     /* cool bounce from the opposite side and slightly below - the ground and sky answering the key */
     const bounce = new THREE.DirectionalLight(P.waterHi || P.skyBot, DARK ? .07 : isNight ? .22 : .38);
-    bounce.position.set(28, -6, -18); scene.add(bounce);
+    bounce.position.set(28, -6, -18); scene.add(bounce); bounceL = bounce;
     /* a soft rim from behind, which is what separates a character from a background in these films */
     const rim = new THREE.DirectionalLight(DARK ? 0x9FB8FF : 0xFFF4E2, DARK ? .60 : isNight ? .28 : .42);
-    rim.position.set(10, 22, -36); scene.add(rim);
+    rim.position.set(10, 22, -36); scene.add(rim); rimL = rim;
   }
   PBR_TINT = pbrTint(P.key, keyI); applyPbrTint();   /* she travels; her tint travels with her */
   /* Anything that IS the world's surface gets marked. The QA tools measure "is this object sitting
@@ -6545,7 +6561,20 @@ function buildIslandBody(cfg){
     I.colliders.push({x:lhx, z:lhz, r:2.6});
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(1.2,12,10), new THREE.MeshBasicMaterial({color:MOON})); lamp.position.set(lhx, base+11.6, lhz); scene.add(lamp);
     const beam = new THREE.SpotLight(0xFFF0C0, 2.2, 160, .35, .5); beam.position.set(lhx, base+11.6, lhz); scene.add(beam);
-    beam.target.position.set(lhx+40, 0, lhz); scene.add(beam.target); I.beam = beam;
+    beam.target.position.set(lhx+40, 0, lhz); scene.add(beam.target); I.beam = beam; I.beamC = [lhx, lhz];
+    /* the beam you can SEE: a long soft cone of light in the air, swept round with the lamp. It shows
+       in the haze, which is the REANIMAL shot - one cold light carving through fog. */
+    { const L = 110, g = new THREE.ConeGeometry(14, L, 40, 1, true); g.translate(0, -L/2, 0); g.rotateX(-Math.PI/2);
+      const mat = new THREE.ShaderMaterial({uniforms:{uOp:{value:.2}},
+        vertexShader:`varying float vT; varying vec3 vN, vV; void main(){ vT = clamp(position.z/110.0, 0.0, 1.0);
+          vec4 wp = modelMatrix*vec4(position,1.0); vN = normalize(mat3(modelMatrix)*normal); vV = normalize(cameraPosition - wp.xyz);
+          gl_Position = projectionMatrix*viewMatrix*wp; }`,
+        fragmentShader:`uniform float uOp; varying float vT; varying vec3 vN, vV;
+          void main(){ float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.6);
+            float a = uOp * edge * (1.0 - vT) * smoothstep(0.0, .06, vT);
+            gl_FragColor = vec4(vec3(1.0, .95, .82)*a, a); }`,
+        transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide});
+      const cone = new THREE.Mesh(g, mat); cone.position.set(lhx, base+11.6, lhz); cone.frustumCulled = false; scene.add(cone); I.beamCone = cone; }
     for(let i=0;i<9;i++){ const s = sample(10,44,true); if(!s) continue;
       const pool = new THREE.Mesh(new THREE.CircleGeometry(1.6+Math.random()*1.4,16), new THREE.MeshBasicMaterial({color:0x2E5A86, transparent:true, opacity:.8}));
       pool.rotation.x=-Math.PI/2; pool.position.set(s[0],height(s[0],s[1])+.05,s[1]); scene.add(pool); }
@@ -7056,6 +7085,12 @@ function buildIslandBody(cfg){
     glitter: (cfg.key === "town" || cfg.key === "moon") ? glitterTrail(scene, 260, 0xFFE9A8) : null,
     windMul:1
   };
+  if(cfg.key === "sanity"){
+    const n = 900, g = new THREE.BufferGeometry(), p = new Float32Array(n*3);
+    for(let i=0;i<n;i++){ p[i*3]=(Math.random()-.5)*90; p[i*3+1]=Math.random()*40; p[i*3+2]=(Math.random()-.5)*90; }
+    g.setAttribute("position", new THREE.BufferAttribute(p,3));
+    I.rain = new THREE.Points(g, new THREE.PointsMaterial({color:0xB8C8E0, size:.16, transparent:true, opacity:0, depthWrite:false})); scene.add(I.rain);
+  }
   if(cfg.weather === "rain"){
     const n = 700, g = new THREE.BufferGeometry(), p = new Float32Array(n*3);
     for(let i=0;i<n;i++){ p[i*3]=(Math.random()-.5)*90; p[i*3+1]=Math.random()*40; p[i*3+2]=(Math.random()-.5)*90; }
@@ -7138,6 +7173,32 @@ function buildIslandBody(cfg){
   scene.add(key.target); I.sun = key;
   I.sunOff = DARK ? [-36, 32, 20] : [-25, 40, 15];   /* the dark moon rakes low across the ground */
   I.dark = DARK; scene.userData.darkLook = DARK;
+  /* ===================  SANITY: CLOCK AND WEATHER  ===================
+     His call (2026-10-16): keep both looks, and let the island move between them "based on actual
+     timing" with "real weather patterns". So the light moonlit look and the dark REANIMAL look are
+     two ends of one dial, and the dial is driven by:
+       - the player's own clock: bright moonlight through the day, closing in through dusk, darkest
+         from late evening to the small hours, lifting again before dawn;
+       - the weather, which runs on real time too (every visitor in the same minute gets the same
+         sky): a clear spell, a squall building with the fog coming in, the storm itself - rain,
+         gusts, close lightning, the sea heaving - then clearing. Every cycle is a little different;
+         some never get past a squall.
+     The storm darkens the dial on top of the hour. ?dark=1 / ?dark=0 hold either end; ?hour= sets
+     the clock for testing. */
+  if(cfg.key === "sanity" && QS.get("fogmode") !== "linear"){
+    const D = {skyTop:0x03050E, skyMid:0x0C1530, skyBot:0x1A2A52, fog:0x0B1530, grassDk:0x0A1420};
+    const su = sea.userData && sea.userData.mat ? sea.userData.mat.uniforms : null;
+    const br = I.foam.find(f => f.material && f.material.uniforms && f.material.uniforms.uAmp);
+    I.dn = {
+      sky0:[P.skyTop, P.skyMid, P.skyBot].map(c => new THREE.Color(c)), sky1:[D.skyTop, D.skyMid, D.skyBot].map(c => new THREE.Color(c)),
+      fog0:new THREE.Color(P.fog).lerp(new THREE.Color(P.skyBot), AERIAL), fog1:new THREE.Color(D.fog).lerp(new THREE.Color(D.skyBot), AERIAL),
+      dens0:scene.fog.density || .002,
+      hC0:new THREE.Color(P.skyBot), hC1:new THREE.Color(D.skyBot), hG0:new THREE.Color(P.grassDk), hG1:new THREE.Color(D.grassDk),
+      hemi0:hemi, rimC0:new THREE.Color(0xFFF4E2), rimC1:new THREE.Color(0x9FB8FF),
+      hemi:hemiL, bounce:bounceL, rim:rimL, sky:sky.mat.uniforms, su, br, brAmp: br ? br.material.uniforms.uAmp.value : 0,
+      forced: DARKMODE === "1" ? 1 : DARKMODE === "0" ? 0 : null, mix:-1, storm:0, flashT:6, c:new THREE.Color()
+    };
+  }
   guideInit(I); cueInit(I);
   /* ===============  NOTHING STANDS UNDER ITS OWN GROUND  ===============
      Luna's Keep sat 30 u inside its own hill for weeks: the island's namesake landmark, invisible,
@@ -7728,7 +7789,7 @@ function walkerUpdate(I, dt, t){
     f.scale.setScalar(f.scale.x + (s - f.scale.x)*Math.min(1, dt*8));
     if(W.model) f.rotation.z = (i?1:-1)*(W.gliding ? 1.6 : .9) + Math.sin(t*3+i)*.05;
     else f.rotation.z = (i?1:-1)*(W.gliding ? 1.25 : .5) + Math.sin(t*3+i)*.05; });
-  W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? (CUR && CUR.dark ? 3.2 : 1.6) : 0;
+  W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? 1.6 + 1.6*(CUR && CUR.dn ? CUR.dn.mix : (CUR && CUR.dark ? 1 : 0)) : 0;
 
   updateCamera(I, dt, mag > .08 ? curSpeed : 0);
 }
@@ -7853,6 +7914,73 @@ function tryJump(){
 /* ============================================================
    ISLAND UPDATE
    ============================================================ */
+/* the player's clock, as a darkness: 0 in the day, closing in through dusk, deepest in the small hours */
+function hourDark(h){
+  const ss = (a, b, x) => { const k = Math.max(0, Math.min(1, (x - a)/(b - a))); return k*k*(3 - 2*k); };
+  if(h < 4) return .88;
+  if(h < 6.5) return .88 - .76*ss(4, 6.5, h);
+  if(h < 16.5) return .12;
+  if(h < 20.5) return .12 + .58*ss(16.5, 20.5, h);
+  return .70 + .18*ss(20.5, 23.5, h);
+}
+function sanitySky(I, dt, t){
+  const S = I.dn, W = I.W, now = Date.now()/1000;
+  const ov = window.__SKY || {};          /* QA hook: {hour, storm} */
+  const qh = ov.hour != null ? ov.hour : parseFloat(QS.get("hour")), d = new Date();
+  const hour = isFinite(qh) ? qh : d.getHours() + d.getMinutes()/60;
+  /* weather on real time: a 9-minute cycle, varied per cycle */
+  const PER = 540, cyc = Math.floor(now/PER), ph = (now % PER)/PER;
+  const hs = x => { const v = Math.sin(x*12.9898 + 78.233)*43758.5453; return v - Math.floor(v); };
+  const peak = hs(cyc) < .22 ? .35 + hs(cyc+.5)*.15 : .70 + hs(cyc+.7)*.30;        /* some cycles stop at a squall */
+  const sm = (a, b, x) => { const k = Math.max(0, Math.min(1, (x - a)/(b - a))); return k*k*(3 - 2*k); };
+  let storm = 0, phase = "Clear";
+  if(ph < .34){ storm = 0; phase = "Clear"; }
+  else if(ph < .50){ storm = sm(.34, .50, ph)*peak*.75; phase = "A squall coming in"; }
+  else if(ph < .72){ storm = peak*(.75 + .25*sm(.50, .56, ph)); phase = peak > .6 ? "Storm" : "Squall"; }
+  else if(ph < .86){ storm = peak*(1 - sm(.72, .86, ph)); phase = "Clearing"; }
+  else { storm = 0; phase = "After the rain"; }
+  storm *= 1 + (Math.sin(t*.9) * .5 + Math.sin(t*2.3) * .3) * .12 * (storm > .3 ? 1 : 0);          /* gusts */
+  storm = Math.max(0, Math.min(1, storm));
+  if(QS.get("storm") != null){ const v = parseFloat(QS.get("storm")); if(isFinite(v)) storm = v; }
+  if(ov.storm != null) storm = ov.storm;
+  S.storm += (storm - S.storm) * Math.min(1, ov.snap ? 1 : dt*.5);
+  const target = S.forced != null ? S.forced : Math.min(1, hourDark(hour) + S.storm*.45);
+  S.mix = S.mix < 0 || ov.snap ? target : S.mix + (target - S.mix) * Math.min(1, dt*.25);
+  const m = S.mix, st = S.storm, c = S.c;
+  /* sky, air, light */
+  S.sky.top.value.lerpColors(S.sky0[0], S.sky1[0], m); S.sky.mid.value.lerpColors(S.sky0[1], S.sky1[1], m); S.sky.bot.value.lerpColors(S.sky0[2], S.sky1[2], m);
+  const fog = I.scene.fog; fog.color.lerpColors(S.fog0, S.fog1, m);
+  fog.density = S.dens0 * (1 + .6*m) * (1 + 1.1*st);
+  if(CUR === I){ try{ gradePass.uniforms.airCol.value.copy(fog.color); }catch(e){} }
+  S.hemi.intensity = S.hemi0 + (.20 - S.hemi0)*m; S.hemi.color.lerpColors(S.hC0, S.hC1, m); S.hemi.groundColor.lerpColors(S.hG0, S.hG1, m);
+  if(S.bounce) S.bounce.intensity = .22 + (.07 - .22)*m;
+  if(S.rim){ S.rim.intensity = .28 + (.60 - .28)*m; S.rim.color.lerpColors(S.rimC0, S.rimC1, m); }
+  I.sunOff = [-25 - 11*m, 40 - 8*m, 15 + 5*m];
+  if(S.su){ S.su.uTop.value.copy(S.sky.top.value); S.su.uMid.value.copy(S.sky.mid.value); S.su.uBot.value.copy(S.sky.bot.value);
+    S.su.uFogCol.value.copy(fog.color); S.su.uFogD.value = fog.density; S.su.uStreak.value = .80 + .20*st; }
+  if(S.br) S.br.material.uniforms.uAmp.value = S.brAmp * (1 + .65*st);
+  I.scene.userData.lookMix = m;
+  /* lightning: close and often in the storm, far and rare in a squall, none when it is clear */
+  S.flashT -= dt;
+  if(S.flashT <= 0){
+    if(st > .15){ I.flash = Math.min(1, .35 + st*.75); auThunder(); }
+    S.flashT = st > .55 ? 3 + Math.random()*6 : st > .15 ? 9 + Math.random()*12 : 6;
+  }
+  I.flash = Math.max(0, (I.flash || 0) - dt*4);
+  I.sky.mat.uniforms.flash.value = I.flash*.9; $("flash").style.opacity = I.flash*.35;
+  I.key.intensity = .55 + I.flash*2.5;
+  /* rain */
+  if(I.rain){ I.rain.material.opacity = Math.max(0, st - .25)/.75*.7;
+    if(st > .25){ const pos = I.rain.geometry.attributes.position.array, drift = 7*st;
+      for(let i=0;i<pos.length;i+=3){ pos[i+1] -= 46*dt; pos[i] += drift*dt;
+        if(pos[i+1] < 0){ pos[i+1] = 38; pos[i] = W.x+(Math.random()-.5)*90; pos[i+2] = W.z+(Math.random()-.5)*90; } }
+      I.rain.geometry.attributes.position.needsUpdate = true; } }
+  if(AU.rainG) AU.rainG.gain.value = Math.max(0, st - .25)*.11; if(AU.surfG) AU.surfG.gain.value = .22 + st*.14;
+  /* the lighthouse beam shows in the air more the thicker and darker the air is */
+  if(I.beamCone) I.beamCone.material.uniforms.uOp.value = .10 + .30*m + .25*st;
+  const tod = hour < 5 ? "Dead of night" : hour < 7 ? "Before dawn" : hour < 17 ? "Moonlit" : hour < 21 ? "Dusk" : "Night";
+  return {storm:st, label: tod + " · " + phase};
+}
 function islandUpdate(I, dt, t){
   const cfg = I.cfg, W = I.W;
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
@@ -8212,7 +8340,9 @@ function islandUpdate(I, dt, t){
   const ab = abilityOf(I);
   I.stones.forEach(s => s.mesh.visible = ab.lantern);
   I.gateMeshes.forEach(m => m.visible = !ab.gateOpen);
-  if(I.beam) I.beam.target.position.set(-30 + Math.cos(t*.4)*60, 0, -25 + Math.sin(t*.4)*60);
+  if(I.beam){ const bc = I.beamC || [-30, -25], ba = t*.4;
+    I.beam.target.position.set(bc[0] + Math.cos(ba)*60, 0, bc[1] + Math.sin(ba)*60);
+    if(I.beamCone){ I.beamCone.lookAt(bc[0] + Math.cos(ba)*60, I.beamCone.position.y - 9, bc[1] + Math.sin(ba)*60); } }
   if(cfg.hub){ const all = G.letters.every(Boolean);
     /* ===================  A CRASH ONLY A LONG SESSION SEES  ===================
        qa/traversal.mjs, 2026-09-12: 3x "Cannot read properties of undefined (reading 'setHex')" over a
@@ -8241,6 +8371,8 @@ function islandUpdate(I, dt, t){
       for(let i=0;i<pos.length;i+=3){ pos[i+1] -= 40*dt; if(pos[i+1] < 0){ pos[i+1] = 38; pos[i] = W.x+(Math.random()-.5)*90; pos[i+2] = W.z+(Math.random()-.5)*90; } }
       I.rain.geometry.attributes.position.needsUpdate = true; }
     if(AU.rainG) AU.rainG.gain.value = storm*.085;
+  } else if(cfg.weather === "storm" && I.dn){
+    const r = sanitySky(I, dt, t); storm = r.storm; label = r.label;
   } else if(cfg.weather === "storm"){
     label = "Storm, far out";
     I.flashT -= dt;
@@ -8254,7 +8386,7 @@ function islandUpdate(I, dt, t){
   else { label = "Golden hour"; if(AU.rainG) AU.rainG.gain.value = 0; }
   if(cfg.weather !== "embers" && AU.rumbleG) AU.rumbleG.gain.value = 0;
   if(cfg.weather !== "storm" && AU.surfG) AU.surfG.gain.value = .16 + storm*.07;
-  I.sky.mat.uniforms.blend.value = storm; I.fx.windMul = 1 + storm*2.2 + (cfg.weather==="storm" ? 1.2 : 0);
+  I.sky.mat.uniforms.blend.value = I.dn ? storm*.22*(1 - I.dn.mix) : storm; I.fx.windMul = 1 + storm*2.2 + (cfg.weather==="storm" ? 1.2 : 0);
   $("weather").textContent = label;
   /* what parts the grass this frame: her (or the horse under her), the nearest animals, fans and rolling
      balls - the six closest win - plus the track she has just walked, which stays flat and recovers */
