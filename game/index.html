@@ -5836,6 +5836,515 @@ function terrainAt(key, x, z, maxR){
   const h = (h00*(1-fu) + h10*fu)*(1-fv) + (h01*(1-fu) + h11*fu)*fv;
   return h / 255 * T.amp;
 }
+/* ===================  THE LAND, WORN BY WEATHER  (default; ?relief=old restores the lathed hills, the drum rises and the flat meadows)  ===================
+   The hills were lathes - a profile spun round an axis, so every one of them was a solid of
+   revolution with a sharp tip - and the raised ground was a drum with a machined skirt. The real
+   elevation under them is a 96-sample grid blurred smooth, so even Providencia's peaks came out as
+   rounded blobs, and the meadows between were a billiard table. Land is not made like that. Rain
+   carries a hill downhill for ten thousand years: it gets a rounded crown, a convex shoulder and a
+   long concave foot; water gathers into gullies that run down the fall line and branch as they go,
+   the ribs between them stand out as spurs, and where the slope is too steep to hold soil the rock
+   shows through.
+
+   Now:
+   - every walkable surface of an island - the real elevation, the hills, the rises, the hummocks
+     and swells over the meadows, Green's streambed - is ONE height grid drawn as one mesh, and
+     I.height returns the exact triangle the player stands on (the same diagonal split the mesh is
+     drawn with), so feet and ground cannot disagree anywhere on it;
+   - hills are domain-warped noise: an irregular outline, no axis of symmetry, gullies that curve
+     and branch down the fall line, spurs between them, knolls on the crown;
+   - the real elevation gets gullies cut along its own fall line, scaled by its own slope, so flat
+     ground stays flat and hillsides get ribbed;
+   - the inked rock mesas keep their cliff (the glide and jump gates depend on it) but lose the
+     three regular sine bays: a noise rim, a broken lip, bedding ledges in the face, talus blocks;
+   - the terrain shader turns to photographed rock wherever the slope is too steep to hold soil,
+     triplanar so the photo never smears down a face; outcrop boulders break the grass on the
+     steepest shoulders;
+   - Green's stream was two ribbons drawn under the meadow - nobody ever saw it. It is a channel
+     now: the water level falls all the way from a spring at the foot of Horse Hill to a pool at the
+     far end, the bed is cut under it, the banks are dark and wet, the floor is pebbles, and the
+     surface moves downstream.
+   Everything is seeded from the island's own data, never Math.random, so it is the same world on
+   every load and nothing placed after it moves. */
+const TERRAINQ = QS.get("relief") !== "old";
+const RL_LITE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
+const RL_G = (() => { const a = new Float32Array(16); for(let k=0;k<8;k++){ const t = k/8*Math.PI*2 + .39; a[k*2] = Math.cos(t); a[k*2+1] = Math.sin(t); } return a; })();
+function rlGr(i, j, s, dx, dz){
+  let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(s, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h = (h ^ (h >>> 16)) & 7;
+  return RL_G[h*2]*dx + RL_G[h*2+1]*dz;
+}
+/* 2D gradient noise, about -1..1, with a quintic fade so a mesh built on it has smooth normals */
+function rlN(x, z, s){
+  const i = Math.floor(x), j = Math.floor(z), fx = x - i, fz = z - j;
+  const u = fx*fx*fx*(fx*(fx*6 - 15) + 10), v = fz*fz*fz*(fz*(fz*6 - 15) + 10);
+  const a = rlGr(i, j, s, fx, fz), b = rlGr(i+1, j, s, fx-1, fz), c = rlGr(i, j+1, s, fx, fz-1), d = rlGr(i+1, j+1, s, fx-1, fz-1);
+  const ab = a + (b - a)*u, cd = c + (d - c)*u;
+  return (ab + (cd - ab)*v) * 1.42;
+}
+function rlF(x, z, s, o){ let t = 0, a = 1, n = 0, f = 1; for(let k=0;k<o;k++){ t += rlN(x*f + k*17.1, z*f - k*9.3, s + k*101)*a; n += a; a *= .5; f *= 2.03; } return t/n; }
+/* noise round a bearing: periodic by construction, so an outline always closes on itself */
+const rlA = (ang, k, s) => rlN(Math.cos(ang)*k + 31.7, Math.sin(ang)*k - 12.9, s);
+const rlSmin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h*h*k*.25; };
+const rlSs = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a)/(b - a))); return t*t*(3 - 2*t); };
+const rlSeed = (f, tag) => seedOf(tag + (f.name || "") + f.x + "," + f.z) & 0xffff;
+/* A hill, as rain leaves one. det (0..1) scales the small detail - gullies, spurs, knolls - so a
+   lighthouse can stand on a quiet patch of its own hill. Absolute height; 0 off the hill. */
+function rlHill(f, x, z, det){
+  const dx = x - f.x, dz = z - f.z, d0 = Math.hypot(dx, dz);
+  if(d0 > f.r*1.5) return 0;
+  const s = f.__rs != null ? f.__rs : (f.__rs = rlSeed(f, "hill"));
+  const t0 = d0 / f.r, wk = f.r * .2 * Math.min(1, t0*1.7);           /* the warp grows from nothing at the summit */
+  const wx = dx + rlF(dx/f.r*1.4 + 3.1, dz/f.r*1.4, s, 2)*wk, wz = dz + rlF(dx/f.r*1.4, dz/f.r*1.4 - 7.7, s + 5, 2)*wk;
+  const d = Math.hypot(wx, wz), ang = Math.atan2(wz, wx);
+  const R = f.r * (1 + .17*rlA(ang, 1.1, s + 11) + .07*rlA(ang, 3.2, s + 12));
+  const t = d / R; if(t >= 1) return 0;
+  const H = f.h * (1 + .11*rlA(ang, 1.4, s + 13)*Math.min(1, t/.35));   /* a long side and a short side (not at the summit: no crease there) */
+  const q = 1 - t*t;
+  let h = H * q*q;                                                    /* round crown, convex shoulder, concave foot */
+  if(det > 0){
+    const bell = Math.pow(Math.sin(Math.PI * Math.min(1, t*1.04)), .85) * Math.min(1, t/.3);   /* gullies start below the crown */
+    /* gullies: noise ACROSS the slope that drifts slowly DOWN it, so each one curves; the second,
+       finer set only starts halfway down - that is where real gullies branch */
+    const n1 = rlN(Math.cos(ang)*1.75 + t*1.1, Math.sin(ang)*1.75 - t*.7, s + 21);
+    const n2 = rlN(Math.cos(ang)*3.6 - t*1.6, Math.sin(ang)*3.6 + t*1.2, s + 22);
+    const g1 = Math.pow(1 - Math.abs(n1), 3.2), g2 = Math.pow(1 - Math.abs(n2), 3.2);
+    h -= H * (.11*g1 + .06*g2*rlSs(.35, .8, t)) * bell * det;
+    h += H * .04 * n1 * bell * det;                                   /* the spurs between them */
+    h += H * .03 * rlF(x/11, z/11, s + 23, 2) * q*q * det;           /* knolls on the crown */
+  }
+  return Math.max(0, h);
+}
+/* Raised ground (the home island's rise, the town's point): walkable everywhere, so no cliff - a
+   cap that is not a disc and a shoulder with shallow runnels down it. */
+function rlRise(f, x, z, det){
+  const dx = x - f.x, dz = z - f.z, d = Math.hypot(dx, dz);
+  if(d > f.r*1.3) return 0;
+  const s = f.__rs != null ? f.__rs : (f.__rs = rlSeed(f, "rise"));
+  const ang = Math.atan2(dz, dx);
+  const R = f.r * (1 + .11*rlA(ang, 1.2, s) + .05*rlA(ang, 3.1, s + 1));
+  const t = d / R; if(t >= 1) return 0;
+  const CAP = .58 + .08*rlA(ang, 1.7, s + 2);
+  if(t < CAP){ const c = t/CAP; return f.h * (1 - .06*c*c); }
+  const u = (t - CAP)/(1 - CAP);
+  let h = f.h * .94 * (1 - u*u*(3 - 2*u));
+  if(det > 0){ const n = rlN(Math.cos(ang)*2.4 + u*.8, Math.sin(ang)*2.4 - u*.5, s + 3), g = Math.pow(1 - Math.abs(n), 4), b = Math.sin(Math.PI*u);
+    h += f.h * (.07*n - .22*g) * b * det; }
+  return Math.max(0, h);
+}
+/* the inked rock: its plan outline, and the broken lip and weathered cap laid over the old profile */
+function rlInkR(f, ang){ const s = f.__rs != null ? f.__rs : (f.__rs = rlSeed(f, "ink"));
+  return f.r * Math.max(.72, Math.min(1.28, 1 + .21*rlA(ang, 1.0, s) + .09*rlA(ang, 2.7, s + 1) + .04*rlA(ang, 7, s + 2))); }
+function rlInkLip(f, ang, t, CAP, rk, x, z){
+  const s = f.__rs != null ? f.__rs : (f.__rs = rlSeed(f, "ink"));
+  const nb = rlN(Math.cos(ang)*8.5, Math.sin(ang)*8.5, s + 6), w = Math.exp(-Math.pow((t - CAP)/.05, 2));
+  let dh = -f.h * .11 * Math.max(0, nb + .1) * w * (1 - rk);               /* blocks gone from the lip */
+  if(t < CAP) dh += f.h * .014 * rlF(x/7, z/7, s + 7, 2) * Math.min(1, (CAP - t)/.1);   /* the cap is weathered, not turned */
+  return dh;
+}
+function rlInkCut(f, ang, u){ return Math.pow(1 - Math.abs(rlN(Math.cos(ang)*4.2 + u*.6, Math.sin(ang)*4.2, (f.__rs || 0) + 5)), 3); }
+/* A crater cone drawn by sampling height() at every bearing. The lathe spun ONE bearing's profile
+   round the axis, so wherever the ground under the cone was not symmetric the drawn slope and the
+   one she walks on disagreed - by up to 29 u inside the Caldera. */
+function rlRadial(height, f){
+  const SEG = 96, RINGS = 44, pos = [], idx = [];
+  for(let ri=0; ri<=RINGS+1; ri++){
+    const last = ri === RINGS+1, rr = last ? f.r + .6 : f.r * Math.pow(ri/RINGS, .9);
+    for(let si=0; si<SEG; si++){ const a = si/SEG*Math.PI*2, lx = Math.cos(a)*rr, lz = Math.sin(a)*rr;
+      pos.push(lx, ri === 0 ? height(f.x, f.z) - .05 : height(f.x + lx, f.z + lz) - (last ? .6 : .05), lz); }
+  }
+  for(let ri=0; ri<=RINGS; ri++) for(let si=0; si<SEG; si++){ const a0 = ri*SEG + si, a1 = ri*SEG + (si+1)%SEG, b0 = a0 + SEG, b1 = a1 + SEG; idx.push(a0, b1, b0, a0, a1, b1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2), 2)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+/* hummocks and swells: never negative, so nothing ever dips under the flat slab at y = 0 */
+function rlMicro(x, z, s){
+  const sw = rlF(x/90, z/90, s, 2);
+  const hm = rlN(x/16 + sw*.9, z/16 - sw*.6, s + 3);
+  return .62*(sw*.5 + .5) + .34*Math.sqrt(hm*hm + .012);
+}
+function reliefPatch(sh, tint){
+  sh.uniforms.uRkMap = {value: ROCK_TEX ? ROCK_TEX.boulder : TEX.rock};
+  sh.uniforms.uRkNor = {value: ROCK_TEX ? ROCK_TEX.boulderN : TEX.rock};
+  sh.uniforms.uRkTint = {value: tint};
+  const lite = RL_LITE || !ROCK_TEX;
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nattribute vec2 aRk; varying vec2 vRk; varying vec3 vRw; varying vec3 vRn;")
+    .replace("#include <begin_vertex>", "#include <begin_vertex>\nvRk = aRk; vRw = (modelMatrix * vec4(position, 1.0)).xyz; vRn = normalize(mat3(modelMatrix) * normal);");
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", `#include <common>
+${lite ? "#define RK_LITE" : ""}
+uniform sampler2D uRkMap; uniform sampler2D uRkNor; uniform vec3 uRkTint;
+varying vec2 vRk; varying vec3 vRw; varying vec3 vRn;
+float rkMask; vec3 rkQ; vec3 rkBw;
+float rkH(vec2 p){ p = fract(p*vec2(233.34, 851.73)); p += dot(p, p + 23.45); return fract(p.x*p.y); }
+float rkV(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0 - 2.0*f);
+  return mix(mix(rkH(i), rkH(i + vec2(1.0, 0.0)), f.x), mix(rkH(i + vec2(0.0, 1.0)), rkH(i + vec2(1.0, 1.0)), f.x), f.y); }`)
+    .replace("#include <color_fragment>", `#include <color_fragment>
+rkMask = 0.0;
+{ vec3 n = normalize(vRn);
+  float br = rkV(vRw.xz*.09)*.6 + rkV(vRw.xz*.37 + 7.3)*.4;          /* the soil line is ragged, not a contour */
+  float m = smoothstep(.46, .62, vRk.x + (br - .5)*.85);
+  rkMask = max(m, vRk.y);
+  if(rkMask > .003){
+    rkBw = pow(abs(n), vec3(4.0)); rkBw /= (rkBw.x + rkBw.y + rkBw.z);
+    rkQ = vRw * .15;
+#ifdef RK_LITE
+    vec4 tx = mix(texture2D(uRkMap, abs(n.x) > abs(n.z) ? rkQ.zy : rkQ.xy), texture2D(uRkMap, rkQ.xz), rkBw.y);
+#else
+    vec4 tx = texture2D(uRkMap, rkQ.zy)*rkBw.x + texture2D(uRkMap, rkQ.xz)*rkBw.y + texture2D(uRkMap, rkQ.xy)*rkBw.z;
+#endif
+    vec3 rk = pow(sRGBToLinear(tx).rgb, vec3(1.18)) * 1.2 * uRkTint * mix(.66, 1.0, smoothstep(-.2, .6, n.y));
+    if(vRk.y > .003){
+      vec3 pb = sRGBToLinear(texture2D(uRkMap, vRw.xz*.62 + .37)).rgb * uRkTint * vec3(.50, .48, .44);   /* a wet pebble bed */
+      rk = mix(rk, pb, vRk.y);
+    }
+    diffuseColor.rgb = mix(diffuseColor.rgb, rk, rkMask);
+  }
+}`)
+    .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+if(rkMask > .003){
+  vec3 n = normalize(vRn);
+#ifdef RK_LITE
+  vec3 wn = n;
+#else
+  vec3 tX = texture2D(uRkNor, rkQ.zy).xyz*2.0 - 1.0, tY = texture2D(uRkNor, rkQ.xz).xyz*2.0 - 1.0, tZ = texture2D(uRkNor, rkQ.xy).xyz*2.0 - 1.0;
+  vec3 wn = normalize(vec3(n.x, tX.y + n.y, tX.x + n.z)*rkBw.x + vec3(tY.x + n.x, n.y, tY.y + n.z)*rkBw.y + vec3(tZ.x + n.x, tZ.y + n.y, n.z)*rkBw.z);
+#endif
+  normal = normalize(mix(normal, normalize((viewMatrix*vec4(wn, 0.0)).xyz), rkMask));
+}`);
+}
+function reliefMat(night, offset){
+  const m = withMacro(meadowMat(0xFFFFFF, offset ? {vertexColors:true, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2} : {vertexColors:true}));
+  const tint = new THREE.Color(0xEDE0C8).multiplyScalar(night ? .30 : .74);   /* weathered rock sits darker than the boulders' sunlit tops */
+  if(!m.userData.patches) m.userData.patches = [];
+  m.userData.patches.push(["relief" + (RL_LITE ? "L" : ""), sh => reliefPatch(sh, tint)]);
+  m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
+  m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
+  return m;
+}
+/* the stream's surface: a moving, reflecting skin over a pebble bed */
+function rlWaterMat(night){
+  const m = new THREE.MeshStandardMaterial({color: night ? 0x0C1820 : 0x2A3C34, roughness:.07, metalness:0, transparent:true, opacity:.78, envMapIntensity:1.15, depthWrite:false});
+  const uT = {value:0};
+  m.onBeforeCompile = sh => { sh.uniforms.uT = uT;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec2 aSt; varying vec2 vSt;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvSt = aSt;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+uniform float uT; varying vec2 vSt;
+float wH(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
+float wV(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0 - 2.0*f);
+  return mix(mix(wH(i), wH(i + vec2(1.0, 0.0)), f.x), mix(wH(i + vec2(0.0, 1.0)), wH(i + vec2(1.0, 1.0)), f.x), f.y); }
+float wF(vec2 p){ return wV(p*vec2(1.6, .7) + vec2(0.0, -uT*1.25)) + .55*wV(p*vec2(3.7, 1.9) + vec2(1.7, -uT*2.1)) + .3*wV(p*6.1 + vec2(-uT*.4, -uT*2.9)); }`)
+      .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+{ vec2 p = vSt; float e = .06, h0 = wF(p);
+  vec3 wn = normalize(vec3(-(wF(p + vec2(e, 0.0)) - h0)/e*.10, 1.0, -(wF(p + vec2(0.0, e)) - h0)/e*.10));
+  normal = normalize((viewMatrix*vec4(wn, 0.0)).xyz); }`);
+  };
+  m.customProgramCacheKey = () => "rlwater";
+  return {m, uT};
+}
+/* Build an island's relief. Returns null when there is no coastline polygon to build inside. */
+function reliefBuild(o){
+  const {cfg, POLY, TMAX, inside, coastDist, P, night} = o;
+  if(!POLY) return null;
+  const key = cfg.key, s0 = seedOf("relief" + key) & 0xffff;
+  const stoneOnly = f => f.name === "The Square" || !!f.outer;
+  const folds = f => (f.type === "hill" && !f.crater) || (f.type === "mesa" && !f.ink && !stoneOnly(f));
+  const FOLD = cfg.features.filter(folds);
+  /* where the ground has to stay as it was: things that stand on it at a literal height or across a
+     wide footprint. Detail fades to nothing inside r0 and is full again by r1. */
+  const masks = [[cfg.spawn[0], cfg.spawn[1], 8, 26], [cfg.dock[0], cfg.dock[1], 10, 32]];
+  if(cfg.hub) masks.push([0, 0, 30, 66]);
+  for(const f of cfg.features) if(f.type === "mesa" && f.name === "The Square") masks.push([f.x, f.z, f.r*1.1, f.r*1.1 + 34]);
+  if(cfg.decor === "town") masks.push([0, 0, 92, 130]);
+  if(cfg.beach) masks.push([cfg.beach.x, cfg.beach.z, cfg.beach.r + 2, cfg.beach.r + 18]);
+  if(cfg.grotto) masks.push([cfg.grotto.x, cfg.grotto.z, cfg.grotto.r + 3, cfg.grotto.r + 18]);
+  if(cfg.decor === "ruins") masks.push([-4, 27, 13, 30], [-2.6*WORLD, 33*WORLD, 9, 24], [7*WORLD, 6*WORLD, 8, 20]);
+  if(cfg.decor === "lighthouse") masks.push([-30*WORLD, -25*WORLD, 7, 18]);
+  const gate = cfg.gate;
+  const det = (x, z, cd) => {
+    let m = rlSs(9, 22, cd);                       /* the last few units to the coast belong to the shore */
+    for(const k of masks){ if(m <= 0) return 0; const d = Math.hypot(x - k[0], z - k[1]); if(d < k[3]) m *= rlSs(k[2], k[3], d); }
+    if(gate) m *= rlSs(6, 20, Math.abs(x - gate.x));
+    return m;
+  };
+  const terr = (x, z, cd) => terrainAt(key, x, z, TMAX) * Math.min(1, cd/SHORE_BLEND);
+  /* the real elevation, with gullies cut along its own fall line and scaled by its own slope */
+  const erode = (x, z, y, m) => {
+    if(m <= 0 || y <= .05) return y;
+    const E = 6, gx = (terrainAt(key, x + E, z, TMAX) - terrainAt(key, x - E, z, TMAX))/(2*E), gz = (terrainAt(key, x, z + E, TMAX) - terrainAt(key, x, z - E, TMAX))/(2*E);
+    const sl = Math.hypot(gx, gz); if(sl < .02) return y;
+    const ux = gx/sl, uz = gz/sl, a = (x*-uz + z*ux)/30, b = (x*ux + z*uz)/70;
+    const n = rlN(a + rlF(x/60, z/60, s0 + 40, 1)*.8, b, s0 + 41), g = Math.pow(1 - Math.abs(n), 3);
+    const amp = Math.min(1, sl*2.2) * 2.1 * m;
+    return Math.max(Math.min(y, .05), y - amp*(g - .25*n - .12));
+  };
+  const land = (x, z, cd, m) => {
+    let y = erode(x, z, terr(x, z, cd), m);
+    for(const f of FOLD){ const h = f.type === "hill" ? rlHill(f, x, z, m) : rlRise(f, x, z, m); if(h > y) y = h; }
+    return y;
+  };
+  const full0 = (x, z, cd) => { const m = det(x, z, cd); return land(x, z, cd, m) + (m > 0 ? rlMicro(x, z, s0)*m : 0); };
+
+  /* ---- Green's stream ---- the same meander the decor has always drawn, sampled finely */
+  let ST = null;
+  if(cfg.decor === "ruins"){
+    const N = 220, pts = [];
+    for(let i=0;i<=N;i++){ const t = i/N;
+      pts.push({x:(-10 + Math.sin(t*3.1)*5.2 + Math.sin(t*7.4)*1.6)*WORLD, z:(-14 + t*74)*WORLD, t,
+                w:(1.35 + Math.sin(t*4.2)*.45)*Math.sqrt(WORLD)*(1 + 1.5*rlSs(.9, 1, t))}); }
+    let arc = 0, Wl = 1e9;
+    for(let i=0;i<=N;i++){
+      const p = pts[i], q = pts[Math.min(N, i+1)], r0 = pts[Math.max(0, i-1)];
+      let dx = q.x - r0.x, dz = q.z - r0.z; const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+      p.nx = -dz; p.nz = dx;
+      if(i > 0) arc += Math.hypot(p.x - pts[i-1].x, p.z - pts[i-1].z);
+      p.arc = arc;
+      /* the lowest bank near this point decides how high the water can stand; the highest ground
+         across the corridor decides how wide the cut has to reach */
+      let lo = 1e9, hi = -1e9;
+      for(const o2 of [0, -1, 1, -2, 2, -4, 4, -8, 8, -12, 12]){ const x = p.x + p.nx*o2, z = p.z + p.nz*o2, y = full0(x, z, coastDist(x, z));
+        if(Math.abs(o2) <= 4) lo = Math.min(lo, y); hi = Math.max(hi, y); }
+      Wl = Math.min(Wl - .0025*(i > 0 ? Math.hypot(p.x - pts[i-1].x, p.z - pts[i-1].z) : 0), lo - .62);
+      p.Wl = Math.max(Wl, .75);
+      p.dep = .42 + .35*rlSs(.9, 1, p.t);
+      p.ramp = rlSs(0, .07, p.t);
+      p.cw = p.w + 2.6 + (hi + .9 - p.Wl)/.55 + 2.5;
+    }
+    /* bucket the segments so a height lookup only tests the few that can be near it */
+    const CELL = 20, bk = new Map(), bkey = (i, j) => i*100003 + j;
+    for(let i=0;i<N;i++){ const a = pts[i], b = pts[i+1], m = Math.max(a.cw, b.cw);
+      const i0 = Math.floor((Math.min(a.x, b.x) - m)/CELL), i1 = Math.floor((Math.max(a.x, b.x) + m)/CELL);
+      const j0 = Math.floor((Math.min(a.z, b.z) - m)/CELL), j1 = Math.floor((Math.max(a.z, b.z) + m)/CELL);
+      for(let ii=i0; ii<=i1; ii++) for(let jj=j0; jj<=j1; jj++){ const k = bkey(ii, jj); if(!bk.has(k)) bk.set(k, []); bk.get(k).push(i); } }
+    const C = {dc:0, w:0, dep:0, Wl:0, ramp:0, cw:0, arc:0, side:1};
+    const q = (x, z) => {
+      const list = bk.get(bkey(Math.floor(x/CELL), Math.floor(z/CELL))); if(!list) return null;
+      let best = 1e18, bi = -1, bu = 0, bs = 1;
+      for(const i of list){ const a = pts[i], b = pts[i+1], ex = b.x - a.x, ez = b.z - a.z, L = ex*ex + ez*ez || 1;
+        let u = ((x - a.x)*ex + (z - a.z)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
+        const dx = x - (a.x + ex*u), dz = z - (a.z + ez*u), d = dx*dx + dz*dz;
+        if(d < best){ best = d; bi = i; bu = u; bs = (dx*-ez + dz*ex) >= 0 ? 1 : -1; } }
+      if(bi < 0) return null;
+      const a = pts[bi], b = pts[bi+1], l = (k) => a[k] + (b[k] - a[k])*bu;
+      C.dc = Math.sqrt(best); C.cw = l("cw"); if(C.dc >= C.cw) return null;
+      C.w = l("w"); C.dep = l("dep"); C.Wl = l("Wl"); C.ramp = l("ramp"); C.arc = l("arc"); C.side = bs;
+      return C;
+    };
+    const prof = (dc, c) => dc < c.w ? c.Wl - c.dep*(1 - (dc/c.w)*(dc/c.w)) : c.Wl + (dc - c.w)*.55;
+    ST = {pts, q,
+      carve: (y, c) => y + (rlSmin(y, prof(c.dc, c), .9) - y)*c.ramp,
+      /* the grid under the drawn channel is cut wider and deeper, so the finer channel mesh always
+         lies on top of it and the coarse grid never pokes through the bed */
+      carveG: (y, c) => y + (Math.min(y, prof(Math.max(0, c.dc - 2.6), c) - .8) - y)*c.ramp};
+  }
+
+  /* ---- the grid ---- */
+  const inner = polyOffset(POLY, -2.5);
+  let minX=1e9, maxX=-1e9, minZ=1e9, maxZ=-1e9;
+  for(const p of inner){ minX=Math.min(minX,p[0]); maxX=Math.max(maxX,p[0]); minZ=Math.min(minZ,p[1]); maxZ=Math.max(maxZ,p[1]); }
+  const S = 3.2, NX = Math.ceil((maxX - minX)/S) + 1, NZ = Math.ceil((maxZ - minZ)/S) + 1, x0 = minX, z0 = minZ;
+  const H = new Float32Array(NX*NZ).fill(NaN), T0 = new Float32Array(NX*NZ);
+  const sampleV = (x, z) => { const cd = coastDist(x, z); let v = full0(x, z, cd);
+    if(ST){ const c = ST.q(x, z); if(c) v = ST.carveG(v, c); } return v; };
+  for(let j=0;j<NZ;j++) for(let i=0;i<NX;i++){
+    const x = x0 + i*S, z = z0 + j*S;
+    if(!polyInside(inner, x, z)) continue;
+    H[j*NX+i] = sampleV(x, z); T0[j*NX+i] = terr(x, z, coastDist(x, z));
+  }
+  /* exact: the same two triangles per cell the mesh is drawn with, (a,d,b) and (b,d,e) */
+  const tri = (A, nx, gx, gz, gs, ni, nj, x, z) => {
+    const fi = (x - gx)/gs, fj = (z - gz)/gs, i = Math.floor(fi), j = Math.floor(fj);
+    if(i < 0 || j < 0 || i >= ni-1 || j >= nj-1) return null;
+    const k = j*nx + i, a = A[k], b = A[k+1], d = A[k+nx], e = A[k+nx+1];
+    if(a !== a || b !== b || d !== d || e !== e) return null;
+    const u = fi - i, v = fj - j;
+    return u + v <= 1 ? a + (b - a)*u + (d - a)*v : e + (d - e)*(1 - u) + (b - e)*(1 - v);
+  };
+  const atC = (x, z) => tri(H, NX, x0, z0, S, NX, NZ, x, z);
+  /* A hill's gullies are a few units across - narrower than two coarse cells - so each hill gets a
+     patch at half the spacing. The patch's outer ring takes the coarse grid's own interpolated
+     values, so the two meet without a crack, and the coarse cells it covers are not drawn. */
+  const PS = S/2, patches = [], rep = new Uint8Array(NX*NZ);
+  for(const f of FOLD){ if(f.type !== "hill") continue;
+    const R = f.r*1.55;
+    const i0 = Math.max(0, Math.floor((f.x - R - x0)/S)), i1 = Math.min(NX-1, Math.ceil((f.x + R - x0)/S));
+    const j0 = Math.max(0, Math.floor((f.z - R - z0)/S)), j1 = Math.min(NZ-1, Math.ceil((f.z + R - z0)/S));
+    if(i1 - i0 < 2 || j1 - j0 < 2) continue;
+    if(patches.some(q => i0 <= q.i1 && i1 >= q.i0 && j0 <= q.j1 && j1 >= q.j0)) continue;
+    const pnx = (i1 - i0)*2 + 1, pnz = (j1 - j0)*2 + 1, px0 = x0 + i0*S, pz0 = z0 + j0*S;
+    const PH = new Float32Array(pnx*pnz).fill(NaN), PT = new Float32Array(pnx*pnz);
+    for(let jj=0;jj<pnz;jj++) for(let ii=0;ii<pnx;ii++){
+      const x = px0 + ii*PS, z = pz0 + jj*PS, k = jj*pnx + ii;
+      if(ii === 0 || jj === 0 || ii === pnx-1 || jj === pnz-1){ const v = atC(x, z); if(v !== null){ PH[k] = v; PT[k] = terr(x, z, coastDist(x, z)); } continue; }
+      if(!polyInside(inner, x, z)) continue;
+      PH[k] = sampleV(x, z); PT[k] = terr(x, z, coastDist(x, z));
+    }
+    const P2 = {i0, i1, j0, j1, pnx, pnz, px0, pz0, PH, PT};
+    /* a coarse cell is handed to the patch only if all nine of its fine samples exist */
+    for(let j=j0;j<j1;j++) for(let i=i0;i<i1;i++){ let ok = true;
+      for(let b=0;b<3 && ok;b++) for(let a2=0;a2<3;a2++){ const v = PH[((j-j0)*2 + b)*pnx + (i-i0)*2 + a2]; if(v !== v){ ok = false; break; } }
+      if(ok) rep[j*NX+i] = 1; }
+    patches.push(P2);
+  }
+  const at = (x, z) => {
+    for(const q of patches){ const i = Math.floor((x - x0)/S), j = Math.floor((z - z0)/S);
+      if(i >= q.i0 && i < q.i1 && j >= q.j0 && j < q.j1 && rep[j*NX+i]) return tri(q.PH, q.pnx, q.px0, q.pz0, PS, q.pnx, q.pnz, x, z); }
+    return atC(x, z);
+  };
+  const y = (x, z, cd) => {
+    if(ST){ const c = ST.q(x, z); if(c) return ST.carve(full0(x, z, cd), c); }
+    const g = at(x, z); return g !== null ? g : full0(x, z, cd);
+  };
+
+  /* ---- colour and the rock / pebble-bed mask, shared by the grid and the channel mesh ---- */
+  const amp = TERRAIN && TERRAIN[key] ? TERRAIN[key].amp : 1;
+  const lo = new THREE.Color(P.grass), hiC = new THREE.Color(P.grassDk), rockC = new THREE.Color(P.stone), cc = new THREE.Color();
+  if(GROUNDQ){ const w = new THREE.Color(0xFFFFFF); lo.lerp(w, MEADOW_KEEP); hiC.lerp(w, MEADOW_KEEP*.64); }
+  const shade = (t0, sl, lap, wet, col, rk, k, bed) => {
+    const t = amp > 0 ? Math.min(1, Math.max(0, t0)/amp) : 0;
+    cc.copy(lo).lerp(hiC, Math.min(1, t*1.5)); if(t > .62) cc.lerp(rockC, Math.min(1, (t-.62)/.38*.55));
+    cc.multiplyScalar(1 - Math.min(.16, Math.max(0, lap)*1.4));                    /* water and shade gather in the hollows */
+    if(wet > 0){ cc.multiplyScalar(1 - .45*wet); cc.g *= 1 + .04*wet; }            /* soaked banks */
+    col[k*3] = cc.r; col[k*3+1] = cc.g; col[k*3+2] = cc.b;
+    rk[k*2] = rlSs(.6, 1.1, sl) + Math.min(.25, Math.max(0, -lap)*.9)*rlSs(.3, .6, sl);   /* rock where soil cannot hold, a little more on the ribs */
+    rk[k*2+1] = bed;
+  };
+  const wetBed = (x, z, yv) => {
+    if(!ST) return [0, 0]; const c = ST.q(x, z); if(!c) return [0, 0];
+    const bank = Math.max(1.5, (yv - c.Wl)/.55);
+    return [(1 - rlSs(c.w, c.w + 1.2 + bank*.6, c.dc))*c.ramp, (1 - rlSs(c.w*.75, c.w + .35, c.dc))*c.ramp];
+  };
+
+  const api = {folds, y, stream: !!ST, at,
+    build(scene){
+      const pos = [], idx = [], colA = [], rkA = [];
+      const cT = new Float32Array(3), rT = new Float32Array(2);
+      /* one grid into the shared buffers: A heights, T terrain-only (for the elevation tint), keep(i,j) = draw this cell */
+      const emit = (A, T, nx, nz, gx, gz, gs, keep) => {
+        const ix = new Int32Array(nx*nz).fill(-1);
+        const hv = (i, j, k) => { if(i < 0 || j < 0 || i >= nx || j >= nz) return A[k]; const v = A[j*nx+i]; return v === v ? v : A[k]; };
+        for(let j=0;j<nz;j++) for(let i=0;i<nx;i++){ const k = j*nx+i; if(A[k] !== A[k]) continue;
+          const x = gx + i*gs, z = gz + j*gs; ix[k] = pos.length/3; pos.push(x, A[k], z);
+          const l = hv(i-1, j, k), r = hv(i+1, j, k), d = hv(i, j-1, k), u = hv(i, j+1, k);
+          const sl = Math.hypot(r - l, u - d)/(2*gs), lap = (l + r + d + u - 4*A[k])/(gs*gs)*(gs/S);
+          shade(T[k], sl, lap, wetBed(x, z, A[k])[0], cT, rT, 0, 0);
+          colA.push(cT[0], cT[1], cT[2]); rkA.push(rT[0], rT[1]); }
+        for(let j=0;j<nz-1;j++) for(let i=0;i<nx-1;i++){ if(!keep(i, j)) continue;
+          const a = ix[j*nx+i], b = ix[j*nx+i+1], d = ix[(j+1)*nx+i], e = ix[(j+1)*nx+i+1];
+          if(a<0||b<0||d<0||e<0) continue; idx.push(a,d,b, b,d,e); }
+      };
+      emit(H, T0, NX, NZ, x0, z0, S, (i, j) => !rep[j*NX+i]);
+      for(const q of patches) emit(q.PH, q.PT, q.pnx, q.pnz, q.px0, q.pz0, PS, (ii, jj) => rep[(q.j0 + (jj >> 1))*NX + q.i0 + (ii >> 1)] === 1);
+      const n = pos.length/3, col = new Float32Array(colA), rk = new Float32Array(rkA);
+      if(!idx.length) return null;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      g.setAttribute("aRk", new THREE.BufferAttribute(rk, 2));
+      if(GROUNDQ){ const uv = new Float32Array(n*2); for(let k=0;k<n;k++){ uv[k*2] = pos[k*3]; uv[k*2+1] = -pos[k*3+2]; } g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); }
+      g.setIndex(idx); g.computeVertexNormals();
+      const m = new THREE.Mesh(g, reliefMat(night, false));
+      m.receiveShadow = true; m.castShadow = true; m.userData.dyn = 1;
+      if(ST){ const ch = api.channel(); if(ch) m.add(ch); const wt = api.water(); if(wt) m.add(wt); }
+      return m;
+    },
+    /* the channel, drawn finer than the grid: 21 vertices across a corridor that reaches from bank
+       top to bank top, on the exact analytic surface height() returns inside it */
+    channel(){
+      const pts = ST.pts, L = 21, rows = [];
+      const ext = (p, dir, d) => ({x: p.x + dir[0]*d, z: p.z + dir[1]*d, nx: p.nx, nz: p.nz, cw: p.cw});
+      const p0 = pts[0], p1 = pts[pts.length-1];
+      const d0 = [-p0.nz, p0.nx], d1 = [p1.nz, -p1.nx];   /* backward off the source, forward off the pool */
+      rows.push(ext(p0, d0, p0.cw), ext(p0, d0, p0.cw*.5)); pts.forEach(p => rows.push(p)); rows.push(ext(p1, d1, p1.cw*.5), ext(p1, d1, p1.cw));
+      const pos = [], col = new Float32Array(rows.length*L*3), rk = new Float32Array(rows.length*L*2), uv = [], idx = [];
+      const Y = (x, z) => y(x, z, coastDist(x, z));
+      let k = 0;
+      for(const p of rows) for(let a=0;a<L;a++){
+        const s = a/(L-1)*2 - 1, o = Math.sign(s)*Math.pow(Math.abs(s), 1.35)*p.cw, x = p.x + p.nx*o, z = p.z + p.nz*o;
+        const yv = Y(x, z), E = .9, E2 = 1.8;
+        const sl = Math.hypot(Y(x+E, z) - Y(x-E, z), Y(x, z+E) - Y(x, z-E))/(2*E);
+        const lap = (Y(x+E2, z) + Y(x-E2, z) + Y(x, z+E2) + Y(x, z-E2) - 4*yv)/(E2*E2);
+        const [wet, bed] = wetBed(x, z, yv);
+        pos.push(x, yv, z); uv.push(x, -z);
+        shade(terr(x, z, coastDist(x, z)), sl, lap*.5, wet, col, rk, k, bed); k++;
+      }
+      for(let r=0;r<rows.length-1;r++) for(let a=0;a<L-1;a++){ const i0 = r*L + a, i1 = i0 + 1, j0 = i0 + L, j1 = j0 + 1;
+        idx.push(i0, j0, i1, i1, j0, j1); }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      g.setAttribute("aRk", new THREE.BufferAttribute(rk, 2));
+      if(GROUNDQ) g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+      g.setIndex(idx); g.computeVertexNormals();
+      /* the strip was laid out in whichever direction the path runs; make sure its faces point up */
+      { const nm = g.attributes.normal; let up = 0; for(let i=0;i<nm.count;i++) up += nm.getY(i);
+        if(up < 0){ const ia = g.index.array; for(let i=0;i<ia.length;i+=3){ const t = ia[i+1]; ia[i+1] = ia[i+2]; ia[i+2] = t; } g.computeVertexNormals(); } }
+      const m = new THREE.Mesh(g, reliefMat(night, true));
+      m.receiveShadow = true; m.userData.dyn = 1; m.userData.ground = true;
+      return m;
+    },
+    water(){
+      const pts = ST.pts, rows = [], L = 5, p1 = pts[pts.length-1];
+      pts.forEach(p => rows.push(p));
+      { const d = p1.w + .8; rows.push({x: p1.x + p1.nz*d, z: p1.z - p1.nx*d, nx: p1.nx, nz: p1.nz, w: p1.w, Wl: p1.Wl, arc: p1.arc + d}); }   /* on past the end, under the pool's far bank */
+      const pos = [], st = [], idx = [];
+      for(const p of rows) for(let a=0;a<L;a++){ const s = a/(L-1)*2 - 1, o = s*(p.w + .45);
+        pos.push(p.x + p.nx*o, p.Wl, p.z + p.nz*o); st.push(o, p.arc); }
+      for(let r=0;r<rows.length-1;r++) for(let a=0;a<L-1;a++){ const i0 = r*L + a, i1 = i0 + 1, j0 = i0 + L, j1 = j0 + 1; idx.push(i0, j0, i1, i1, j0, j1); }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("aSt", new THREE.Float32BufferAttribute(st, 2));
+      g.setIndex(idx); g.computeVertexNormals();
+      { const nm = g.attributes.normal; if(nm.getY(0) < 0){ const ia = g.index.array; for(let i=0;i<ia.length;i+=3){ const t = ia[i+1]; ia[i+1] = ia[i+2]; ia[i+2] = t; } g.computeVertexNormals(); } }
+      const W = rlWaterMat(night), m = new THREE.Mesh(g, W.m);
+      m.renderOrder = 2; m.userData.dyn = 1; m.receiveShadow = true;
+      m.onBeforeRender = () => { W.uT.value = performance.now()/1000; };
+      return m;
+    },
+    /* rock that breaks the grass: tors on the hills' steepest shoulders and gully walls, fallen
+       blocks at the feet of the inked rock, outcrops on the steepest real ground. Placed after
+       everything else is built, against the finished colliders, with its own generator. */
+    finish(scene, I){
+      if(!ROCKQ) return;
+      const rng = mulberry32(s0 ^ 0x5bd1e995), keep = Math.random; Math.random = rng;
+      try{
+        const RF = rockField(P, night), Hh = I.height, placed = [], lite = RL_LITE ? .6 : 1;
+        const clear = (x, z, r) => {
+          if(!inside(x, z)) return false; const cd = coastDist(x, z); if(cd < 16 || det(x, z, cd) < .6) return false;
+          for(const c of I.colliders) if(Math.hypot(c.x - x, c.z - z) < (c.r || 1) + r + .8) return false;
+          for(const nn of cfg.notes) if(Math.hypot(nn.x - x, nn.z - z) < 9) return false;
+          for(const nn of (cfg.npcs || [])) if(Math.hypot(nn.at[0] - x, nn.at[1] - z) < 10) return false;
+          for(const pt of [cfg.ability && cfg.ability.at, cfg.letter && cfg.letter.at, cfg.pen && cfg.pen.at, cfg.secret && cfg.secret.at, cfg.desk && cfg.desk.at])
+            if(pt && Math.hypot(pt[0] - x, pt[1] - z) < 9) return false;
+          if(ST){ const c = ST.q(x, z); if(c && c.dc < c.w + 5) return false; }
+          for(const p of placed) if(Math.hypot(p[0] - x, p[1] - z) < p[2] + r + 1.5) return false;
+          return true; };
+        const slopeAt = (x, z) => { const E = 1.2; return Math.hypot(Hh(x+E, z) - Hh(x-E, z), Hh(x, z+E) - Hh(x, z-E))/(2*E); };
+        const put = (r, x, z, sink) => { RF.add(r, x, Hh(x, z) - r*sink, z, rng()*6.283); placed.push([x, z, r]); if(r > .9) I.colliders.push({x, z, r:r*.8}); };
+        for(const f of FOLD){ if(f.type !== "hill") continue;
+          let n = 0; const want = Math.round((f.r > 60 ? 9 : 6)*lite);
+          for(let k=0; k<500 && n<want; k++){ const a = rng()*6.283, t = .22 + rng()*.6, x = f.x + Math.cos(a)*f.r*t, z = f.z + Math.sin(a)*f.r*t;
+            const sl = slopeAt(x, z); if(sl < .62) continue;
+            const r = 1.0 + rng()*1.6 + Math.min(1, sl - .62)*.8; if(!clear(x, z, r)) continue;
+            put(r, x, z, .30); n++;
+            for(let b=0;b<2;b++){ const bx = x + (rng() - .5)*r*3, bz = z + (rng() - .5)*r*3, br = r*(.3 + rng()*.25); if(clear(bx, bz, br)) put(br, bx, bz, .2); } } }
+        for(const f of cfg.features){ if(f.type !== "mesa" || !f.ink || f.outer) continue;
+          let n = 0; const want = Math.round(16*lite);
+          for(let k=0; k<600 && n<want; k++){ const a = rng()*6.283, R = rlInkR(f, a), t = .80 + rng()*.22, x = f.x + Math.cos(a)*R*t, z = f.z + Math.sin(a)*R*t;
+            const r = .45 + rng()*rng()*1.7; if(!clear(x, z, r)) continue; put(r, x, z, .18); n++; } }
+        { let n = 0; const want = Math.round(10*lite);
+          for(let k=0; k<3000 && n<want; k++){ const i = (rng()*NX)|0, j = (rng()*NZ)|0; if(H[j*NX+i] !== H[j*NX+i]) continue;
+            const x = x0 + i*S, z = z0 + j*S; if(cfg.features.some(f => Math.hypot(x - f.x, z - f.z) < f.r*1.4)) continue;
+            const sl = slopeAt(x, z); if(sl < .75) continue;
+            const r = 1.2 + rng()*1.6; if(!clear(x, z, r)) continue; put(r, x, z, .32); n++; } }
+        I.reliefRocks = RF.finish(scene);
+      } finally { Math.random = keep; }
+    }
+  };
+  return api;
+}
 /* ---- the sky as a light source ----
    An equirectangular strip of the island's own sky colours — zenith, horizon band, and the ground
    bounce below it — prefiltered into an environment map. Every surface then picks up the real colour
@@ -6408,6 +6917,7 @@ function buildIslandBody(cfg){
     } }
   const TMAX = (COASTS[cfg.key] ? COASTS[cfg.key].maxR : 90) * WORLD;
   const stoneXZ = cfg.stones || [];
+  let RLF = null;                                    /* TERRAINQ: the island's relief grid, built just below */
   const height = (x,z) => {
     /* The real ground under everything else - but only on land. The elevation grid is a square over
        the whole island and reads a few centimetres above zero out over the sea near the coast, which
@@ -6415,8 +6925,10 @@ function buildIslandBody(cfg){
        the sampled height fades to nothing over that same strip and she matches what is drawn. */
     const inn = inside(x, z), cd = coastDist(x, z);
     let y = inn ? terrainAt(cfg.key, x, z, TMAX) * Math.min(1, cd/SHORE_BLEND) : 0;
+    const rlf = !!(RLF && inn); if(rlf) y = RLF.y(x, z, cd);   /* TERRAINQ: the exact surface the relief mesh draws */
     if(Math.abs(x-cfg.dock[0]) < 3 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2) y = Math.max(y, .75);   /* the dock planks are a deck, not a decal */
     for(const f of cfg.features){
+      if(rlf && RLF.folds(f)) continue;                /* TERRAINQ: already in the grid */
       const d = Math.hypot(x-f.x, z-f.z);
       if(f.type === "hill" && d < f.r){
         let h = f.h*Math.pow(1-d/f.r, 1.35);
@@ -6442,7 +6954,8 @@ function buildIslandBody(cfg){
       if(f.type === "mesa" && d < f.r*1.35){
         if(f.__ph == null) f.__ph = (seedOf((f.name || "") + f.x + "," + f.z) % 6283) / 1000;
         const ang = Math.atan2(z-f.z, x-f.x);
-        const R = f.r * (1 + Math.sin(ang*3 + f.__ph)*0.155 + Math.sin(ang*5 - f.__ph*1.7)*0.080
+        const RQ = TERRAINQ && f.ink && !f.outer;     /* TERRAINQ: a noise rim instead of three regular bays */
+        const R = RQ ? rlInkR(f, ang) : f.r * (1 + Math.sin(ang*3 + f.__ph)*0.155 + Math.sin(ang*5 - f.__ph*1.7)*0.080
                            + Math.sin(ang*8 + f.__ph*2.4)*0.038);
         if(d < R){
           const t = d / R;
@@ -6481,6 +6994,7 @@ function buildIslandBody(cfg){
               const u = (t - CAP) / (1 - CAP);
               const kA = 0.06, kB = 0.26 + 0.72*rk;    /* short fall on the cliff, long one on a ramp */
               let s = Math.max(0, Math.min(1, (u - kA)/(kB - kA))); s = s*s*(3 - 2*s);
+              if(RQ) s -= .45*Math.sin(s*Math.PI*8)/(Math.PI*8);   /* TERRAINQ: bedding ledges in the face (never flatter than ~55%) */
               /* The two terms MUST sum to the crown's own height at u=0 or the cap gets a rim wall.
                  The first draft was 0.94*(1-s) + 0.11*(1-u)^2, which is 1.05*h at u=0 - nearly two
                  units ABOVE the cap - and the slope probe read a 75-degree step exactly where the
@@ -6494,13 +7008,15 @@ function buildIslandBody(cfg){
                  it, so it goes in the height field and the mesh picks it up for free, along with the
                  walker. Zero at both ends of the band, and zero on the ramp. */
               const cut = Math.sin(ang*9 + f.__ph*2.3)*.55 + Math.sin(ang*17 - f.__ph*1.1)*.45;
-              h -= f.h * .10 * Math.sin(Math.PI*u) * (cut*.5 + .5) * (1 - rk);
+              h -= RQ ? f.h * .12 * Math.sin(Math.PI*u) * rlInkCut(f, ang, u) * (1 - rk)
+                      : f.h * .10 * Math.sin(Math.PI*u) * (cut*.5 + .5) * (1 - rk);
             }
+            if(RQ) h += rlInkLip(f, ang, t, CAP, rk, x, z);   /* TERRAINQ: a broken lip and a weathered cap */
           }
           /* Beds are never laid perfectly level and never stay that way. A degree or two of dip
              across the whole rock keeps the cap from reading as a machined disc from a low camera,
              where it is the one edge of it you can see. */
-          if(f.ink) h *= 1 + Math.cos(ang - f.__ph)*0.035*t;
+          if(f.ink) h *= 1 + Math.cos(ang - f.__ph)*(RQ ? .07 : 0.035)*t;   /* TERRAINQ: the beds dip twice as far */
           y = Math.max(y, h);
         }
       }
@@ -6514,6 +7030,7 @@ function buildIslandBody(cfg){
     for(const s of stoneXZ) if(Math.hypot(x-s[0], z-s[1]) < 3.3) return 0;
     return shelfGround(cd);
   };
+  if(TERRAINQ) RLF = reliefBuild({cfg, POLY, TMAX, inside, coastDist, P, night: cfg.key === "sanity"});   /* TERRAINQ */
   const I = {cfg, scene, sky, moon, key, sea, hemiL, inside, height, coastDist, shoreOut, /* The analytic sea surface has to apply the SAME damp the shader does, or every splash, ripple,
      foam ring and floating prop near the shore sits at a height the water is no longer at. */
     seaY:(x, z, t, base) => seaHeight(x, z, t, base, shoreDamp(coastDist(x, z))), water:null, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
@@ -6541,7 +7058,7 @@ function buildIslandBody(cfg){
     const SLAB_BOTTOM = -10;
     scene.add(GROUND(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16}))));   /* the beach, a hair below the meadow */
     scene.add(GROUND(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   withMacro(meadowMat(P.grass))))); /* top face at y=0 = the walkable height */
-    { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }
+    { const tm = RLF ? RLF.build(scene) : terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }   /* TERRAINQ: the relief grid replaces the terrain mesh */
     /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
        down through the shallows shows real ground under her feet instead of a blue plane on nothing */
     /* With the new swash the shelf's outer edge became the most obvious straight line on the coast: the
@@ -6570,12 +7087,13 @@ function buildIslandBody(cfg){
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
   cfg.features.forEach(f => {
+    if(RLF && RLF.folds(f)) return;                  /* TERRAINQ: hills and rises are drawn by the relief grid */
     if(f.type === "hill"){
       /* the visible hill is lathed from the exact same profile the walker and every pickup use,
          so nothing can sit "inside" the slope any more */
       const pts = [new THREE.Vector2(f.r+.6, -.6)];
       for(let k=28;k>=0;k--){ const d = f.r*(k/28); pts.push(new THREE.Vector2(Math.max(d, .001), height(f.x + d, f.z) - .05)); }
-      const lg2 = new THREE.LatheGeometry(pts, 48);
+      const lg2 = TERRAINQ && f.crater ? rlRadial(height, f) : new THREE.LatheGeometry(pts, 48);   /* TERRAINQ: sampled at every bearing, not spun from one */
       /* ?ground=real: same overlap as the mesa below - the lathe and the terrain mesh are both sampled
          from the ground, so the hill takes the photo meadow on the terrain's world-planar uv */
       const photoHill = GROUNDQ && !f.crater;
@@ -6619,7 +7137,7 @@ function buildIslandBody(cfg){
              too steep to hold soil; grass sits where it is not. That is why a real mesa has a
              cliff band, and deriving it from |grad h| means it follows the bays in the rim and
              the talus fans for free instead of being a ring I drew at a radius I picked. */
-      const SEG = 72, RINGS = 40, RMAX = f.r * 1.34;
+      const SEG = TERRAINQ && f.ink && !f.outer ? 128 : 72, RINGS = TERRAINQ && f.ink && !f.outer ? 60 : 40, RMAX = f.r * 1.34;   /* TERRAINQ: fine enough for the broken rim and the ledges */
       /* Rings are NOT spread evenly in radius. A mesa's cliff is about a tenth of the radius wide
          and most of its height, so an even grid puts three or four rings on the one part of the
          shape that carries all the detail - and the beds in the texture came out as a herringbone
@@ -6861,8 +7379,10 @@ function buildIslandBody(cfg){
         scene.add(m); return m;
       };
       path.forEach(([x,z,w]) => I.noGrass.push({x, z, r: w + 2.2}));   /* nothing grows in the streambed */
+      if(!(RLF && RLF.stream)){                 /* TERRAINQ: the relief grid cuts the real channel and draws the water */
       ribbon(1.15, .10, 0x6E7A63, 1);        /* the cut bank: wider, a touch lower, earthy */
       ribbon(0, .26, 0x7FC9E0, .82);         /* the water, sunk into it */
+      }
       for(let i=2;i<path.length-2;i+=3){     /* stones along both edges */
         const [x,z,w] = path[i];
         for(const sgn of [-1,1]){
@@ -7587,6 +8107,7 @@ function buildIslandBody(cfg){
     };
   }
   guideInit(I); cueInit(I);
+  if(RLF) RLF.finish(scene, I);                      /* TERRAINQ: outcrops and talus, last, against the finished colliders */
   /* ===============  NOTHING STANDS UNDER ITS OWN GROUND  ===============
      Luna's Keep sat 30 u inside its own hill for weeks: the island's namesake landmark, invisible,
      with its door still firing an interact prompt at a player who could see nothing. It was one
