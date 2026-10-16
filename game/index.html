@@ -1673,6 +1673,7 @@ function sailFleet(scene, n, cfg, inside, P, lamps){
   return list;
 }
 function skyDome(top, mid, bot){
+  if(SKYQ) return skyDomeReal(top, mid, bot);   /* ?sky=old keeps the gradient below */
   const m = new THREE.ShaderMaterial({
     uniforms:{top:{value:new THREE.Color(top)}, mid:{value:new THREE.Color(mid)},
               bot:{value:new THREE.Color(bot)}, blend:{value:0}, flash:{value:0}},
@@ -1692,6 +1693,271 @@ function moonPair(pos, r){
   const h = new THREE.Mesh(new THREE.RingGeometry(r*1.2, r*2.5, 44),
     new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.13, side:THREE.DoubleSide}));
   g.add(h); g.position.copy(pos); g.userData.halo = h; return g;
+}
+
+/* ===================  A REAL SKY  (default; ?sky=old restores the gradient dome and the sphere clouds)  ===================
+   The shipped sky was a three-colour gradient painted on a sphere and the clouds were clusters of
+   spheres: he called them "clumps of balls" and the sky "a painted gradient". This replaces both
+   with one full-screen pass on the same dome (same top/mid/bot/blend/flash uniforms, so Sanity's
+   day/night dial and Green's rain keep driving it):
+     - atmosphere: the island's own palette laid on a physical shape - a bright hazy horizon band,
+       a deeper zenith, warmer and brighter toward the sun's azimuth, a forward-scatter glow round
+       the sun and a sun disc where the key light actually comes from; the horizon melts into the
+       fog colour so the land dissolves into the sky instead of meeting it at a seam;
+     - clouds: a domain-warped fbm cumulus deck sampled through three thin slices of altitude
+       (flat dark bases, lit domed tops, and at a low angle you see their sides stack up), lit from
+       the sun or moon side, silver-lined toward the sun, fading into the horizon haze; high cirrus
+       streaks above them; both drift on the wind. Storm (Sanity) and rain (Green) thicken the
+       cover into a dark grey deck and lightning lights it from inside;
+     - the moon is drawn in the same pass at exactly the position and size of I.moon (that object
+       stays in the scene for anything that reads its position - only its meshes stop drawing), so
+       clouds pass in front of it and it has a real soft halo;
+     - stars are procedural: tiny, varied in brightness and colour, twinkling slightly, gone where
+       a cloud is and where the sky is bright;
+     - cloud shadows: the same cumulus field projected down along the key light onto every standard
+       material (one shared uniform; direct light only), so soft shadows drift across the island
+       in daylight under a broken sky.
+   Cost: one sky pass over the pixels the world does not cover (the dome now draws last among the
+   opaques and follows the camera - it also used to sit at the origin with a 600 u radius, so on
+   Green, where the camera starts 740 u out, the camera was OUTSIDE it and the sky was black); about
+   30 value-noise taps per sky pixel on desktop, ~16 on a phone; ~7 taps per lit ground pixel. */
+const SKYQ = QS.get("sky") !== "old";
+const SKY_LITE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
+const SKY_CS = {scale:640, base:380, thick:300};   /* cumulus: world units per noise unit, cloud base, deck thickness */
+/* shared with every standard material through ShaderLib: plain objects, so UniformsUtils.clone hands
+   every material the SAME object and no per-material binding is needed */
+const CSH = {x:0, y:0, z:0, w:.4};                  /* wind.xy, shadow strength, cover */
+const CSD = {x:-.5, y:.8, z:.3};                    /* light direction (towards the light) */
+const SKY_NOISE = `
+  float csH(vec2 i){ i = mod(i, 289.0); vec3 p3 = fract(vec3(i.xyx)*.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y)*p3.z); }
+  float csN(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0 - 2.0*f);
+    return mix(mix(csH(i), csH(i + vec2(1.0, 0.0)), u.x), mix(csH(i + vec2(0.0, 1.0)), csH(i + vec2(1.0, 1.0)), u.x), u.y); }
+  /* fbm with exact x2 lacunarity so the whole field repeats every 289 units (the wind wraps there);
+     skipped octaves add their mean, so a 3-octave copy has the same coverage as the 5-octave one */
+  float csF(vec2 p, int o){ float s = 0.0, a = .5;
+    for(int i = 0; i < 5; i++){ if(i >= o){ s += a*(1.0 - exp2(float(i) - 5.0)); break; }
+      s += a*csN(p); p = p*2.0 + vec2(17.13, 9.71); a *= .5; }
+    return s; }
+  vec2 csWarp(vec2 p){ return p + (vec2(csF(p*.5 + vec2(3.1, 7.7), 2), csF(p*.5 + vec2(8.3, 1.9), 2)) - .5)*1.3; }
+  float csTh(float cover){ return mix(.70, .22, clamp(cover, 0.0, 1.0)); }`;
+if(SKYQ){
+  try{
+    for(const k of ["standard", "physical"]) if(THREE.ShaderLib[k]){ THREE.ShaderLib[k].uniforms.uCSh = {value:CSH}; THREE.ShaderLib[k].uniforms.uCSd = {value:CSD}; }
+    THREE.ShaderChunk.lights_physical_pars_fragment = `uniform vec4 uCSh; uniform vec3 uCSd;
+      ${SKY_NOISE}
+      float csShade(vec3 w){
+        if(uCSd.y < .06) return 1.0;
+        float h = ${(SKY_CS.base + SKY_CS.thick*.5).toFixed(1)};
+        vec2 p = (w.xz + uCSd.xz/uCSd.y*(h - w.y))/${SKY_CS.scale.toFixed(1)} + uCSh.xy;
+        float n = csF(csWarp(p), ${SKY_LITE ? 2 : 3});
+        float th = csTh(uCSh.w) + .03;
+        return 1.0 - uCSh.z*smoothstep(th - .05, th + .22, n);     /* wider than the cloud's edge: a soft penumbra */
+      }
+    ` + THREE.ShaderChunk.lights_physical_pars_fragment;
+    THREE.ShaderChunk.lights_fragment_end = `
+    #ifdef STANDARD
+      if(uCSh.z > .001){
+        vec3 csW = cameraPosition + (vec4(-vViewPosition, 0.0)*viewMatrix).xyz;
+        float csK = csShade(csW);
+        reflectedLight.directDiffuse *= csK; reflectedLight.directSpecular *= csK;
+      }
+    #endif
+    ` + THREE.ShaderChunk.lights_fragment_end;
+  }catch(e){ DBG("cloud shadows unavailable", e && e.message); }
+}
+function skyDomeReal(top, mid, bot){
+  const C = v => new THREE.Color(v);
+  const SL = SKY_LITE ? 2 : 3, OC = SKY_LITE ? 4 : 5;
+  const m = new THREE.ShaderMaterial({
+    uniforms:{top:{value:C(top)}, mid:{value:C(mid)}, bot:{value:C(bot)}, blend:{value:0}, flash:{value:0},
+      uSunDir:{value:new THREE.Vector3(-.5, .8, .3).normalize()}, uLDir:{value:new THREE.Vector3(-.5, .8, .3).normalize()},
+      uSunCol:{value:C(0xFFE9CC)}, uSunAmt:{value:1}, uFogCol:{value:C(bot)},
+      uMoonPos:{value:new THREE.Vector3(0, 100, -300)}, uMoonR:{value:0}, uMoonCol:{value:C(MOON)}, uMoonAmt:{value:0},
+      uCLit:{value:C(0xFFFFFF)}, uCDark:{value:C(0x8890A0)}, uStars:{value:0}, uTime:{value:0},
+      uCover:{value:.4}, uCirrus:{value:.5}, uStorm:{value:0}, uPix:{value:.0015},
+      uWind:{value:new THREE.Vector2()}, uWind2:{value:new THREE.Vector2()}},
+    vertexShader:`varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position, 1.0); vW = w.xyz;
+      gl_Position = projectionMatrix*viewMatrix*w; }`,
+    fragmentShader:`uniform vec3 top, mid, bot; uniform float blend, flash;
+      uniform vec3 uSunDir, uLDir, uSunCol, uFogCol, uMoonPos, uMoonCol, uCLit, uCDark;
+      uniform float uSunAmt, uMoonR, uMoonAmt, uStars, uTime, uCover, uCirrus, uStorm, uPix;
+      uniform vec2 uWind, uWind2;
+      varying vec3 vW;
+      ${SKY_NOISE}
+      vec3 starL(vec3 d, float N, float seed){
+        vec3 a = abs(d); vec2 uv; float fc;
+        if(a.x > a.y && a.x > a.z){ uv = d.zy/a.x; fc = sign(d.x); }
+        else if(a.y > a.z){ uv = d.xz/a.y; fc = 2.0*sign(d.y); }
+        else { uv = d.xy/a.z; fc = 3.0*sign(d.z); }
+        vec2 g = uv*N, id = floor(g); vec2 k = id + vec2(fc*41.0 + seed, fc*13.0);
+        float h = csH(k);
+        if(h > .26) return vec3(0.0);
+        vec2 off = vec2(csH(k + 11.7), csH(k + 5.3))*.7 + .15;
+        float r = length(g - id - off)/N/(1.0 + dot(uv, uv));        /* gnomonic: uv distance back to an angle */
+        float pw = uPix*.75;
+        float s = exp(-r*r/(pw*pw));
+        float b = csH(k + 3.9); b *= b; b *= b; b = .03 + 2.2*b*b;
+        float tw = 1.0 + .32*sin(uTime*(1.7 + h*11.0) + h*91.0)*sin(uTime*.61 + h*37.0);
+        vec3 col = mix(vec3(.72, .82, 1.0), vec3(1.0, .86, .66), csH(k + 7.1));
+        return col*s*b*tw;
+      }
+      void main(){
+        vec3 d = normalize(vW - cameraPosition);
+        float y = d.y, h = max(y, 0.0);
+        float st = clamp(max(uStorm, blend), 0.0, 1.0);
+        /* ---- atmosphere: the island's palette on a physical shape ---- */
+        vec3 c = mix(bot, mid, smoothstep(-.02, .30, pow(h, .8)));
+        c = mix(c, top, smoothstep(.16, .92, h));
+        c *= 1.0 - .16*smoothstep(.45, 1.0, h);
+        float hz = exp(-h*9.0);
+        c = mix(c, mix(bot, uFogCol, .5)*1.06, hz*.55);
+        float mu = dot(d, uSunDir), mp = max(mu, 0.0);
+        float sunUp = smoothstep(-.06, .06, uSunDir.y)*uSunAmt;
+        float az = dot(normalize(d.xz + 1e-5), normalize(uSunDir.xz + 1e-5))*.5 + .5;
+        c *= mix(vec3(1.0), mix(vec3(.90, .93, 1.02), uSunCol*1.10, az), (1.0 - h)*.55*sunUp);
+        float clear = 1.0 - .85*st;
+        c += uSunCol*sunUp*(pow(mp, 6.0)*.14 + pow(mp, 64.0)*.40)*clear;
+        /* ---- stars ---- */
+        if(uStars > .003 && y > 0.0){
+          vec3 s = starL(d, 60.0, 0.0);
+          ${SKY_LITE ? "" : "s += starL(d, 130.0, 57.0)*.45;"}
+          c += s*uStars*smoothstep(0.0, .22, y)*clear;
+        }
+        /* ---- moon: where I.moon is, as big as it is ---- */
+        vec3 mv = uMoonPos - cameraPosition; float mdist = length(mv); vec3 md = mv/mdist;
+        float mr = uMoonR/mdist, ma = length(d - md), disc = 0.0;
+        if(uMoonR > 0.0){
+          disc = smoothstep(mr + uPix, mr - uPix, ma);
+          if(disc > 0.0){
+            vec3 mx = normalize(cross(md, vec3(0.0, 1.0, 0.0))), my = cross(mx, md);
+            vec2 q = vec2(dot(d - md, mx), dot(d - md, my))/mr;
+            float z = sqrt(max(0.0, 1.0 - dot(q, q)));
+            float mare = smoothstep(.50, .64, csF(q*1.7 + 4.3, 4))*.30 + smoothstep(.56, .70, csF(q*5.0 + 1.7, 3))*.10;
+            vec3 mc = uMoonCol*(1.0 - mare)*(.62 + .38*z);
+            c = mix(c, mix(c + mc*.40, mc*.92, uMoonAmt), disc);     /* under the bloom's knee, so the maria survive */
+          }
+          float gl = exp(-max(ma - mr, 0.0)/(mr*1.1))*.26 + exp(-ma/(mr*7.0))*.10;
+          c += uMoonCol*gl*uMoonAmt*(1.0 - disc)*(1.0 - .7*st);
+        }
+        /* ---- sun disc (limb-darkened, under the clouds) ---- */
+        float sa = length(d - uSunDir), sr = .0125;
+        float sd = smoothstep(sr + uPix*1.2, sr - uPix*1.2, sa);
+        c += uSunCol*sd*(1.0 - .55*(1.0 - sqrt(max(0.0, 1.0 - sa*sa/(sr*sr)))))*5.0*sunUp*clear;
+        if(y > -.01){
+          float yy = max(y, .012);
+          float cov = clamp(uCover + st*.85, 0.0, 1.0);
+          vec3 hzc = mix(bot, uFogCol, .6);
+          /* ---- cirrus: high, thin, combed out by the wind ---- */
+          float tc = (1700.0 - cameraPosition.y)/yy;
+          vec2 pc = (cameraPosition.xz + d.xz*tc)/2600.0 + uWind2;
+          pc = mat2(.8, -.6, .6, .8)*pc*vec2(1.0, 3.6);
+          float cn = csF(pc + vec2(.5*csN(pc*1.7 + 3.0), 0.0), ${SKY_LITE ? 3 : 4});
+          float ca = smoothstep(.52, .78, cn)*uCirrus*(1.0 - st)*smoothstep(0.0, .10, y)*exp(-tc*5e-5);
+          vec3 ccol = mix(uCLit, vec3(1.0), .25) + uSunCol*pow(mp, 5.0)*.6*sunUp;
+          c = mix(c, mix(ccol, hzc, 1.0 - exp(-tc*6e-5)), ca*.6);
+          /* ---- cumulus: ${SL} slices through the deck, bottom first ---- */
+          float th = csTh(cov), A = 0.0; vec3 CC = vec3(0.0);
+          for(int i = 0; i < ${SL}; i++){
+            float f = (float(i) + .5)/${SL}.0;
+            float alt = ${SKY_CS.base.toFixed(1)} + f*${SKY_CS.thick.toFixed(1)};
+            float t = (alt - cameraPosition.y)/yy;
+            vec2 p = (cameraPosition.xz + d.xz*t)/${SKY_CS.scale.toFixed(1)} + uWind;
+            int det = t < 4500.0 ? ${OC} : ${OC - 1};
+            vec2 wp = csWarp(p);
+            float n = csF(wp, det);
+            float thi = th + f*.07*(1.0 - st);                            /* tops are narrower than bases */
+            float a = smoothstep(thi, thi + .07 + .25*st, n)*${(SL === 3 ? .62 : .78).toFixed(2)};
+            if(a > .002){
+              float thick = smoothstep(thi, thi + .30, n);
+              /* one tap toward the light: where the cloud thins toward the sun it is lit, where it
+                 thickens it is in its own shadow - this is what gives the puffs their form */
+              float n2 = csF(wp + normalize(uLDir.xz + 1e-4)*.07, 3);
+              float sl = clamp(.5 + (n - n2)*7.0, 0.0, 1.0);
+              vec3 col = mix(uCDark, uCLit, clamp(f*.55 + (1.0 - thick)*.35 + sl*.45 - .20, 0.0, 1.0));
+              col += uSunCol*sunUp*pow(mp, 9.0)*(1.0 - thick)*1.4*clear;          /* silver lining */
+              col += uMoonCol*uMoonAmt*(exp(-ma/(mr*3.5 + 1e-4))*.55 + .03)*(1.0 - .6*thick);   /* moonlit edges */
+              col += vec3(.72, .78, 1.0)*flash*(.5 + .9*thick);                   /* lightning inside the deck */
+              col = mix(col, hzc, 1.0 - exp(-t*1.1e-4));                          /* far cloud becomes air */
+              a *= smoothstep(-.01, .05, y)*exp(-t*6e-5);
+              CC += (1.0 - A)*a*col; A += (1.0 - A)*a;
+            }
+          }
+          c = c*(1.0 - A) + CC;
+        }
+        /* ---- weather and the horizon ---- */
+        c = mix(c, uCDark*.9, st*.35);
+        c = mix(c, uFogCol, exp(-h*22.0)*.62);
+        c = mix(c, uFogCol, smoothstep(0.0, -.08, y));
+        c = mix(c, vec3(.92, .95, 1.0), flash*.35);
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+    side:THREE.BackSide, depthWrite:false});
+  return {mesh:new THREE.Mesh(new THREE.SphereGeometry(600, 32, 20), m), mat:m};
+}
+/* island setup: called once the island object exists */
+function skyRealInit(I, P){
+  const U = I.sky.mat.uniforms; if(!U.uSunDir) return;
+  const cfg = I.cfg, key = cfg.key;
+  if(I.moon) I.moon.children.forEach(o => o.visible = false);       /* drawn by the sky now, at the same place and size */
+  if(I.stars) I.stars.visible = false;
+  /* drawn LAST among the opaques, so it only shades the pixels the world leaves uncovered; it follows
+     the camera at 0.9 x the far plane (skyRealUpdate), so nothing in front of the far plane pokes through */
+  I.sky.mesh.renderOrder = 1e6; I.sky.mesh.frustumCulled = false;
+  U.uMoonPos.value.set(...cfg.moon.pos); U.uMoonR.value = cfg.moon.r;
+  U.uSunCol.value.set(P.key || 0xFFE9CC);
+  U.uSunAmt.value = key === "sanity" ? 0 : 1;
+  const COVER = {hub:.40, green:.42, gr:.30, sanity:.34, town:.36, moon:.26}, CIRR = {hub:.65, green:.55, gr:.45, sanity:.35, town:.70, moon:.6};
+  U.uCover.value = COVER[key] != null ? COVER[key] : .38; U.uCirrus.value = CIRR[key] != null ? CIRR[key] : .5;
+  const o = parseFloat(QS.get("cover")); if(isFinite(o)) U.uCover.value = o;
+  I.skyR = {wind:new THREE.Vector2(Math.random()*40, Math.random()*40), wind2:new THREE.Vector2(Math.random()*40, 0), clean:false,
+    lum:c => c.r*.3 + c.g*.59 + c.b*.11, a:new THREE.Color(), b:new THREE.Color(), g:new THREE.Color(), key:new THREE.Color(P.key || 0xFFE9CC),
+    v:new THREE.Vector3(), night: key === "sanity"};
+}
+/* per frame, after the weather has set the sky colours and blend */
+function skyRealUpdate(I, dt, t){
+  const U = I.sky.mat.uniforms, R = I.skyR; if(!U.uSunDir || !R) return;
+  if(!R.clean){ R.clean = true;
+    /* the sphere clouds are still BUILT (the seeded island build consumes the same random numbers, so
+       nothing else on the island moves) - they just leave the scene */
+    for(const k of ["puffs", "clouds"]){ const L = I.fx && I.fx[k]; if(!L || !L.length) continue;
+      L.forEach(g => { if(g.parent) g.parent.remove(g); g.traverse(q => { if(q.geometry) q.geometry.dispose(); }); }); I.fx[k] = []; } }
+  const mesh = I.sky.mesh;
+  mesh.position.copy(camera.position); mesh.scale.setScalar(camera.far*.9/600);
+  /* where the light comes from: I.sunDir if the light rig publishes one, else the key light itself */
+  const sd = U.uSunDir.value;
+  if(I.sunDir) sd.copy(I.sunDir); else if(I.sun) sd.copy(I.sun.position).sub(I.sun.target.position);
+  if(sd.lengthSq() < 1e-6) sd.set(-.5, .8, .3); sd.normalize();
+  const ld = U.uLDir.value;
+  if(R.night) ld.set(...I.cfg.moon.pos).sub(camera.position).normalize(); else ld.copy(sd);
+  U.uFogCol.value.copy(I.scene.fog ? I.scene.fog.color : U.bot.value);
+  const st = Math.max(0, Math.min(1, I.dn ? I.dn.storm : U.blend.value));
+  U.uStorm.value = st; U.uTime.value = t;
+  U.uPix.value = 2*Math.tan(camera.fov*Math.PI/360)/Math.max(1, innerHeight*renderer.getPixelRatio());
+  /* the wind: low deck and high cirrus at different speeds, both a little faster in the weather */
+  const wk = dt*(1 + st*1.6);
+  R.wind.x = (R.wind.x + wk*.0042) % 289; R.wind.y = (R.wind.y + wk*.0016) % 289;
+  R.wind2.x = (R.wind2.x + wk*.0011) % 289;
+  U.uWind.value.copy(R.wind); U.uWind2.value.copy(R.wind2);
+  /* stars and moonlight follow how dark the zenith is, so Sanity's dial and dusk move them for free */
+  const zl = R.lum(U.top.value), night = Math.pow(Math.max(0, Math.min(1, (.32 - zl)/.26)), 1.5);
+  /* no stars while the sun is up */
+  U.uStars.value = R.night ? night : 0; U.uMoonAmt.value = R.night ? 1 : night*.8;
+  /* cloud colours from the sky they sit in: lit side from the key, shadow side from the zenith */
+  const lit = R.a, dark = R.b, grey = R.g;
+  if(R.night){
+    lit.copy(U.bot.value).lerp(U.uMoonCol.value, .30).multiplyScalar(.85);
+    dark.copy(U.top.value).lerp(U.mid.value, .35).multiplyScalar(.85);
+  } else {
+    lit.copy(R.key).lerp(U.mid.value, .22).multiplyScalar(1.05);
+    dark.copy(U.top.value).lerp(U.mid.value, .25).lerp(U.bot.value, .35).multiplyScalar(.62);
+  }
+  const gl = R.lum(U.bot.value)*.9 + .04; grey.setRGB(gl, gl*1.02, gl*1.08);
+  lit.lerp(grey, st*.80); dark.lerp(grey.multiplyScalar(.42), st*.85);
+  U.uCLit.value.copy(lit); U.uCDark.value.copy(dark);
+  /* the same deck's shadow on the ground: daylight only, strongest under a broken sky */
+  CSH.x = R.wind.x; CSH.y = R.wind.y; CSH.w = Math.min(1, U.uCover.value + st*.85);
+  CSH.z = R.night ? 0 : .58*(1 - st*.8)*Math.max(0, Math.min(1, sd.y*4));
+  CSD.x = sd.x; CSD.y = sd.y; CSD.z = sd.z;
 }
 
 /* ===================  THE SEA, AS WATER  (default; ?water=old restores the previous sea)  ===================
@@ -6518,6 +6784,7 @@ function buildIslandBody(cfg){
      foam ring and floating prop near the shore sits at a height the water is no longer at. */
     seaY:(x, z, t, base) => seaHeight(x, z, t, base, shoreDamp(coastDist(x, z))), water:null, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
   I.stars = starMesh;
+  if(SKYQ) skyRealInit(I, P);   /* real sky: moon/stars move into the sky pass */
   /* hand the sea its shore mask now that coastDist exists (the mesh is built before it) */
   { const R = TMAX + 90;
     const mu = sea.userData.mat.uniforms;
@@ -8790,6 +9057,7 @@ function islandUpdate(I, dt, t){
   if(cfg.weather !== "storm" && AU.surfG) AU.surfG.gain.value = .16 + storm*.07;
   I.sky.mat.uniforms.blend.value = I.dn ? storm*.22*(1 - I.dn.mix) : storm; I.fx.windMul = 1 + storm*2.2 + (cfg.weather==="storm" ? 1.2 : 0);
   $("weather").textContent = label;
+  if(SKYQ) skyRealUpdate(I, dt, t);   /* real sky: sun, moon, clouds, stars, cloud shadows */
   /* what parts the grass this frame: her (or the horse under her), the nearest animals, fans and rolling
      balls - the six closest win - plus the track she has just walked, which stays flat and recovers */
   { const PS = I.fx.pushers || (I.fx.pushers = []); PS.length = 0;
@@ -9026,6 +9294,7 @@ function interact(){
 const sail = new THREE.Scene(); sail.fog = new THREE.Fog(0xD8B79C, 70, 340);
 const sSky = skyDome(0x4A3A63, 0xF0A56D, 0xA8DCD8); sail.add(sSky.mesh);
 const sMoon = moonPair(new THREE.Vector3(-90,70,-260), 18); sail.add(sMoon);
+if(SKYQ){ sSky.mat.uniforms.uFogCol.value.set(0xD8B79C); sSky.mat.uniforms.uSunDir.value.set(-20,40,10).normalize(); sSky.mat.uniforms.uLDir.value.set(-20,40,10).normalize(); }   /* real sky on the crossing too */
 sail.add(new THREE.HemisphereLight(0xA8DCD8, 0x5AA0C8, .92));
 { const k = new THREE.DirectionalLight(0xFFE9CC, 1.0); k.position.set(-20,40,10); sail.add(k); }
 const sSea = seaMesh(0x5AA0C8, 0x86C4E0); sail.add(sSea); sail.add(seaBed(0x5AA0C8));
@@ -9321,6 +9590,7 @@ function tick(){
   if(MUS.bus) musPump();          /* the frame is the clock that matters; the interval is the backstop */
   if(FPS_EL){ const now = performance.now(); if(!fpsT0) fpsT0 = now; fpsAcc = (now - fpsT0)/1000; fpsN++; if(fpsAcc >= .5){ FPS_EL.textContent = Math.round(fpsN/fpsAcc) + " fps · " + Math.round(renderer.info.render.triangles/fpsN).toLocaleString() + " tris · " + Math.round(renderer.info.render.calls/fpsN) + " calls"; fpsAcc = 0; fpsN = 0; fpsT0 = now; renderer.info.reset(); } }
   if(toastT > 0){ toastT -= dt; if(toastT <= 0) $("toast").classList.remove("on"); }
+  if(SKYQ) CSH.z = 0;   /* cloud shadows only on an island (the keep, the crossing): islandUpdate turns them back on */
   if(MODE === "island" && CUR){ islandUpdate(CUR, dt, T); present(CUR.scene); }
   else if(MODE === "keep"){
     if(KW.active) walkerUpdate(keepI, dt, T);
