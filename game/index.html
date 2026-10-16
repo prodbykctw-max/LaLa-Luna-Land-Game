@@ -2149,7 +2149,7 @@ function skyRealUpdate(I, dt, t){
     for(const k of ["puffs", "clouds"]){ const L = I.fx && I.fx[k]; if(!L || !L.length) continue;
       L.forEach(g => { if(g.parent) g.parent.remove(g); g.traverse(q => { if(q.geometry) q.geometry.dispose(); }); }); I.fx[k] = []; } }
   const mesh = I.sky.mesh;
-  mesh.position.copy(camera.position); mesh.scale.setScalar(camera.far*.9/600);
+  mesh.position.copy(camera.position); mesh.scale.setScalar(camera.far*.985/600);   /* just inside the far plane, so the far land (out to ~2.7k) is never covered by it */
   /* where the light comes from: I.sunDir if the light rig publishes one, else the key light itself */
   const sd = U.uSunDir.value;
   if(I.sunDir) sd.copy(I.sunDir); else if(I.sun) sd.copy(I.sun.position).sub(I.sun.target.position);
