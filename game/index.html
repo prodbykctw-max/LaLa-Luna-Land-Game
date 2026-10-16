@@ -412,6 +412,7 @@ const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the b
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* ?dark=1 holds Sanity at the full dark look, ?dark=0 at the light one; by default it moves between them with the clock and the weather */
 const DARKMODE = QS.get("dark");
+const FOGQ = QS.get("fog") !== "old";    /* REANIMAL air on every island: cool blue haze, thicker, with ground mist drifting through it; ?fog=old restores */
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
    ink outlines, no stepped ramp. "toon" is the original cel look, kept so the two can be compared
@@ -1373,6 +1374,37 @@ function mergeByMaterial(scene, roots){
     const mesh = new THREE.Mesh(geo, mat); mesh.castShadow = !mat.isMeshBasicMaterial; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh);
   }
   for(const r of roots) if(r.parent) r.parent.remove(r);
+}
+/* GROUND MIST: soft banks of fog lying in the grass, the layered look in his clips - air you can
+   see between you and the next thing. Camera-facing sheets, recycled round the player, drifting with
+   the wind, lit by the fog's own colour so far ones vanish into the haze. */
+function groundMist(scene, n, col, heightFn, inside){
+  const cv = document.createElement("canvas"); cv.width = 256; cv.height = 128; const c = cv.getContext("2d");
+  for(let i=0;i<70;i++){ const x = 30 + Math.random()*196, y = 40 + Math.random()*50, r = 18 + Math.random()*34;
+    const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, "rgba(255,255,255,.16)"); g.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = g; c.fillRect(x-r, y-r, r*2, r*2); }
+  /* fade the top and bottom edges so a sheet never shows a straight line */
+  const img = c.getImageData(0, 0, 256, 128), d = img.data;
+  for(let y=0;y<128;y++){ const e = Math.min(1, y/30, (128 - y)/18); for(let x=0;x<256;x++){ const ex = Math.min(1, x/40, (256-x)/40); d[(y*256+x)*4+3] *= e*ex; } }
+  c.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(cv);
+  const mat = new THREE.MeshBasicMaterial({map:tex, color:col, transparent:true, opacity:.40, depthWrite:false, fog:true});
+  const geo = new THREE.PlaneGeometry(1, 1);
+  const list = [];
+  for(let i=0;i<n;i++){ const m = new THREE.Mesh(geo, mat); m.renderOrder = 3; m.userData = {sx: 26 + Math.random()*30, sy: 4 + Math.random()*4, ph: Math.random()*6.3, set:false}; m.scale.set(m.userData.sx, m.userData.sy, 1); scene.add(m); list.push(m); }
+  const place = (m, px, pz, near) => {
+    for(let k=0;k<8;k++){ const a = Math.random()*Math.PI*2, r = near ? 14 + Math.random()*70 : 60 + Math.random()*25;
+      const x = px + Math.cos(a)*r, z = pz + Math.sin(a)*r;
+      if(inside && !inside(x, z) && k < 7) continue;                 /* mist lies on the land, not over the open sea */
+      m.position.set(x, heightFn(x, z) + m.userData.sy*.32, z); m.userData.set = true; return; } };
+  const update = (dt, t, px, pz, wind) => {
+    for(const m of list){
+      if(!m.userData.set){ place(m, px, pz, true); continue; }
+      m.position.x += (.6 + .4*Math.sin(t*.1 + m.userData.ph)) * wind * dt; m.position.z += .25 * wind * dt;
+      if(Math.hypot(m.position.x - px, m.position.z - pz) > 90) place(m, px, pz, false);
+      m.rotation.y = Math.atan2(camera.position.x - m.position.x, camera.position.z - m.position.z);
+    }
+  };
+  return {list, update, mat};
 }
 /* one place that builds a meadow surface, old or photographic */
 /* how much of the island's own grass tint survives over the photo: a little by day (keeps the palette),
@@ -5861,6 +5893,11 @@ function buildIslandBody(cfg){
   MEADOW_KEEP = cfg.key === "sanity" ? .18 : .78;
   const PS = DARK ? Object.assign({}, P, { skyTop:0x03050E, skyMid:0x0C1530, skyBot:0x1A2A52, fog:0x0B1530, grassDk:0x0A1420 }) : P;
   const fogCol = new THREE.Color(PS.fog).lerp(new THREE.Color(PS.skyBot), AERIAL);
+  /* his meadow clip (2026-10-16): the whole frame sits in cold blue air, warm only where light falls.
+     The day islands keep their golden sky, but the air between you and the hills turns blue and
+     thickens, and the horizon band of the sky follows it so the land melts into it instead of
+     ending against a line. */
+  if(FOGQ && cfg.key !== "sanity") fogCol.lerp(new THREE.Color(0x8EAACB), .45);
   /* ===================  THERE WAS NO AIR IN THE FIRST 212 UNITS  ===================
      This was `new THREE.Fog(col, 80*fogK, 260*fogK)`. LINEAR fog does nothing at all until the
      near plane of the fog itself, and at WORLD 4 that near plane is 80 * 2.65 = 212 units out —
@@ -5884,13 +5921,13 @@ function buildIslandBody(cfg){
   if(QS.get("fogmode") === "linear"){
     scene.fog = new THREE.Fog(fogCol, (cfg.key === "sanity" ? 60 : 80) * fogK, (cfg.key === "sanity" ? 220 : 260) * fogK);
   } else {
-    const dens = (cfg.key === "sanity" ? 0.0030 : 0.0034) * (DARK ? 1.6 : 1) * HAZE / fogK * 2.65;
+    const dens = (cfg.key === "sanity" ? 0.0030 : 0.0034) * (DARK ? 1.6 : 1) * (FOGQ ? (cfg.key === "sanity" ? 1.25 : 2.3) : 1) * HAZE / fogK * 2.65;
     scene.fog = new THREE.FogExp2(fogCol, dens);
   }
   /* the grade's shadow tint has to be THIS island's air, not a global guess, or the darks on the
      night island get filled with the daytime island's sky */
   try{ gradePass.uniforms.airCol.value.copy(fogCol); }catch(e){}
-  const sky = skyDome(PS.skyTop, PS.skyMid, PS.skyBot); scene.add(sky.mesh);
+  const sky = skyDome(PS.skyTop, PS.skyMid, FOGQ && cfg.key !== "sanity" ? new THREE.Color(PS.skyBot).lerp(fogCol, .55) : PS.skyBot); scene.add(sky.mesh);
   const moon = moonPair(new THREE.Vector3(...cfg.moon.pos), cfg.moon.r); scene.add(moon);
   /* ---- lighting ----
      In real mode the island is lit by its own sky: the dome is rendered into a prefiltered
@@ -7083,7 +7120,8 @@ function buildIslandBody(cfg){
     shoot: (cfg.key === "gr" || cfg.key === "sanity") ? shootingStars(scene, 4) : null,
     /* her glitter trail: A Place for Me is the island that asked for it */
     glitter: (cfg.key === "town" || cfg.key === "moon") ? glitterTrail(scene, 260, 0xFFE9A8) : null,
-    windMul:1
+    windMul:1,
+    mist: FOGQ ? groundMist(scene, (matchMedia("(pointer:coarse)").matches ? 10 : 18), new THREE.Color(scene.fog.color).lerp(new THREE.Color(0xFFFFFF), .08), height, inside) : null
   };
   if(cfg.key === "sanity"){
     const n = 900, g = new THREE.BufferGeometry(), p = new Float32Array(n*3);
@@ -7959,6 +7997,7 @@ function sanitySky(I, dt, t){
   if(S.su){ S.su.uTop.value.copy(S.sky.top.value); S.su.uMid.value.copy(S.sky.mid.value); S.su.uBot.value.copy(S.sky.bot.value);
     S.su.uFogCol.value.copy(fog.color); S.su.uFogD.value = fog.density; S.su.uStreak.value = .80 + .20*st; }
   if(S.br) S.br.material.uniforms.uAmp.value = S.brAmp * (1 + .65*st);
+  if(I.fx && I.fx.mist) I.fx.mist.mat.color.copy(fog.color).lerp(new THREE.Color(0xFFFFFF), .10 - .06*m);
   I.scene.userData.lookMix = m;
   /* lightning: close and often in the storm, far and rare in a squall, none when it is clear */
   S.flashT -= dt;
@@ -7986,6 +8025,7 @@ function islandUpdate(I, dt, t){
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
   if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); }
   if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
+  if(I.fx && I.fx.mist) I.fx.mist.update(dt, t, W.x, W.z, I.fx.windMul || 1);
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
   I.sea.userData.mat.uniforms.t.value = t;
   I.moon.userData.halo.lookAt(camera.position);
