@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-16c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-16d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1374,6 +1374,82 @@ function mergeByMaterial(scene, roots){
   }
   for(const r of roots) if(r.parent) r.parent.remove(r);
 }
+/* ===================  GOLDEN FLOWER MEADOWS  ===================
+   His REANIMAL meadow clip (2026-10-16): the field is a carpet of orange and gold blooms with
+   clearings of short green grass cut into it, all of it under cold blue air. Default on Green and
+   the home island (?meadow=old removes it):
+     - WHERE: one smooth analytic mask in world space, the same function in JS (placement) and in
+       the ground shader (tint), so the drifts you see far off are the drifts you walk into;
+     - NEAR: a dense field of photo flower clumps (tools/make_flowers.py, from Poly Haven's CC0
+       gazania + ursinia scans) on crossed cards, recycled round the player like the grass;
+     - FAR: the meadow photo itself warms to orange-gold inside the mask, so the fields read across
+       the island where the clumps have long since faded. */
+const MEADOWQ = QS.get("meadow") !== "old";
+let MEADOW_BLOOM = 0;      /* set per island: how strongly this island's meadow is in flower */
+const BLOOM_T = .30;
+function bloomMask(x, z){ return Math.sin(x*.021 + 1.3)*Math.sin(z*.017 - .7) + .55*Math.sin((x + z)*.0093 + 2.1) + .35*Math.sin(x*.047 - z*.039); }
+const BLOOM_GLSL = `float bloomMask(vec2 w){ return sin(w.x*.021 + 1.3)*sin(w.y*.017 - .7) + .55*sin((w.x + w.y)*.0093 + 2.1) + .35*sin(w.x*.047 - w.y*.039); }`;
+function bloomPatch(sh, amt){
+  sh.uniforms.uBloom = {value: amt}; sh.uniforms.uGS = {value: GSCALE};
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", "#include <common>\nuniform float uBloom, uGS;\n" + BLOOM_GLSL)
+    .replace("#include <map_fragment>", `#include <map_fragment>
+#ifdef USE_UV
+{ vec2 w = vec2(vUv.x, -vUv.y) * uGS;
+  float bm = smoothstep(${BLOOM_T.toFixed(2)}, ${(BLOOM_T + .45).toFixed(2)}, bloomMask(w)) * uBloom;
+  float lum = dot(diffuseColor.rgb, vec3(.3,.59,.11));
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, .50, .09) * (lum*1.7 + .06), bm*.42); }
+#endif`);
+}
+const FLOWERS_TEX = !MEADOWQ ? null : (() => { const L = new THREE.TextureLoader();
+  const a = L.load("assets/trees/flowers_diff.jpg"), b = L.load("assets/trees/flowers_alpha.jpg"); a.encoding = THREE.sRGBEncoding; return {map:a, alpha:b}; })();
+function flowerMeadow(scene, n, origin, heightFn, blocked){
+  const RING = 46;
+  /* two crossed cards, rooted at y = 0 */
+  const P = [], N = [], U = [], I = [];
+  for(const a of [0, Math.PI/2]){ const c = Math.cos(a), s2 = Math.sin(a), b = P.length/3, w = .65, h = 1.3;
+    P.push(-c*w, 0, -s2*w,  c*w, 0, s2*w,  c*w, h, s2*w,  -c*w, h, -s2*w);
+    for(let k=0;k<4;k++) N.push(0, 1, 0);
+    U.push(0,0, 1,0, 1,1, 0,1); I.push(b, b+1, b+2, b, b+2, b+3); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); g.setIndex(I);
+  const uni = {uTime:{value:0}, uWind:{value:1}};
+  const mat = new THREE.MeshStandardMaterial({map:FLOWERS_TEX.map, alphaMap:FLOWERS_TEX.alpha, alphaTest:.45, side:THREE.DoubleSide, roughness:.85, metalness:0, envMapIntensity:.3});
+  mat.color.setScalar(.95);
+  mat.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uWind = uni.uWind;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uTime, uWind;")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+        { vec3 io = (modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0)).xyz; float w = uv.y*uv.y;
+          float ph = dot(io.xz, vec2(.86,.51))*.16 - uTime*1.15; float gust = sin(ph)*.5+.5; gust *= gust;
+          transformed.x += (0.05 + .16*gust) * uWind * w + sin(uTime*3.1 + io.x*1.9)*.03*w;
+          transformed.z += (0.03 + .10*gust) * uWind * w;
+          float camd = distance(io.xz, cameraPosition.xz); transformed *= 1.0 - smoothstep(34.0, 46.0, camd); }`);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;");
+  };
+  mat.customProgramCacheKey = () => "meadowflowers";
+  const mesh = new THREE.InstancedMesh(g, mat, n);
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+  const px = new Float32Array(n), pz = new Float32Array(n);
+  const place = (i, cx, cz) => {
+    for(let k=0;k<16;k++){
+      const a = Math.random()*6.283, r = Math.sqrt(Math.random())*RING, x = cx + Math.cos(a)*r, z = cz + Math.sin(a)*r;
+      const bm = bloomMask(x, z);
+      if(bm < BLOOM_T + Math.random()*.35 || blocked(x, z)) continue;          /* denser toward the middle of a drift */
+      px[i] = x; pz[i] = z; q.setFromAxisAngle(up, Math.random()*Math.PI);
+      const sv = .65 + Math.random()*.6; sc.set(sv, sv*(.8 + Math.random()*.5), sv);
+      M.compose(pos.set(x, heightFn(x, z) - .05, z), q, sc); mesh.setMatrixAt(i, M); return; }
+    px[i] = 1e5; pz[i] = 1e5; M.compose(pos.set(1e5, -50, 1e5), q.identity(), sc.set(1,1,1)); mesh.setMatrixAt(i, M);
+  };
+  for(let i=0;i<n;i++) place(i, origin[0], origin[1]);
+  mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh);
+  let cursor = 0; const SLICE = Math.max(300, Math.ceil(n/8));
+  const follow = (cx, cz) => { let moved = false;
+    for(let k=0;k<SLICE;k++){ const i = cursor++ % n, dx = px[i]-cx, dz = pz[i]-cz;
+      if(dx*dx + dz*dz > RING*RING){ place(i, cx, cz); moved = true; } }
+    if(moved) mesh.instanceMatrix.needsUpdate = true; };
+  return {mesh, uni, follow};
+}
 /* one place that builds a meadow surface, old or photographic */
 /* how much of the island's own grass tint survives over the photo: a little by day (keeps the palette),
    most of it at night, or Sanity's moonlit meadow comes out daylight-green */
@@ -1387,6 +1463,12 @@ function meadowMat(col, extra){
   const m = toon(c, Object.assign({map:PHOTO.diff, normalMap:PHOTO.nor, roughness:.96, envMapIntensity:.22}, extra||{}));
   if(m.normalScale) m.normalScale.set(.9, .9);
   m.userData.macroDiv = 1 / GSCALE * 28 / MACRO_TILES;     /* macro wash: one tile per ~28 world units */
+  if(MEADOW_BLOOM > 0){
+    const amt = MEADOW_BLOOM;            /* islands are all built up front; capture this island's value now, not at compile time */
+    m.userData.patches = (m.userData.patches || []).concat([["bloom", sh => bloomPatch(sh, amt)]]);
+    m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
+    m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
+  }
   return m;
 }
 /* Recover the un-tiled uv by dividing vUv back out by the map's own repeat, then re-scale it to a
@@ -4391,6 +4473,7 @@ function fxUpdate(fx, dt, t, camPos){
       const PS = fx.pushers || [], PU = u.uPush.value; for(let i=0;i<PU.length;i++){ const p = PS[i]; if(p) PU[i].set(p.x, p.y, p.z, p.r); else PU[i].set(0,-99,0,0); }
       const TP = (fx.trail && fx.trail.pts) || [], TU = u.uTrail.value; for(let i=0;i<TU.length;i++){ const q = TP[i]; if(q && q.w > 0) TU[i].set(q.x, q.y, q.z, q.w); else TU[i].set(0,-99,0,0); } }
     if(fx.grass.follow && fx.player) fx.grass.follow(fx.player.x, fx.player.z); }
+  if(fx.meadow){ fx.meadow.uni.uTime.value = t; fx.meadow.uni.uWind.value = fx.windMul; if(fx.player) fx.meadow.follow(fx.player.x, fx.player.z); }
   if(fx.canopies) fx.canopies.forEach(c => { c.rotation.z = Math.sin(t*.9+c.userData.ph)*.022*fx.windMul; c.rotation.x = Math.cos(t*.7+c.userData.ph)*.016*fx.windMul; });
   if(fx.bushes && fx.player) fx.bushes.forEach(b => { const d = Math.hypot(b.position.x-fx.player.x, b.position.z-fx.player.z);
     b.userData.k = Math.max(0, (b.userData.k||0) - dt*2.5); if(d < 1.9) b.userData.k = 1;
@@ -5859,6 +5942,7 @@ function buildIslandBody(cfg){
      grade that crushes and tints the darks. Everything else about the island is untouched. */
   const DARK = DARKQ && cfg.key === "sanity";
   MEADOW_KEEP = cfg.key === "sanity" ? .18 : .78;
+  MEADOW_BLOOM = MEADOWQ && GROUNDQ && (cfg.key === "green" || cfg.key === "hub") ? 1 : 0;
   const PS = DARK ? Object.assign({}, P, { skyTop:0x03050E, skyMid:0x0C1530, skyBot:0x1A2A52, fog:0x0B1530, grassDk:0x0A1420 }) : P;
   const fogCol = new THREE.Color(PS.fog).lerp(new THREE.Color(PS.skyBot), AERIAL);
   /* ===================  THERE WAS NO AIR IN THE FIRST 212 UNITS  ===================
@@ -7083,7 +7167,8 @@ function buildIslandBody(cfg){
     shoot: (cfg.key === "gr" || cfg.key === "sanity") ? shootingStars(scene, 4) : null,
     /* her glitter trail: A Place for Me is the island that asked for it */
     glitter: (cfg.key === "town" || cfg.key === "moon") ? glitterTrail(scene, 260, 0xFFE9A8) : null,
-    windMul:1
+    windMul:1,
+    meadow: MEADOW_BLOOM > 0 ? flowerMeadow(scene, (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? 2200 : 4400, cfg.spawn, height, noGrass) : null
   };
   if(cfg.key === "sanity"){
     const n = 900, g = new THREE.BufferGeometry(), p = new Float32Array(n*3);
