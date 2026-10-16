@@ -371,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-16f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-16g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1152,20 +1152,20 @@ function forestBuilder(P, night){
       tm.color.multiplyScalar(night ? .45 : .92);
       const mesh = new THREE.Mesh(geoOf(B), tm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh); out.push(mesh);
     };
-    const uni = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}};
+    const uni = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}, uGust:{value:1}};
     const swayV = `#include <begin_vertex>
       { float ph = position.x*.21 + position.z*.17;
         float gust = sin(uTime*.9 + ph*.4)*.5 + .5;
-        transformed.x += (sin(uTime*1.3 + ph) * .10 + sin(uTime*5.7 + ph*3.1) * .025) * aSway * (.5 + gust);
-        transformed.z += (cos(uTime*1.1 + ph*1.3) * .08 + cos(uTime*6.3 + ph*2.3) * .022) * aSway * (.5 + gust);
+        transformed.x += (sin(uTime*1.3 + ph) * .10 + sin(uTime*5.7 + ph*3.1) * .025) * aSway * (.5 + gust) * uGust;
+        transformed.z += (cos(uTime*1.1 + ph*1.3) * .08 + cos(uTime*6.3 + ph*2.3) * .022) * aSway * (.5 + gust) * uGust;
         transformed.y += sin(uTime*4.9 + ph*2.7) * .02 * aSway; }`;
     const leafMesh = (B, map, alphaMap, key) => {
       const lm = new THREE.MeshStandardMaterial({map, alphaMap, alphaTest:.42, side:THREE.DoubleSide,
         vertexColors:true, roughness:.78, metalness:0, envMapIntensity:.38});
       lm.color.setRGB(.90, .96, .84);
       if(night) lm.color.setRGB(.34, .40, .46);     /* moonlit: the leaves sit in the island's dark palette instead of glowing */
-      lm.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uPlayer = uni.uPlayer;
-        sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aSway; uniform float uTime; uniform vec3 uPlayer;")
+      lm.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uPlayer = uni.uPlayer; sh.uniforms.uGust = uni.uGust;
+        sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aSway; uniform float uTime; uniform vec3 uPlayer; uniform float uGust;")
           .replace("#include <begin_vertex>", swayV);
         /* both faces of a card shade with the crown's outward normal - three would flip it on the back face,
            and half the leaves would go black */
@@ -1429,6 +1429,12 @@ function meadowMat(col, extra){
   const m = toon(c, Object.assign({map:PHOTO.diff, normalMap:PHOTO.nor, roughness:.96, envMapIntensity:.22}, extra||{}));
   if(m.normalScale) m.normalScale.set(.9, .9);
   m.userData.macroDiv = 1 / GSCALE * 28 / MACRO_TILES;     /* macro wash: one tile per ~28 world units */
+  if(RAINQ){
+    const div = m.userData.macroDiv;
+    m.userData.patches = (m.userData.patches || []).concat([["puddle", sh => puddlePatch(sh, div)]]);
+    m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
+    m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
+  }
   if(MEADOW_BLOOM > 0){
     const amt = MEADOW_BLOOM;            /* islands are all built up front; capture this island's value now, not at compile time */
     m.userData.patches = (m.userData.patches || []).concat([["bloom", sh => bloomPatch(sh, amt)]]);
@@ -1710,7 +1716,7 @@ const SWASH_CLOCK = `
   vec2 swClock(vec2 xz, float t){ float ph = swFbm(xz*.011)*2.8 + swFbm(xz*.0035 + 7.0)*1.6; float w = t/7.6 + ph; return vec2(floor(w), fract(w)); }
 `;
 const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
-  uniform vec3 uLight, uTop, uMid, uBot, uFogCol; uniform float uFogD, uNight, uStreak;
+  uniform vec3 uLight, uTop, uMid, uBot, uFogCol; uniform float uFogD, uNight, uStreak, uRain;
   varying float vW; varying vec2 vP; varying vec3 vV; varying float vSh;
   float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
   float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -1718,6 +1724,17 @@ const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
   ${SWASH_CLOCK}
   vec3 skyAt(vec3 d){ float h=d.y*.5+.5; vec3 c=mix(uBot,uMid,smoothstep(.49,.60,h)); return mix(c,uTop,smoothstep(.62,.90,h)); }
   vec2 wave(vec2 p, vec2 d, float k, float A, float tt){ return d*(A*k*cos(k*dot(p,d) + sqrt(9.8*k)*.55*tt)); }
+  /* rain on the water: in every cell one drop lands at a random moment and spot, and its ring runs out
+     and dies. Returns the slope (for the normal) in xy and the splash point in z. */
+  vec3 ripple(vec2 q, float tt, float sp){
+    vec2 i = floor(q), f = fract(q); float h = h21(i);
+    vec2 c = vec2(h21(i + 11.3), h21(i + 27.1))*.5 + .25;
+    float age = fract(tt*sp + h*7.0);
+    vec2 d = f - c; float r = length(d) + 1e-4;
+    float x = (r - age*.36)*30.0;
+    float w = sin(x) * exp(-x*x*.08) * (1.0 - age)*(1.0 - age);
+    return vec3(d/r*w, smoothstep(.05, .0, r) * smoothstep(.12, .0, age));
+  }
   void main(){
     vec3 V = normalize(vV); float dist = length(vV);
     vec2 p = vec2(vP.x, -vP.y);                              /* world x,z */
@@ -1726,6 +1743,10 @@ const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
            + wave(p, normalize(vec2(.95,-.3)), .31, .38, t) + wave(p, normalize(vec2(-.2,-.98)), .62, .22, t);
     vec2 gd = (wave(p, normalize(vec2(.6,.8)), 1.7, .10, t) + wave(p, normalize(vec2(-.9,.4)), 2.9, .07, t)
              + wave(p, normalize(vec2(.3,-.95)), 4.6, .05, t)) * fade;
+    vec3 rp = vec3(0.);
+    if(uRain > .01){ float rf = uRain * (1.0 - smoothstep(25., 90., dist));
+      rp = (ripple(p*1.3, t, 1.1) + ripple(p*1.9 + 17.3, t, 1.35) + ripple(p*2.7 - 5.1, t, 1.6)) * rf;
+      gd += rp.xy * .55; }
     float S = mix(.70, .26, smoothstep(30., 420., dist));
     vec3 N  = normalize(vec3(-g.x*S, 1.0, -g.y*S));
     vec3 Nd = normalize(vec3(-(g.x*S+gd.x*1.6), 1.0, -(g.y*S+gd.y*1.6)));
@@ -1773,6 +1794,10 @@ const REAL_SEA_FRAG = `uniform vec3 a,b,m; uniform float t;
     vec3 foamCol = mix(b, vec3(1.0), .78) * mix(1.0, .82, uNight);
     float fm = clamp(foam*.95 + crest, 0., 1.);
     c = mix(c, foamCol, fm);
+    /* rain: the surface goes matt and grey, pocked with rings and the white point of each drop */
+    c = mix(c, mix(c, uFogCol, .5), uRain*.22);
+    c += foamCol * rp.z * .55;
+    c += m * length(rp.xy) * .10 * (.4 + F);
     float fogF = 1.0 - exp(-(uFogD*uFogD)*dist*dist);
     c = mix(c, uFogCol, clamp(fogF, 0., 1.));
     float al = mix(.30, .96, smoothstep(0.0, .75, vSh));
@@ -1786,7 +1811,7 @@ function seaMesh(a, b, real){
     uniforms:{t:{value:0}, wv:{value:WAVE}, uMask:{value:null}, uMaskR:{value:1}, uHasMask:{value:0},
               a:{value:new THREE.Color(a)}, b:{value:new THREE.Color(b)}, m:{value:new THREE.Color(MOON)},
               uLight:{value:new THREE.Vector3(-25,40,15)}, uTop:{value:new THREE.Color(0x335577)}, uMid:{value:new THREE.Color(0x6688AA)},
-              uBot:{value:new THREE.Color(0x99BBCC)}, uFogCol:{value:new THREE.Color(0x99BBCC)}, uFogD:{value:.002}, uNight:{value:0}, uStreak:{value:.42}},
+              uBot:{value:new THREE.Color(0x99BBCC)}, uFogCol:{value:new THREE.Color(0x99BBCC)}, uFogD:{value:.002}, uNight:{value:0}, uStreak:{value:.42}, uRain:{value:0}},
     /* ===============  THE SWASH ZONE WAS A COMB  ===============
        Scaling the wave stopped the sea being drawn on top of the LAND, but it left a narrower band
        of stripes over the wet shelf just outside the coastline, and that one is not a depth fight -
@@ -4232,11 +4257,17 @@ function birdFlock(scene, n, col){
   }
   return list;
 }
+/* a mote is a speck of dust or pollen catching the light: round and soft, never a square */
+let _moteTex = null;
+function moteSprite(){ if(_moteTex) return _moteTex;
+  const c = document.createElement("canvas"); c.width = c.height = 32; const x = c.getContext("2d");
+  const g = x.createRadialGradient(16,16,0,16,16,16); g.addColorStop(0,"rgba(255,255,255,1)"); g.addColorStop(.35,"rgba(255,255,255,.55)"); g.addColorStop(1,"rgba(255,255,255,0)");
+  x.fillStyle = g; x.fillRect(0,0,32,32); return (_moteTex = new THREE.CanvasTexture(c)); }
 function motes(scene, n, spread, col, rise){
   const g = new THREE.BufferGeometry(), p = new Float32Array(n*3);
   for(let i=0;i<n;i++){ p[i*3]=(Math.random()-.5)*spread; p[i*3+1]=Math.random()*14+1; p[i*3+2]=(Math.random()-.5)*spread; }
   g.setAttribute("position", new THREE.BufferAttribute(p,3));
-  const pts = new THREE.Points(g, new THREE.PointsMaterial({color:col, size:.22, transparent:true, opacity:.5, depthWrite:false}));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({color:col, size:.26, map:moteSprite(), transparent:true, opacity:.5, depthWrite:false}));
   pts.userData.rise = rise; scene.add(pts); return pts;
 }
 /* ---- shooting stars ----
@@ -5861,6 +5892,272 @@ function mulberry32(a){
 }
 function seedOf(str){ let h = 2166136261; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 const WORLD_SEED = QS.get("seed") || "lala";
+/* ===================  RAIN, AS WEATHER  (default; ?rain=old restores the square particles)  ===================
+   The old rain was 900 GL points: every drop a flat square the same size at every distance, falling
+   straight down at 46 u/s, touching nothing. Real rain is read from five things and this does all five:
+     1 streaks   - a drop is never seen as a drop, it is a motion-blurred line ~half a unit long, thin
+                   as a hair, slanted by the wind, faint, and only bright where something lights it.
+                   Drawn as camera-facing quads animated entirely on the GPU (6000 / 2600 on a phone).
+     2 splashes  - every drop that lands throws a small crown of droplets; a few hundred of them live at
+                   once in a ring round the camera, placed on the real ground height.
+     3 trees     - drops that land in a crown burst into mist on the leaves instead of the ground, the
+                   crowns lean harder in the squall, and they keep dripping after the rain has passed.
+     4 water     - the sea is pocked with expanding rings and tiny splash points (in the sea shader).
+     5 wet       - every surface that faces the sky darkens and turns glossy as the rain soaks in, and
+                   dries off slowly afterwards. One uniform, read by every standard material. */
+const RAINQ = QS.get("rain") !== "old";
+const WET = {value:0}, RAINAMT = {value:0};
+/* PUDDLES on the meadow: as the ground soaks, the low spots fill. A puddle is flat (the soil's normal
+   map drowns), dark, a mirror for the sky at a low angle, and pocked by the rings of the drops landing
+   in it. Coordinates are the meadow's own world-planar uv brought back to world units. */
+function puddlePatch(sh, div){
+  sh.uniforms.uWet = WET; sh.uniforms.uRainAmt = RAINAMT; sh.uniforms.uPudDiv = {value: div};
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", `#include <common>
+      uniform float uRainAmt, uPudDiv;
+      float pdH(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+      float pdN(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+        return mix(mix(pdH(i), pdH(i+vec2(1.,0.)), f.x), mix(pdH(i+vec2(0.,1.)), pdH(i+vec2(1.,1.)), f.x), f.y); }
+      vec2 pdRip(vec2 q, float tt, float sp){ vec2 i = floor(q), f = fract(q); float h = pdH(i);
+        vec2 c = vec2(pdH(i+11.3), pdH(i+27.1))*.5+.25; float age = fract(tt*sp + h*7.0);
+        vec2 d = f - c; float r = length(d) + 1e-4; float x = (r - age*.36)*30.0;
+        return d/r * sin(x) * exp(-x*x*.08) * (1.0-age)*(1.0-age); }`)
+    .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
+      #ifdef USE_UV
+      if(uWet > .02){
+        vec2 pw = vUv / uPudDiv * ${MACRO_TILES.toFixed(4)} * 28.0;
+        float n = pdN(pw*.16)*.65 + pdN(pw*.47 + 3.7)*.35;
+        float pud = smoothstep(.0, .05, n - (1.0 - .30*uWet)) ;
+        if(pud > .001){
+          vec3 upV = normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz);
+          float tt = uTimeP;
+          float near = 1.0 - smoothstep(6., 22., length(vViewPosition));     /* rings only where a pixel can hold them */
+          vec2 rp = (pdRip(pw*1.6, tt, 1.1) + pdRip(pw*2.3 + 17.3, tt, 1.35)) * uRainAmt * near;
+          vec3 rn = normalize(vec3(-rp.x*.35, 1.0, rp.y*.35));
+          normal = normalize(mix(normal, normalize((viewMatrix*vec4(rn,0.)).xyz), pud));
+          material.diffuseColor *= 1.0 - .40*pud;
+          material.specularRoughness = mix(material.specularRoughness, mix(.07, .30, smoothstep(18., 60., length(vViewPosition))), pud);
+          #ifdef USE_FOG
+          float fr = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0., 1.), 4.0);
+          totalEmissiveRadiance += fogColor * (.22 + .9*fr) * pud;
+          #endif
+        }
+      }
+      #endif`);
+  sh.uniforms.uTimeP = PUD_T;
+  sh.fragmentShader = sh.fragmentShader.replace("uniform float uRainAmt, uPudDiv;", "uniform float uRainAmt, uPudDiv, uTimeP;");
+}
+const PUD_T = {value:0};
+if(RAINQ){
+  THREE.ShaderChunk.roughnessmap_pars_fragment = "uniform float uWet;\n" + THREE.ShaderChunk.roughnessmap_pars_fragment;
+  THREE.ShaderChunk.lights_physical_fragment = `
+  { float wUp = clamp(dot(normal, normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz))*.75 + .35, 0., 1.);
+    float wk = uWet * wUp;
+    diffuseColor.rgb *= 1.0 - .36*wk;                      /* soaked: darker */
+  #ifdef WET_CARD
+    roughnessFactor = mix(roughnessFactor, .60, wk*.5); }  /* blades and leaves: a soft sheen, never glitter */
+  #else
+    roughnessFactor = mix(roughnessFactor, .40, wk*.8); }  /* and glossy */
+  #endif
+  ` + THREE.ShaderChunk.lights_physical_fragment;
+}
+/* hand every standard material on an island the shared wetness uniform. The program key keeps whatever
+   the material had, so a patched material never shares a program with a plain one. */
+function wetAll(scene){
+  if(!RAINQ) return;
+  scene.traverse(o => { const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+    for(const m of ms){ if(!m || !m.isMeshStandardMaterial || m.userData.wet) continue; m.userData.wet = 1;
+      const key = m.customProgramCacheKey(), prev = m.onBeforeCompile, card = m.alphaTest > 0 || !!m.alphaMap;
+      m.onBeforeCompile = function(sh, r){ if(prev) prev.call(this, sh, r); sh.uniforms.uWet = WET;
+        if(card) sh.fragmentShader = sh.fragmentShader.replace("#include <lights_physical_fragment>", "#define WET_CARD\n#include <lights_physical_fragment>"); };
+      m.customProgramCacheKey = () => key + "|wet"; } });
+}
+const RAIN_STREAK_V = `uniform float uT, uBox, uH, uFall, uLen, uOp; uniform vec2 uWind; uniform vec3 uCam;
+  attribute vec4 aSeed; attribute vec2 aCorner; varying vec2 vC; varying float vA;
+  #include <fog_pars_vertex>
+  float hh(float n){ return fract(sin(n*127.1)*43758.5453); }
+  void main(){
+    float sp = .82 + .36*aSeed.w;
+    vec3 vel = vec3(uWind.x, -uFall*sp, uWind.y);
+    float fallT = uH/(uFall*sp);
+    float k = aSeed.z + uT/fallT, cyc = floor(k), ph = k - cyc;
+    vec2 base = aSeed.xy*uBox + vec2(hh(cyc + aSeed.x*91.0), hh(cyc*1.7 + aSeed.y*53.0))*uBox + vel.xz*(ph*fallT);
+    vec3 head;
+    head.xz = uCam.xz + mod(base - uCam.xz + uBox*.5, uBox) - uBox*.5;
+    head.y = uCam.y + uH*.5 - ph*uH;
+    vec3 dir = normalize(vel);
+    vec3 tail = head - dir*uLen*sp;
+    vec3 p = mix(head, tail, aCorner.y);
+    vec3 toC = cameraPosition - p; float d = length(toC);
+    vec3 side = normalize(cross(dir, toC/d));
+    float w = max(.006, d*.0016);                         /* never thinner than about a pixel */
+    p += side * w * aCorner.x;
+    vA = uOp * smoothstep(.7, 2.2, d) * (1.0 - smoothstep(uBox*.30, uBox*.5, d)) * clamp(.006/w*2.2, .25, 1.0);
+    vC = aCorner;
+    vec4 mvPosition = viewMatrix * vec4(p, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    #include <fog_vertex>
+  }`;
+const RAIN_STREAK_F = `uniform vec3 uCol; varying vec2 vC; varying float vA;
+  #include <fog_pars_fragment>
+  void main(){
+    float a = pow(1.0 - abs(vC.x), 1.6) * smoothstep(0., .18, vC.y) * smoothstep(1.0, .55, vC.y) * vA;
+    gl_FragColor = vec4(uCol, a);
+    #include <fog_fragment>
+  }`;
+/* splashes: kind 0 = a crown thrown up off the ground, kind 1 = mist off the leaves of a tree crown */
+const RAIN_SPLASH_V = `uniform float uT; attribute vec3 aP; attribute vec4 aB; attribute vec2 aCorner;
+  varying vec2 vC; varying float vAge; varying float vKind; varying float vR;
+  #include <fog_pars_vertex>
+  void main(){
+    float life = aB.y > .5 ? .55 : .34;
+    float age = (uT - aB.x)/life;
+    vAge = age; vKind = aB.y; vR = aB.w; vC = aCorner;
+    vec3 p = aP;
+    if(age < 0.0 || age > 1.0){ gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+    vec3 toC = cameraPosition - p; vec3 rt = normalize(vec3(toC.z, 0.0, -toC.x));
+    float s = aB.z;
+    p += rt * aCorner.x * s + vec3(0., 1., 0.) * aCorner.y * s * (aB.y > .5 ? 1.2 : .9);
+    vec4 mvPosition = viewMatrix * vec4(p, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    #include <fog_vertex>
+  }`;
+const RAIN_SPLASH_F = `uniform vec3 uCol; uniform float uOp; varying vec2 vC; varying float vAge; varying float vKind; varying float vR;
+  #include <fog_pars_fragment>
+  void main(){
+    float a = 0.0;
+    vec2 uv = vec2(vC.x, vC.y);                     /* x -1..1 across, y 0..1 up */
+    float g = vKind > .5 ? .6 : 1.0;
+    /* droplets thrown out on parabolas */
+    for(int k = 0; k < 6; k++){
+      float fk = float(k), r = fract(sin((fk + vR*13.0)*78.233)*43758.5);
+      float sx = (fk/5.0*2.0 - 1.0) * (.55 + .4*r);
+      float hgt = (.45 + .5*fract(r*7.13)) * g;
+      vec2 dp = vec2(sx*vAge*1.15, 4.0*hgt*vAge*(1.0 - vAge) + .04);
+      float dd = length((uv - dp)*vec2(1.0, 1.25));
+      a += smoothstep(.10, .02, dd) * (1.0 - vAge);
+    }
+    /* the sheet of the crown at the very start, low and wide */
+    float crown = smoothstep(.12, .0, abs(uv.y - .06 - vAge*.12)) * smoothstep(.75*vAge + .15, .1, abs(uv.x)) * (1.0 - smoothstep(.0, .45, vAge));
+    a += crown * .9;
+    if(vKind > .5) a *= .65;
+    gl_FragColor = vec4(uCol, clamp(a, 0., 1.) * uOp);
+    #include <fog_fragment>
+  }`;
+/* drips: under each tree crown, drops gather, hang, let go and fall to the ground under gravity */
+const RAIN_DRIP_V = `uniform float uT, uOp; attribute vec4 aD; attribute vec4 aE; attribute vec2 aCorner;
+  varying vec2 vC; varying float vA;
+  #include <fog_pars_vertex>
+  void main(){
+    float y0 = aD.y, yg = aE.x, H = max(.3, y0 - yg);
+    float fall = sqrt(2.0*H/9.8), P = fall + aE.y;          /* hang time aE.y, then fall */
+    float tt = mod(uT + aE.z*P, P) - aE.y;
+    vec3 head = vec3(aD.x, y0, aD.z);
+    float v = 0.0;
+    if(tt > 0.0){ head.y = y0 - 4.9*tt*tt; v = 9.8*tt; }
+    float len = .04 + v*.035;
+    vec3 p = head + vec3(0., len*aCorner.y, 0.);
+    vec3 toC = cameraPosition - p; vec3 rt = normalize(vec3(toC.z, 0.0, -toC.x));
+    float d = length(toC), w = max(.008, d*.0016);
+    p += rt * w * aCorner.x;
+    vA = uOp * (tt > 0.0 ? 1.0 : .35) * step(yg, head.y) * (1.0 - smoothstep(18., 32., d)) * clamp(.008/w*2.0, .3, 1.0);
+    vC = aCorner;
+    vec4 mvPosition = viewMatrix * vec4(p, 1.0);
+    gl_Position = projectionMatrix * mvPosition;
+    #include <fog_vertex>
+  }`;
+function quadIndex(n){ const idx = new (n*4 > 65000 ? Uint32Array : Uint16Array)(n*6);
+  for(let i=0;i<n;i++){ const v=i*4, k=i*6; idx[k]=v; idx[k+1]=v+1; idx[k+2]=v+2; idx[k+3]=v+2; idx[k+4]=v+1; idx[k+5]=v+3; } return new THREE.BufferAttribute(idx, 1); }
+const RAIN_CORNERS = [-1,0, 1,0, -1,1, 1,1];
+function rainSystem(scene, I){
+  const mob = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
+  const root = new THREE.Group(); root.userData.dyn = 1; scene.add(root);
+  const fogU = () => THREE.UniformsUtils.clone(THREE.UniformsLib.fog);
+  const col = new THREE.Color(0xB8C8D8);
+  /* 1 streaks */
+  const N = mob ? 2600 : 6000;
+  const sg = new THREE.BufferGeometry(), seed = new Float32Array(N*16), cor = new Float32Array(N*8);
+  for(let i=0;i<N;i++){ const s = [Math.random(), Math.random(), Math.random(), Math.random()];
+    for(let c=0;c<4;c++){ seed.set(s, i*16 + c*4); cor[i*8+c*2] = RAIN_CORNERS[c*2]; cor[i*8+c*2+1] = RAIN_CORNERS[c*2+1]; } }
+  sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N*12), 3));
+  sg.setAttribute("aSeed", new THREE.BufferAttribute(seed, 4)); sg.setAttribute("aCorner", new THREE.BufferAttribute(cor, 2)); sg.setIndex(quadIndex(N));
+  const smat = new THREE.ShaderMaterial({ uniforms: Object.assign(fogU(), {uT:{value:0}, uBox:{value:mob ? 34 : 44}, uH:{value:22}, uFall:{value:11},
+      uLen:{value:.62}, uOp:{value:0}, uWind:{value:new THREE.Vector2(2,0)}, uCam:{value:new THREE.Vector3()}, uCol:{value:col}}),
+    vertexShader: RAIN_STREAK_V, fragmentShader: RAIN_STREAK_F, transparent:true, depthWrite:false, fog:true, side:THREE.DoubleSide });
+  const streaks = new THREE.Mesh(sg, smat); streaks.frustumCulled = false; streaks.userData.dyn = 1; streaks.renderOrder = 5; root.add(streaks);
+  /* 2 splashes */
+  const M = mob ? 220 : 520;
+  const pg = new THREE.BufferGeometry(), aP = new Float32Array(M*12), aB = new Float32Array(M*16), pc = new Float32Array(M*8);
+  for(let i=0;i<M;i++){ aB.fill(-99, i*16, i*16+16); for(let c=0;c<4;c++){ pc[i*8+c*2] = RAIN_CORNERS[c*2]; pc[i*8+c*2+1] = RAIN_CORNERS[c*2+1]; } }
+  pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(M*12), 3));
+  const PA = new THREE.BufferAttribute(aP, 3), BA = new THREE.BufferAttribute(aB, 4); PA.setUsage(THREE.DynamicDrawUsage); BA.setUsage(THREE.DynamicDrawUsage);
+  pg.setAttribute("aP", PA); pg.setAttribute("aB", BA); pg.setAttribute("aCorner", new THREE.BufferAttribute(pc, 2)); pg.setIndex(quadIndex(M));
+  const pmat = new THREE.ShaderMaterial({ uniforms: Object.assign(fogU(), {uT:{value:0}, uOp:{value:0}, uCol:{value:col}}),
+    vertexShader: RAIN_SPLASH_V, fragmentShader: RAIN_SPLASH_F, transparent:true, depthWrite:false, fog:true, side:THREE.DoubleSide });
+  const splashes = new THREE.Mesh(pg, pmat); splashes.frustumCulled = false; splashes.userData.dyn = 1; splashes.renderOrder = 5; root.add(splashes);
+  const S = {root, smat, pmat, M, slot:0, acc:0, drips:null, wet:0, gust:1, mob};
+  /* 3 drips are built on the first rainy frame: the crown positions are only known once the trees are baked */
+  S.buildDrips = () => {
+    const blobs = (I.camBlobs || []).filter(b => b.r > .8); if(!blobs.length) return null;
+    const per = mob ? 5 : 9, D = blobs.length*per;
+    const g = new THREE.BufferGeometry(), aD = new Float32Array(D*16), aE = new Float32Array(D*16), c4 = new Float32Array(D*8);
+    let n = 0;
+    for(const b of blobs) for(let j=0;j<per;j++){
+      const a = Math.random()*Math.PI*2, r = b.r*(.25 + .7*Math.sqrt(Math.random()));
+      const x = b.x + Math.cos(a)*r, z = b.z + Math.sin(a)*r, y0 = b.y - b.r*(.35 + .3*Math.random());
+      const yg = I.inside(x, z) ? I.height(x, z) : SEA_Y;
+      for(let c=0;c<4;c++){ aD.set([x, y0, z, 0], n*16 + c*4); aE.set([yg, .4 + Math.random()*2.2, Math.random(), 0], n*16 + c*4);
+        c4[n*8+c*2] = RAIN_CORNERS[c*2]; c4[n*8+c*2+1] = RAIN_CORNERS[c*2+1]; }
+      n++; }
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(D*12), 3));
+    g.setAttribute("aD", new THREE.BufferAttribute(aD, 4)); g.setAttribute("aE", new THREE.BufferAttribute(aE, 4)); g.setAttribute("aCorner", new THREE.BufferAttribute(c4, 2)); g.setIndex(quadIndex(D));
+    const m = new THREE.ShaderMaterial({ uniforms: Object.assign(fogU(), {uT:{value:0}, uOp:{value:0}, uCol:{value:col}}),
+      vertexShader: RAIN_DRIP_V, fragmentShader: RAIN_STREAK_F, transparent:true, depthWrite:false, fog:true, side:THREE.DoubleSide });
+    const mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false; mesh.userData.dyn = 1; mesh.renderOrder = 5; root.add(mesh);
+    return m;
+  };
+  return S;
+}
+/* amount 0..1, wind as world x/z u/s, light = how bright the air is (0 night .. 1 day), flash = lightning */
+function rainUpdate(I, dt, t, amount, wind, light, flash){
+  const S = I.rainFX; if(!S) return;
+  const W = I.W, cam = camera.position;
+  /* the ground soaks fast and dries slowly; the trees keep dripping as long as they are wet */
+  const wt = amount > .08 ? Math.min(1, amount*1.5) : 0;
+  S.wet += (wt - S.wet) * Math.min(1, dt*(amount > .08 ? .22 : .035));
+  if(window.__SKY && window.__SKY.snap) S.wet = wt;     /* QA: no waiting for it to soak in */
+  I.wet = S.wet;
+  S.gust += ((1 + 1.6*amount) - S.gust) * Math.min(1, dt*.6);
+  if(I.treeWinds) for(const u of I.treeWinds) if(u.uGust) u.uGust.value = S.gust;
+  const lum = .32 + .55*light + flash*1.4;
+  S.smat.uniforms.uCol.value.setRGB(.62*lum + .08, .70*lum + .08, .80*lum + .10);
+  const op = Math.min(1, amount*1.25);
+  S.smat.uniforms.uOp.value = op * (.30 + .18*light) * (S.mob ? 1.25 : 1);
+  RAINAMT.value = op; PUD_T.value = t;
+  S.smat.uniforms.uT.value = t; S.smat.uniforms.uCam.value.copy(cam); S.smat.uniforms.uWind.value.set(wind[0], wind[1]);
+  S.root.visible = op > .01 || S.wet > .05;
+  if(I.fx && I.fx.motes) I.fx.motes.material.opacity = .5*(1 - op);     /* rain washes the dust out of the air */
+  S.pmat.uniforms.uT.value = t; S.pmat.uniforms.uOp.value = op * (.55 + .25*light);
+  if(S.wet > .05 && S.drips === null) S.drips = S.buildDrips() || false;
+  if(S.drips){ S.drips.uniforms.uT.value = t; S.drips.uniforms.uOp.value = Math.min(1, S.wet*1.3) * (.45 + .25*light); }
+  if(op < .02) return;
+  /* spawn splashes in a ring round the player, more of them close in */
+  S.acc += dt * S.M / .45 * op;
+  const PA = S.root.children[1].geometry.attributes.aP, BA = S.root.children[1].geometry.attributes.aB;
+  const blobs = I.camBlobs || [];
+  let n = Math.min(S.M, Math.floor(S.acc)); S.acc -= n; let tries = n*2;
+  while(n > 0 && tries-- > 0){
+    const a = Math.random()*Math.PI*2, r = 1.2 + 24*Math.pow(Math.random(), 1.5);
+    const x = W.x + Math.cos(a)*r, z = W.z + Math.sin(a)*r;
+    if(!I.inside(x, z)) continue;
+    let y = I.height(x, z), kind = 0;
+    for(const b of blobs){ const dx = x-b.x, dz = z-b.z, d2 = dx*dx + dz*dz; if(d2 < b.r*b.r*.8){ y = b.y + Math.sqrt(b.r*b.r - d2)*.75; kind = 1; break; } }
+    const i = S.slot; S.slot = (S.slot + 1) % S.M;
+    const sz = kind ? .34 + Math.random()*.2 : .22 + Math.random()*.14, rr = Math.random();
+    for(let c=0;c<4;c++){ PA.array.set([x, y + .01, z], i*12 + c*3); BA.array.set([t - Math.random()*dt, kind, sz, rr], i*16 + c*4); }
+    n--; }
+  PA.needsUpdate = true; BA.needsUpdate = true;
+}
 function buildIsland(cfg){
   if(WORLD_SEED === "random") return buildIslandBody(cfg);
   const real = Math.random;
@@ -6217,7 +6514,7 @@ function buildIslandBody(cfg){
     for(const s of stoneXZ) if(Math.hypot(x-s[0], z-s[1]) < 3.3) return 0;
     return shelfGround(cd);
   };
-  const I = {cfg, scene, sky, moon, key, sea, inside, height, coastDist, shoreOut, /* The analytic sea surface has to apply the SAME damp the shader does, or every splash, ripple,
+  const I = {cfg, scene, sky, moon, key, sea, hemiL, inside, height, coastDist, shoreOut, /* The analytic sea surface has to apply the SAME damp the shader does, or every splash, ripple,
      foam ring and floating prop near the shore sits at a height the water is no longer at. */
     seaY:(x, z, t, base) => seaHeight(x, z, t, base, shoreDamp(coastDist(x, z))), water:null, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
   I.stars = starMesh;
@@ -7171,7 +7468,8 @@ function buildIslandBody(cfg){
     windMul:1,
     meadow: MEADOW_BLOOM > 0 ? flowerMeadow(scene, (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? 2200 : 4400, cfg.spawn, height, noGrass) : null
   };
-  if(cfg.key === "sanity"){
+  if(cfg.key === "sanity" && RAINQ){ I.rainFX = rainSystem(scene, I); I.rain = I.rainFX.root; }
+  else if(cfg.key === "sanity"){
     const n = 900, g = new THREE.BufferGeometry(), p = new Float32Array(n*3);
     for(let i=0;i<n;i++){ p[i*3]=(Math.random()-.5)*90; p[i*3+1]=Math.random()*40; p[i*3+2]=(Math.random()-.5)*90; }
     g.setAttribute("position", new THREE.BufferAttribute(p,3));
@@ -7181,7 +7479,9 @@ function buildIslandBody(cfg){
     const n = 700, g = new THREE.BufferGeometry(), p = new Float32Array(n*3);
     for(let i=0;i<n;i++){ p[i*3]=(Math.random()-.5)*90; p[i*3+1]=Math.random()*40; p[i*3+2]=(Math.random()-.5)*90; }
     g.setAttribute("position", new THREE.BufferAttribute(p,3));
-    I.rain = new THREE.Points(g, new THREE.PointsMaterial({color:0xD8ECF6, size:.19, transparent:true, opacity:0})); scene.add(I.rain);
+    if(RAINQ){ I.rainFX = rainSystem(scene, I); I.rain = I.rainFX.root; }
+    else { I.rain = new THREE.Points(g, new THREE.PointsMaterial({color:0xD8ECF6, size:.19, transparent:true, opacity:0})); scene.add(I.rain); }
+    I.overcast = null;     /* captured on the first frame, once every light and the fog are final */
     I.bow = new THREE.Group();
     [0xE8907E,0xE8AE7E,0xE8D89A,0x8FD3A6,0x7FB6DC,0xA48FD8].forEach((col,i) => I.bow.add(new THREE.Mesh(new THREE.TorusGeometry(62-i*3.2,1.7,6,64,Math.PI), new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0}))));
     I.bow.position.set(0,-4,-90); scene.add(I.bow); I.clock = 0;
@@ -7199,6 +7499,7 @@ function buildIslandBody(cfg){
   if(DROCKS) DROCKS.finish(scene);
   if(DFOREST) DFOREST.finish(scene, I);
   mergeStatics(I, scene);
+  wetAll(scene);
   /* ===============  SHADOWS: JUDGE THE MESH, NEVER THE MATERIAL CLASS  ===============
      This gate used to read `o.material.isMeshToonMaterial`. ART defaults to "real", which builds
      MeshStandardMaterial, so the gate matched ZERO objects. Measured on Green before this fix:
@@ -7330,7 +7631,7 @@ function buildIslandBody(cfg){
       if(bad.length) DBG("GROUNDCHECK", cfg.key, bad.length + " object(s) standing below their own ground:", bad);
     }catch(e){ DBG("groundcheck failed", e && e.message); }
   }
-
+  wetAll(scene);     /* again: the people, animals and anything added after the bake get wet too */
   return I;
 }
 
@@ -8056,7 +8357,10 @@ function sanitySky(I, dt, t){
   I.sky.mat.uniforms.flash.value = I.flash*.9; $("flash").style.opacity = I.flash*.35;
   I.key.intensity = .55 + I.flash*2.5;
   /* rain */
-  if(I.rain){ I.rain.material.opacity = Math.max(0, st - .25)/.75*.7;
+  if(I.rainFX){ const ra = Math.max(0, st - .22)/.78;
+    rainUpdate(I, dt, t, ra, [2.5 + 7*st, 1.2 + 1.5*st], 1 - .7*m, I.flash || 0);
+    if(S.su && S.su.uRain) S.su.uRain.value = Math.min(1, ra*1.3); }
+  else if(I.rain){ I.rain.material.opacity = Math.max(0, st - .25)/.75*.7;
     if(st > .25){ const pos = I.rain.geometry.attributes.position.array, drift = 7*st;
       for(let i=0;i<pos.length;i+=3){ pos[i+1] -= 46*dt; pos[i] += drift*dt;
         if(pos[i+1] < 0){ pos[i+1] = 38; pos[i] = W.x+(Math.random()-.5)*90; pos[i+2] = W.z+(Math.random()-.5)*90; } }
@@ -8069,6 +8373,7 @@ function sanitySky(I, dt, t){
 }
 function islandUpdate(I, dt, t){
   const cfg = I.cfg, W = I.W;
+  WET.value = I.wet || 0;
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
   if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); }
   if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
@@ -8451,9 +8756,20 @@ function islandUpdate(I, dt, t){
     I.clock = (I.clock + dt) % 132; const p = I.clock/132;
     if(p < .34){ label = "Golden hour"; } else if(p < .62){ storm = Math.min(1,(p-.34)/.10); label = "Rain"; }
     else if(p < .80){ storm = Math.max(0,1-(p-.62)/.10); label = "Clearing"; } else label = "Rainbow";
-    I.rain.material.opacity = storm*.8;
+    if(I.rainFX){
+      /* rain comes under cloud: the sun goes in, the light goes flat and soft, the air greys and thickens */
+      const fog = I.scene.fog;
+      if(!I.overcast) I.overcast = {key0:I.sun.intensity, hemi0:I.hemiL ? I.hemiL.intensity : 0, fog0:fog.color.clone(), dens0:fog.density, grey:new THREE.Color(0x8A939B)};
+      const O = I.overcast, k = storm*storm*(3 - 2*storm);
+      I.sun.intensity = O.key0*(1 - .74*k); if(I.hemiL) I.hemiL.intensity = O.hemi0*(1 + .45*k);
+      fog.color.copy(O.fog0).lerp(O.grey, .55*k); fog.density = O.dens0*(1 + 1.3*k);
+      const su = I.sea.userData.mat.uniforms; if(su.uFogCol){ su.uFogCol.value.copy(fog.color); su.uFogD.value = fog.density; }
+      if(CUR === I){ try{ gradePass.uniforms.airCol.value.copy(fog.color); }catch(e){} }
+      rainUpdate(I, dt, t, storm, [1.4, .6], 1 - .45*k, 0);
+      if(su.uRain) su.uRain.value = storm; }
+    else I.rain.material.opacity = storm*.8;
     const bowOn = p >= .72; I.bow.children.forEach(m => m.material.opacity += ((bowOn?.5:0) - m.material.opacity)*Math.min(1, dt*.5));
-    if(storm > .05){ const pos = I.rain.geometry.attributes.position.array;
+    if(storm > .05 && !I.rainFX){ const pos = I.rain.geometry.attributes.position.array;
       for(let i=0;i<pos.length;i+=3){ pos[i+1] -= 40*dt; if(pos[i+1] < 0){ pos[i+1] = 38; pos[i] = W.x+(Math.random()-.5)*90; pos[i+2] = W.z+(Math.random()-.5)*90; } }
       I.rain.geometry.attributes.position.needsUpdate = true; }
     if(AU.rainG) AU.rainG.gain.value = storm*.085;
