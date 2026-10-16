@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-16d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-16e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3917,11 +3917,40 @@ function clumpGeometry(){
   m.setIndex(I);
   return m;
 }
-const CLUMP = clumpGeometry();
+/* ===================  DENSE, FINE GRASS  (default; ?grass2=old restores the strand clumps)  ===================
+   His REANIMAL clip (2026-10-16): the grass by the barn is a thick, knee-high mass of long, very thin
+   blades, some gone to straw at the tip - not tufts of a few wide strands. Modelled blades cannot
+   reach that density on a phone, so each clump is three crossed cards carrying a photographed
+   blade card (tools/make_grasscard.py, from Poly Haven's CC0 grass_medium_02 scans): dozens of
+   blades per card, 6 triangles per clump against 56 for the strand clumps, which buys roughly
+   half again as many clumps for a tenth of the triangles. Wind, parting round her and the trodden
+   trail all still run, because the shader keys on uv.y exactly as before. */
+const FINEGRASS = QS.get("grass2") !== "old";
+const GRASS_TEX = !FINEGRASS ? null : (() => { const L = new THREE.TextureLoader();
+  const a = L.load("assets/grass/grasscard_diff.jpg"), b = L.load("assets/grass/grasscard_alpha.jpg");
+  a.encoding = THREE.sRGBEncoding; a.anisotropy = b.anisotropy = 4; return {map:a, alpha:b}; })();
+function cardClumpGeometry(){
+  const P = [], N = [], U = [], C = [], I = [];
+  for(let k=0;k<3;k++){
+    const a = k/3*Math.PI + Math.random()*.2, c = Math.cos(a), s2 = Math.sin(a), w = .95, h = 1.0, b = P.length/3;
+    /* two rows so the card can bend in the wind: root, middle, tip */
+    for(const [t, y] of [[0,0],[.5,.5*h],[1,h]]){
+      P.push(-c*w, y, -s2*w,  c*w, y, s2*w);
+      N.push(0,1,0, 0,1,0); U.push(0,t, 1,t);
+      const sh = .80 + t*.22; C.push(sh,sh,sh, sh,sh,sh);
+    }
+    I.push(b, b+1, b+3, b, b+3, b+2,  b+2, b+3, b+5, b+2, b+5, b+4);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P,3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N,3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(U,2)); g.setAttribute("color", new THREE.Float32BufferAttribute(C,3)); g.setIndex(I);
+  return g;
+}
+const CLUMP = FINEGRASS ? cardClumpGeometry() : clumpGeometry();
 /* Clumps inside the 44 u ring around her. 11,000 in a 44 u disc is 1.8 per square unit — about one
    clump every 0.43 m, which is ground cover rather than spikes, and it stays that dense however
    large the island gets. ?grass= scales it (?grass=0.5 halves it) if an old GPU struggles. */
-const GRASS_N = Math.round((matchMedia("(pointer:coarse)").matches || innerWidth < 820 ? 3100 : 6200)   /* fewer clumps, far better strands - see clumpGeometry */
+const GRASS_N = Math.round((matchMedia("(pointer:coarse)").matches || innerWidth < 820 ? (FINEGRASS ? 3800 : 3100) : (FINEGRASS ? 7500 : 6200))   /* fewer clumps, far better strands - see clumpGeometry */
                            * (parseFloat(QS.get("grass")) || 1));
 const grassPatch = (sh, far) => {
   sh.uniforms.uTime = {value:0}; sh.uniforms.uPlayer = {value:new THREE.Vector3(0,-99,0)}; sh.uniforms.uWind = {value:1};
@@ -4001,13 +4030,17 @@ function grassField(scene, n, origin, heightFn, cols, blocked){
      and are recycled as she walks, so density is constant no matter how big the island gets.
      Recycling is amortised over frames, a slice at a time, so there is no hitch. */
   const RING = 44;
-  const mat = toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide});
+  const mat = FINEGRASS ? toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide, map:GRASS_TEX.map, alphaMap:GRASS_TEX.alpha, alphaTest:.42, roughness:.9})
+                        : toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide});
+  if(FINEGRASS) mat.color.setScalar(1.55);     /* the blade photo is dark; the instance tint and the card shade bring it to the meadow's value */
   /* the far colour is the mean of this island's own clump tints - the same wash the terrain under the
      field carries, so a faded clump and the ground it stands on land on the same value */
   const farC = new THREE.Color(0,0,0), tmpC = new THREE.Color();
   (cols || [0x7CC79A]).forEach(h => { tmpC.setHex(h); farC.add(tmpC); });
   farC.multiplyScalar(1 / Math.max(1, (cols || [1]).length));
-  mat.userData.patches = [["grass", sh => { grassPatch(sh, farC); mat.userData.uniforms = sh.uniforms; }]];
+  mat.userData.patches = [["grass", sh => { grassPatch(sh, farC); mat.userData.uniforms = sh.uniforms;
+    /* both faces of a card shade alike, or half the blades would go black */
+    if(FINEGRASS) sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;"); }]];
   const mesh = new THREE.InstancedMesh(CLUMP, mat, n);
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), c = new THREE.Color();
   const up = new THREE.Vector3(0,1,0), pos = new THREE.Vector3();
@@ -4022,11 +4055,13 @@ function grassField(scene, n, origin, heightFn, cols, blocked){
       const jx = x + (Math.random()-.5)*1.7, jz = z + (Math.random()-.5)*1.7;
       px[i] = jx; pz[i] = jz;
       q.setFromAxisAngle(up, Math.random()*Math.PI);
-      sc.set(.85+Math.random()*.5, .38+Math.random()*.30, .85+Math.random()*.5);   /* shin-high meadow, not a crop field */
+      if(FINEGRASS) sc.set(.7+Math.random()*.45, .55+Math.random()*.50, .7+Math.random()*.45);   /* knee-high and thick, like the field by the barn */
+      else sc.set(.85+Math.random()*.5, .38+Math.random()*.30, .85+Math.random()*.5);   /* shin-high meadow, not a crop field */
       pos.set(jx, heightFn(jx,jz)+.02, jz);
       M.compose(pos, q, sc); mesh.setMatrixAt(i, M);
       c.setHex(cols[(Math.random()*cols.length)|0]);
       c.offsetHSL(0, (Math.random()-.5)*.07, -.02+(Math.random()-.5)*.06);
+      if(FINEGRASS) c.lerp(new THREE.Color(1,1,1), .72);       /* the photo carries the colour; the island tint only nudges it */
       mesh.setColorAt(i, c);
       return true;
     }
