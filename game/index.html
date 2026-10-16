@@ -371,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-16g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-16h";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -4334,6 +4334,9 @@ function shoreRocks(scene, I, R, P, night){
 /* Dune grass: sparse, tall, pale clumps growing out of the sand edge and the top of the beach, in
    patches. The fine-grass card photo, one instanced draw, swaying gently, collapsing far away. */
 function shoreDuneGrass(scene, I, P, blocked){
+  /* held back: on the beach the clumps read as dark square blocks and some stood in the water.
+     ?dune=1 shows them for testing until they are fixed. */
+  if(QS.get("dune") !== "1") return;
   if(!FINEGRASS || !I.shoreF) return;
   const POLY = I.cfg.poly, n = POLY.length, F = I.shoreF, seed = seedOf("dune:" + I.cfg.key) & 0xffff;
   const want = Math.round(n * (SHORE_PHONE ? 1.6 : 3.0)), M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
