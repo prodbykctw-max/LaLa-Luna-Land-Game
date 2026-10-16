@@ -1407,6 +1407,23 @@ function flowerMeadow(scene, n, origin, heightFn, blocked){
       M.compose(pos.set(x, heightFn(x, z) - .05, z), q, sc); mesh.setMatrixAt(i, M); return; }
     px[i] = 1e5; pz[i] = 1e5; M.compose(pos.set(1e5, -50, 1e5), q.identity(), sc.set(1,1,1)); mesh.setMatrixAt(i, M);
   };
+  if(GRASSFIXQ){
+    /* ?grassfix: the flowers had the grass's travelling-ring pop-in too - fixed world spots instead (see
+       fixedTileField). The old ring re-rolled a spot up to 16 times until it hit a drift, so every flower
+       in the disc ended up in a drift; FLOWER_FIX_K scales the count so a drift keeps that same density. */
+    const S = 92, K = FLOWER_FIX_K;      /* edge at 46 u from the camera, where the flower shader has faded them out */
+    const nn = Math.round(n * S*S / (Math.PI*RING*RING) * K);
+    const fm = new THREE.InstancedMesh(g, mat, nn);
+    const fixed = fixedTileField(nn, S, seedOf("flowers:" + origin[0].toFixed(1) + ":" + origin[1].toFixed(1)), (i, x, z, r) => {
+      if(bloomMask(x, z) < BLOOM_T + r()*.35 || blocked(x, z)){ M.compose(pos.set(x, -50, z), q.identity(), sc.set(1e-4,1e-4,1e-4)); fm.setMatrixAt(i, M); return; }
+      q.setFromAxisAngle(up, r()*Math.PI);
+      const sv = .65 + r()*.6; sc.set(sv, sv*(.8 + r()*.5), sv);
+      M.compose(pos.set(x, heightFn(x, z) - .05, z), q, sc); fm.setMatrixAt(i, M);
+    });
+    fixed(origin[0], origin[1]);
+    fm.instanceMatrix.needsUpdate = true; fm.frustumCulled = false; fm.receiveShadow = true; fm.userData.dyn = 1; scene.add(fm);
+    return {mesh: fm, uni, follow: (cx, cz) => { if(fixed(cx, cz)) fm.instanceMatrix.needsUpdate = true; }, fixed:true};
+  }
   for(let i=0;i<n;i++) place(i, origin[0], origin[1]);
   mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh);
   let cursor = 0; const SLICE = Math.max(300, Math.ceil(n/8));
@@ -4014,6 +4031,46 @@ const grassPatch = (sh, far) => {
         push = max(push, trod);
         transformed.xz += normalize(pdir + vec2(0.001)) * push * 1.15 * w; transformed.y -= push * .48 * w; }`);
 };
+/* ===================  GRASS THAT STAYS PUT  (default; ?grassfix=old restores the travelling ring)  ===================
+   His words (2026-10-16): "ours looks like it has to be loaded every second, it doesn't appear until I
+   move. Their grass stays where it's supposed to be."  He was right, and it was the RECYCLING, not the art:
+     - a clump that fell more than RING behind her was thrown to a RANDOM point anywhere in the disc -
+       often right in front of her, in plain view, out of nothing. Running, ~20 clumps a frame did that;
+     - the disc ahead of her only filled by those random throws, so she always ran into thin grass that
+       thickened around her as she went - the field visibly "loading";
+     - a throw that landed on sand or sea parked the clump and it tried again a few frames later, so
+       near the coast the field kept filling in for seconds even standing still;
+     - only an eighth of the field was checked per frame, so all of that trickled in over time.
+   Now every clump owns a fixed spot in a world-space tile of side S that repeats across the island.
+   Each frame each clump shows the copy of its spot nearest the CAMERA. Wherever you look the pattern
+   is the same one, clump for clump: a clump only ever jumps when its spot crosses the tile edge, S/2
+   from the camera - past the 44 u where the shader has already faded it to nothing. Its rotation,
+   size and tint are hashed from its world cell, so coming back to a place shows the same clumps.
+   Same cards, same density per square unit, same wind / parting / trail. */
+const GRASSFIXQ = QS.get("grassfix") !== "old";
+const FLOWER_FIX_K = 1;
+function fixedTileField(n, S, seed, placeAt){
+  /* n spots jittered on a grid over one S x S tile; a random subset of the cells so no stripe repeats */
+  const g = Math.ceil(Math.sqrt(n)), cell = S / g, rnd = mulberry32(seed);
+  const cells = Array.from({length: g*g}, (_, k) => k);
+  for(let k = cells.length - 1; k > 0; k--){ const j = (rnd()*(k+1))|0, t = cells[k]; cells[k] = cells[j]; cells[j] = t; }
+  const ox = new Float32Array(n), oz = new Float32Array(n), KX = new Int32Array(n).fill(-1e9), KZ = new Int32Array(n).fill(-1e9);
+  for(let i = 0; i < n; i++){ const c = cells[i]; ox[i] = ((c % g) + rnd()) * cell - S/2; oz[i] = (((c / g)|0) + rnd()) * cell - S/2; }
+  /* the hash for one spot in one world cell: everything about the clump that lands there comes from it */
+  const rngAt = (i, kx, kz) => mulberry32(Math.imul(i + 1, 73856093) ^ Math.imul(kx + 7919, 19349663) ^ Math.imul(kz + 104729, 83492791) ^ seed);
+  return (cx, cz) => {
+    let moved = false;
+    for(let i = 0; i < n; i++){
+      const kx = Math.round((cx - ox[i]) / S), kz = Math.round((cz - oz[i]) / S);
+      if(kx === KX[i] && kz === KZ[i]) continue;
+      KX[i] = kx; KZ[i] = kz; moved = true;
+      const r = rngAt(i, kx, kz), r0 = Math.random;
+      /* noGrass thins the sand edge with Math.random; give it this spot's own stream so the edge is the same every visit */
+      Math.random = r; try { placeAt(i, ox[i] + kx*S, oz[i] + kz*S, r); } finally { Math.random = r0; }
+    }
+    return moved;
+  };
+}
 function grassField(scene, n, origin, heightFn, cols, blocked){
   /* A field that follows her. Scattering a fixed count over the whole island means density falls
      off as the island grows — at WORLD 4 the island has 16x the area, so a static field would be
@@ -4021,6 +4078,10 @@ function grassField(scene, n, origin, heightFn, cols, blocked){
      and are recycled as she walks, so density is constant no matter how big the island gets.
      Recycling is amortised over frames, a slice at a time, so there is no hitch. */
   const RING = 44;
+  /* ?grassfix: the tile edge sits at S/2 = 44 u from the camera, where the shader's fade has shrunk a
+     clump to nothing; the count grows with the tile's area so clumps per square unit stay what they were */
+  const FIX_S = 88;
+  if(GRASSFIXQ) n = Math.round(n * FIX_S*FIX_S / (Math.PI*RING*RING));
   const mat = FINEGRASS ? toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide, map:GRASS_TEX.map, alphaMap:GRASS_TEX.alpha, alphaTest:.42, roughness:.9})
                         : toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide});
   if(FINEGRASS) mat.color.setScalar(1.55);     /* the blade photo is dark; the instance tint and the card shade bring it to the meadow's value */
@@ -4062,6 +4123,28 @@ function grassField(scene, n, origin, heightFn, cols, blocked){
     return false;
   };
 
+  if(GRASSFIXQ){
+    /* the same clump `place` makes, but at a fixed spot and from that spot's own random stream */
+    const white = new THREE.Color(1,1,1);
+    const fixed = fixedTileField(n, FIX_S, seedOf("grass:" + origin[0].toFixed(1) + ":" + origin[1].toFixed(1)), (i, x, z, r) => {
+      if(blocked(x, z)){ M.compose(pos.set(x, -50, z), q.identity(), sc.set(1e-4,1e-4,1e-4)); mesh.setMatrixAt(i, M); return; }   /* sand, path, a rock: nothing grows here, ever */
+      q.setFromAxisAngle(up, r()*Math.PI);
+      if(FINEGRASS) sc.set(.7+r()*.45, .55+r()*.50, .7+r()*.45);
+      else sc.set(.85+r()*.5, .38+r()*.30, .85+r()*.5);
+      pos.set(x, heightFn(x,z)+.02, z);
+      M.compose(pos, q, sc); mesh.setMatrixAt(i, M);
+      c.setHex(cols[(r()*cols.length)|0]);
+      c.offsetHSL(0, (r()-.5)*.07, -.02+(r()-.5)*.06);
+      if(FINEGRASS) c.lerp(white, .72);
+      mesh.setColorAt(i, c);
+    });
+    fixed(origin[0], origin[1]);
+    mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false;
+    scene.add(mesh);
+    const follow = (cx, cz) => { if(fixed(cx, cz)){ mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true; } };
+    return {mesh, mat, follow, fixed:true};
+  }
   for(let i=0;i<n;i++) place(i, origin[0], origin[1]);
   mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false;
@@ -4504,8 +4587,8 @@ function fxUpdate(fx, dt, t, camPos){
   if(fx.grass && fx.grass.mat){ const u = fx.grass.mat.userData.uniforms; if(u){ u.uTime.value = t; u.uWind.value = fx.windMul; if(fx.player) u.uPlayer.value.set(fx.player.x, fx.player.y, fx.player.z);
       const PS = fx.pushers || [], PU = u.uPush.value; for(let i=0;i<PU.length;i++){ const p = PS[i]; if(p) PU[i].set(p.x, p.y, p.z, p.r); else PU[i].set(0,-99,0,0); }
       const TP = (fx.trail && fx.trail.pts) || [], TU = u.uTrail.value; for(let i=0;i<TU.length;i++){ const q = TP[i]; if(q && q.w > 0) TU[i].set(q.x, q.y, q.z, q.w); else TU[i].set(0,-99,0,0); } }
-    if(fx.grass.follow && fx.player) fx.grass.follow(fx.player.x, fx.player.z); }
-  if(fx.meadow){ fx.meadow.uni.uTime.value = t; fx.meadow.uni.uWind.value = fx.windMul; if(fx.player) fx.meadow.follow(fx.player.x, fx.player.z); }
+    if(fx.grass.follow && fx.player){ const fc = GRASSFIXQ && camPos ? camPos : fx.player; fx.grass.follow(fc.x, fc.z); } }   /* ?grassfix: the field is centred on the camera, where it is seen from */
+  if(fx.meadow){ fx.meadow.uni.uTime.value = t; fx.meadow.uni.uWind.value = fx.windMul; if(fx.player){ const fc = GRASSFIXQ && camPos ? camPos : fx.player; fx.meadow.follow(fc.x, fc.z); } }
   if(fx.canopies) fx.canopies.forEach(c => { c.rotation.z = Math.sin(t*.9+c.userData.ph)*.022*fx.windMul; c.rotation.x = Math.cos(t*.7+c.userData.ph)*.016*fx.windMul; });
   if(fx.bushes && fx.player) fx.bushes.forEach(b => { const d = Math.hypot(b.position.x-fx.player.x, b.position.z-fx.player.z);
     b.userData.k = Math.max(0, (b.userData.k||0) - dt*2.5); if(d < 1.9) b.userData.k = 1;
