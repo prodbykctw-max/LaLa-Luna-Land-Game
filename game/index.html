@@ -58,41 +58,18 @@ body.dark #grain{opacity:.16}
 .hide{display:none!important}
 #prompt{align-self:center;margin-bottom:120px;opacity:0;transition:opacity .25s;text-align:center}
 #prompt.on{opacity:1}
-/* The interact prompt is a star. It has to catch the eye across a meadow at golden hour, so it is
-   a gold five-point star that breathes, sweeps a highlight round itself, and throws four sparks. */
-:root{--star5:polygon(50% 0%,61% 34%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 34%);
-      --star4:polygon(50% 0%,59% 41%,100% 50%,59% 59%,50% 100%,41% 59%,0% 50%,41% 41%)}
-#prompt .k{position:relative;display:inline-grid;place-items:center;width:56px;height:56px;
- margin-right:14px;vertical-align:middle;font-size:15px;font-weight:700;color:#3A2A18;
- text-shadow:0 1px 0 rgba(255,255,255,.6);animation:starBreathe 1.5s ease-in-out infinite}
-#prompt .k::before{content:"";position:absolute;inset:0;clip-path:var(--star5);
- background:radial-gradient(circle at 50% 38%,#FFFBEA 0%,#FFF0B8 34%,#FFD37A 62%,#F0A64E 100%);
- filter:drop-shadow(0 0 12px rgba(255,211,122,1)) drop-shadow(0 0 30px rgba(255,190,90,.65))}
-/* the glitter: a highlight that sweeps round inside the star */
-#prompt .k::after{content:"";position:absolute;inset:0;clip-path:var(--star5);mix-blend-mode:screen;
- background:conic-gradient(from 0deg,rgba(255,255,255,0) 0deg,rgba(255,255,255,.85) 42deg,rgba(255,255,255,0) 96deg,
-   rgba(255,255,255,0) 210deg,rgba(255,255,255,.55) 252deg,rgba(255,255,255,0) 300deg);
- animation:starSweep 2.6s linear infinite}
-#prompt .k b{position:relative;z-index:2}
-/* four little sparks that pop around it, out of step with each other */
-.sp{position:absolute;width:11px;height:11px;clip-path:var(--star4);background:#FFFBEA;
- filter:drop-shadow(0 0 6px rgba(255,232,160,.95));opacity:0;pointer-events:none;
- animation:spark 1.9s ease-in-out infinite}
-.sp.s1{top:-9px;left:-6px;animation-delay:0s}
-.sp.s2{top:2px;right:-11px;width:8px;height:8px;animation-delay:.48s}
-.sp.s3{bottom:-6px;left:6px;width:9px;height:9px;animation-delay:.95s}
-.sp.s4{top:-3px;right:2px;width:6px;height:6px;animation-delay:1.4s}
-@keyframes starBreathe{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.13) rotate(-5deg)}}
-@keyframes starSweep{to{transform:rotate(360deg)}}
-@keyframes spark{0%,72%,100%{opacity:0;transform:scale(.3) rotate(0deg)}
-  16%{opacity:1;transform:scale(1.15) rotate(70deg)}
-  40%{opacity:.45;transform:scale(.75) rotate(130deg)}}
-@media (prefers-reduced-motion:reduce){
-  #prompt .k,#prompt .k::after,.sp,#act .astar{animation:none}
-  .sp{opacity:.85}
-}
-#prompt .t{font-size:13px;letter-spacing:.1em;vertical-align:middle;
- text-shadow:0 0 12px rgba(255,211,122,.55),0 1px 3px rgba(0,0,0,.7)}
+/* Near something you can use, the only cue is the control itself lighting up: the Interact button on a
+   phone, a small glowing E key on a computer. No star, no sparks, no caption. */
+#prompt .k{position:relative;display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;
+ font-size:14px;font-weight:700;color:#FFF6DC;border:1px solid rgba(255,232,170,.75);background:rgba(255,236,190,.12);
+ text-shadow:0 0 8px rgba(255,220,150,.9)}
+/* the glow pulses on its own layer (opacity only) so it never forces the blurred glass to repaint */
+#prompt .k::after,#act::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;
+ box-shadow:0 0 24px rgba(255,214,140,.85), inset 0 0 14px rgba(255,236,190,.28);opacity:0}
+#prompt.on .k::after,#act.live::after{animation:cueGlow 1.8s ease-in-out infinite}
+body.touch #prompt{display:none}
+@keyframes cueGlow{0%,100%{opacity:.45}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){ #prompt.on .k::after,#act.live::after{animation:none;opacity:.8} }
 
 #stick{position:fixed;left:22px;bottom:30px;width:156px;height:156px;border-radius:50%;
  border:2px solid rgba(255,246,214,.55);background:rgba(18,16,28,.42);
@@ -117,18 +94,7 @@ body.dark #grain{opacity:.16}
 .rbtn > span,.rbtn > .albl{grid-area:1/1;text-indent:.16em}
 #act{bottom:150px;width:78px;height:78px;font-size:10px;position:fixed;
  border:2px solid rgba(255,246,214,.55);background:rgba(18,16,28,.42);color:var(--moon);opacity:.45}
-#act.live{opacity:1;background:rgba(255,246,214,.14);color:#3A2A18;border-color:rgba(255,232,160,.9);
- box-shadow:0 0 26px rgba(255,211,122,.6)}
-#act .astar{position:absolute;left:50%;top:50%;width:74px;height:74px;margin:-37px 0 0 -37px;
- clip-path:var(--star5);opacity:0;transform:scale(.4);transition:opacity .18s,transform .18s;pointer-events:none;
- background:radial-gradient(circle at 50% 38%,#FFFBEA 0%,#FFF0B8 34%,#FFD37A 62%,#F0A64E 100%)}
-#act.live .astar{opacity:1;transform:scale(1);animation:starBreathe 1.5s ease-in-out infinite}
-#act .albl{position:relative;z-index:2}
-#act .sp{opacity:0;animation:none}
-#act.live .sp{animation:spark 1.9s ease-in-out infinite}
-#act .sp.s1{top:0;left:2px}
-#act .sp.s2{top:14px;right:0}
-#act .sp.s3{bottom:6px;left:22px}
+#act.live{opacity:1;color:#FFF6DC;border-color:rgba(255,232,170,.9);text-shadow:0 0 8px rgba(255,220,150,.9)}
 #jmp{bottom:40px;width:96px;height:96px;font-size:11px;
  border:2px solid rgba(111,191,146,.85);background:rgba(111,191,146,.28);color:var(--bone);opacity:1;
  box-shadow:0 4px 18px rgba(0,0,0,.35)}
@@ -292,7 +258,7 @@ body.sail #khint{display:block}
     </div>
   </div>
   <div id="cueLine"></div>
-  <div id="prompt"><span class="k" id="pk"><i class="sp s1"></i><i class="sp s2"></i><i class="sp s3"></i><i class="sp s4"></i><b id="pkey">E</b></span><span class="t" id="pt"></span></div>
+  <div id="prompt"><span class="k" id="pk"><b id="pkey">E</b></span></div>
 </div>
 
 <div id="stick"><div id="nub"></div></div>
@@ -300,7 +266,7 @@ body.sail #khint{display:block}
 <div id="build"></div>
 <button id="recenter" class="rbtn" title="Put the camera behind Lala">⟲</button>
 <div id="khint">WASD / arrows — walk · Q/E turn camera · R/F tilt · C recenter<br>Mouse drag — look · wheel — zoom<br>Space — jump (hold to glide) · E — interact</div>
-<button id="act" class="rbtn"><i class="astar"></i><i class="sp s1"></i><i class="sp s2"></i><i class="sp s3"></i><span class="albl">Interact</span></button>
+<button id="act" class="rbtn"><span class="albl">Interact</span></button>
 <button id="jmp" class="rbtn">Jump</button>
 <button id="mute" class="topbtn">Sound on</button>
 <button id="secretsBtn" class="topbtn">Secrets</button>
@@ -405,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-16e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-16f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -8530,7 +8496,6 @@ function islandUpdate(I, dt, t){
     walkerUpdate(I, dt, t);
     W.target = nearest(I);
     $("prompt").classList.toggle("on", !!W.target); $("act").classList.toggle("live", !!W.target);
-    if(W.target) $("pt").textContent = W.target.label;
     const pl = cfg.places.find(p => Math.hypot(W.x-p.x, W.z-p.z) < p.r);
     $("valL").textContent = pl ? pl.name : cfg.fallback;
   }
