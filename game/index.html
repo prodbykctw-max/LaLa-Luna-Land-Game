@@ -405,7 +405,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-16a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-16b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1296,6 +1296,68 @@ function weather(geo, amt, freq){
     const n = Math.sin(v.x*freq*1.7 + v.y*freq*.9) * Math.sin(v.z*freq*1.3 - v.y*freq*1.1) + .5*Math.sin(v.x*freq*4.1 + v.z*freq*3.3);
     v.multiplyScalar(1 + n*amt); pa.setXYZ(i, v.x, v.y, v.z); }
   geo.computeVertexNormals(); return geo;
+}
+/* ===================  BUILT THINGS  ===================
+   The pier was one flat brown box, the lamp posts white balls on sticks, the keep a box and four
+   cylinders in flat cream with ink outlines. Now (default; ?props=old restores) they are built in
+   CC0 Poly Haven photo materials: brown_planks_03 deck boards, castle_wall_varriation stonework,
+   grey_roof_tiles_02 slates, and the lamps are lanterns - an iron cage round a glowing pane. */
+const PROPSQ = QS.get("props") !== "old";
+const BUILD_TEX = !PROPSQ ? null : (() => {
+  const L = new THREE.TextureLoader();
+  const mk = (url, srgb) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+  return {planks: mk("assets/build/planks_diff.jpg", true), planksN: mk("assets/build/planks_nor.jpg", false),
+          wall: mk("assets/build/wall_diff.jpg", true), wallN: mk("assets/build/wall_nor.jpg", false),
+          slate: mk("assets/build/slate_diff.jpg", true), slateN: mk("assets/build/slate_nor.jpg", false)};
+})();
+/* BoxGeometry uv is 0..1 per face; make every face tile at `tile` world units, whatever its size */
+function boxUV(geo, w, h, d, tile){
+  const uv = geo.attributes.uv, dims = [[d,h],[d,h],[w,d],[w,d],[w,h],[w,h]];
+  for(let f=0; f<6; f++) for(let k=0;k<4;k++){ const i = f*4 + k; uv.setXY(i, uv.getX(i)*dims[f][0]/tile, uv.getY(i)*dims[f][1]/tile); }
+  uv.needsUpdate = true; return geo;
+}
+function scaleUV(geo, su, sv){ const uv = geo.attributes.uv; for(let i=0;i<uv.count;i++) uv.setXY(i, uv.getX(i)*su, uv.getY(i)*sv); uv.needsUpdate = true; return geo; }
+function builtMesh(geo, tex, ntex, col, night, rough){
+  const m = new THREE.Mesh(geo, toon(new THREE.Color(col).multiplyScalar(night ? .5 : 1), {map:tex, normalMap:ntex, roughness:rough || .9}));
+  m.castShadow = true; m.receiveShadow = true; return m;
+}
+/* a lantern on a post: timber post and arm, an iron cage, a warm pane that is the light */
+const _lanternMats = new Map();
+function lanternPost(P, night, h){
+  const key = P.wood + ":" + night;
+  if(!_lanternMats.has(key)) _lanternMats.set(key, {
+    iron: new THREE.MeshStandardMaterial({color:0x1E1C1A, roughness:.6, metalness:.6}),
+    wood: toon(new THREE.Color(P.wood).lerp(new THREE.Color(0xFFFFFF), .35).multiplyScalar(night ? .5 : 1), TREE_TEX ? {map:TREE_TEX.bark, normalMap:TREE_TEX.barkN, roughness:.9} : {}),
+    glow: new THREE.MeshBasicMaterial({color:0xFFD9A0})});
+  const M = _lanternMats.get(key), iron = M.iron;
+  const g = new THREE.Group();
+  const post = new THREE.Mesh(scaleUV(new THREE.CylinderGeometry(.12,.17,h,10), 2, h/1.4), M.wood);
+  post.position.y = h/2; g.add(post);
+  const pane = new THREE.Mesh(new THREE.BoxGeometry(.34,.44,.34), M.glow);
+  pane.position.y = h + .26; g.add(pane);
+  for(const [x,z] of [[-.19,-.19],[.19,-.19],[-.19,.19],[.19,.19]]){ const b = new THREE.Mesh(new THREE.BoxGeometry(.035,.5,.035), iron); b.position.set(x, h + .26, z); g.add(b); }
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(.32,.22,4), iron); cap.rotation.y = Math.PI/4; cap.position.y = h + .62; g.add(cap);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(.44,.06,.44), iron); base.position.y = h + .01; g.add(base);
+  g.userData.pane = pane; return g;
+}
+/* Merge every mesh under `roots` that shares a material into one mesh (world space), so forty
+   lanterns cost three draw calls instead of three hundred. */
+function mergeByMaterial(scene, roots){
+  const byMat = new Map(), v = new THREE.Vector3(), nm = new THREE.Matrix3();
+  scene.updateMatrixWorld(true);
+  for(const r of roots) r.traverse(o => { if(o.isMesh) { if(!byMat.has(o.material)) byMat.set(o.material, []); byMat.get(o.material).push(o); } });
+  for(const [mat, list] of byMat){
+    const pos = [], nor = [], uv = [];
+    for(const m of list){ const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry, P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv;
+      nm.getNormalMatrix(m.matrixWorld);
+      for(let i=0;i<P.count;i++){ v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); pos.push(v.x, v.y, v.z);
+        v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor.push(v.x, v.y, v.z); uv.push(U ? U.getX(i) : 0, U ? U.getY(i) : 0); }
+      if(g !== m.geometry) g.dispose(); }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    const mesh = new THREE.Mesh(geo, mat); mesh.castShadow = !mat.isMeshBasicMaterial; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh);
+  }
+  for(const r of roots) if(r.parent) r.parent.remove(r);
 }
 /* one place that builds a meadow surface, old or photographic */
 /* how much of the island's own grass tint survives over the photo: a little by day (keeps the palette),
@@ -6671,12 +6733,16 @@ function buildIslandBody(cfg){
   }
   /* dock + boat */
   const [dx,dz] = cfg.dock;
-  const planks = inked(new THREE.BoxGeometry(6,.5,DOCK_LEN), P.wood, 1.9); planks.position.set(dx,.5,dz); scene.add(planks);
+  const planks = PROPSQ ? builtMesh(boxUV(new THREE.BoxGeometry(6,.5,DOCK_LEN), 6, .5, DOCK_LEN, 2.4), BUILD_TEX.planks, BUILD_TEX.planksN, new THREE.Color(P.wood).lerp(new THREE.Color(0xFFFFFF), .55), night > .35)
+                       : inked(new THREE.BoxGeometry(6,.5,DOCK_LEN), P.wood, 1.9);
+  planks.position.set(dx,.5,dz); scene.add(planks);
   /* pilings: a pier stands on posts driven into the seabed, and now that the water is clear you can see them go down */
   { const pileCol = new THREE.Color(P.wood).multiplyScalar(.62);
     for(let pz = dz - DOCK_LEN/2 + 1.5; pz <= dz + DOCK_LEN/2 - .5; pz += 5.4){
       for(const sx of [-2.75, 2.75]){ const px = dx + sx, floor = Math.min(height(px, pz), shelfGround(shoreOut(px, pz))) - .6, top = .95;
-        const pile = inked(new THREE.CylinderGeometry(.24, .28, top - floor, 8), pileCol, 1.4); pile.position.set(px, (top + floor)/2, pz); scene.add(pile);
+        const pile = PROPSQ && TREE_TEX ? builtMesh(scaleUV(new THREE.CylinderGeometry(.24, .28, top - floor, 12), 2, (top - floor)/1.6), TREE_TEX.bark, TREE_TEX.barkN, pileCol.clone().lerp(new THREE.Color(0xFFFFFF), .3), night > .35)
+                                        : inked(new THREE.CylinderGeometry(.24, .28, top - floor, 8), pileCol, 1.4);
+        pile.position.set(px, (top + floor)/2, pz); scene.add(pile);
         I.colliders.push({x:px, z:pz, r:.32, camOnly:false}); } } }
   const boat = makeBoat(P.wood, MOON, .9);
   /* moor the boat in real water: start beside the dock's outer end and walk out until nothing is under it */
@@ -6687,9 +6753,13 @@ function buildIslandBody(cfg){
   /* sailboats out past the shore — most of them on the night island, under the full moon */
   I.fleet = sailFleet(scene, cfg.sail != null ? cfg.sail : (night > .35 ? 14 : 8), cfg, inside, P, night > .35);
   /* lantern path spawn → island heart */
+  const LANTERNS = [];
   for(let i=0;i<7;i++){ const k = i/7, x = cfg.spawn[0]*(1-k), z = cfg.spawn[1]*(1-k) + 18*k;
-    [-2.6,2.6].forEach(ox => { const p = inked(new THREE.CylinderGeometry(.16,.2,2.4,6), P.wood, 1.4); p.position.set(x+ox, height(x+ox,z)+1.4, z); scene.add(p);
+    [-2.6,2.6].forEach(ox => {
+      if(PROPSQ){ const lp = lanternPost(P, night > .35, 2.5); lp.position.set(x+ox, height(x+ox,z) + .1, z); scene.add(lp); LANTERNS.push(lp); return; }
+      const p = inked(new THREE.CylinderGeometry(.16,.2,2.4,6), P.wood, 1.4); p.position.set(x+ox, height(x+ox,z)+1.4, z); scene.add(p);
       const l = new THREE.Mesh(new THREE.SphereGeometry(.42,10,8), new THREE.MeshBasicMaterial({color:MOON})); l.position.set(x+ox, height(x+ox,z)+2.9, z); scene.add(l); }); }
+  if(LANTERNS.length) mergeByMaterial(scene, LANTERNS);
 
   /* hub castle */
   if(cfg.hub){
@@ -6702,13 +6772,14 @@ function buildIslandBody(cfg){
        The lamp posts eleven lines above this one always used height(x,z). The castle never did.
        Ground height is the only authority; nothing that stands on the ground gets a literal. */
     const castle = new THREE.Group(); castle.position.y = height(0, 0); scene.add(castle); I.castleLamps = [];
-    const keep = inked(new THREE.BoxGeometry(13,15,13), P.stone, 2.2); keep.position.y=7.5; castle.add(keep);
-    const roof = inked(new THREE.ConeGeometry(11,8,4), 0x4A3A63, 2.2); roof.position.y=19; roof.rotation.y=Math.PI/4; castle.add(roof);
+    const WALLC = new THREE.Color(P.stone).lerp(new THREE.Color(0xFFFFFF), .45), ROOFC = new THREE.Color(0x4A3A63).lerp(new THREE.Color(0xFFFFFF), .55);
+    const keep = PROPSQ ? builtMesh(boxUV(new THREE.BoxGeometry(13,15,13), 13, 15, 13, 3.2), BUILD_TEX.wall, BUILD_TEX.wallN, WALLC, false) : inked(new THREE.BoxGeometry(13,15,13), P.stone, 2.2); keep.position.y=7.5; castle.add(keep);
+    const roof = PROPSQ ? builtMesh(scaleUV(new THREE.ConeGeometry(11,8,4,4), 9, 4), BUILD_TEX.slate, BUILD_TEX.slateN, ROOFC, false, .7) : inked(new THREE.ConeGeometry(11,8,4), 0x4A3A63, 2.2); roof.position.y=19; roof.rotation.y=Math.PI/4; castle.add(roof);
     [[-7.5,-7.5],[7.5,-7.5],[-7.5,7.5],[7.5,7.5]].forEach(([x,z]) => {
-      const tw = inked(new THREE.CylinderGeometry(3,3.4,20,10), P.stone, 2.0); tw.position.set(x,10,z); castle.add(tw);
-      const cap = inked(new THREE.ConeGeometry(4,6,10), 0xF0A56D, 2.0); cap.position.set(x,23,z); castle.add(cap);
+      const tw = PROPSQ ? builtMesh(scaleUV(new THREE.CylinderGeometry(3,3.4,20,28,4), 6.5, 6.2), BUILD_TEX.wall, BUILD_TEX.wallN, WALLC, false) : inked(new THREE.CylinderGeometry(3,3.4,20,10), P.stone, 2.0); tw.position.set(x,10,z); castle.add(tw);
+      const cap = PROPSQ ? builtMesh(scaleUV(new THREE.ConeGeometry(4,6,28,3), 8, 2.4), BUILD_TEX.slate, BUILD_TEX.slateN, new THREE.Color(0xF0A56D).lerp(new THREE.Color(0xFFFFFF), .35), false, .7) : inked(new THREE.ConeGeometry(4,6,10), 0xF0A56D, 2.0); cap.position.set(x,23,z); castle.add(cap);
       const l = new THREE.Mesh(new THREE.SphereGeometry(.7,10,8), new THREE.MeshBasicMaterial({color:MOON})); l.position.set(x,26.4,z); castle.add(l); I.castleLamps.push(l); });
-    const door = inked(new THREE.BoxGeometry(4.2,6.4,.7), P.wood, 1.9); door.position.set(0,3.2,6.7); castle.add(door); I.door = door;
+    const door = PROPSQ ? builtMesh(boxUV(new THREE.BoxGeometry(4.2,6.4,.7), 4.2, 6.4, .7, 2.2), BUILD_TEX.planks, BUILD_TEX.planksN, new THREE.Color(P.wood).lerp(new THREE.Color(0xFFFFFF), .4), false) : inked(new THREE.BoxGeometry(4.2,6.4,.7), P.wood, 1.9); door.position.set(0,3.2,6.7); castle.add(door); I.door = door;
     const crest = new THREE.Mesh(new THREE.TorusGeometry(1.5,.34,8,24,Math.PI*1.45), new THREE.MeshBasicMaterial({color:MOON}));
     crest.position.set(0,9.4,6.9); crest.rotation.z=-.5; castle.add(crest);
   }
