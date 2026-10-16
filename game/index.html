@@ -371,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-16g";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-16h";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1438,9 +1438,12 @@ function flowerMeadow(scene, n, origin, heightFn, blocked){
    most of it at night, or Sanity's moonlit meadow comes out daylight-green */
 let MEADOW_KEEP = .78;
 function meadowMat(col, extra){
+  const SF = SHORE_FIELD;      /* SHORE: the island being built - its meadow turns to sand along a ragged edge at the coast */
+  const shoreOn = m => { if(SF && m.isMeshStandardMaterial){ m.userData.patches = (m.userData.patches || []).concat([["shore", sh => shoreMeadowPatch(sh, SF, SF.sandCol)]]);
+    m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh)); m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_"); } return m; };
   if(!GROUNDQ){
     const m = toon(col, Object.assign({map:TEX.meadow, roughness:1, envMapIntensity:.16}, extra||{}));
-    return m;
+    return shoreOn(m);
   }
   const c = new THREE.Color(col).lerp(new THREE.Color(0xFFFFFF), MEADOW_KEEP);     /* just enough island tint to stay in-palette */
   const m = toon(c, Object.assign({map:PHOTO.diff, normalMap:PHOTO.nor, roughness:.96, envMapIntensity:.22}, extra||{}));
@@ -1458,7 +1461,7 @@ function meadowMat(col, extra){
     m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
     m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
   }
-  return m;
+  return shoreOn(m);
 }
 /* Recover the un-tiled uv by dividing vUv back out by the map's own repeat, then re-scale it to a
    couple of tiles across the mesh. Hooks in after <map_fragment> so it multiplies the final albedo. */
@@ -1891,6 +1894,206 @@ function seaBed(col){
   const c = new THREE.Color(col).multiplyScalar(.40);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1600,1600), new THREE.MeshBasicMaterial({color:c}));
   m.rotation.x = -Math.PI/2; m.position.y = -7; return m;
+}
+/* ===================  DISTANCE  (default; ?horizon=old restores the previous horizon)  ===================
+   The horizon was a hard line with nothing behind it: the sea plane is a 1600 u square and the
+   fogged sea met the sky dome in one crisp edge, every island sat alone in an empty sea, and the
+   air was one flat FogExp2 that did not care how high a thing was or where the sun stood.
+   Four parts, all driven by scene.fog's own colour and density so Sanity's dial and Green's
+   overcast keep working exactly as before:
+     1 HEIGHT FOG   - every fogged material (all of them: standard, basic, points, sprites and the
+                      custom grass/rain shaders, through the shared fog chunks) now integrates the
+                      fog along the view ray with an exponential height falloff: thick low over the
+                      sea, thin over the hilltops; a small linear in-scatter term puts some air in
+                      the middle distance too, so far trees go pale and blue instead of staying
+                      fully saturated. The haze colour warms toward the sun (cools toward the moon).
+     2 FAR SEA      - a skirt of open water carries the sea from the edge of the sea square out to
+                      the haze, so the sea plane edge can never show.
+     3 HAZE BAND    - a camera-centred band at the far end of the view: below the sea horizon it is
+                      the haze, above it it thins out into the sky over a few degrees, so sea meets
+                      sky in a soft band instead of a line.
+     4 FAR LAND     - low silhouettes of other islands, headlands and hills out at sea on parts of
+                      the horizon, at three distances, paler the farther they are and melting into
+                      the low sea haze at the waterline. Seeded per island, kept off the dock route.
+   The uniforms are Float32Arrays: three's uniform cloning copies vectors but shares typed arrays,
+   so one set of arrays reaches every material clone and is set once a frame. */
+const HORIZONQ = QS.get("horizon") !== "old";
+const HZU = {hzA:{value:new Float32Array([-.85, .3, .43, 0])}, hzB:{value:new Float32Array([1, .9, .8, 45])},
+             hzC:{value:new Float32Array([-1.1, .35, .85, 0])}, hzD:{value:new Float32Array([.22, 0, 0, 0])}};
+/* hzA sun dir xyz + glow   hzB glow rgb + haze scale height   hzC sea y, floor, gain, on   hzD linear in-scatter */
+const HZ_GLSL = `
+  uniform vec4 hzA, hzB, hzC, hzD;
+  /* three uploads cameraPosition only for standard/phong/toon/shader materials (basic, lambert, points
+     and sprites read 0,0,0), but viewMatrix goes to every program: take the eye from that */
+  vec3 hzEye(){ return -viewMatrix[3].xyz * mat3(viewMatrix); }
+  float hzFactor(vec3 wp, float dens){
+    vec3 eye = hzEye(); float d = length(wp - eye);
+    float H = hzB.w, y0 = max(eye.y - hzC.x, 0.0), y1 = max(wp.y - hzC.x, 0.0);
+    float a0 = exp(-y0/H), a1 = exp(-y1/H), dy = y1 - y0;
+    float f = abs(dy) > .02*H ? (a0 - a1)*H/dy : .5*(a0 + a1);     /* the falloff averaged along the ray */
+    float dd = dens*d;
+    return 1.0 - exp(-(dd*dd + dd*hzD.x)*(hzC.y + hzC.z*f));
+  }
+  vec3 hzTint(vec3 dir, vec3 fc){
+    float hl = length(dir.xz);
+    float s = hl > 1e-4 ? max(dot(dir.xz/hl, hzA.xz), 0.0) : 0.0;
+    s = s*s*s*s * hzA.w * (1.0 - clamp(abs(dir.y)*2.2, 0.0, 1.0));
+    return mix(fc, hzB.rgb, s);
+  }`;
+if(HORIZONQ){
+  for(const k in THREE.ShaderLib){ const u = THREE.ShaderLib[k].uniforms; if(u && u.fogColor) Object.assign(u, HZU); }
+  Object.assign(THREE.UniformsLib.fog, HZU);
+  const C = THREE.ShaderChunk;
+  C.fog_pars_vertex += "\n#ifdef USE_FOG\n\tvarying vec3 vHzW;\n#endif";
+  C.fog_vertex += "\n#ifdef USE_FOG\n\tvHzW = (mvPosition.xyz - viewMatrix[3].xyz) * mat3(viewMatrix);\n#endif";
+  C.fog_pars_fragment += "\n#ifdef USE_FOG\n\tvarying vec3 vHzW;\n" + HZ_GLSL + "\n#endif";
+  C.fog_fragment = `#ifdef USE_FOG
+	vec3 hzFC = fogColor;
+	#ifdef FOG_EXP2
+		float fogFactor;
+		if(hzC.w > .5){ fogFactor = hzFactor(vHzW, fogDensity); hzFC = hzTint(normalize(vHzW - hzEye()), fogColor); }
+		else fogFactor = 1.0 - exp( - fogDensity * fogDensity * fogDepth * fogDepth );
+	#else
+		float fogFactor = smoothstep( fogNear, fogFar, fogDepth );
+	#endif
+	gl_FragColor.rgb = mix( gl_FragColor.rgb, hzFC, fogFactor );
+#endif`;
+}
+/* the far-sea skirt: from just inside the sea square's edge out past the haze band */
+function horizonSkirt(su){
+  const N = 96, RO = 3800, E = 798, pos = [], idx = [];
+  for(let i = 0; i < N; i++){ const a = i/N*Math.PI*2, c = Math.cos(a), s = Math.sin(a);
+    const k = E/Math.max(Math.abs(c), Math.abs(s));                 /* ray to the square's edge */
+    for(const r of [k, k + 120, k + 500, RO]) pos.push(c*r, 0, s*r); }
+  for(let i = 0; i < N; i++){ const j = (i + 1) % N;
+    for(let q = 0; q < 3; q++){ const a = i*4 + q, b = j*4 + q; idx.push(a, b, a + 1, b, b + 1, a + 1); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  const m = new THREE.ShaderMaterial({ uniforms: Object.assign({uTop:su.uTop, uMid:su.uMid, uBot:su.uBot, a:su.a, uFog:{value:new THREE.Color()}, uDens:{value:.003}}, HZU),
+    vertexShader:`varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
+    fragmentShader:`uniform vec3 uTop, uMid, uBot, a, uFog; uniform float uDens; varying vec3 vW; ${HZ_GLSL}
+      vec3 skyAt(vec3 d){ float h=d.y*.5+.5; vec3 c=mix(uBot,uMid,smoothstep(.49,.60,h)); return mix(c,uTop,smoothstep(.62,.90,h)); }
+      void main(){ vec3 V = normalize(cameraPosition - vW);
+        float F = .03 + .97*pow(1.0 - clamp(V.y, 0.0, 1.0), 5.0);
+        vec3 c = mix(a*.82, skyAt(reflect(-V, vec3(0.,1.,0.))), F);
+        c = mix(c, hzTint(-V, uFog), hzFactor(vW, uDens));
+        gl_FragColor = vec4(c, 1.0); }`, depthWrite:true});
+  const mesh = new THREE.Mesh(g, m); mesh.position.y = SEA_Y - .45; mesh.renderOrder = 1; mesh.frustumCulled = false; mesh.userData.ground = true;
+  return mesh;
+}
+/* the haze band: an open cylinder that rides with the camera at the far end of the view */
+function horizonBand(R){
+  const m = new THREE.ShaderMaterial({ uniforms: Object.assign({uFog:{value:new THREE.Color()}, uW:{value:.05}, uSeaY:{value:SEA_Y}}, HZU),
+    vertexShader:`varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }`,
+    fragmentShader:`uniform vec3 uFog; uniform float uW, uSeaY; varying vec3 vW; ${HZ_GLSL}
+      void main(){ vec3 r = vW - cameraPosition; float d = length(r); vec3 dir = r/d;
+        float e = dir.y + (cameraPosition.y - uSeaY)/d;                /* height above the sea horizon, in radians */
+        float al = e <= 0.0 ? 1.0 : exp(-e/uW)*.92 + .08*exp(-e/(uW*4.0));
+        gl_FragColor = vec4(hzTint(dir, uFog), clamp(al, 0.0, 1.0)); }`,
+    transparent:true, depthWrite:false, side:THREE.DoubleSide});
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 1, 72, 1, true), m);
+  mesh.renderOrder = -50; mesh.frustumCulled = false; return mesh;
+}
+/* far land: a few hundred triangles each, merged into one mesh per island */
+function horizonLand(I, R){
+  const cfg = I.cfg, P = cfg.pal, POLY = cfg.poly; if(!POLY) return null;
+  let hs = 0; for(const ch of cfg.key) hs = (hs*31 + ch.charCodeAt(0)) | 0;
+  const rnd = mulberry32(hs ^ 0x5EA5CA9E);
+  const cx = POLY.reduce((a, p) => a + p[0], 0)/POLY.length, cz = POLY.reduce((a, p) => a + p[1], 0)/POLY.length;
+  const shoreR = a => { let r = 0; for(let k = 0; k < 2400; k += 6) if(I.inside(cx + Math.cos(a)*k, cz + Math.sin(a)*k)) r = k; return r; };
+  const [dkx, dkz] = cfg.dock;
+  /* the boat leaves the pier toward +z, and the sailboats work that water: nothing goes in a 150 deg cone off the dock */
+  const offRoute = (x, z) => { const a = Math.atan2(x - dkx, z - dkz); return Math.abs(a) > 75*Math.PI/180; };
+  const farthest = (x, z) => POLY.reduce((m, p) => Math.max(m, Math.hypot(p[0] - x, p[1] - z)), 0);
+  const nearest = (x, z) => POLY.reduce((m, p) => Math.min(m, Math.hypot(p[0] - x, p[1] - z)), 1e9);
+  const LAY = [{off:[560, 780], len:[260, 460], h:[22, 48]}, {off:[950, 1250], len:[420, 760], h:[36, 80]}, {off:[1400, 1750], len:[700, 1200], h:[55, 120]}];
+  const items = [];
+  const db = Math.atan2(dkz - cz, dkx - cx);
+  const clusters = []; for(let k = 0; k < 40 && clusters.length < 3; k++){ const a = db + Math.PI*(.45 + rnd()*1.1)*(rnd() < .5 ? -1 : 1);
+    if(clusters.every(b => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) > 1.15)) clusters.push(a); }
+  clusters.forEach((ca, ci) => {
+    const lays = ci === 0 ? [0, 1, 2] : ci === 1 ? [1, 2] : [0, 2];
+    for(const li of lays){ const L = LAY[li];
+      for(let tries = 0; tries < 8; tries++){
+        const a = ca + (rnd() - .5)*.55, sr = shoreR(a);
+        let off = L.off[0] + rnd()*(L.off[1] - L.off[0]), len = L.len[0] + rnd()*(L.len[1] - L.len[0]);
+        let x = cx + Math.cos(a)*(sr + off), z = cz + Math.sin(a)*(sr + off);
+        while(farthest(x, z) + len*.5 > R - 80 && off > 520){ off -= 40; x = cx + Math.cos(a)*(sr + off); z = cz + Math.sin(a)*(sr + off); }
+        if(farthest(x, z) + len*.5 > R - 80) len = Math.max(180, (R - 80 - farthest(x, z))*2);
+        if(farthest(x, z) + len*.5 > R - 60 || nearest(x, z) < 480 + len*.5*.3 || !offRoute(x, z)) continue;
+        items.push({x, z, len, dep:len*(.22 + rnd()*.16), h:L.h[0] + rnd()*(L.h[1] - L.h[0]), rot:a + Math.PI/2 + (rnd() - .5)*.5, lay:li, cliff:rnd() < .5 ? (rnd() < .5 ? -1 : 1) : 0});
+        break; } } });
+  if(!items.length) return null;
+  const NU = 30, NV = 6, pos = [], col = [], idx = [];
+  const veg = new THREE.Color(P.grassDk).multiplyScalar(.62), rock = new THREE.Color(0x5E6460), dry = new THREE.Color(P.sand || 0xCFC3A4).multiplyScalar(.55), tmp = new THREE.Color();
+  for(const it of items){
+    const base = pos.length/3, peaks = [];
+    const np = 2 + Math.floor(rnd()*3); for(let k = 0; k < np; k++) peaks.push({u:(rnd()*2 - 1)*.7, w:.12 + rnd()*.35, h:.45 + rnd()*.55});
+    const ph = rnd()*100, cs = Math.cos(it.rot), sn = Math.sin(it.rot);
+    for(let i = 0; i < NU; i++){ const u = i/(NU - 1)*2 - 1;
+      let p = 0; for(const q of peaks) p = Math.max(p, q.h*Math.exp(-((u - q.u)*(u - q.u))/(2*q.w*q.w)));
+      p = .55*p + .45*Math.max(p, .5) * (1 - u*u*.6);                                   /* a ridge line, not separate bumps */
+      p *= .82 + .18*(Math.sin(u*17.0 + ph)*.6 + Math.sin(u*41.0 + ph*1.7)*.4);           /* broken skyline */
+      const endK = it.cliff === 0 ? 1 - Math.pow(Math.abs(u), 2.2) : (u*it.cliff > 0 ? 1 - Math.pow(Math.abs(u), 7.0) : 1 - Math.pow(Math.abs(u), 1.6));   /* a headland ends in a cliff */
+      const top = Math.max(0, p*endK)*it.h;
+      for(let j = 0; j < NV; j++){ const v = j/(NV - 1)*2 - 1;
+        const dome = Math.pow(Math.max(0, 1 - v*v), .7);
+        const lx = u*it.len*.5, lz = v*it.dep*.5*(.55 + .45*Math.sqrt(Math.max(0, 1 - u*u)));
+        const y = SEA_Y - 9 + (top + 9)*dome;
+        pos.push(it.x + lx*cs - lz*sn, y, it.z + lx*sn + lz*cs);
+        tmp.copy(veg).lerp(rock, Math.min(1, top/it.h*.6 + (it.cliff ? .25 : 0))).lerp(dry, .18*(1 - dome));
+        col.push(tmp.r, tmp.g, tmp.b); } }
+    for(let i = 0; i < NU - 1; i++) for(let j = 0; j < NV - 1; j++){ const a = base + i*NV + j, b = a + NV; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere();
+  const m = new THREE.ShaderMaterial({ uniforms: Object.assign({uFog:{value:new THREE.Color()}, uDens:{value:.003}, uKeyDir:{value:new THREE.Vector3(-.5, .7, .3)}, uKeyCol:{value:new THREE.Color(1, 1, 1)},
+      uAmb:{value:new THREE.Color()}, uGnd:{value:new THREE.Color(P.water).multiplyScalar(.5)}, uSeaY:{value:SEA_Y}, uFarK:{value:.23}, uLowH:{value:14}}, HZU),
+    vertexShader:`attribute vec3 color; varying vec3 vW, vN, vC; void main(){ vec4 w = modelMatrix*vec4(position,1.0); vW = w.xyz; vN = normal; vC = color; gl_Position = projectionMatrix*viewMatrix*w; }`,
+    fragmentShader:`uniform vec3 uFog, uKeyDir, uKeyCol, uAmb, uGnd; uniform float uDens, uSeaY, uFarK, uLowH; varying vec3 vW, vN, vC; ${HZ_GLSL}
+      void main(){ vec3 N = normalize(vN);
+        vec3 lit = vC*(mix(uGnd, uAmb, N.y*.5 + .5)*.55 + uKeyCol*max(dot(N, normalize(uKeyDir)), 0.0)*.55);
+        vec3 r = vW - cameraPosition; float d = length(r);
+        float far = 1.0 - exp(-uFarK*uDens*d);                          /* the air between here and there */
+        float low = exp(-max(vW.y - uSeaY, 0.0)/uLowH);                 /* and the thick haze lying on the water */
+        float hz = 1.0 - (1.0 - far)*(1.0 - low);
+        gl_FragColor = vec4(mix(lit, hzTint(r/d, uFog), clamp(hz, 0.0, 1.0)), 1.0); }`});
+  const mesh = new THREE.Mesh(g, m); mesh.renderOrder = 1; mesh.userData.ground = true; mesh.userData.hzItems = items;
+  return mesh;
+}
+function horizonBuild(I){
+  const scene = I.scene, R = camera.far*.9, su = I.sea.userData.mat.uniforms;
+  const H = I.horizon = {R, skirt:horizonSkirt(su), band:horizonBand(R), land:horizonLand(I, R)};
+  scene.add(H.skirt); scene.add(H.band); if(H.land) scene.add(H.land);
+  /* the island's own sea takes the same height fog and sun-tinted haze */
+  if(WATERQ){ const m = I.sea.userData.mat; Object.assign(m.uniforms, HZU);
+    m.fragmentShader = m.fragmentShader.replace("void main(){", HZ_GLSL + "\n  void main(){")
+      .replace("float fogF = 1.0 - exp(-(uFogD*uFogD)*dist*dist);\n    c = mix(c, uFogCol, clamp(fogF, 0., 1.));",
+               "float fogF = hzFactor(cameraPosition - vV, uFogD);\n    c = mix(c, hzTint(-V, uFogCol), clamp(fogF, 0., 1.));");
+    m.needsUpdate = true; }
+}
+const _hzV = new THREE.Vector3(), _hzC = new THREE.Color(), _hzK = new THREE.Color();
+function horizonUpdate(I){
+  const H = I.horizon; if(!H || CUR !== I) return;
+  const fog = I.scene.fog, cfg = I.cfg, night = cfg.key === "sanity", dark = night ? (I.scene.userData.lookMix || 0) : 0;
+  const storm = I.dn ? I.dn.storm : (I.overcast ? Math.min(1, Math.max(0, fog.density/I.overcast.dens0 - 1)/1.3) : 0);
+  /* toward the sun by day, toward the moon on the night island */
+  if(night) _hzV.set(cfg.moon.pos[0] - camera.position.x, 0, cfg.moon.pos[2] - camera.position.z);
+  else { const so = I.sunOff || [-25, 40, 15]; _hzV.set(so[0], 0, so[2]); }
+  _hzV.normalize();
+  _hzK.copy(I.key.color);
+  _hzC.copy(fog.color).lerp(_hzK, night ? .22 : .5).multiplyScalar(night ? 1.18 : 1.12);
+  const A = HZU.hzA.value, B = HZU.hzB.value, C = HZU.hzC.value;
+  A[0] = _hzV.x; A[1] = 0; A[2] = _hzV.z; A[3] = (night ? .35 : .55)*(1 - .8*storm);
+  B[0] = _hzC.r; B[1] = _hzC.g; B[2] = _hzC.b; B[3] = 45;
+  C[0] = SEA_Y; C[3] = 1;
+  const k = Math.sqrt(Math.max(.2, fog.density/.0034));
+  H.band.position.set(camera.position.x, 0, camera.position.z);
+  const bot = SEA_Y - 40, top = camera.position.y + H.R*.45; H.band.scale.y = top - bot; H.band.position.y = (top + bot)/2;
+  const bu = H.band.material.uniforms; bu.uFog.value.copy(fog.color); bu.uW.value = .028*k;
+  const ku = H.skirt.material.uniforms; ku.uFog.value.copy(fog.color); ku.uDens.value = fog.density;
+  if(H.land){ const lu = H.land.material.uniforms; lu.uFog.value.copy(fog.color); lu.uDens.value = fog.density;
+    lu.uAmb.value.copy(fog.color); lu.uKeyCol.value.copy(I.key.color).multiplyScalar(Math.min(1.4, I.key.intensity*(night ? .5 : .45)));
+    const so = I.sunOff || [-25, 40, 15]; if(night) lu.uKeyDir.value.set(cfg.moon.pos[0], cfg.moon.pos[1], cfg.moon.pos[2]).normalize(); else lu.uKeyDir.value.set(so[0], so[1], so[2]).normalize(); }
 }
 function lerpAngle(a, b, t){
   let d = b - a; while(d > Math.PI) d -= Math.PI*2; while(d < -Math.PI) d += Math.PI*2;
@@ -3434,6 +3637,7 @@ function resamplePoly(p, step){
   let q = out;
   for(let pass=0; pass<2; pass++){ const r = []; for(let i=0;i<q.length;i++){ const a = q[i], b = q[(i+1)%q.length];
     r.push([a[0]*.75 + b[0]*.25, a[1]*.75 + b[1]*.25], [a[0]*.25 + b[0]*.75, a[1]*.25 + b[1]*.75]); } q = r; }
+  if(p.__rough) q.__rough = true;      /* SHORE: far offsets of a roughened coast follow its smoothed copy */
   return q;
 }
 function breakers(scene, POLY, P, PS, night, amp){
@@ -3569,14 +3773,14 @@ function swashSheet(scene, POLY, P, night){
   const wetCol = new THREE.Color(P.sand).multiplyScalar(.32);
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {t:{value:0}, uOp:{value:1}, uWL:{value:WL},
-      uLum:{value: night ? .46 : 1.0}, uSheet:{value:sheetCol}, uWet:{value:wetCol}}]),
+      uLum:{value: night ? .46 : 1.0}, uSheet:{value:sheetCol}, uWet:{value:wetCol}, uRainWet:{value:0}}]),
     vertexShader:`attribute float aD; varying float vD; varying vec2 vXZ;
       #include <fog_pars_vertex>
       void main(){ vD = aD; vec4 wp = modelMatrix*vec4(position,1.0); vXZ = wp.xz;
         vec4 mvPosition = viewMatrix*wp; gl_Position = projectionMatrix*mvPosition;
         #include <fog_vertex>
       }`,
-    fragmentShader:`uniform float t, uOp, uWL, uLum; uniform vec3 uSheet, uWet; varying float vD; varying vec2 vXZ;
+    fragmentShader:`uniform float t, uOp, uWL, uLum, uRainWet; uniform vec3 uSheet, uWet; varying float vD; varying vec2 vXZ;
       #include <fog_pars_fragment>
       float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
       float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -3628,7 +3832,7 @@ function swashSheet(scene, POLY, P, night){
         float wet = (1.0 - smoothstep(Rw - .25, Rw + .6, x)) * .40 + (1.0 - smoothstep(0.0, 7.0, x)) * .12;
         wet *= smoothstep(-.6, .6, x);
         float edge = smoothstep(1.5, 2.6, vD) * (1.0 - smoothstep(10.8, 12.0, vD));
-        vec3 col = uWet; float a = wet;
+        vec3 col = uWet * (1.0 - .5*uRainWet); float a = min(.95, wet * (1.0 + .35*uRainWet));
         col = mix(col, uSheet*uLum, sheet / max(.001, a + sheet*(1.0-a))); a = a + sheet*(1.0-a);
         float fa = min(.95, foam);
         col = mix(col, vec3(.95,.97,1.0)*relief*uLum, fa / max(.001, a + fa*(1.0-a))); a = a + fa*(1.0-a);
@@ -3636,7 +3840,571 @@ function swashSheet(scene, POLY, P, night){
         #include <fog_fragment>
       }`,
     transparent:true, depthWrite:false, fog:true, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-4});
+  if(SHOREQ) mat.uniforms.uRainWet = WET;                       /* SHORE: the swash's wet sand soaks darker in the rain too */
   const m = new THREE.Mesh(g, mat); m.renderOrder = 2; scene.add(m); return m;
+}
+/* ===================  THE SHORE  (default; ?shore=old restores the smooth coast and the painted sand)  ===================
+   His notes, 2026-10-16: every island is a smooth blob; the grass sits on the sand in a hard straight
+   line; Sanity's beach is a flat painted strip; and wet sand should go much darker. All four come from
+   the same place - the coast was 72 straight 25-50 u segments from Natural Earth, the meadow slab
+   stopped on a polygon 2.5 u inside it, and the sand was a canvas that tiled 104 times per unit (so it
+   was a flat tint at any distance). This pass:
+     - COAST: the outline is resampled to 6 u and pushed in and out by three octaves of noise (bays
+       ~150 u, coves ~60 u, wiggle ~24 u, up to ~18 u either way) plus two to four sharper rocky points
+       per island. Displacement is exactly zero round everything she uses - spawn, the pier and its
+       landing, notes, NPCs, named places, features, stepping stones, the letter, pickups - and it runs
+       AFTER every one of those was placed, so not one position moves. Coves are kept rounder than the
+       widest wave band (concave radius >= 14 u) so nothing built by offsetting the coast folds, and
+       offsets past 8 u follow a smoothed copy of the coast (the shelf and the breakers far out follow
+       the bays, not every wiggle). Everything on the shore - sand slab, shelf, swash, breakers, the
+       sea's shore mask, wading, the height she walks on - is still derived from this one polygon.
+     - ROCK: rocky points get a mass of big boulders running out into the surf with a few standing
+       offshore; about a quarter of the remaining coast is a rocky shore - a low broken rock ledge right
+       at the waterline with boulders and pebbles below it, wet and dark under the tide line. Same CC0
+       photo rock as everything else, one merged mesh, real colliders.
+     - SAND: Poly Haven's CC0 aerial_beach_01 scan (footprint-free wind ripples), albedo + normal map,
+       one tile per 7 u. A damp band of darker, smoother, glossier sand along the water with a ragged
+       top and a faint wrack line, and the whole beach darkens ~50% and goes glossy as the rain soaks in.
+     - EDGE: the meadow itself turns to sand over a ragged 3-14 u band (distance to the coast + two
+       noise octaves, so the line wanders and breaks into scrubby patches); the dense grass stops on the
+       same line; sparse, tall, pale dune-grass clumps grow out of the sand edge; driftwood and pebbles
+       lie along the high-tide line.
+   One field per island drives it: a small texture holding signed distance to the coast (+-16 u),
+   shared by the meadow, the sand and the CPU (which grass may grow where), so the drawn edge and the
+   grass that stops at it are the same line. */
+const SHOREQ = QS.get("shore") !== "old";
+const SHORE_PHONE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
+const SAND_TILE = 7;                       /* world units per tile of the sand photo */
+const SHORE_FMAX = 16;                     /* the field holds signed coast distance clamped to +-this */
+let SHORE_FIELD = null;                    /* the island being built: meadowMat picks its sand edge up from here */
+/* periodic value-noise fbm in two channels, 128 x 128 - sampled the same way on the GPU and the CPU */
+const SHORE_NOISE = !SHOREQ ? null : (() => {
+  const N = 128, ch = [new Float32Array(N*N), new Float32Array(N*N)];
+  let s = 90210; const rnd = () => (s = (s*16807) % 2147483647) / 2147483647;
+  const oct = f => { const L = new Float32Array(f*f); for(let i=0;i<f*f;i++) L[i] = rnd();
+    return (u, v) => { const x = u*f, y = v*f, i = Math.floor(x), j = Math.floor(y), fx = x-i, fy = y-j, sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy);
+      const i0 = i%f, i1 = (i+1)%f, j0 = j%f, j1 = (j+1)%f;
+      return (L[j0*f+i0]*(1-sx) + L[j0*f+i1]*sx)*(1-sy) + (L[j1*f+i0]*(1-sx) + L[j1*f+i1]*sx)*sy; }; };
+  for(const c of ch){ const os = [oct(4), oct(8), oct(16), oct(32)], W = [.52, .26, .14, .08];
+    let lo = 1e9, hi = -1e9;
+    for(let j=0;j<N;j++) for(let i=0;i<N;i++){ let v = 0; for(let k=0;k<4;k++) v += os[k](i/N, j/N)*W[k]; c[j*N+i] = v; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    for(let k=0;k<N*N;k++) c[k] = (c[k] - lo)/(hi - lo); }
+  const data = new Uint8Array(N*N*4), q = [new Uint8Array(N*N), new Uint8Array(N*N)];
+  for(let k=0;k<N*N;k++){ q[0][k] = Math.round(ch[0][k]*255); q[1][k] = Math.round(ch[1][k]*255);
+    data[k*4] = q[0][k]; data[k*4+1] = q[1][k]; data[k*4+2] = 0; data[k*4+3] = 255; }
+  const tex = new THREE.DataTexture(data, N, N, THREE.RGBAFormat);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter; tex.generateMipmaps = true; tex.needsUpdate = true;
+  /* bilinear, texel centres, wrapped - what texture2D does at the base level */
+  const at = (c, u, v) => { const x = u*N - .5, y = v*N - .5, i = Math.floor(x), j = Math.floor(y), fx = x-i, fy = y-j;
+    const w = a => ((a % N) + N) % N, A = q[c];
+    const i0 = w(i), i1 = w(i+1), j0 = w(j), j1 = w(j+1);
+    return ((A[j0*N+i0]*(1-fx) + A[j0*N+i1]*fx)*(1-fy) + (A[j1*N+i0]*(1-fx) + A[j1*N+i1]*fx)*fy) / 255; };
+  return {tex, at};
+})();
+const SHORE_TEX = !SHOREQ ? null : (() => {
+  const L = new THREE.TextureLoader();
+  const mk = (url, srgb) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+    if(srgb) t.encoding = THREE.sRGBEncoding; t.repeat.set(1/SAND_TILE, 1/SAND_TILE); return t; };
+  return {sand: mk("assets/shore/sand_diff.jpg", true), sandN: mk("assets/shore/sand_nor.jpg", false)};
+})();
+/* integer-hash value noise for the CPU-only decisions (coast displacement, where the rocks go) */
+const shH = (i, j, s) => { let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(s, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+const shVN = (x, z, s) => { const i = Math.floor(x), j = Math.floor(z), fx = x-i, fz = z-j, u = fx*fx*(3-2*fx), v = fz*fz*(3-2*fz);
+  return (shH(i,j,s)*(1-u) + shH(i+1,j,s)*u)*(1-v) + (shH(i,j+1,s)*(1-u) + shH(i+1,j+1,s)*u)*v; };
+/* Offsets past 8 u from a roughened coast follow a smoothed copy of it (blended in by 40 u), so the
+   shelf, breakers and the sea animals' ring follow the bays without folding in every cove. */
+function shoreBlendPoly(p, d){
+  const k = Math.max(0, Math.min(1, (Math.abs(d) - 8)/32)), a = k*k*(3 - 2*k);
+  if(a <= 0) return p;
+  if(!p.__sm){ let q = p.map(v => [v[0], v[1]]); const n = q.length;
+    for(let it=0; it<30; it++){ const r = []; for(let i=0;i<n;i++){ const A = q[(i-1+n)%n], B = q[i], C = q[(i+1)%n];
+      r.push([B[0]*.5 + (A[0] + C[0])*.25, B[1]*.5 + (A[1] + C[1])*.25]); } q = r; }
+    p.__sm = q; }
+  const S = p.__sm; return p.map((v, i) => [v[0] + (S[i][0] - v[0])*a, v[1] + (S[i][1] - v[1])*a]);
+}
+/* Nearest-coast and inside tests on a grid of segment buckets. The roughened coast has ~8x the
+   vertices; the walker, every decor scatter and every frame's height() ask these, so they get a
+   spatial index. Answers are identical to the brute-force loops (same formulas, same segments). */
+function coastAccel(P){
+  const C = 12, n = P.length;
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for(const p of P){ x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
+  x0 -= 2*C; z0 -= 2*C; x1 += 2*C; z1 += 2*C;
+  const nx = Math.ceil((x1 - x0)/C), nz = Math.ceil((z1 - z0)/C);
+  const cells = Array.from({length: nx*nz}, () => []), rows = Array.from({length: nz}, () => []);
+  for(let i=0, j=n-1; i<n; j=i++){
+    const a = P[j], b = P[i];
+    const ci0 = Math.floor((Math.min(a[0], b[0]) - x0)/C), ci1 = Math.floor((Math.max(a[0], b[0]) - x0)/C);
+    const cj0 = Math.floor((Math.min(a[1], b[1]) - z0)/C), cj1 = Math.floor((Math.max(a[1], b[1]) - z0)/C);
+    for(let cj=cj0; cj<=cj1; cj++){ rows[cj].push(i); for(let ci=ci0; ci<=ci1; ci++) cells[cj*nx + ci].push(i); }
+  }
+  const segD = (k, x, z) => { const j = (k - 1 + n) % n, ax = P[j][0], az = P[j][1], ex = P[k][0]-ax, ez = P[k][1]-az, L = ex*ex+ez*ez || 1;
+    let u = ((x-ax)*ex + (z-az)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
+    const dx = x-(ax+ex*u), dz = z-(az+ez*u); return dx*dx+dz*dz; };
+  const brute = (x, z) => { let best = 1e18; for(let k=0;k<n;k++){ const d = segD(k, x, z); if(d < best) best = d; } return Math.sqrt(best); };
+  const dist = (x, z) => {
+    const ci = Math.floor((x - x0)/C), cj = Math.floor((z - z0)/C);
+    if(ci < 0 || cj < 0 || ci >= nx || cj >= nz) return brute(x, z);
+    let best = 1e18;
+    for(let r=0; r<=7; r++){
+      if(r > 0 && Math.sqrt(best) <= (r - 1)*C) return Math.sqrt(best);
+      for(let j=cj-r; j<=cj+r; j++){ if(j < 0 || j >= nz) continue;
+        const edge = j === cj-r || j === cj+r;
+        for(let i=ci-r; i<=ci+r; i += (edge ? 1 : 2*r || 1)){ if(i < 0 || i >= nx) continue;
+          const L = cells[j*nx + i]; for(let k=0;k<L.length;k++){ const d = segD(L[k], x, z); if(d < best) best = d; } } }
+    }
+    return best < 1e17 && Math.sqrt(best) <= 6*C ? Math.sqrt(best) : brute(x, z);
+  };
+  const inside = (x, z) => {
+    const cj = Math.floor((z - z0)/C); if(cj < 0 || cj >= nz) return false;
+    let c = false; const L = rows[cj];
+    for(let k=0;k<L.length;k++){ const i = L[k], j = (i - 1 + n) % n;
+      const xi = P[i][0], zi = P[i][1], xj = P[j][0], zj = P[j][1];
+      if(((zi>z)!==(zj>z)) && (x < (xj-xi)*(z-zi)/(zj-zi)+xi)) c = !c; }
+    return c; };
+  return {dist, inside};
+}
+/* Roughen the coastline in place. Runs once per island, after every gameplay position is final. */
+function shoreRoughen(POLY, cfg, TMAX){
+  const seed = seedOf("shore:" + cfg.key) & 0xffff;
+  /* 1. resample to ~6 u */
+  const base = [];
+  for(let i=0;i<POLY.length;i++){ const a = POLY[i], b = POLY[(i+1)%POLY.length], L = Math.hypot(b[0]-a[0], b[1]-a[1]), k = Math.max(1, Math.round(L/6));
+    for(let j=0;j<k;j++) base.push([a[0] + (b[0]-a[0])*j/k, a[1] + (b[1]-a[1])*j/k]); }
+  const n = base.length;
+  const wind = (() => { let A = 0; for(let i=0;i<n;i++){ const a = base[i], b = base[(i+1)%n]; A += a[0]*b[1]-b[0]*a[1]; } return A > 0 ? 1 : -1; })();
+  /* outward normals from a lightly smoothed copy, so displacement directions never cross */
+  let sm = base.map(v => [v[0], v[1]]);
+  for(let it=0; it<6; it++){ const r = []; for(let i=0;i<n;i++){ const A = sm[(i-1+n)%n], B = sm[i], C2 = sm[(i+1)%n]; r.push([B[0]*.5+(A[0]+C2[0])*.25, B[1]*.5+(A[1]+C2[1])*.25]); } sm = r; }
+  const nrm = sm.map((v, i) => { const a = sm[(i-1+n)%n], c = sm[(i+1)%n]; let tx = c[0]-a[0], tz = c[1]-a[1]; const l = Math.hypot(tx, tz) || 1;
+    return [tz/l*wind, -tx/l*wind]; });
+  /* 2. what must not move: everything she can walk to, talk to, pick up or land at */
+  const prot = [], add = (x, z, r) => { if(isFinite(x) && isFinite(z)) prot.push([x, z, r]); };
+  const sp = cfg.spawn, dk = cfg.dock;
+  add(sp[0], sp[1], 26);
+  for(let t=0; t<=1.0001; t+=.05){ const z1 = dk[1] + DOCK_LEN/2; add(sp[0] + (dk[0]-sp[0])*t, sp[1] + (z1-sp[1])*t, 26); }
+  (cfg.notes||[]).forEach(q => add(q.x, q.z, 14));
+  (cfg.npcs||[]).forEach(q => add(q.at[0], q.at[1], 16));
+  (cfg.places||[]).forEach(q => add(q.x, q.z, Math.min(q.r*.5, 30) + 10));
+  (cfg.features||[]).forEach(f => add(f.x, f.z, f.outer ? (f.r||6) + 40 : (f.r||6)*.6 + 10));
+  (cfg.stones||[]).forEach(s => add(s[0], s[1], 18));
+  ["ability", "pen", "secret", "letter", "desk", "postman", "mailbox"].forEach(k => { const o = cfg[k]; if(o && o.at) add(o.at[0], o.at[1], 14); });
+  if(cfg.beach) add(cfg.beach.x, cfg.beach.z, cfg.beach.r + 14);
+  if(cfg.grotto) add(cfg.grotto.x, cfg.grotto.z, cfg.grotto.r + 14);
+  if(cfg.gate) for(let z=cfg.gate.zMin; z<=cfg.gate.zMax; z+=8) add(cfg.gate.x, z, 12);
+  const mask = base.map(v => { let m = 1; for(const [x, z, r] of prot){ const d = Math.hypot(v[0]-x, v[1]-z); if(d < r + 45){ const k = Math.max(0, (d - r)/45); m = Math.min(m, k*k*(3-2*k)); } } return m; });
+  /* 3. displacement: bays, coves, wiggle (+ is seaward) */
+  const inOrig = (x, z) => polyInside(base, x, z);
+  const D = new Float32Array(n);
+  for(let i=0;i<n;i++){ if(mask[i] <= 0) continue;
+    const [x, z] = base[i];
+    let d = 13*(shVN(x/150, z/150, seed)*2-1) + 5*(shVN(x/60, z/60, seed+1)*2-1) + 1.3*(shVN(x/24, z/24, seed+2)*2-1);
+    D[i] = d;
+  }
+  /* 4. two to four rocky points, well apart, where nothing is protected */
+  const heads = [];
+  { const want = Math.max(2, Math.min(4, Math.round(n*6/700))), cand = [];
+    for(let i=0;i<n;i++) if(mask[i] > .97) cand.push(i);
+    cand.sort((a, b) => (D[b] + shH(b, 3, seed)*6) - (D[a] + shH(a, 3, seed)*6));
+    for(const i of cand){ if(heads.length >= want) break;
+      if(heads.some(h => { const g = Math.abs(h.i - i); return Math.min(g, n - g)*6 < 170; })) continue;
+      heads.push({i, h: 8 + shH(i, 5, seed)*5, s: 9 + shH(i, 6, seed)*4}); }
+    for(const h of heads) for(let k=-8; k<=8; k++){ const i = (h.i + k + n) % n; D[i] += h.h * Math.exp(-(k*6)*(k*6)/(2*h.s*h.s)) * Math.min(1, mask[i]*1.05); } }
+  /* never pinch a narrow neck, never reach across a narrow channel, never cut into high ground */
+  for(let i=0;i<n;i++){ if(!D[i]) continue;
+    const [x, z] = base[i], [ox, oz] = nrm[i]; let d = D[i] * mask[i];
+    if(d < 0){ const t = -2*d + 10; if(!inOrig(x - ox*t, z - oz*t)) d *= .25;
+      const tx = x + ox*d, tz = z + oz*d;
+      const h = Math.max(terrainAt(cfg.key, tx, tz, TMAX), terrainAt(cfg.key, tx - ox*4, tz - oz*4, TMAX));
+      d *= Math.max(0, Math.min(1, 1 - (h - .25)/1.0)); }
+    else if(d > 0){ const t = 2*d + 12; if(inOrig(x + ox*t, z + oz*t)) d *= .25; }
+    D[i] = d; }
+  /* 5. move, then round off any cove tighter than r = 14 u (and any point sharper than 6 u) */
+  const q = base.map((v, i) => [v[0] + nrm[i][0]*D[i], v[1] + nrm[i][1]*D[i]]);
+  for(let it=0; it<40; it++){
+    for(let i=0;i<n;i++){ const g = Math.min(1, mask[i]*3.3); if(g <= 0) continue;
+      const a = q[(i-1+n)%n], c = q[(i+1)%n], mx = (a[0]+c[0])*.5, mz = (a[1]+c[1])*.5;
+      const L2 = Math.hypot(c[0]-a[0], c[1]-a[1]) || 1, L = L2*.5, lx = (c[1]-a[1])/L2*wind, lz = -(c[0]-a[0])/L2*wind;   /* the local outward normal */
+      const b = (q[i][0]-mx)*lx + (q[i][1]-mz)*lz;
+      const lo = -L*L/28, hi = L*L/12;
+      const want = b < lo ? lo : b > hi ? hi : b;
+      if(want !== b){ const k = (b - want)*g; q[i][0] -= lx*k; q[i][1] -= lz*k; } } }
+  for(let i=0;i<n;i++) D[i] = (q[i][0]-base[i][0])*nrm[i][0] + (q[i][1]-base[i][1])*nrm[i][1];
+  POLY.length = 0; q.forEach(v => POLY.push(v));
+  POLY.__rough = true; POLY.__acc = coastAccel(POLY);
+  return {n, D, mask, nrm, heads, seed};
+}
+/* The field: signed distance to the coast (+ out to sea), +-SHORE_FMAX, ~1.5 u texels over the
+   island's bounds. Distances are rasterised per segment (each one only touches the texels within
+   16 u of it) and the sign comes from a scanline fill, so it builds in a few milliseconds. */
+function shoreField(POLY){
+  const M = 22, F = SHORE_FMAX;
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for(const p of POLY){ x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
+  x0 -= M; z0 -= M; x1 += M; z1 += M;
+  const MAXN = SHORE_PHONE ? 768 : 1024;
+  const C = Math.max(1.35, (x1 - x0)/MAXN, (z1 - z0)/MAXN);
+  const nx = Math.ceil((x1 - x0)/C), nz = Math.ceil((z1 - z0)/C);
+  const dist = new Float32Array(nx*nz).fill(F), n = POLY.length;
+  for(let i=0, j=n-1; i<n; j=i++){
+    const ax = POLY[j][0], az = POLY[j][1], ex = POLY[i][0]-ax, ez = POLY[i][1]-az, L = ex*ex+ez*ez || 1;
+    const i0 = Math.max(0, Math.floor((Math.min(ax, ax+ex) - F - x0)/C)), i1 = Math.min(nx-1, Math.ceil((Math.max(ax, ax+ex) + F - x0)/C));
+    const j0 = Math.max(0, Math.floor((Math.min(az, az+ez) - F - z0)/C)), j1 = Math.min(nz-1, Math.ceil((Math.max(az, az+ez) + F - z0)/C));
+    for(let tj=j0; tj<=j1; tj++){ const z = z0 + (tj + .5)*C;
+      for(let ti=i0; ti<=i1; ti++){ const x = x0 + (ti + .5)*C;
+        let u = ((x-ax)*ex + (z-az)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
+        const d = Math.hypot(x-(ax+ex*u), z-(az+ez*u)), k = tj*nx + ti; if(d < dist[k]) dist[k] = d; } }
+  }
+  const data = new Uint8Array(nx*nz), xs = [];
+  for(let tj=0; tj<nz; tj++){ const z = z0 + (tj + .5)*C; xs.length = 0;
+    for(let i=0, j=n-1; i<n; j=i++){ const zi = POLY[i][1], zj = POLY[j][1];
+      if((zi > z) !== (zj > z)) xs.push((POLY[j][0]-POLY[i][0])*(z-zi)/(zj-zi) + POLY[i][0]); }
+    xs.sort((a, b) => a - b);
+    let s = 0;
+    for(let ti=0; ti<nx; ti++){ const x = x0 + (ti + .5)*C;
+      while(s < xs.length && xs[s] <= x) s++;
+      const inn = ((xs.length - s) & 1) === 1;                 /* odd crossings to the right: inside */
+      const k = tj*nx + ti, sd = inn ? -dist[k] : dist[k];
+      data[k] = Math.round((sd + F)/(2*F)*255); } }
+  const tex = new THREE.DataTexture(data, nx, nz, THREE.LuminanceFormat);
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.magFilter = tex.minFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false; tex.unpackAlignment = 1; tex.needsUpdate = true;
+  const W = nx*C, H = nz*C;
+  const sd = (x, z) => { const fx0 = (x - x0)/C - .5, fz0 = (z - z0)/C - .5;
+    const i = Math.floor(fx0), j = Math.floor(fz0), fx = fx0 - i, fz = fz0 - j;
+    const cl = (a, m) => a < 0 ? 0 : a > m-1 ? m-1 : a, i0 = cl(i, nx), i1 = cl(i+1, nx), j0 = cl(j, nz), j1 = cl(j+1, nz);
+    const v = (data[j0*nx+i0]*(1-fx) + data[j0*nx+i1]*fx)*(1-fz) + (data[j1*nx+i0]*(1-fx) + data[j1*nx+i1]*fx)*fz;
+    return v/255*2*F - F; };
+  /* how much of the meadow has turned to sand here - the shader's shoreSandK(), line for line */
+  const sandK = (x, z) => {
+    const inl = -sd(x, z);
+    const n1 = SHORE_NOISE.at(0, x/90, z/90), n2 = SHORE_NOISE.at(1, x/14 + .37, z/14 + .37);
+    const edgeIn = 3.0 + 9.0*n1, t = (inl - edgeIn)/1.6 + (n2 - .5)*3.2;
+    const ss = (a, b, v) => { const k = Math.max(0, Math.min(1, (v - a)/(b - a))); return k*k*(3 - 2*k); };
+    return Math.max(1 - ss(-.5, .5, t), 1 - ss(2.6, 3.4, inl)); };
+  return {tex, sd, sandK, min:new THREE.Vector2(x0, z0), inv:new THREE.Vector2(1/W, 1/H)};
+}
+/* GLSL twins of the above */
+const SHORE_GLSL = `
+  uniform sampler2D uShF, uShN; uniform vec2 uShMin, uShInv; uniform float uShWet;
+  varying vec3 vShW;
+  float shoreSD(vec2 w){ return texture2D(uShF, (w - uShMin)*uShInv).r * ${(2*SHORE_FMAX).toFixed(1)} - ${SHORE_FMAX.toFixed(1)}; }
+  float shoreSandK(vec3 w){
+    float inl = -shoreSD(w.xz);
+    float n1 = texture2D(uShN, w.xz/90.0).r, n2 = texture2D(uShN, w.xz/14.0 + .37).g;
+    float edgeIn = 3.0 + 9.0*n1, t = (inl - edgeIn)/1.6 + (n2 - .5)*3.2;
+    return max(1.0 - smoothstep(-.5, .5, t), 1.0 - smoothstep(2.6, 3.4, inl)); }`;
+function shoreUniforms(sh, F){
+  sh.uniforms.uShF = {value: F.tex}; sh.uniforms.uShN = {value: SHORE_NOISE.tex};
+  sh.uniforms.uShMin = {value: F.min}; sh.uniforms.uShInv = {value: F.inv}; sh.uniforms.uShWet = WET;
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vShW;")
+    .replace("#include <project_vertex>", "#include <project_vertex>\nvShW = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+}
+/* the meadow (grass slab, terrain, hill and mesa skirts) turns to sand along a ragged edge near the coast */
+function shoreMeadowPatch(sh, F, sandCol){
+  shoreUniforms(sh, F);
+  sh.uniforms.uShSand = {value: SHORE_TEX.sand}; sh.uniforms.uShSandN = {value: SHORE_TEX.sandN}; sh.uniforms.uShCol = {value: sandCol};
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", "#include <common>\n" + SHORE_GLSL + "\nuniform sampler2D uShSand, uShSandN; uniform vec3 uShCol; float shK;")
+    .replace("#include <color_fragment>", `#include <color_fragment>
+      shK = shoreSandK(vShW) * (1.0 - smoothstep(4.0, 9.0, vShW.y));      /* up the foot of a coastal slope, never onto a hilltop */
+      if(shK > .001){
+        vec2 suv = vec2(vShW.x, -vShW.z) / ${SAND_TILE.toFixed(1)};
+        vec3 sc = sRGBToLinear(texture2D(uShSand, suv)).rgb * uShCol;
+        sc *= .88 + .24*texture2D(uShN, vShW.xz/52.0).g;
+        diffuseColor.rgb = mix(diffuseColor.rgb, sc, shK);
+        diffuseColor.rgb *= 1.0 - .26*uShWet*shK;
+      }`)
+    .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+      #if defined( TANGENTSPACE_NORMALMAP ) && ! defined( USE_TANGENT )
+      if(shK > .001){ vec3 sN = texture2D(uShSandN, vec2(vShW.x, -vShW.z) / ${SAND_TILE.toFixed(1)}).xyz * 2.0 - 1.0;
+        normal = normalize(mix(normal, perturbNormal2Arb(-vViewPosition, geometryNormal, sN, faceDirection), shK)); }
+      #endif`)
+    .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
+      material.specularRoughness = mix(material.specularRoughness, mix(.93, .26, uShWet), shK);`);
+}
+/* the beach and the shelf: photo sand, a damp band along the water, a wrack line, and rain */
+function shoreSandPatch(sh, F){
+  shoreUniforms(sh, F);
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", "#include <common>\n" + SHORE_GLSL + "\nfloat shD;")
+    .replace("#include <color_fragment>", `#include <color_fragment>
+      { float sd = shoreSD(vShW.xz);
+        float nB = texture2D(uShN, vShW.xz/60.0).r, nF = texture2D(uShN, vShW.xz/9.0 + .5).g;
+        float dampAt = 2.6 + 2.8*nB;                                   /* the top of the damp band wanders */
+        shD = smoothstep(dampAt - .8, dampAt + 1.8, sd + (nF - .5)*1.5);
+        float tone = texture2D(uShN, vShW.xz/23.0 + .21).r;
+        diffuseColor.rgb *= (.90 + .20*tone) * mix(1.0, .56, shD);
+        diffuseColor.rgb *= mix(vec3(1.0), vec3(.93, .97, 1.04), shD);        /* damp sand runs a touch cooler */
+        float wr = 1.0 - smoothstep(.0, .30, abs(sd - (dampAt - 1.5) - (nF - .5)*1.3));
+        diffuseColor.rgb *= 1.0 - .13*wr*(1.0 - shD);                   /* the last high tide's line */
+        diffuseColor.rgb *= 1.0 - .26*uShWet; }`)
+    .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+      normal = normalize(mix(normal, geometryNormal, shD*.55));          /* water smooths the ripples out */`)
+    .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
+      material.specularRoughness = mix(material.specularRoughness, .40, shD*.75);
+      material.specularRoughness = mix(material.specularRoughness, .20, uShWet*.9);
+      #ifdef USE_FOG
+      { float fr = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 5.0);
+        totalEmissiveRadiance += fogColor * fr * (.10*shD + .28*uShWet); }      /* wet sand mirrors the sky at a low angle */
+      #endif`);
+}
+function shoreSandMat(col, F, extra){
+  const m = toon(col, Object.assign({map:SHORE_TEX.sand, normalMap:SHORE_TEX.sandN, roughness:.95, envMapIntensity:.18}, extra || {}));
+  if(m.normalScale) m.normalScale.set(1, 1);
+  if(m.isMeshStandardMaterial){
+    m.userData.patches = (m.userData.patches || []).concat([["shoresand", sh => shoreSandPatch(sh, F)]]);
+    m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
+    m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
+  }
+  return m;
+}
+/* rocks for the shore: the island's photo rock, triplanar, with a wet dark band under the tide line */
+function shoreRockBuilder(P, night){
+  const pos = [], nor = [], idx = [], ob = [];
+  const v = new THREE.Vector3(), m4 = new THREE.Matrix4(), nm = new THREE.Matrix3(), qq = new THREE.Quaternion(), eu = new THREE.Euler();
+  const hsh = (x, y, z) => { const s = Math.sin(x*127.1 + y*311.7 + z*74.7)*43758.5453; return s - Math.floor(s); };
+  const vn3 = (x, y, z) => { const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z), fx = x-ix, fy = y-iy, fz = z-iz;
+    const sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy), sz = fz*fz*(3-2*fz); let r = 0;
+    for(let a=0;a<2;a++) for(let b=0;b<2;b++) for(let c=0;c<2;c++) r += hsh(ix+a, iy+b, iz+c) * (a?sx:1-sx) * (b?sy:1-sy) * (c?sz:1-sz);
+    return r; };
+  /* indexed (welded) icospheres: a third of the vertices to shade, in the main and the shadow pass */
+  const geos = [0, 1, 2, 3].map(d => { const g = new THREE.IcosahedronGeometry(1, d), pa = g.attributes.position, key = new Map(), P3 = [], ix = [];
+    for(let i=0;i<pa.count;i++){ const k = pa.getX(i).toFixed(4) + "," + pa.getY(i).toFixed(4) + "," + pa.getZ(i).toFixed(4);
+      let j = key.get(k); if(j == null){ j = P3.length/3; key.set(k, j); P3.push(pa.getX(i), pa.getY(i), pa.getZ(i)); } ix.push(j); }
+    g.dispose(); const w = new THREE.BufferGeometry(); w.setAttribute("position", new THREE.Float32BufferAttribute(P3, 3)); w.setIndex(ix); return w; });
+  let tris = 0;
+  /* r: size; sx/sy/sz: stretch (x runs along ry); flat: how hard the top is planed off (ledges) */
+  const add = (r, x, y, z, ry, sx, sy, sz, det, flat) => {
+    const g0 = geos[Math.max(0, Math.min(3, det - (SHORE_PHONE && det > 1 ? 1 : 0)))], pa = g0.attributes.position, seed = Math.random()*100;
+    const cuts = []; for(let c=0; c<(det ? 3 : 1); c++){ const a = Math.random()*6.283, b = (Math.random()*.9 - .2);   /* 1-3 fracture planes, mostly on the sides and top */
+      const cb = Math.sqrt(1 - b*b); cuts.push([Math.cos(a)*cb, b, Math.sin(a)*cb, .55 + Math.random()*.3]); }
+    const P2 = new Float32Array(pa.count*3);
+    for(let i=0;i<pa.count;i++){
+      v.fromBufferAttribute(pa, i);
+      const d = 1 + .42*(vn3(v.x*1.3+seed, v.y*1.3, v.z*1.3)-.5) + .20*(vn3(v.x*3.1, v.y*3.1+seed, v.z*3.1)-.5) + .08*(vn3(v.x*7, v.y*7, v.z*7+seed)-.5);
+      v.multiplyScalar(d);
+      for(const [px, py, pz, k] of cuts){ const e = v.x*px + v.y*py + v.z*pz - k; if(e > 0){ v.x -= px*e*.92; v.y -= py*e*.92; v.z -= pz*e*.92; } }   /* broken faces */
+      if(v.y < -.25) v.y = -.25 + (v.y + .25)*.25;                  /* settled, flat underside */
+      if(flat && v.y > .45) v.y = .45 + (v.y - .45)*(1 - flat);        /* a ledge has a planed, weathered top */
+      P2[i*3] = v.x*sx*r; P2[i*3+1] = v.y*sy*r; P2[i*3+2] = v.z*sz*r;
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(P2, 3)); g.setIndex(g0.index ? g0.index.clone() : null);
+    g.computeVertexNormals();
+    m4.compose(v.set(x, y, z), qq.setFromEuler(eu.set((Math.random()-.5)*.22, ry, (Math.random()-.5)*.22)), new THREE.Vector3(1,1,1));
+    nm.getNormalMatrix(m4);
+    const ga = g.attributes.position, na = g.attributes.normal, base = pos.length/3;
+    for(let i=0;i<ga.count;i++){
+      v.fromBufferAttribute(ga, i); ob.push(v.x + seed, v.y, v.z);
+      v.applyMatrix4(m4); pos.push(v.x, v.y, v.z);
+      v.fromBufferAttribute(na, i).applyMatrix3(nm).normalize(); nor.push(v.x, v.y, v.z);
+    }
+    if(g.index){ const I = g.index; for(let i=0;i<I.count;i++) idx.push(base + I.getX(i)); tris += I.count/3; }
+    else { for(let i=0;i<ga.count;i++) idx.push(base + i); tris += ga.count/3; }
+    g.dispose();
+  };
+  const finish = scene => {
+    geos.forEach(g => g.dispose());
+    if(!pos.length) return null;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+    g.setAttribute("aObj", new THREE.Float32BufferAttribute(ob, 3)); g.setIndex(idx); g.computeBoundingSphere();
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2), 2));
+    const col = new THREE.Color(P.stone).lerp(new THREE.Color(0xFFFFFF), .50).multiplyScalar(night ? .42 : .90);
+    const mat = new THREE.MeshStandardMaterial({color:col, map:ROCK_TEX.boulder, roughness:.90, metalness:0, envMapIntensity:.32, flatShading:true});
+    mat.onBeforeCompile = sh => {
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 aObj; varying vec3 vObj; varying vec3 vObjN; varying float vWY;")
+        .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = aObj; vObjN = normal; vWY = (modelMatrix * vec4(position, 1.0)).y;");
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vObj; varying vec3 vObjN; varying float vWY; float shWB;")
+        .replace("#include <map_fragment>", `{ vec3 bw = pow(abs(normalize(vObjN)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
+            vec3 q = vObj * .42;
+            vec4 tx = texture2D(map, q.zy)*bw.x + texture2D(map, q.xz)*bw.y + texture2D(map, q.xy)*bw.z;
+            tx = mapTexelToLinear(tx);
+            float cav = smoothstep(-.6, .4, vObjN.y);
+            diffuseColor.rgb *= tx.rgb * mix(.62, 1.0, cav);
+            /* below the tide line the rock is wet, darker, with a green-brown weed film right at the water */
+            shWB = 1.0 - smoothstep(-.70, .05, vWY + (tx.g - .45)*.9);
+            float weed = shWB * (1.0 - smoothstep(-1.25, -.55, vWY)) * smoothstep(-1.9, -1.2, vWY);
+            diffuseColor.rgb *= mix(1.0, .52, shWB);
+            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(.62, .70, .42), weed*.65); }`)
+        .replace("#include <lights_physical_fragment>", "#include <lights_physical_fragment>\nmaterial.specularRoughness = mix(material.specularRoughness, .34, shWB*.85);");
+    };
+    mat.customProgramCacheKey = () => "shorerock";
+    const mesh = new THREE.Mesh(g, mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh);
+    DBG("shore rocks", Math.round(tris), "tris");
+    return mesh;
+  };
+  return {add, finish};
+}
+/* merge a list of BufferGeometries (position/normal/uv, indexed or not) into one */
+function shoreMerge(list){
+  const pos = [], nor = [], uv = [], idx = []; let base = 0;
+  for(const g of list){ const p = g.attributes.position, nn = g.attributes.normal, u = g.attributes.uv;
+    for(let i=0;i<p.count;i++){ pos.push(p.getX(i), p.getY(i), p.getZ(i)); nor.push(nn.getX(i), nn.getY(i), nn.getZ(i)); uv.push(u ? u.getX(i) : 0, u ? u.getY(i) : 0); }
+    if(g.index) for(let i=0;i<g.index.count;i++) idx.push(base + g.index.getX(i)); else for(let i=0;i<p.count;i++) idx.push(base + i);
+    base += p.count; g.dispose(); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeBoundingSphere();
+  return g;
+}
+/* Rocky points, rocky shore, pebbles and driftwood. Called once the trees are down (their colliders
+   are known) and before the grass is scattered (so it grows round the rocks). */
+function shoreRocks(scene, I, R, P, night){
+  if(!R || !ROCKQ) return;
+  const POLY = I.cfg.poly, n = POLY.length, seed = R.seed;
+  const RB = shoreRockBuilder(P, night);
+  const NC = I.colliders.length;           /* rocks may pile on each other, never on a tree, an NPC or a prop */
+  const free = (x, z, r) => { for(let k=0;k<NC;k++){ const c = I.colliders[k], q = c.r + r; if((x-c.x)*(x-c.x) + (z-c.z)*(z-c.z) < q*q) return false; } return true; };
+  const ground = (x, z) => I.height(x, z);
+  const collide = (x, z, r, sx, sz, ry) => {           /* a long rock gets two circles along its length */
+    if(I.shoreOut(x, z) > WADE_MAX + 2) return;
+    const ax = Math.cos(ry), az = -Math.sin(ry), L = Math.max(0, (sx - sz)*r*.5), rr = r*sz*.85;
+    if(L < rr*.5) I.colliders.push({x, z, r: r*Math.max(sx, sz)*.8});
+    else { I.colliders.push({x: x + ax*L, z: z + az*L, r: rr}); I.colliders.push({x: x - ax*L, z: z - az*L, r: rr}); } };
+  const tan = i => { const a = POLY[(i-1+n)%n], c = POLY[(i+1)%n], l = Math.hypot(c[0]-a[0], c[1]-a[1]) || 1; return [(c[0]-a[0])/l, (c[1]-a[1])/l]; };
+  const out = i => R.nrm[i];
+  const at = (i, d, s) => { const [tx, tz] = tan(i), [ox, oz] = out(i); return [POLY[i][0] + ox*d + tx*s, POLY[i][1] + oz*d + tz*s]; };
+  const ryOf = i => { const [tx, tz] = tan(i); return Math.atan2(-tz, tx); };
+  const scale = SHORE_PHONE ? .55 : 1;
+  const nearHead = i => R.heads.some(h => { const g = Math.abs(h.i - i); return Math.min(g, n - g) <= 6; });
+  let nRocks = 0;
+  /* rocky points: a mass of boulders from the grass out into the surf, a few standing offshore */
+  for(const h of R.heads){
+    for(let k=-5; k<=5; k++){ const i = (h.i + k + n) % n; if(R.mask[i] < .9) continue;
+      const cnt = Math.round((1.5 + (5 - Math.abs(k))*.5) * (SHORE_PHONE ? .7 : 1));
+      for(let c=0;c<cnt;c++){
+        const d = -5 + Math.random()*13, s = (Math.random()-.5)*6, [x, z] = at(i, d, s);
+        const r = (1.5 + Math.random()*2.0) * (1 - Math.abs(k)/9) * (d > 4 ? .8 : 1), sx = .9 + Math.random()*.6, sz = .8 + Math.random()*.5, sy = .55 + Math.random()*.30;
+        if(!free(x, z, r*.6)) continue;
+        const ry = ryOf(i) + (Math.random()-.5)*1.2;
+        RB.add(r, x, ground(x, z) - r*sy*.12, z, ry, sx, sy, sz, r > 2.4 ? 3 : 2, .25); nRocks++;
+        collide(x, z, r, sx, sz, ry);
+      }
+      if(Math.abs(k) <= 2) for(let c=0;c<(SHORE_PHONE ? 1 : 2);c++){        /* standing out in the water */
+        const d = 12 + Math.random()*9, [x, z] = at(i, d, (Math.random()-.5)*10), r = 1.3 + Math.random()*1.6, sy = .7 + Math.random()*.35;
+        RB.add(r, x, ground(x, z) + r*sy*.15, z, Math.random()*6.28, .9 + Math.random()*.4, sy, .8 + Math.random()*.4, 2, .15); nRocks++;
+        collide(x, z, r, 1, 1, 0); }
+    }
+  }
+  /* rocky stretches: a low, broken ledge along the waterline with boulders and pebbles below it */
+  for(let i=0;i<n;i++){
+    if(R.mask[i] < .92) continue;
+    const [px, pz] = POLY[i];
+    const rocky = shVN(px/170, pz/170, seed + 7) > .60 || nearHead(i);
+    if(!rocky) continue;
+    if(Math.random() > scale) continue;
+    if(Math.random() < .80){                               /* the ledge, with gaps */
+      const d = -1.2 + Math.random()*3.2, [x, z] = at(i, d, (Math.random()-.5)*3), r = .8 + Math.random()*.9;
+      const sx = 1.6 + Math.random()*1.0, sz = .8 + Math.random()*.35, sy = .55 + Math.random()*.45;
+      if(free(x, z, r*.7)){ const ry = ryOf(i) + (Math.random()-.5)*.5;
+        RB.add(r, x, ground(x, z) - r*sy*.15, z, ry, sx, sy, sz, r > 1.6 ? 3 : 2, .55); nRocks++; collide(x, z, r, sx, sz, ry); }
+    }
+    if(Math.random() < .55){                               /* boulders below it, into the swash */
+      const d = 2.5 + Math.random()*8.5, [x, z] = at(i, d, (Math.random()-.5)*5), r = .45 + Math.random()*1.0, sy = .55 + Math.random()*.3;
+      if(free(x, z, r*.6)){ RB.add(r, x, ground(x, z) - r*sy*.1, z, Math.random()*6.28, .9 + Math.random()*.5, sy, .8 + Math.random()*.4, 2, .2); nRocks++; collide(x, z, r, 1, 1, 0); }
+    }
+    for(let c=0;c<3;c++){                                  /* pebbles and cobbles */
+      const d = .8 + Math.random()*6, [x, z] = at(i, d, (Math.random()-.5)*6), r = .07 + Math.random()*.22;
+      RB.add(r, x, ground(x, z) - r*.1, z, Math.random()*6.28, 1 + Math.random()*.4, .55 + Math.random()*.25, .9, 0, 0);
+    }
+  }
+  /* pebbles strewn along the high-tide line everywhere else, thinly */
+  for(let i=0;i<n;i+=2){ if(R.mask[i] < .5 || Math.random() > .35*scale) continue;
+    const k = 2 + (Math.random()*4|0), [cx, cz] = at(i, 1 + Math.random()*2.5, 0);
+    for(let c=0;c<k;c++){ const x = cx + (Math.random()-.5)*2.2, z = cz + (Math.random()-.5)*2.2, r = .05 + Math.random()*.13;
+      RB.add(r, x, ground(x, z) - r*.12, z, Math.random()*6.28, 1 + Math.random()*.4, .5 + Math.random()*.25, .9, 0, 0); } }
+  I.shoreRocks = RB.finish(scene);
+  /* driftwood: bleached, half-buried, along the wrack line */
+  if(TREE_TEX){
+    const logs = [];
+    for(let i=0;i<n;i++){ if(R.mask[i] < .6 || Math.random() > .16*scale) continue;
+      const [x, z] = at(i, .8 + Math.random()*2.6, (Math.random()-.5)*4);
+      if(!free(x, z, .5)) continue;
+      const len = 1.4 + Math.random()*3.4, rad = .07 + Math.random()*.13, a = ryOf(i) + (Math.random()-.5)*1.6;
+      const ax = Math.cos(a), az = -Math.sin(a), bend = (Math.random()-.5)*.5, y0 = ground(x, z) + rad*.35;
+      const pts = [];
+      for(let k=0;k<4;k++){ const t = k/3 - .5; pts.push(new THREE.Vector3(x + ax*t*len - az*bend*(1 - 4*t*t)*len*.25, y0 + (k === 3 ? rad*.6 : 0), z + az*t*len + ax*bend*(1 - 4*t*t)*len*.25)); }
+      const cv = new THREE.CatmullRomCurve3(pts), tg = new THREE.TubeGeometry(cv, 8, rad, 6, false);
+      const uv = tg.attributes.uv; for(let k=0;k<uv.count;k++) uv.setXY(k, uv.getX(k)*len/1.6, uv.getY(k)*.6);
+      { const tp = tg.attributes.position;                 /* close the ends: a broken log tapers, it is not a pipe */
+        for(const [ring, t] of [[0, 0], [8, 1]]){ const c0 = cv.getPointAt(t); for(let j=0;j<=6;j++){ const vi = ring*7 + j;
+          tp.setXYZ(vi, c0.x + (tp.getX(vi)-c0.x)*.3, c0.y + (tp.getY(vi)-c0.y)*.3, c0.z + (tp.getZ(vi)-c0.z)*.3); } }
+        tg.computeVertexNormals(); }
+      logs.push(tg);
+      if(Math.random() < .5){                              /* a broken-off branch stub */
+        const t = (Math.random()-.5)*.6, bx = x + ax*t*len, bz = z + az*t*len, ba = a + (Math.random() < .5 ? 1 : -1)*(.6 + Math.random()*.6), bl = .4 + Math.random()*.7;
+        const bg = new THREE.CylinderGeometry(rad*.35, rad*.6, bl, 5, 1); bg.translate(0, bl/2, 0); bg.rotateZ(-Math.PI/2 + .25); bg.rotateY(ba); bg.translate(bx, y0 + rad*.2, bz);
+        logs.push(bg); }
+      /* lying in it, not on it: a darker settled scar in the sand comes free with the sand's own shading */
+    }
+    if(logs.length){
+      const g = shoreMerge(logs);
+      const mat = toon(new THREE.Color(0xD8D2C6).multiplyScalar(night ? .55 : 1), {map:TREE_TEX.bark, normalMap:TREE_TEX.barkN, roughness:.95, envMapIntensity:.25});
+      const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; m.userData.dyn = 1; scene.add(m); I.shoreWood = m;
+    }
+  }
+  DBG("shore", I.cfg.key, "rocks", nRocks, "heads", R.heads.length);
+}
+/* Dune grass: sparse, tall, pale clumps growing out of the sand edge and the top of the beach, in
+   patches. The fine-grass card photo, one instanced draw, swaying gently, collapsing far away. */
+function shoreDuneGrass(scene, I, P, blocked){
+  /* held back: on the beach the clumps read as dark square blocks and some stood in the water.
+     ?dune=1 shows them for testing until they are fixed. */
+  if(QS.get("dune") !== "1") return;
+  if(!FINEGRASS || !I.shoreF) return;
+  const POLY = I.cfg.poly, n = POLY.length, F = I.shoreF, seed = seedOf("dune:" + I.cfg.key) & 0xffff;
+  const want = Math.round(n * (SHORE_PHONE ? 1.6 : 3.0)), M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+  const c = new THREE.Color(), gc = new THREE.Color(P.grass), sand = new THREE.Color(P.sand), straw = new THREE.Color(0xD6C99A);
+  const mat = toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide, map:GRASS_TEX.map, alphaMap:GRASS_TEX.alpha, alphaTest:.42, roughness:.9});
+  const mesh = new THREE.InstancedMesh(CLUMP, mat, want);
+  let k = 0, tries = 0;
+  while(k < want && tries < want*12){ tries++;
+    const i = (Math.random()*n)|0, a = POLY[(i-1+n)%n], b = POLY[(i+1)%n];
+    let ox = b[1]-a[1], oz = -(b[0]-a[0]); const l = Math.hypot(ox, oz) || 1; ox /= l; oz /= l;
+    const d = -12 + Math.random()*14.5, s = (Math.random()-.5)*6;
+    let x = POLY[i][0] + ox*d + oz*s, z = POLY[i][1] + oz*d - ox*s;
+    const sd = F.sd(x, z);
+    if(sd > 2.4 || sd < -13) continue;
+    if(shVN(x/34, z/34, seed) < .48) continue;                        /* in patches */
+    const sk = sd > 0 ? 1 : F.sandK(x, z);
+    if(sk < .25 || (sd < 0 && Math.random() > sk*1.2) || (sd > 0 && Math.random() > .55)) continue;
+    if(blocked(x, z)) continue;
+    const cl = 1 + (Math.random()*2|0);
+    for(let j=0;j<cl && k<want;j++){
+      const jx = x + (Math.random()-.5)*1.4, jz = z + (Math.random()-.5)*1.4;
+      q.setFromAxisAngle(up, Math.random()*Math.PI);
+      const hgt = .75 + Math.random()*.55, wd = .55 + Math.random()*.35;
+      sc.set(wd, hgt, wd*(.8 + Math.random()*.4));
+      pv.set(jx, I.height(jx, jz) + .01, jz);
+      M.compose(pv, q, sc); mesh.setMatrixAt(k, M);
+      c.copy(gc).lerp(sand, .40 + Math.random()*.25).lerp(straw, Math.random()*.35).lerp(new THREE.Color(1,1,1), .62);
+      mesh.setColorAt(k, c); k++;
+    }
+  }
+  if(!k) return;
+  mat.color.setScalar(I.cfg.key === "sanity" ? 1.05 : 1.45);
+  const uT = {value:0};
+  mat.userData.patches = (mat.userData.patches || []).concat([["dune", sh => {
+    sh.uniforms.uDT = uT;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uDT;")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+        { vec3 io = (modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0)).xyz;
+          float w = uv.y*uv.y, ph = dot(io.xz, vec2(.86, .51))*.13 - uDT*1.3;
+          float g = sin(ph)*.5 + .5; g *= g;
+          transformed.xz += vec2(.86, .51) * (.06 + .16*g + .03*sin(uDT*3.1 + io.x*1.3)) * w;
+          transformed *= 1.0 - smoothstep(95.0, 135.0, distance(io.xz, cameraPosition.xz)); }`);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;"); }]]);
+  mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));
+  mat.customProgramCacheKey = () => mat.userData.patches.map(([nn]) => nn).join("_");
+  mesh.count = k;
+  mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false; mesh.userData.dyn = 1;
+  mesh.onBeforeRender = () => { uT.value = performance.now()*.001; };
+  scene.add(mesh); I.duneGrass = mesh;
+  DBG("dune grass", I.cfg.key, k);
 }
 /* Splashes and rings. A pool of ring meshes that ride the actual wave height as they spread and fade,
    and one Points cloud of droplets thrown up with real gravity that die when they fall back through the
@@ -5231,6 +5999,7 @@ function polyInside(p, x, z){ let c = false; for(let i=0, j=p.length-1; i<p.leng
   const xi=p[i][0], zi=p[i][1], xj=p[j][0], zj=p[j][1];
   if(((zi>z)!==(zj>z)) && (x < (xj-xi)*(z-zi)/(zj-zi)+xi)) c = !c; } return c; }
 function polyOffset(p, d){                      /* move each vertex along its averaged outward normal */
+  if(p.__rough) p = shoreBlendPoly(p, d);       /* SHORE: past 8 u a roughened coast is offset from its smoothed copy */
   const n = p.length, out = [];
   const wind = (() => { let A=0; for(let i=0;i<n;i++){ const a=p[i], b=p[(i+1)%n]; A += a[0]*b[1]-b[0]*a[1]; } return A > 0 ? 1 : -1; })();
   for(let i=0;i<n;i++){ const a=p[(i-1+n)%n], b=p[i], c=p[(i+1)%n];
@@ -5919,6 +6688,515 @@ function terrainAt(key, x, z, maxR){
   const h = (h00*(1-fu) + h10*fu)*(1-fv) + (h01*(1-fu) + h11*fu)*fv;
   return h / 255 * T.amp;
 }
+/* ===================  THE LAND, WORN BY WEATHER  (default; ?relief=old restores the lathed hills, the drum rises and the flat meadows)  ===================
+   The hills were lathes - a profile spun round an axis, so every one of them was a solid of
+   revolution with a sharp tip - and the raised ground was a drum with a machined skirt. The real
+   elevation under them is a 96-sample grid blurred smooth, so even Providencia's peaks came out as
+   rounded blobs, and the meadows between were a billiard table. Land is not made like that. Rain
+   carries a hill downhill for ten thousand years: it gets a rounded crown, a convex shoulder and a
+   long concave foot; water gathers into gullies that run down the fall line and branch as they go,
+   the ribs between them stand out as spurs, and where the slope is too steep to hold soil the rock
+   shows through.
+
+   Now:
+   - every walkable surface of an island - the real elevation, the hills, the rises, the hummocks
+     and swells over the meadows, Green's streambed - is ONE height grid drawn as one mesh, and
+     I.height returns the exact triangle the player stands on (the same diagonal split the mesh is
+     drawn with), so feet and ground cannot disagree anywhere on it;
+   - hills are domain-warped noise: an irregular outline, no axis of symmetry, gullies that curve
+     and branch down the fall line, spurs between them, knolls on the crown;
+   - the real elevation gets gullies cut along its own fall line, scaled by its own slope, so flat
+     ground stays flat and hillsides get ribbed;
+   - the inked rock mesas keep their cliff (the glide and jump gates depend on it) but lose the
+     three regular sine bays: a noise rim, a broken lip, bedding ledges in the face, talus blocks;
+   - the terrain shader turns to photographed rock wherever the slope is too steep to hold soil,
+     triplanar so the photo never smears down a face; outcrop boulders break the grass on the
+     steepest shoulders;
+   - Green's stream was two ribbons drawn under the meadow - nobody ever saw it. It is a channel
+     now: the water level falls all the way from a spring at the foot of Horse Hill to a pool at the
+     far end, the bed is cut under it, the banks are dark and wet, the floor is pebbles, and the
+     surface moves downstream.
+   Everything is seeded from the island's own data, never Math.random, so it is the same world on
+   every load and nothing placed after it moves. */
+const TERRAINQ = QS.get("relief") !== "old";
+const RL_LITE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
+const RL_G = (() => { const a = new Float32Array(16); for(let k=0;k<8;k++){ const t = k/8*Math.PI*2 + .39; a[k*2] = Math.cos(t); a[k*2+1] = Math.sin(t); } return a; })();
+function rlGr(i, j, s, dx, dz){
+  let h = (Math.imul(i, 374761393) + Math.imul(j, 668265263) + Math.imul(s, 1442695041)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h = (h ^ (h >>> 16)) & 7;
+  return RL_G[h*2]*dx + RL_G[h*2+1]*dz;
+}
+/* 2D gradient noise, about -1..1, with a quintic fade so a mesh built on it has smooth normals */
+function rlN(x, z, s){
+  const i = Math.floor(x), j = Math.floor(z), fx = x - i, fz = z - j;
+  const u = fx*fx*fx*(fx*(fx*6 - 15) + 10), v = fz*fz*fz*(fz*(fz*6 - 15) + 10);
+  const a = rlGr(i, j, s, fx, fz), b = rlGr(i+1, j, s, fx-1, fz), c = rlGr(i, j+1, s, fx, fz-1), d = rlGr(i+1, j+1, s, fx-1, fz-1);
+  const ab = a + (b - a)*u, cd = c + (d - c)*u;
+  return (ab + (cd - ab)*v) * 1.42;
+}
+function rlF(x, z, s, o){ let t = 0, a = 1, n = 0, f = 1; for(let k=0;k<o;k++){ t += rlN(x*f + k*17.1, z*f - k*9.3, s + k*101)*a; n += a; a *= .5; f *= 2.03; } return t/n; }
+/* noise round a bearing: periodic by construction, so an outline always closes on itself */
+const rlA = (ang, k, s) => rlN(Math.cos(ang)*k + 31.7, Math.sin(ang)*k - 12.9, s);
+const rlSmin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h*h*k*.25; };
+const rlSs = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a)/(b - a))); return t*t*(3 - 2*t); };
+const rlSeed = (f, tag) => seedOf(tag + (f.name || "") + f.x + "," + f.z) & 0xffff;
+/* A hill, as rain leaves one. det (0..1) scales the small detail - gullies, spurs, knolls - so a
+   lighthouse can stand on a quiet patch of its own hill. Absolute height; 0 off the hill. */
+function rlHill(f, x, z, det){
+  const dx = x - f.x, dz = z - f.z, d0 = Math.hypot(dx, dz);
+  if(d0 > f.r*1.5) return 0;
+  const s = f.__rs != null ? f.__rs : (f.__rs = rlSeed(f, "hill"));
+  const t0 = d0 / f.r, wk = f.r * .2 * Math.min(1, t0*1.7);           /* the warp grows from nothing at the summit */
+  const wx = dx + rlF(dx/f.r*1.4 + 3.1, dz/f.r*1.4, s, 2)*wk, wz = dz + rlF(dx/f.r*1.4, dz/f.r*1.4 - 7.7, s + 5, 2)*wk;
+  const d = Math.hypot(wx, wz), ang = Math.atan2(wz, wx);
+  const R = f.r * (1 + .17*rlA(ang, 1.1, s + 11) + .07*rlA(ang, 3.2, s + 12));
+  const t = d / R; if(t >= 1) return 0;
+  const H = f.h * (1 + .11*rlA(ang, 1.4, s + 13)*Math.min(1, t/.35));   /* a long side and a short side (not at the summit: no crease there) */
+  const q = 1 - t*t;
+  let h = H * q*q;                                                    /* round crown, convex shoulder, concave foot */
+  if(det > 0){
+    const bell = Math.pow(Math.sin(Math.PI * Math.min(1, t*1.04)), .85) * Math.min(1, t/.3);   /* gullies start below the crown */
+    /* gullies: noise ACROSS the slope that drifts slowly DOWN it, so each one curves; the second,
+       finer set only starts halfway down - that is where real gullies branch */
+    const n1 = rlN(Math.cos(ang)*1.75 + t*1.1, Math.sin(ang)*1.75 - t*.7, s + 21);
+    const n2 = rlN(Math.cos(ang)*3.6 - t*1.6, Math.sin(ang)*3.6 + t*1.2, s + 22);
+    const g1 = Math.pow(1 - Math.abs(n1), 3.2), g2 = Math.pow(1 - Math.abs(n2), 3.2);
+    h -= H * (.11*g1 + .06*g2*rlSs(.35, .8, t)) * bell * det;
+    h += H * .04 * n1 * bell * det;                                   /* the spurs between them */
+    h += H * .03 * rlF(x/11, z/11, s + 23, 2) * q*q * det;           /* knolls on the crown */
+  }
+  return Math.max(0, h);
+}
+/* Raised ground (the home island's rise, the town's point): walkable everywhere, so no cliff - a
+   cap that is not a disc and a shoulder with shallow runnels down it. */
+function rlRise(f, x, z, det){
+  const dx = x - f.x, dz = z - f.z, d = Math.hypot(dx, dz);
+  if(d > f.r*1.3) return 0;
+  const s = f.__rs != null ? f.__rs : (f.__rs = rlSeed(f, "rise"));
+  const ang = Math.atan2(dz, dx);
+  const R = f.r * (1 + .11*rlA(ang, 1.2, s) + .05*rlA(ang, 3.1, s + 1));
+  const t = d / R; if(t >= 1) return 0;
+  const CAP = .58 + .08*rlA(ang, 1.7, s + 2);
+  if(t < CAP){ const c = t/CAP; return f.h * (1 - .06*c*c); }
+  const u = (t - CAP)/(1 - CAP);
+  let h = f.h * .94 * (1 - u*u*(3 - 2*u));
+  if(det > 0){ const n = rlN(Math.cos(ang)*2.4 + u*.8, Math.sin(ang)*2.4 - u*.5, s + 3), g = Math.pow(1 - Math.abs(n), 4), b = Math.sin(Math.PI*u);
+    h += f.h * (.07*n - .22*g) * b * det; }
+  return Math.max(0, h);
+}
+/* the inked rock: its plan outline, and the broken lip and weathered cap laid over the old profile */
+function rlInkR(f, ang){ const s = f.__rs != null ? f.__rs : (f.__rs = rlSeed(f, "ink"));
+  return f.r * Math.max(.72, Math.min(1.28, 1 + .21*rlA(ang, 1.0, s) + .09*rlA(ang, 2.7, s + 1) + .04*rlA(ang, 7, s + 2))); }
+function rlInkLip(f, ang, t, CAP, rk, x, z){
+  const s = f.__rs != null ? f.__rs : (f.__rs = rlSeed(f, "ink"));
+  const nb = rlN(Math.cos(ang)*8.5, Math.sin(ang)*8.5, s + 6), w = Math.exp(-Math.pow((t - CAP)/.05, 2));
+  let dh = -f.h * .11 * Math.max(0, nb + .1) * w * (1 - rk);               /* blocks gone from the lip */
+  if(t < CAP) dh += f.h * .014 * rlF(x/7, z/7, s + 7, 2) * Math.min(1, (CAP - t)/.1);   /* the cap is weathered, not turned */
+  return dh;
+}
+function rlInkCut(f, ang, u){ return Math.pow(1 - Math.abs(rlN(Math.cos(ang)*4.2 + u*.6, Math.sin(ang)*4.2, (f.__rs || 0) + 5)), 3); }
+/* A crater cone drawn by sampling height() at every bearing. The lathe spun ONE bearing's profile
+   round the axis, so wherever the ground under the cone was not symmetric the drawn slope and the
+   one she walks on disagreed - by up to 29 u inside the Caldera. */
+function rlRadial(height, f){
+  const SEG = 96, RINGS = 44, pos = [], idx = [];
+  for(let ri=0; ri<=RINGS+1; ri++){
+    const last = ri === RINGS+1, rr = last ? f.r + .6 : f.r * Math.pow(ri/RINGS, .9);
+    for(let si=0; si<SEG; si++){ const a = si/SEG*Math.PI*2, lx = Math.cos(a)*rr, lz = Math.sin(a)*rr;
+      pos.push(lx, ri === 0 ? height(f.x, f.z) - .05 : height(f.x + lx, f.z + lz) - (last ? .6 : .05), lz); }
+  }
+  for(let ri=0; ri<=RINGS; ri++) for(let si=0; si<SEG; si++){ const a0 = ri*SEG + si, a1 = ri*SEG + (si+1)%SEG, b0 = a0 + SEG, b1 = a1 + SEG; idx.push(a0, b1, b0, a0, a1, b1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(pos.length/3*2), 2)); g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+/* hummocks and swells: never negative, so nothing ever dips under the flat slab at y = 0 */
+function rlMicro(x, z, s){
+  const sw = rlF(x/90, z/90, s, 2);
+  const hm = rlN(x/16 + sw*.9, z/16 - sw*.6, s + 3);
+  return .62*(sw*.5 + .5) + .34*Math.sqrt(hm*hm + .012);
+}
+function reliefPatch(sh, tint){
+  sh.uniforms.uRkMap = {value: ROCK_TEX ? ROCK_TEX.boulder : TEX.rock};
+  sh.uniforms.uRkNor = {value: ROCK_TEX ? ROCK_TEX.boulderN : TEX.rock};
+  sh.uniforms.uRkTint = {value: tint};
+  const lite = RL_LITE || !ROCK_TEX;
+  sh.vertexShader = sh.vertexShader
+    .replace("#include <common>", "#include <common>\nattribute vec2 aRk; varying vec2 vRk; varying vec3 vRw; varying vec3 vRn;")
+    .replace("#include <begin_vertex>", "#include <begin_vertex>\nvRk = aRk; vRw = (modelMatrix * vec4(position, 1.0)).xyz; vRn = normalize(mat3(modelMatrix) * normal);");
+  sh.fragmentShader = sh.fragmentShader
+    .replace("#include <common>", `#include <common>
+${lite ? "#define RK_LITE" : ""}
+uniform sampler2D uRkMap; uniform sampler2D uRkNor; uniform vec3 uRkTint;
+varying vec2 vRk; varying vec3 vRw; varying vec3 vRn;
+float rkMask; vec3 rkQ; vec3 rkBw;
+float rkH(vec2 p){ p = fract(p*vec2(233.34, 851.73)); p += dot(p, p + 23.45); return fract(p.x*p.y); }
+float rkV(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0 - 2.0*f);
+  return mix(mix(rkH(i), rkH(i + vec2(1.0, 0.0)), f.x), mix(rkH(i + vec2(0.0, 1.0)), rkH(i + vec2(1.0, 1.0)), f.x), f.y); }`)
+    .replace("#include <color_fragment>", `#include <color_fragment>
+rkMask = 0.0;
+{ vec3 n = normalize(vRn);
+  float br = rkV(vRw.xz*.09)*.6 + rkV(vRw.xz*.37 + 7.3)*.4;          /* the soil line is ragged, not a contour */
+  float m = smoothstep(.46, .62, vRk.x + (br - .5)*.85);
+  rkMask = max(m, vRk.y);
+  if(rkMask > .003){
+    rkBw = pow(abs(n), vec3(4.0)); rkBw /= (rkBw.x + rkBw.y + rkBw.z);
+    rkQ = vRw * .15;
+#ifdef RK_LITE
+    vec4 tx = mix(texture2D(uRkMap, abs(n.x) > abs(n.z) ? rkQ.zy : rkQ.xy), texture2D(uRkMap, rkQ.xz), rkBw.y);
+#else
+    vec4 tx = texture2D(uRkMap, rkQ.zy)*rkBw.x + texture2D(uRkMap, rkQ.xz)*rkBw.y + texture2D(uRkMap, rkQ.xy)*rkBw.z;
+#endif
+    vec3 rk = pow(sRGBToLinear(tx).rgb, vec3(1.18)) * 1.2 * uRkTint * mix(.66, 1.0, smoothstep(-.2, .6, n.y));
+    if(vRk.y > .003){
+      vec3 pb = sRGBToLinear(texture2D(uRkMap, vRw.xz*.62 + .37)).rgb * uRkTint * vec3(.50, .48, .44);   /* a wet pebble bed */
+      rk = mix(rk, pb, vRk.y);
+    }
+    diffuseColor.rgb = mix(diffuseColor.rgb, rk, rkMask);
+  }
+}`)
+    .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+if(rkMask > .003){
+  vec3 n = normalize(vRn);
+#ifdef RK_LITE
+  vec3 wn = n;
+#else
+  vec3 tX = texture2D(uRkNor, rkQ.zy).xyz*2.0 - 1.0, tY = texture2D(uRkNor, rkQ.xz).xyz*2.0 - 1.0, tZ = texture2D(uRkNor, rkQ.xy).xyz*2.0 - 1.0;
+  vec3 wn = normalize(vec3(n.x, tX.y + n.y, tX.x + n.z)*rkBw.x + vec3(tY.x + n.x, n.y, tY.y + n.z)*rkBw.y + vec3(tZ.x + n.x, tZ.y + n.y, n.z)*rkBw.z);
+#endif
+  normal = normalize(mix(normal, normalize((viewMatrix*vec4(wn, 0.0)).xyz), rkMask));
+}`);
+}
+function reliefMat(night, offset){
+  const m = withMacro(meadowMat(0xFFFFFF, offset ? {vertexColors:true, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2} : {vertexColors:true}));
+  const tint = new THREE.Color(0xEDE0C8).multiplyScalar(night ? .30 : .74);   /* weathered rock sits darker than the boulders' sunlit tops */
+  if(!m.userData.patches) m.userData.patches = [];
+  m.userData.patches.push(["relief" + (RL_LITE ? "L" : ""), sh => reliefPatch(sh, tint)]);
+  m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
+  m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
+  return m;
+}
+/* the stream's surface: a moving, reflecting skin over a pebble bed */
+function rlWaterMat(night){
+  const m = new THREE.MeshStandardMaterial({color: night ? 0x0C1820 : 0x2A3C34, roughness:.07, metalness:0, transparent:true, opacity:.78, envMapIntensity:1.15, depthWrite:false});
+  const uT = {value:0};
+  m.onBeforeCompile = sh => { sh.uniforms.uT = uT;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec2 aSt; varying vec2 vSt;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvSt = aSt;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+uniform float uT; varying vec2 vSt;
+float wH(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
+float wV(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0 - 2.0*f);
+  return mix(mix(wH(i), wH(i + vec2(1.0, 0.0)), f.x), mix(wH(i + vec2(0.0, 1.0)), wH(i + vec2(1.0, 1.0)), f.x), f.y); }
+float wF(vec2 p){ return wV(p*vec2(1.6, .7) + vec2(0.0, -uT*1.25)) + .55*wV(p*vec2(3.7, 1.9) + vec2(1.7, -uT*2.1)) + .3*wV(p*6.1 + vec2(-uT*.4, -uT*2.9)); }`)
+      .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+{ vec2 p = vSt; float e = .06, h0 = wF(p);
+  vec3 wn = normalize(vec3(-(wF(p + vec2(e, 0.0)) - h0)/e*.10, 1.0, -(wF(p + vec2(0.0, e)) - h0)/e*.10));
+  normal = normalize((viewMatrix*vec4(wn, 0.0)).xyz); }`);
+  };
+  m.customProgramCacheKey = () => "rlwater";
+  return {m, uT};
+}
+/* Build an island's relief. Returns null when there is no coastline polygon to build inside. */
+function reliefBuild(o){
+  const {cfg, POLY, TMAX, inside, coastDist, P, night} = o;
+  if(!POLY) return null;
+  const key = cfg.key, s0 = seedOf("relief" + key) & 0xffff;
+  const stoneOnly = f => f.name === "The Square" || !!f.outer;
+  const folds = f => (f.type === "hill" && !f.crater) || (f.type === "mesa" && !f.ink && !stoneOnly(f));
+  const FOLD = cfg.features.filter(folds);
+  /* where the ground has to stay as it was: things that stand on it at a literal height or across a
+     wide footprint. Detail fades to nothing inside r0 and is full again by r1. */
+  const masks = [[cfg.spawn[0], cfg.spawn[1], 8, 26], [cfg.dock[0], cfg.dock[1], 10, 32]];
+  if(cfg.hub) masks.push([0, 0, 30, 66]);
+  for(const f of cfg.features) if(f.type === "mesa" && f.name === "The Square") masks.push([f.x, f.z, f.r*1.1, f.r*1.1 + 34]);
+  if(cfg.decor === "town") masks.push([0, 0, 92, 130]);
+  if(cfg.beach) masks.push([cfg.beach.x, cfg.beach.z, cfg.beach.r + 2, cfg.beach.r + 18]);
+  if(cfg.grotto) masks.push([cfg.grotto.x, cfg.grotto.z, cfg.grotto.r + 3, cfg.grotto.r + 18]);
+  if(cfg.decor === "ruins") masks.push([-4, 27, 13, 30], [-2.6*WORLD, 33*WORLD, 9, 24], [7*WORLD, 6*WORLD, 8, 20]);
+  if(cfg.decor === "lighthouse") masks.push([-30*WORLD, -25*WORLD, 7, 18]);
+  const gate = cfg.gate;
+  const det = (x, z, cd) => {
+    let m = rlSs(9, 22, cd);                       /* the last few units to the coast belong to the shore */
+    for(const k of masks){ if(m <= 0) return 0; const d = Math.hypot(x - k[0], z - k[1]); if(d < k[3]) m *= rlSs(k[2], k[3], d); }
+    if(gate) m *= rlSs(6, 20, Math.abs(x - gate.x));
+    return m;
+  };
+  const terr = (x, z, cd) => terrainAt(key, x, z, TMAX) * Math.min(1, cd/SHORE_BLEND);
+  /* the real elevation, with gullies cut along its own fall line and scaled by its own slope */
+  const erode = (x, z, y, m) => {
+    if(m <= 0 || y <= .05) return y;
+    const E = 6, gx = (terrainAt(key, x + E, z, TMAX) - terrainAt(key, x - E, z, TMAX))/(2*E), gz = (terrainAt(key, x, z + E, TMAX) - terrainAt(key, x, z - E, TMAX))/(2*E);
+    const sl = Math.hypot(gx, gz); if(sl < .02) return y;
+    const ux = gx/sl, uz = gz/sl, a = (x*-uz + z*ux)/30, b = (x*ux + z*uz)/70;
+    const n = rlN(a + rlF(x/60, z/60, s0 + 40, 1)*.8, b, s0 + 41), g = Math.pow(1 - Math.abs(n), 3);
+    const amp = Math.min(1, sl*2.2) * 2.1 * m;
+    return Math.max(Math.min(y, .05), y - amp*(g - .25*n - .12));
+  };
+  const land = (x, z, cd, m) => {
+    let y = erode(x, z, terr(x, z, cd), m);
+    for(const f of FOLD){ const h = f.type === "hill" ? rlHill(f, x, z, m) : rlRise(f, x, z, m); if(h > y) y = h; }
+    return y;
+  };
+  const full0 = (x, z, cd) => { const m = det(x, z, cd); return land(x, z, cd, m) + (m > 0 ? rlMicro(x, z, s0)*m : 0); };
+
+  /* ---- Green's stream ---- the same meander the decor has always drawn, sampled finely */
+  let ST = null;
+  if(cfg.decor === "ruins"){
+    const N = 220, pts = [];
+    for(let i=0;i<=N;i++){ const t = i/N;
+      pts.push({x:(-10 + Math.sin(t*3.1)*5.2 + Math.sin(t*7.4)*1.6)*WORLD, z:(-14 + t*74)*WORLD, t,
+                w:(1.35 + Math.sin(t*4.2)*.45)*Math.sqrt(WORLD)*(1 + 1.5*rlSs(.9, 1, t))}); }
+    let arc = 0, Wl = 1e9;
+    for(let i=0;i<=N;i++){
+      const p = pts[i], q = pts[Math.min(N, i+1)], r0 = pts[Math.max(0, i-1)];
+      let dx = q.x - r0.x, dz = q.z - r0.z; const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+      p.nx = -dz; p.nz = dx;
+      if(i > 0) arc += Math.hypot(p.x - pts[i-1].x, p.z - pts[i-1].z);
+      p.arc = arc;
+      /* the lowest bank near this point decides how high the water can stand; the highest ground
+         across the corridor decides how wide the cut has to reach */
+      let lo = 1e9, hi = -1e9;
+      for(const o2 of [0, -1, 1, -2, 2, -4, 4, -8, 8, -12, 12]){ const x = p.x + p.nx*o2, z = p.z + p.nz*o2, y = full0(x, z, coastDist(x, z));
+        if(Math.abs(o2) <= 4) lo = Math.min(lo, y); hi = Math.max(hi, y); }
+      Wl = Math.min(Wl - .0025*(i > 0 ? Math.hypot(p.x - pts[i-1].x, p.z - pts[i-1].z) : 0), lo - .62);
+      p.Wl = Math.max(Wl, .75);
+      p.dep = .42 + .35*rlSs(.9, 1, p.t);
+      p.ramp = rlSs(0, .07, p.t);
+      p.cw = p.w + 2.6 + (hi + .9 - p.Wl)/.55 + 2.5;
+    }
+    /* bucket the segments so a height lookup only tests the few that can be near it */
+    const CELL = 20, bk = new Map(), bkey = (i, j) => i*100003 + j;
+    for(let i=0;i<N;i++){ const a = pts[i], b = pts[i+1], m = Math.max(a.cw, b.cw);
+      const i0 = Math.floor((Math.min(a.x, b.x) - m)/CELL), i1 = Math.floor((Math.max(a.x, b.x) + m)/CELL);
+      const j0 = Math.floor((Math.min(a.z, b.z) - m)/CELL), j1 = Math.floor((Math.max(a.z, b.z) + m)/CELL);
+      for(let ii=i0; ii<=i1; ii++) for(let jj=j0; jj<=j1; jj++){ const k = bkey(ii, jj); if(!bk.has(k)) bk.set(k, []); bk.get(k).push(i); } }
+    const C = {dc:0, w:0, dep:0, Wl:0, ramp:0, cw:0, arc:0, side:1};
+    const q = (x, z) => {
+      const list = bk.get(bkey(Math.floor(x/CELL), Math.floor(z/CELL))); if(!list) return null;
+      let best = 1e18, bi = -1, bu = 0, bs = 1;
+      for(const i of list){ const a = pts[i], b = pts[i+1], ex = b.x - a.x, ez = b.z - a.z, L = ex*ex + ez*ez || 1;
+        let u = ((x - a.x)*ex + (z - a.z)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
+        const dx = x - (a.x + ex*u), dz = z - (a.z + ez*u), d = dx*dx + dz*dz;
+        if(d < best){ best = d; bi = i; bu = u; bs = (dx*-ez + dz*ex) >= 0 ? 1 : -1; } }
+      if(bi < 0) return null;
+      const a = pts[bi], b = pts[bi+1], l = (k) => a[k] + (b[k] - a[k])*bu;
+      C.dc = Math.sqrt(best); C.cw = l("cw"); if(C.dc >= C.cw) return null;
+      C.w = l("w"); C.dep = l("dep"); C.Wl = l("Wl"); C.ramp = l("ramp"); C.arc = l("arc"); C.side = bs;
+      return C;
+    };
+    const prof = (dc, c) => dc < c.w ? c.Wl - c.dep*(1 - (dc/c.w)*(dc/c.w)) : c.Wl + (dc - c.w)*.55;
+    ST = {pts, q,
+      carve: (y, c) => y + (rlSmin(y, prof(c.dc, c), .9) - y)*c.ramp,
+      /* the grid under the drawn channel is cut wider and deeper, so the finer channel mesh always
+         lies on top of it and the coarse grid never pokes through the bed */
+      carveG: (y, c) => y + (Math.min(y, prof(Math.max(0, c.dc - 2.6), c) - .8) - y)*c.ramp};
+  }
+
+  /* ---- the grid ---- */
+  const inner = polyOffset(POLY, -2.5);
+  let minX=1e9, maxX=-1e9, minZ=1e9, maxZ=-1e9;
+  for(const p of inner){ minX=Math.min(minX,p[0]); maxX=Math.max(maxX,p[0]); minZ=Math.min(minZ,p[1]); maxZ=Math.max(maxZ,p[1]); }
+  const S = 3.2, NX = Math.ceil((maxX - minX)/S) + 1, NZ = Math.ceil((maxZ - minZ)/S) + 1, x0 = minX, z0 = minZ;
+  const H = new Float32Array(NX*NZ).fill(NaN), T0 = new Float32Array(NX*NZ);
+  const sampleV = (x, z) => { const cd = coastDist(x, z); let v = full0(x, z, cd);
+    if(ST){ const c = ST.q(x, z); if(c) v = ST.carveG(v, c); } return v; };
+  for(let j=0;j<NZ;j++) for(let i=0;i<NX;i++){
+    const x = x0 + i*S, z = z0 + j*S;
+    if(!polyInside(inner, x, z)) continue;
+    H[j*NX+i] = sampleV(x, z); T0[j*NX+i] = terr(x, z, coastDist(x, z));
+  }
+  /* exact: the same two triangles per cell the mesh is drawn with, (a,d,b) and (b,d,e) */
+  const tri = (A, nx, gx, gz, gs, ni, nj, x, z) => {
+    const fi = (x - gx)/gs, fj = (z - gz)/gs, i = Math.floor(fi), j = Math.floor(fj);
+    if(i < 0 || j < 0 || i >= ni-1 || j >= nj-1) return null;
+    const k = j*nx + i, a = A[k], b = A[k+1], d = A[k+nx], e = A[k+nx+1];
+    if(a !== a || b !== b || d !== d || e !== e) return null;
+    const u = fi - i, v = fj - j;
+    return u + v <= 1 ? a + (b - a)*u + (d - a)*v : e + (d - e)*(1 - u) + (b - e)*(1 - v);
+  };
+  const atC = (x, z) => tri(H, NX, x0, z0, S, NX, NZ, x, z);
+  /* A hill's gullies are a few units across - narrower than two coarse cells - so each hill gets a
+     patch at half the spacing. The patch's outer ring takes the coarse grid's own interpolated
+     values, so the two meet without a crack, and the coarse cells it covers are not drawn. */
+  const PS = S/2, patches = [], rep = new Uint8Array(NX*NZ);
+  for(const f of FOLD){ if(f.type !== "hill") continue;
+    const R = f.r*1.55;
+    const i0 = Math.max(0, Math.floor((f.x - R - x0)/S)), i1 = Math.min(NX-1, Math.ceil((f.x + R - x0)/S));
+    const j0 = Math.max(0, Math.floor((f.z - R - z0)/S)), j1 = Math.min(NZ-1, Math.ceil((f.z + R - z0)/S));
+    if(i1 - i0 < 2 || j1 - j0 < 2) continue;
+    if(patches.some(q => i0 <= q.i1 && i1 >= q.i0 && j0 <= q.j1 && j1 >= q.j0)) continue;
+    const pnx = (i1 - i0)*2 + 1, pnz = (j1 - j0)*2 + 1, px0 = x0 + i0*S, pz0 = z0 + j0*S;
+    const PH = new Float32Array(pnx*pnz).fill(NaN), PT = new Float32Array(pnx*pnz);
+    for(let jj=0;jj<pnz;jj++) for(let ii=0;ii<pnx;ii++){
+      const x = px0 + ii*PS, z = pz0 + jj*PS, k = jj*pnx + ii;
+      if(ii === 0 || jj === 0 || ii === pnx-1 || jj === pnz-1){ const v = atC(x, z); if(v !== null){ PH[k] = v; PT[k] = terr(x, z, coastDist(x, z)); } continue; }
+      if(!polyInside(inner, x, z)) continue;
+      PH[k] = sampleV(x, z); PT[k] = terr(x, z, coastDist(x, z));
+    }
+    const P2 = {i0, i1, j0, j1, pnx, pnz, px0, pz0, PH, PT};
+    /* a coarse cell is handed to the patch only if all nine of its fine samples exist */
+    for(let j=j0;j<j1;j++) for(let i=i0;i<i1;i++){ let ok = true;
+      for(let b=0;b<3 && ok;b++) for(let a2=0;a2<3;a2++){ const v = PH[((j-j0)*2 + b)*pnx + (i-i0)*2 + a2]; if(v !== v){ ok = false; break; } }
+      if(ok) rep[j*NX+i] = 1; }
+    patches.push(P2);
+  }
+  const at = (x, z) => {
+    for(const q of patches){ const i = Math.floor((x - x0)/S), j = Math.floor((z - z0)/S);
+      if(i >= q.i0 && i < q.i1 && j >= q.j0 && j < q.j1 && rep[j*NX+i]) return tri(q.PH, q.pnx, q.px0, q.pz0, PS, q.pnx, q.pnz, x, z); }
+    return atC(x, z);
+  };
+  const y = (x, z, cd) => {
+    if(ST){ const c = ST.q(x, z); if(c) return ST.carve(full0(x, z, cd), c); }
+    const g = at(x, z); return g !== null ? g : full0(x, z, cd);
+  };
+
+  /* ---- colour and the rock / pebble-bed mask, shared by the grid and the channel mesh ---- */
+  const amp = TERRAIN && TERRAIN[key] ? TERRAIN[key].amp : 1;
+  const lo = new THREE.Color(P.grass), hiC = new THREE.Color(P.grassDk), rockC = new THREE.Color(P.stone), cc = new THREE.Color();
+  if(GROUNDQ){ const w = new THREE.Color(0xFFFFFF); lo.lerp(w, MEADOW_KEEP); hiC.lerp(w, MEADOW_KEEP*.64); }
+  const shade = (t0, sl, lap, wet, col, rk, k, bed) => {
+    const t = amp > 0 ? Math.min(1, Math.max(0, t0)/amp) : 0;
+    cc.copy(lo).lerp(hiC, Math.min(1, t*1.5)); if(t > .62) cc.lerp(rockC, Math.min(1, (t-.62)/.38*.55));
+    cc.multiplyScalar(1 - Math.min(.16, Math.max(0, lap)*1.4));                    /* water and shade gather in the hollows */
+    if(wet > 0){ cc.multiplyScalar(1 - .45*wet); cc.g *= 1 + .04*wet; }            /* soaked banks */
+    col[k*3] = cc.r; col[k*3+1] = cc.g; col[k*3+2] = cc.b;
+    rk[k*2] = rlSs(.6, 1.1, sl) + Math.min(.25, Math.max(0, -lap)*.9)*rlSs(.3, .6, sl);   /* rock where soil cannot hold, a little more on the ribs */
+    rk[k*2+1] = bed;
+  };
+  const wetBed = (x, z, yv) => {
+    if(!ST) return [0, 0]; const c = ST.q(x, z); if(!c) return [0, 0];
+    const bank = Math.max(1.5, (yv - c.Wl)/.55);
+    return [(1 - rlSs(c.w, c.w + 1.2 + bank*.6, c.dc))*c.ramp, (1 - rlSs(c.w*.75, c.w + .35, c.dc))*c.ramp];
+  };
+
+  const api = {folds, y, stream: !!ST, at,
+    build(scene){
+      const pos = [], idx = [], colA = [], rkA = [];
+      const cT = new Float32Array(3), rT = new Float32Array(2);
+      /* one grid into the shared buffers: A heights, T terrain-only (for the elevation tint), keep(i,j) = draw this cell */
+      const emit = (A, T, nx, nz, gx, gz, gs, keep) => {
+        const ix = new Int32Array(nx*nz).fill(-1);
+        const hv = (i, j, k) => { if(i < 0 || j < 0 || i >= nx || j >= nz) return A[k]; const v = A[j*nx+i]; return v === v ? v : A[k]; };
+        for(let j=0;j<nz;j++) for(let i=0;i<nx;i++){ const k = j*nx+i; if(A[k] !== A[k]) continue;
+          const x = gx + i*gs, z = gz + j*gs; ix[k] = pos.length/3; pos.push(x, A[k], z);
+          const l = hv(i-1, j, k), r = hv(i+1, j, k), d = hv(i, j-1, k), u = hv(i, j+1, k);
+          const sl = Math.hypot(r - l, u - d)/(2*gs), lap = (l + r + d + u - 4*A[k])/(gs*gs)*(gs/S);
+          shade(T[k], sl, lap, wetBed(x, z, A[k])[0], cT, rT, 0, 0);
+          colA.push(cT[0], cT[1], cT[2]); rkA.push(rT[0], rT[1]); }
+        for(let j=0;j<nz-1;j++) for(let i=0;i<nx-1;i++){ if(!keep(i, j)) continue;
+          const a = ix[j*nx+i], b = ix[j*nx+i+1], d = ix[(j+1)*nx+i], e = ix[(j+1)*nx+i+1];
+          if(a<0||b<0||d<0||e<0) continue; idx.push(a,d,b, b,d,e); }
+      };
+      emit(H, T0, NX, NZ, x0, z0, S, (i, j) => !rep[j*NX+i]);
+      for(const q of patches) emit(q.PH, q.PT, q.pnx, q.pnz, q.px0, q.pz0, PS, (ii, jj) => rep[(q.j0 + (jj >> 1))*NX + q.i0 + (ii >> 1)] === 1);
+      const n = pos.length/3, col = new Float32Array(colA), rk = new Float32Array(rkA);
+      if(!idx.length) return null;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      g.setAttribute("aRk", new THREE.BufferAttribute(rk, 2));
+      if(GROUNDQ){ const uv = new Float32Array(n*2); for(let k=0;k<n;k++){ uv[k*2] = pos[k*3]; uv[k*2+1] = -pos[k*3+2]; } g.setAttribute("uv", new THREE.BufferAttribute(uv, 2)); }
+      g.setIndex(idx); g.computeVertexNormals();
+      const m = new THREE.Mesh(g, reliefMat(night, false));
+      m.receiveShadow = true; m.castShadow = true; m.userData.dyn = 1;
+      if(ST){ const ch = api.channel(); if(ch) m.add(ch); const wt = api.water(); if(wt) m.add(wt); }
+      return m;
+    },
+    /* the channel, drawn finer than the grid: 21 vertices across a corridor that reaches from bank
+       top to bank top, on the exact analytic surface height() returns inside it */
+    channel(){
+      const pts = ST.pts, L = 21, rows = [];
+      const ext = (p, dir, d) => ({x: p.x + dir[0]*d, z: p.z + dir[1]*d, nx: p.nx, nz: p.nz, cw: p.cw});
+      const p0 = pts[0], p1 = pts[pts.length-1];
+      const d0 = [-p0.nz, p0.nx], d1 = [p1.nz, -p1.nx];   /* backward off the source, forward off the pool */
+      rows.push(ext(p0, d0, p0.cw), ext(p0, d0, p0.cw*.5)); pts.forEach(p => rows.push(p)); rows.push(ext(p1, d1, p1.cw*.5), ext(p1, d1, p1.cw));
+      const pos = [], col = new Float32Array(rows.length*L*3), rk = new Float32Array(rows.length*L*2), uv = [], idx = [];
+      const Y = (x, z) => y(x, z, coastDist(x, z));
+      let k = 0;
+      for(const p of rows) for(let a=0;a<L;a++){
+        const s = a/(L-1)*2 - 1, o = Math.sign(s)*Math.pow(Math.abs(s), 1.35)*p.cw, x = p.x + p.nx*o, z = p.z + p.nz*o;
+        const yv = Y(x, z), E = .9, E2 = 1.8;
+        const sl = Math.hypot(Y(x+E, z) - Y(x-E, z), Y(x, z+E) - Y(x, z-E))/(2*E);
+        const lap = (Y(x+E2, z) + Y(x-E2, z) + Y(x, z+E2) + Y(x, z-E2) - 4*yv)/(E2*E2);
+        const [wet, bed] = wetBed(x, z, yv);
+        pos.push(x, yv, z); uv.push(x, -z);
+        shade(terr(x, z, coastDist(x, z)), sl, lap*.5, wet, col, rk, k, bed); k++;
+      }
+      for(let r=0;r<rows.length-1;r++) for(let a=0;a<L-1;a++){ const i0 = r*L + a, i1 = i0 + 1, j0 = i0 + L, j1 = j0 + 1;
+        idx.push(i0, j0, i1, i1, j0, j1); }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      g.setAttribute("aRk", new THREE.BufferAttribute(rk, 2));
+      if(GROUNDQ) g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+      g.setIndex(idx); g.computeVertexNormals();
+      /* the strip was laid out in whichever direction the path runs; make sure its faces point up */
+      { const nm = g.attributes.normal; let up = 0; for(let i=0;i<nm.count;i++) up += nm.getY(i);
+        if(up < 0){ const ia = g.index.array; for(let i=0;i<ia.length;i+=3){ const t = ia[i+1]; ia[i+1] = ia[i+2]; ia[i+2] = t; } g.computeVertexNormals(); } }
+      const m = new THREE.Mesh(g, reliefMat(night, true));
+      m.receiveShadow = true; m.userData.dyn = 1; m.userData.ground = true;
+      return m;
+    },
+    water(){
+      const pts = ST.pts, rows = [], L = 5, p1 = pts[pts.length-1];
+      pts.forEach(p => rows.push(p));
+      { const d = p1.w + .8; rows.push({x: p1.x + p1.nz*d, z: p1.z - p1.nx*d, nx: p1.nx, nz: p1.nz, w: p1.w, Wl: p1.Wl, arc: p1.arc + d}); }   /* on past the end, under the pool's far bank */
+      const pos = [], st = [], idx = [];
+      for(const p of rows) for(let a=0;a<L;a++){ const s = a/(L-1)*2 - 1, o = s*(p.w + .45);
+        pos.push(p.x + p.nx*o, p.Wl, p.z + p.nz*o); st.push(o, p.arc); }
+      for(let r=0;r<rows.length-1;r++) for(let a=0;a<L-1;a++){ const i0 = r*L + a, i1 = i0 + 1, j0 = i0 + L, j1 = j0 + 1; idx.push(i0, j0, i1, i1, j0, j1); }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("aSt", new THREE.Float32BufferAttribute(st, 2));
+      g.setIndex(idx); g.computeVertexNormals();
+      { const nm = g.attributes.normal; if(nm.getY(0) < 0){ const ia = g.index.array; for(let i=0;i<ia.length;i+=3){ const t = ia[i+1]; ia[i+1] = ia[i+2]; ia[i+2] = t; } g.computeVertexNormals(); } }
+      const W = rlWaterMat(night), m = new THREE.Mesh(g, W.m);
+      m.renderOrder = 2; m.userData.dyn = 1; m.receiveShadow = true;
+      m.onBeforeRender = () => { W.uT.value = performance.now()/1000; };
+      return m;
+    },
+    /* rock that breaks the grass: tors on the hills' steepest shoulders and gully walls, fallen
+       blocks at the feet of the inked rock, outcrops on the steepest real ground. Placed after
+       everything else is built, against the finished colliders, with its own generator. */
+    finish(scene, I){
+      if(!ROCKQ) return;
+      const rng = mulberry32(s0 ^ 0x5bd1e995), keep = Math.random; Math.random = rng;
+      try{
+        const RF = rockField(P, night), Hh = I.height, placed = [], lite = RL_LITE ? .6 : 1;
+        const clear = (x, z, r) => {
+          if(!inside(x, z)) return false; const cd = coastDist(x, z); if(cd < 16 || det(x, z, cd) < .6) return false;
+          for(const c of I.colliders) if(Math.hypot(c.x - x, c.z - z) < (c.r || 1) + r + .8) return false;
+          for(const nn of cfg.notes) if(Math.hypot(nn.x - x, nn.z - z) < 9) return false;
+          for(const nn of (cfg.npcs || [])) if(Math.hypot(nn.at[0] - x, nn.at[1] - z) < 10) return false;
+          for(const pt of [cfg.ability && cfg.ability.at, cfg.letter && cfg.letter.at, cfg.pen && cfg.pen.at, cfg.secret && cfg.secret.at, cfg.desk && cfg.desk.at])
+            if(pt && Math.hypot(pt[0] - x, pt[1] - z) < 9) return false;
+          if(ST){ const c = ST.q(x, z); if(c && c.dc < c.w + 5) return false; }
+          for(const p of placed) if(Math.hypot(p[0] - x, p[1] - z) < p[2] + r + 1.5) return false;
+          return true; };
+        const slopeAt = (x, z) => { const E = 1.2; return Math.hypot(Hh(x+E, z) - Hh(x-E, z), Hh(x, z+E) - Hh(x, z-E))/(2*E); };
+        const put = (r, x, z, sink) => { RF.add(r, x, Hh(x, z) - r*sink, z, rng()*6.283); placed.push([x, z, r]); if(r > .9) I.colliders.push({x, z, r:r*.8}); };
+        for(const f of FOLD){ if(f.type !== "hill") continue;
+          let n = 0; const want = Math.round((f.r > 60 ? 9 : 6)*lite);
+          for(let k=0; k<500 && n<want; k++){ const a = rng()*6.283, t = .22 + rng()*.6, x = f.x + Math.cos(a)*f.r*t, z = f.z + Math.sin(a)*f.r*t;
+            const sl = slopeAt(x, z); if(sl < .62) continue;
+            const r = 1.0 + rng()*1.6 + Math.min(1, sl - .62)*.8; if(!clear(x, z, r)) continue;
+            put(r, x, z, .30); n++;
+            for(let b=0;b<2;b++){ const bx = x + (rng() - .5)*r*3, bz = z + (rng() - .5)*r*3, br = r*(.3 + rng()*.25); if(clear(bx, bz, br)) put(br, bx, bz, .2); } } }
+        for(const f of cfg.features){ if(f.type !== "mesa" || !f.ink || f.outer) continue;
+          let n = 0; const want = Math.round(16*lite);
+          for(let k=0; k<600 && n<want; k++){ const a = rng()*6.283, R = rlInkR(f, a), t = .80 + rng()*.22, x = f.x + Math.cos(a)*R*t, z = f.z + Math.sin(a)*R*t;
+            const r = .45 + rng()*rng()*1.7; if(!clear(x, z, r)) continue; put(r, x, z, .18); n++; } }
+        { let n = 0; const want = Math.round(10*lite);
+          for(let k=0; k<3000 && n<want; k++){ const i = (rng()*NX)|0, j = (rng()*NZ)|0; if(H[j*NX+i] !== H[j*NX+i]) continue;
+            const x = x0 + i*S, z = z0 + j*S; if(cfg.features.some(f => Math.hypot(x - f.x, z - f.z) < f.r*1.4)) continue;
+            const sl = slopeAt(x, z); if(sl < .75) continue;
+            const r = 1.2 + rng()*1.6; if(!clear(x, z, r)) continue; put(r, x, z, .32); n++; } }
+        I.reliefRocks = RF.finish(scene);
+      } finally { Math.random = keep; }
+    }
+  };
+  return api;
+}
 /* ---- the sky as a light source ----
    An equirectangular strip of the island's own sky colours — zenith, horizon band, and the ground
    bounce below it — prefiltered into an environment map. Every surface then picks up the real colour
@@ -5990,6 +7268,7 @@ const WORLD_SEED = QS.get("seed") || "lala";
                    dries off slowly afterwards. One uniform, read by every standard material. */
 const RAINQ = QS.get("rain") !== "old";
 const WET = {value:0}, RAINAMT = {value:0};
+const RAIN_MOB = matchMedia("(pointer:coarse)").matches || innerWidth < 820;     /* phones: one ring layer in the puddles */
 /* PUDDLES on the meadow: as the ground soaks, the low spots fill. A puddle is flat (the soil's normal
    map drowns), dark, a mirror for the sky at a low angle, and pocked by the rings of the drops landing
    in it. Coordinates are the meadow's own world-planar uv brought back to world units. */
@@ -6015,7 +7294,7 @@ function puddlePatch(sh, div){
           vec3 upV = normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz);
           float tt = uTimeP;
           float near = 1.0 - smoothstep(6., 22., length(vViewPosition));     /* rings only where a pixel can hold them */
-          vec2 rp = (pdRip(pw*1.6, tt, 1.1) + pdRip(pw*2.3 + 17.3, tt, 1.35)) * uRainAmt * near;
+          vec2 rp = (pdRip(pw*1.6, tt, 1.1)${RAIN_MOB ? "" : " + pdRip(pw*2.3 + 17.3, tt, 1.35)"}) * uRainAmt * near;
           vec3 rn = normalize(vec3(-rp.x*.35, 1.0, rp.y*.35));
           normal = normalize(mix(normal, normalize((viewMatrix*vec4(rn,0.)).xyz), pud));
           material.diffuseColor *= 1.0 - .40*pud;
@@ -6055,7 +7334,8 @@ function wetAll(scene){
         if(card) sh.fragmentShader = sh.fragmentShader.replace("#include <lights_physical_fragment>", "#define WET_CARD\n#include <lights_physical_fragment>"); };
       m.customProgramCacheKey = () => key + "|wet"; } });
 }
-const RAIN_STREAK_V = `uniform float uT, uBox, uH, uFall, uLen, uOp; uniform vec2 uWind; uniform vec3 uCam;
+const RAIN_STREAK_V = `uniform float uT, uBox, uH, uFall, uLen, uOp, uPix; uniform vec2 uWind; uniform vec3 uCam;
+  uniform vec4 uCrown[RAIN_CROWNS];                         /* the nearest tree crowns: x,y,z,r (r 0 = unused) */
   attribute vec4 aSeed; attribute vec2 aCorner; varying vec2 vC; varying float vA;
   #include <fog_pars_vertex>
   float hh(float n){ return fract(sin(n*127.1)*43758.5453); }
@@ -6068,15 +7348,20 @@ const RAIN_STREAK_V = `uniform float uT, uBox, uH, uFall, uLen, uOp; uniform vec
     vec3 head;
     head.xz = uCam.xz + mod(base - uCam.xz + uBox*.5, uBox) - uBox*.5;
     head.y = uCam.y + uH*.5 - ph*uH;
+    vC = aCorner;
+    /* shelter: a drop that has reached the leaves of a crown is gone (it burst into mist up there), so
+       nothing falls through the tree and the ground under it stays out of the rain */
+    for(int i = 0; i < RAIN_CROWNS; i++){ vec4 c = uCrown[i]; vec2 dd = head.xz - c.xz; float d2 = dot(dd, dd), r2 = c.w*c.w;
+      if(d2 < r2*.8 && head.y < c.y + sqrt(r2 - d2)*.75){ vA = 0.0; gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; } }
     vec3 dir = normalize(vel);
     vec3 tail = head - dir*uLen*sp;
     vec3 p = mix(head, tail, aCorner.y);
     vec3 toC = cameraPosition - p; float d = length(toC);
     vec3 side = normalize(cross(dir, toC/d));
-    float w = max(.006, d*.0016);                         /* never thinner than about a pixel */
+    float w = d*uPix*.85;                                  /* about a pixel and a half wide at any distance */
     p += side * w * aCorner.x;
-    vA = uOp * smoothstep(.7, 2.2, d) * (1.0 - smoothstep(uBox*.30, uBox*.5, d)) * clamp(.006/w*2.2, .25, 1.0);
-    vC = aCorner;
+    /* close to the lens a drop is a faint blur, never a bar: it fades in from 1.6 m and is full only past 5 m */
+    vA = uOp * 1.25 * smoothstep(1.6, 5.0, d) * (1.0 - smoothstep(uBox*.30, uBox*.5, d)) * clamp(9.0/d, .4, 1.0);
     vec4 mvPosition = viewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     #include <fog_vertex>
@@ -6088,43 +7373,58 @@ const RAIN_STREAK_F = `uniform vec3 uCol; varying vec2 vC; varying float vA;
     gl_FragColor = vec4(uCol, a);
     #include <fog_fragment>
   }`;
-/* splashes: kind 0 = a crown thrown up off the ground, kind 1 = mist off the leaves of a tree crown */
+/* splashes: kind 0 = a crown thrown up off the ground, kind 1 = mist off the leaves of a tree crown.
+   A real splash is small - a cup of water a hand wide with a few beads flung off it - so the quad is
+   a hand wide close to the camera and grows a little with distance (it would vanish into a pixel). */
 const RAIN_SPLASH_V = `uniform float uT; attribute vec3 aP; attribute vec4 aB; attribute vec2 aCorner;
-  varying vec2 vC; varying float vAge; varying float vKind; varying float vR;
+  varying vec2 vC; varying float vAge; varying float vKind; varying float vR; varying float vF;
   #include <fog_pars_vertex>
   void main(){
-    float life = aB.y > .5 ? .55 : .34;
+    float life = aB.y > .5 ? .55 : .30;
     float age = (uT - aB.x)/life;
     vAge = age; vKind = aB.y; vR = aB.w; vC = aCorner;
     vec3 p = aP;
     if(age < 0.0 || age > 1.0){ gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
-    vec3 toC = cameraPosition - p; vec3 rt = normalize(vec3(toC.z, 0.0, -toC.x));
-    float s = aB.z;
-    p += rt * aCorner.x * s + vec3(0., 1., 0.) * aCorner.y * s * (aB.y > .5 ? 1.2 : .9);
+    vec3 toC = cameraPosition - p; float d = length(toC); vec3 rt = normalize(vec3(toC.z, 0.0, -toC.x));
+    float grow = aB.y > .5 ? 1.0 : clamp(d*.11, 1.0, 2.6);
+    vF = 1.0/grow;
+    float s = aB.z*grow;
+    p += rt * aCorner.x * s + vec3(0., 1., 0.) * aCorner.y * s * (aB.y > .5 ? 1.2 : .8);
     vec4 mvPosition = viewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     #include <fog_vertex>
   }`;
-const RAIN_SPLASH_F = `uniform vec3 uCol; uniform float uOp; varying vec2 vC; varying float vAge; varying float vKind; varying float vR;
+const RAIN_SPLASH_F = `uniform vec3 uCol; uniform float uOp; varying vec2 vC; varying float vAge; varying float vKind; varying float vR; varying float vF;
   #include <fog_pars_fragment>
   void main(){
-    float a = 0.0;
-    vec2 uv = vec2(vC.x, vC.y);                     /* x -1..1 across, y 0..1 up */
-    float g = vKind > .5 ? .6 : 1.0;
-    /* droplets thrown out on parabolas */
-    for(int k = 0; k < 6; k++){
-      float fk = float(k), r = fract(sin((fk + vR*13.0)*78.233)*43758.5);
-      float sx = (fk/5.0*2.0 - 1.0) * (.55 + .4*r);
-      float hgt = (.45 + .5*fract(r*7.13)) * g;
-      vec2 dp = vec2(sx*vAge*1.15, 4.0*hgt*vAge*(1.0 - vAge) + .04);
-      float dd = length((uv - dp)*vec2(1.0, 1.25));
-      a += smoothstep(.10, .02, dd) * (1.0 - vAge);
+    vec2 uv = vC;                                    /* x -1..1 across, y 0..1 up */
+    float a = 0.0, sp = 0.0, age = vAge;
+    if(vKind > .5){
+      /* leaves: a soft puff of spray that swells and thins, a couple of beads in it */
+      vec2 q = (uv - vec2(0., .35 + .25*age))*vec2(1.0, 1.5);
+      a = smoothstep(.75*(.4 + .6*age), 0., length(q)) * .30 * (1.0 - age)*(1.0 - age) * smoothstep(0., .15, age);
+    } else {
+      /* the crown: a thin cup of water that opens and falls back, brightest along its rim */
+      float R = .14 + .55*sqrt(age), h = .42*sin(3.1416*min(1.0, age*1.7));
+      float wall = smoothstep(.11, .0, abs(abs(uv.x) - R*(1.0 + .5*uv.y/max(h, .01)))) * step(uv.y, h) * smoothstep(-.02, h*.6 + .01, uv.y);
+      float base = smoothstep(.06, .0, abs(uv.y - .03)) * smoothstep(R + .06, R - .02, abs(uv.x));
+      float rim = smoothstep(.10, .0, length(vec2(abs(uv.x) - R*1.5, uv.y - h)));
+      a = (wall*.75 + base*.45 + rim) * (1.0 - age);
+      sp += rim * (1.0 - age);
     }
-    /* the sheet of the crown at the very start, low and wide */
-    float crown = smoothstep(.12, .0, abs(uv.y - .06 - vAge*.12)) * smoothstep(.75*vAge + .15, .1, abs(uv.x)) * (1.0 - smoothstep(.0, .45, vAge));
-    a += crown * .9;
-    if(vKind > .5) a *= .65;
-    gl_FragColor = vec4(uCol, clamp(a, 0., 1.) * uOp);
+    /* beads flung off on parabolas, drawn as short blurred dashes along their flight */
+    float g = vKind > .5 ? .7 : 1.0;
+    for(int k = 0; k < RAIN_BEADS; k++){
+      float fk = float(k), r = fract(sin((fk + vR*13.0)*78.233)*43758.5);
+      float sx = (fk/float(RAIN_BEADS - 1)*2.0 - 1.0) * (.55 + .4*r);
+      float hgt = (.55 + .45*fract(r*7.13)) * g;
+      vec2 dp = vec2(sx*age*1.25, 4.0*hgt*age*(1.0 - age) + .03);
+      vec2 vel = normalize(vec2(sx*1.25, 4.0*hgt*(1.0 - 2.0*age)) + 1e-4);
+      vec2 o = uv - dp; float al = dot(o, vel), ac = dot(o, vec2(-vel.y, vel.x));
+      float bd = smoothstep(.085, .0, length(vec2(al*.45, ac))) * (1.0 - age);
+      a += bd; sp += bd;
+    }
+    gl_FragColor = vec4(uCol*(1.0 + .35*clamp(sp, 0., 1.)), clamp(a, 0., 1.) * uOp * mix(.55, 1.0, vF));
     #include <fog_fragment>
   }`;
 /* drips: under each tree crown, drops gather, hang, let go and fall to the ground under gravity */
@@ -6143,7 +7443,8 @@ const RAIN_DRIP_V = `uniform float uT, uOp; attribute vec4 aD; attribute vec4 aE
     vec3 toC = cameraPosition - p; vec3 rt = normalize(vec3(toC.z, 0.0, -toC.x));
     float d = length(toC), w = max(.008, d*.0016);
     p += rt * w * aCorner.x;
-    vA = uOp * (tt > 0.0 ? 1.0 : .35) * step(yg, head.y) * (1.0 - smoothstep(18., 32., d)) * clamp(.008/w*2.0, .3, 1.0);
+    vA = uOp * (tt > 0.0 ? 1.0 : .35) * step(yg, head.y) * (1.0 - smoothstep(18., 32., d)) * clamp(.008/w*2.0, .3, 1.0)
+       * smoothstep(.8, 2.5, d);                              /* a drip past the lens is a blur, not a white rod */
     vC = aCorner;
     vec4 mvPosition = viewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mvPosition;
@@ -6152,6 +7453,7 @@ const RAIN_DRIP_V = `uniform float uT, uOp; attribute vec4 aD; attribute vec4 aE
 function quadIndex(n){ const idx = new (n*4 > 65000 ? Uint32Array : Uint16Array)(n*6);
   for(let i=0;i<n;i++){ const v=i*4, k=i*6; idx[k]=v; idx[k+1]=v+1; idx[k+2]=v+2; idx[k+3]=v+2; idx[k+4]=v+1; idx[k+5]=v+3; } return new THREE.BufferAttribute(idx, 1); }
 const RAIN_CORNERS = [-1,0, 1,0, -1,1, 1,1];
+const RAIN_CROWNS = 16;      /* how many of the nearest tree crowns shelter the rain (vertex-shader loop length) */
 function rainSystem(scene, I){
   const mob = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
   const root = new THREE.Group(); root.userData.dyn = 1; scene.add(root);
@@ -6165,8 +7467,9 @@ function rainSystem(scene, I){
   sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N*12), 3));
   sg.setAttribute("aSeed", new THREE.BufferAttribute(seed, 4)); sg.setAttribute("aCorner", new THREE.BufferAttribute(cor, 2)); sg.setIndex(quadIndex(N));
   const smat = new THREE.ShaderMaterial({ uniforms: Object.assign(fogU(), {uT:{value:0}, uBox:{value:mob ? 34 : 44}, uH:{value:22}, uFall:{value:11},
-      uLen:{value:.62}, uOp:{value:0}, uWind:{value:new THREE.Vector2(2,0)}, uCam:{value:new THREE.Vector3()}, uCol:{value:col}}),
-    vertexShader: RAIN_STREAK_V, fragmentShader: RAIN_STREAK_F, transparent:true, depthWrite:false, fog:true, side:THREE.DoubleSide });
+      uLen:{value:.62}, uOp:{value:0}, uWind:{value:new THREE.Vector2(2,0)}, uCam:{value:new THREE.Vector3()}, uCol:{value:col},
+      uPix:{value:.0015}, uCrown:{value:Array.from({length:RAIN_CROWNS}, () => new THREE.Vector4(0, -1e4, 0, 0))}}),
+    defines:{RAIN_CROWNS}, vertexShader: RAIN_STREAK_V, fragmentShader: RAIN_STREAK_F, transparent:true, depthWrite:false, fog:true, side:THREE.DoubleSide });
   const streaks = new THREE.Mesh(sg, smat); streaks.frustumCulled = false; streaks.userData.dyn = 1; streaks.renderOrder = 5; root.add(streaks);
   /* 2 splashes */
   const M = mob ? 220 : 520;
@@ -6176,9 +7479,10 @@ function rainSystem(scene, I){
   const PA = new THREE.BufferAttribute(aP, 3), BA = new THREE.BufferAttribute(aB, 4); PA.setUsage(THREE.DynamicDrawUsage); BA.setUsage(THREE.DynamicDrawUsage);
   pg.setAttribute("aP", PA); pg.setAttribute("aB", BA); pg.setAttribute("aCorner", new THREE.BufferAttribute(pc, 2)); pg.setIndex(quadIndex(M));
   const pmat = new THREE.ShaderMaterial({ uniforms: Object.assign(fogU(), {uT:{value:0}, uOp:{value:0}, uCol:{value:col}}),
-    vertexShader: RAIN_SPLASH_V, fragmentShader: RAIN_SPLASH_F, transparent:true, depthWrite:false, fog:true, side:THREE.DoubleSide });
+    defines:{RAIN_BEADS: mob ? 4 : 6}, vertexShader: RAIN_SPLASH_V, fragmentShader: RAIN_SPLASH_F, transparent:true, depthWrite:false, fog:true, side:THREE.DoubleSide });
   const splashes = new THREE.Mesh(pg, pmat); splashes.frustumCulled = false; splashes.userData.dyn = 1; splashes.renderOrder = 5; root.add(splashes);
-  const S = {root, smat, pmat, M, slot:0, acc:0, drips:null, wet:0, gust:1, mob};
+  const S = {root, smat, pmat, M, slot:0, acc:0, drips:null, wet:0, gust:1, mob, N, sg, pg,
+    lod:1, ft:16, fLast:0, slowT:0, crownF:0};
   /* 3 drips are built on the first rainy frame: the crown positions are only known once the trees are baked */
   S.buildDrips = () => {
     const blobs = (I.camBlobs || []).filter(b => b.r > .8); if(!blobs.length) return null;
@@ -6218,14 +7522,32 @@ function rainUpdate(I, dt, t, amount, wind, light, flash){
   S.smat.uniforms.uOp.value = op * (.30 + .18*light) * (S.mob ? 1.25 : 1);
   RAINAMT.value = op; PUD_T.value = t;
   S.smat.uniforms.uT.value = t; S.smat.uniforms.uCam.value.copy(cam); S.smat.uniforms.uWind.value.set(wind[0], wind[1]);
+  /* world size of one screen pixel 1 m from the lens, so a streak is the same hairline on every screen */
+  S.smat.uniforms.uPix.value = 2 / (camera.projectionMatrix.elements[5] * Math.max(1, renderer.domElement.height));
+  /* shelter: every few frames hand the streak shader the crowns nearest the camera */
+  if(--S.crownF <= 0){ S.crownF = 8;
+    const cu = S.smat.uniforms.uCrown.value, half = S.smat.uniforms.uBox.value*.5, near = [];
+    for(const b of (I.camBlobs || [])){ const dx = b.x - cam.x, dz = b.z - cam.z, lim = half + b.r;
+      if(Math.abs(dx) < lim && Math.abs(dz) < lim) near.push([dx*dx + dz*dz, b]); }
+    near.sort((a, b) => a[0] - b[0]);
+    for(let i = 0; i < RAIN_CROWNS; i++){ const b = near[i] && near[i][1]; if(b) cu[i].set(b.x, b.y, b.z, b.r); else cu[i].set(0, -1e4, 0, 0); } }
+  /* frame governor: when the frame time stays long while it rains, thin the rain (down to about half)
+     and win it back slowly once frames are quick again. window.__SKY.lod pins it for QA. */
+  { const now = performance.now(); if(S.fLast) S.ft += (Math.min(100, now - S.fLast) - S.ft)*.05; S.fLast = now;
+    const q = window.__SKY, pin = q ? (q.lod != null ? q.lod : (q.snap ? 1 : null)) : null;
+    if(pin != null) S.lod = pin;
+    else if(op > .02){ S.slowT = S.ft > 34 ? S.slowT + dt : Math.max(0, S.slowT - dt);
+      if(S.slowT > 1.5) S.lod = Math.max(S.mob ? .45 : .55, S.lod - dt*.2);
+      else if(S.ft < 22) S.lod = Math.min(1, S.lod + dt*.05); }
+    S.sg.setDrawRange(0, Math.round(S.N*S.lod)*6); }
   S.root.visible = op > .01 || S.wet > .05;
   if(I.fx && I.fx.motes) I.fx.motes.material.opacity = .5*(1 - op);     /* rain washes the dust out of the air */
-  S.pmat.uniforms.uT.value = t; S.pmat.uniforms.uOp.value = op * (.55 + .25*light);
+  S.pmat.uniforms.uT.value = t; S.pmat.uniforms.uOp.value = op * (.75 + .25*light);
   if(S.wet > .05 && S.drips === null) S.drips = S.buildDrips() || false;
   if(S.drips){ S.drips.uniforms.uT.value = t; S.drips.uniforms.uOp.value = Math.min(1, S.wet*1.3) * (.45 + .25*light); }
   if(op < .02) return;
   /* spawn splashes in a ring round the player, more of them close in */
-  S.acc += dt * S.M / .45 * op;
+  S.acc += dt * S.M / .45 * op * S.lod;
   const PA = S.root.children[1].geometry.attributes.aP, BA = S.root.children[1].geometry.attributes.aB;
   const blobs = I.camBlobs || [];
   let n = Math.min(S.M, Math.floor(S.acc)); S.acc -= n; let tries = n*2;
@@ -6236,7 +7558,7 @@ function rainUpdate(I, dt, t, amount, wind, light, flash){
     let y = I.height(x, z), kind = 0;
     for(const b of blobs){ const dx = x-b.x, dz = z-b.z, d2 = dx*dx + dz*dz; if(d2 < b.r*b.r*.8){ y = b.y + Math.sqrt(b.r*b.r - d2)*.75; kind = 1; break; } }
     const i = S.slot; S.slot = (S.slot + 1) % S.M;
-    const sz = kind ? .34 + Math.random()*.2 : .22 + Math.random()*.14, rr = Math.random();
+    const sz = kind ? .34 + Math.random()*.2 : .09 + Math.random()*.06, rr = Math.random();
     for(let c=0;c<4;c++){ PA.array.set([x, y + .01, z], i*12 + c*3); BA.array.set([t - Math.random()*dt, kind, sz, rr], i*16 + c*4); }
     n--; }
   PA.needsUpdate = true; BA.needsUpdate = true;
@@ -6408,10 +7730,10 @@ function buildIslandBody(cfg){
   if(night > .12){ starMesh = starField(P, Math.round(140 + night*900)); starMesh.material.opacity = .25 + night*.7; sky.mesh.add(starMesh); }
 
   const POLY = polyOf(cfg); cfg.poly = POLY; if(COASTS[cfg.key]) cfg.coast = COASTS[cfg.key];
-  const inside = POLY ? ((x,z) => polyInside(POLY, x, z)) : ((x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r));
+  const inside = POLY ? ((x,z) => POLY.__acc ? POLY.__acc.inside(x, z) : polyInside(POLY, x, z)) : ((x,z) => cfg.lobes.some(l => Math.hypot(x-l.x, z-l.z) < l.r));
   /* distance to the waterline (unsigned), and how far out to sea a point is (0 on land) */
   const coastDist = POLY
-    ? ((x,z) => { let best = 1e18; for(let i=0, j=POLY.length-1; i<POLY.length; j=i++){
+    ? ((x,z) => { if(POLY.__acc) return POLY.__acc.dist(x, z); let best = 1e18; for(let i=0, j=POLY.length-1; i<POLY.length; j=i++){
           const ax = POLY[j][0], az = POLY[j][1], ex = POLY[i][0]-ax, ez = POLY[i][1]-az, L = ex*ex+ez*ez || 1;
           let u = ((x-ax)*ex + (z-az)*ez)/L; u = u < 0 ? 0 : u > 1 ? 1 : u;
           const dx = x-(ax+ex*u), dz = z-(az+ez*u), d = dx*dx+dz*dz; if(d < best) best = d; }
@@ -6490,7 +7812,9 @@ function buildIslandBody(cfg){
       cfg.spawn = [sx, sz];
     } }
   const TMAX = (COASTS[cfg.key] ? COASTS[cfg.key].maxR : 90) * WORLD;
+  const SHORE_R = SHOREQ && POLY ? shoreRoughen(POLY, cfg, TMAX) : null;   /* SHORE: coves and points, now every position is final */
   const stoneXZ = cfg.stones || [];
+  let RLF = null;                                    /* TERRAINQ: the island's relief grid, built just below */
   const height = (x,z) => {
     /* The real ground under everything else - but only on land. The elevation grid is a square over
        the whole island and reads a few centimetres above zero out over the sea near the coast, which
@@ -6498,8 +7822,10 @@ function buildIslandBody(cfg){
        the sampled height fades to nothing over that same strip and she matches what is drawn. */
     const inn = inside(x, z), cd = coastDist(x, z);
     let y = inn ? terrainAt(cfg.key, x, z, TMAX) * Math.min(1, cd/SHORE_BLEND) : 0;
+    const rlf = !!(RLF && inn); if(rlf) y = RLF.y(x, z, cd);   /* TERRAINQ: the exact surface the relief mesh draws */
     if(Math.abs(x-cfg.dock[0]) < 3 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2) y = Math.max(y, .75);   /* the dock planks are a deck, not a decal */
     for(const f of cfg.features){
+      if(rlf && RLF.folds(f)) continue;                /* TERRAINQ: already in the grid */
       const d = Math.hypot(x-f.x, z-f.z);
       if(f.type === "hill" && d < f.r){
         let h = f.h*Math.pow(1-d/f.r, 1.35);
@@ -6525,7 +7851,8 @@ function buildIslandBody(cfg){
       if(f.type === "mesa" && d < f.r*1.35){
         if(f.__ph == null) f.__ph = (seedOf((f.name || "") + f.x + "," + f.z) % 6283) / 1000;
         const ang = Math.atan2(z-f.z, x-f.x);
-        const R = f.r * (1 + Math.sin(ang*3 + f.__ph)*0.155 + Math.sin(ang*5 - f.__ph*1.7)*0.080
+        const RQ = TERRAINQ && f.ink && !f.outer;     /* TERRAINQ: a noise rim instead of three regular bays */
+        const R = RQ ? rlInkR(f, ang) : f.r * (1 + Math.sin(ang*3 + f.__ph)*0.155 + Math.sin(ang*5 - f.__ph*1.7)*0.080
                            + Math.sin(ang*8 + f.__ph*2.4)*0.038);
         if(d < R){
           const t = d / R;
@@ -6564,6 +7891,7 @@ function buildIslandBody(cfg){
               const u = (t - CAP) / (1 - CAP);
               const kA = 0.06, kB = 0.26 + 0.72*rk;    /* short fall on the cliff, long one on a ramp */
               let s = Math.max(0, Math.min(1, (u - kA)/(kB - kA))); s = s*s*(3 - 2*s);
+              if(RQ) s -= .45*Math.sin(s*Math.PI*8)/(Math.PI*8);   /* TERRAINQ: bedding ledges in the face (never flatter than ~55%) */
               /* The two terms MUST sum to the crown's own height at u=0 or the cap gets a rim wall.
                  The first draft was 0.94*(1-s) + 0.11*(1-u)^2, which is 1.05*h at u=0 - nearly two
                  units ABOVE the cap - and the slope probe read a 75-degree step exactly where the
@@ -6577,13 +7905,15 @@ function buildIslandBody(cfg){
                  it, so it goes in the height field and the mesh picks it up for free, along with the
                  walker. Zero at both ends of the band, and zero on the ramp. */
               const cut = Math.sin(ang*9 + f.__ph*2.3)*.55 + Math.sin(ang*17 - f.__ph*1.1)*.45;
-              h -= f.h * .10 * Math.sin(Math.PI*u) * (cut*.5 + .5) * (1 - rk);
+              h -= RQ ? f.h * .12 * Math.sin(Math.PI*u) * rlInkCut(f, ang, u) * (1 - rk)
+                      : f.h * .10 * Math.sin(Math.PI*u) * (cut*.5 + .5) * (1 - rk);
             }
+            if(RQ) h += rlInkLip(f, ang, t, CAP, rk, x, z);   /* TERRAINQ: a broken lip and a weathered cap */
           }
           /* Beds are never laid perfectly level and never stay that way. A degree or two of dip
              across the whole rock keeps the cap from reading as a machined disc from a low camera,
              where it is the one edge of it you can see. */
-          if(f.ink) h *= 1 + Math.cos(ang - f.__ph)*0.035*t;
+          if(f.ink) h *= 1 + Math.cos(ang - f.__ph)*(RQ ? .07 : 0.035)*t;   /* TERRAINQ: the beds dip twice as far */
           y = Math.max(y, h);
         }
       }
@@ -6597,6 +7927,7 @@ function buildIslandBody(cfg){
     for(const s of stoneXZ) if(Math.hypot(x-s[0], z-s[1]) < 3.3) return 0;
     return shelfGround(cd);
   };
+  if(TERRAINQ) RLF = reliefBuild({cfg, POLY, TMAX, inside, coastDist, P, night: cfg.key === "sanity"});   /* TERRAINQ */
   const I = {cfg, scene, sky, moon, key, sea, hemiL, inside, height, coastDist, shoreOut, /* The analytic sea surface has to apply the SAME damp the shader does, or every splash, ripple,
      foam ring and floating prop near the shore sits at a height the water is no longer at. */
     seaY:(x, z, t, base) => seaHeight(x, z, t, base, shoreDamp(coastDist(x, z))), water:null, foam:[], creatures:[], stones:[], extra:[], gateMeshes:[], colliders:[], npcs:[], props:[], noGrass:[]};
@@ -6606,6 +7937,7 @@ function buildIslandBody(cfg){
     const mu = sea.userData.mat.uniforms;
     mu.uMask.value = shoreMaskTexture(coastDist, R); mu.uMaskR.value = R; mu.uHasMask.value = 1;
     I.shoreMask = mu.uMask.value; }
+  if(SHORE_R){ I.shoreR = SHORE_R; I.shoreF = shoreField(POLY); I.shoreF.sandCol = new THREE.Color(P.sand).multiplyScalar(TOON3D ? .76 : .55); SHORE_FIELD = I.shoreF; }   /* SHORE */
 
   /* ground */
   if(POLY){
@@ -6622,9 +7954,9 @@ function buildIslandBody(cfg){
        through the sea floor. There is nothing under it to see. A few extra side triangles, no more.
        Anything that changes SEA_Y or seaBed's -7 must keep these deeper than both. */
     const SLAB_BOTTOM = -10;
-    scene.add(GROUND(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16}))));   /* the beach, a hair below the meadow */
+    scene.add(GROUND(polySlab(sandP,  -.12 - SLAB_BOTTOM, -.12, I.shoreF ? shoreSandMat(P.sand, I.shoreF) : toon(P.sand,  {map:TEX.sand,   roughness:1, envMapIntensity:.16}))));   /* the beach, a hair below the meadow */
     scene.add(GROUND(polySlab(grassP,  0   - SLAB_BOTTOM,  0,   withMacro(meadowMat(P.grass))))); /* top face at y=0 = the walkable height */
-    { const tm = terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }
+    { const tm = RLF ? RLF.build(scene) : terrainMesh(POLY, cfg.key, TMAX, P); if(tm){ GROUND(tm); scene.add(tm); I.terrainMesh = tm; } }   /* TERRAINQ: the relief grid replaces the terrain mesh */
     /* the shelf: the beach continues under the water and slopes away, in darker (wet) sand, so looking
        down through the shallows shows real ground under her feet instead of a blue plane on nothing */
     /* With the new swash the shelf's outer edge became the most obvious straight line on the coast: the
@@ -6632,7 +7964,7 @@ function buildIslandBody(cfg){
        as a ruled line drawn along the whole shore. Now (default; ?swash=old keeps the old band) it runs
        on out to 30 u, falling away towards the seabed and darkening with depth, with low sandbars in it,
        so the shallows fade into deep water instead of stepping. */
-    const shelf = SWASHQ ? new THREE.Mesh(shelfStrip(POLY, P, isNight), toon(0xFFFFFF, {vertexColors:true, map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}))
+    const shelf = SWASHQ ? new THREE.Mesh(shelfStrip(POLY, P, isNight), I.shoreF ? shoreSandMat(0xFFFFFF, I.shoreF, {vertexColors:true, side:THREE.DoubleSide}) : toon(0xFFFFFF, {vertexColors:true, map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}))
                          : new THREE.Mesh(ringBand(polyOffset(POLY, SHELF_FLAT), polyOffset(POLY, 15), shelfGround(SHELF_FLAT) - .01, shelfGround(15) - .01),
                                  toon(new THREE.Color(P.sand).multiplyScalar(.70), {map:TEX.sand, side:THREE.DoubleSide, roughness:1, envMapIntensity:.16}));
     shelf.receiveShadow = true; GROUND(shelf); scene.add(shelf);
@@ -6653,12 +7985,13 @@ function buildIslandBody(cfg){
     I.foam.push(foamRing(scene, l.x, l.z, l.r+5, -.45));
   });
   cfg.features.forEach(f => {
+    if(RLF && RLF.folds(f)) return;                  /* TERRAINQ: hills and rises are drawn by the relief grid */
     if(f.type === "hill"){
       /* the visible hill is lathed from the exact same profile the walker and every pickup use,
          so nothing can sit "inside" the slope any more */
       const pts = [new THREE.Vector2(f.r+.6, -.6)];
       for(let k=28;k>=0;k--){ const d = f.r*(k/28); pts.push(new THREE.Vector2(Math.max(d, .001), height(f.x + d, f.z) - .05)); }
-      const lg2 = new THREE.LatheGeometry(pts, 48);
+      const lg2 = TERRAINQ && f.crater ? rlRadial(height, f) : new THREE.LatheGeometry(pts, 48);   /* TERRAINQ: sampled at every bearing, not spun from one */
       /* ?ground=real: same overlap as the mesa below - the lathe and the terrain mesh are both sampled
          from the ground, so the hill takes the photo meadow on the terrain's world-planar uv */
       const photoHill = GROUNDQ && !f.crater;
@@ -6702,7 +8035,7 @@ function buildIslandBody(cfg){
              too steep to hold soil; grass sits where it is not. That is why a real mesa has a
              cliff band, and deriving it from |grad h| means it follows the bays in the rim and
              the talus fans for free instead of being a ring I drew at a radius I picked. */
-      const SEG = 72, RINGS = 40, RMAX = f.r * 1.34;
+      const SEG = TERRAINQ && f.ink && !f.outer ? 128 : 72, RINGS = TERRAINQ && f.ink && !f.outer ? 60 : 40, RMAX = f.r * 1.34;   /* TERRAINQ: fine enough for the broken rim and the ledges */
       /* Rings are NOT spread evenly in radius. A mesa's cliff is about a tenth of the radius wide
          and most of its height, so an even grid puts three or four rings on the one part of the
          shape that carries all the detail - and the beds in the texture came out as a herringbone
@@ -6902,6 +8235,7 @@ function buildIslandBody(cfg){
       if(rr > .7) I.colliders.push({x:rx, z:rz, r:rr*.85}); }
   }
   if(ROCKS) I.rockMesh = ROCKS.finish(scene);
+  if(SHORE_R) shoreRocks(scene, I, SHORE_R, P, isNight);              /* SHORE: rocky points, rocky shore, pebbles, driftwood */
   /* wildflowers — instanced, planted in beds */
   if(cfg.key !== "sanity") flowerField(scene, FLOWER_N, () => { const s = sample(6, 66, true); return (s && cfg.beach && Math.hypot(s[0]-cfg.beach.x, s[1]-cfg.beach.z) < cfg.beach.r) ? null : s; }, height, cfg.flowerCols || [0xFFFFFF, 0xFFE59A, 0xF2A6C8, 0xB9A4F4]);
   /* specific decor */
@@ -6944,8 +8278,10 @@ function buildIslandBody(cfg){
         scene.add(m); return m;
       };
       path.forEach(([x,z,w]) => I.noGrass.push({x, z, r: w + 2.2}));   /* nothing grows in the streambed */
+      if(!(RLF && RLF.stream)){                 /* TERRAINQ: the relief grid cuts the real channel and draws the water */
       ribbon(1.15, .10, 0x6E7A63, 1);        /* the cut bank: wider, a touch lower, earthy */
       ribbon(0, .26, 0x7FC9E0, .82);         /* the water, sunk into it */
+      }
       for(let i=2;i<path.length-2;i+=3){     /* stones along both edges */
         const [x,z,w] = path[i];
         for(const sgn of [-1,1]){
@@ -7435,7 +8771,8 @@ function buildIslandBody(cfg){
   const GRASS_EDGE = POLY ? polyOffset(POLY, -0.5) : null;      /* the hard stop, out in the sand */
   const GRASS_SOFT = POLY ? polyOffset(POLY, -0.5 - GRASS_FADE) : null;   /* full density inside this */
   const noGrass = (x,z) => {
-    if(POLY){
+    if(POLY && I.shoreF){ if(!inside(x, z) || I.shoreF.sandK(x, z) > .42 + (Math.random() - .5)*.2) return true; }   /* SHORE: stops on the drawn sand edge */
+    else if(POLY){
       if(!polyInside(GRASS_EDGE, x, z)) return true;
       if(!polyInside(GRASS_SOFT, x, z)){
         /* in the fade band: keep roughly a third of the blades, thinning outward */
@@ -7532,6 +8869,9 @@ function buildIslandBody(cfg){
     DBG("CARROTS", placed, "tamed", I.creatures.filter(c => c.userData.tame).length);
   }
 
+  if(SHORE_R) shoreDuneGrass(scene, I, P, (x, z) => (Math.abs(x-cfg.dock[0]) < 6 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2+4)   /* SHORE */
+      || (cfg.beach && Math.hypot(x-cfg.beach.x, z-cfg.beach.z) < cfg.beach.r) || (cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r+1)
+      || I.colliders.some(c => (x-c.x)*(x-c.x) + (z-c.z)*(z-c.z) < (c.r+.5)*(c.r+.5)) || I.noGrass.some(q => (x-q.x)*(x-q.x) + (z-q.z)*(z-q.z) < q.r*q.r));
   /* weather + fx */
   I.water = waterFx(scene);
   I.fx = {
@@ -7670,6 +9010,7 @@ function buildIslandBody(cfg){
     };
   }
   guideInit(I); cueInit(I);
+  if(RLF) RLF.finish(scene, I);                      /* TERRAINQ: outcrops and talus, last, against the finished colliders */
   /* ===============  NOTHING STANDS UNDER ITS OWN GROUND  ===============
      Luna's Keep sat 30 u inside its own hill for weeks: the island's namesake landmark, invisible,
      with its door still firing an interact prompt at a player who could see nothing. It was one
@@ -7714,7 +9055,9 @@ function buildIslandBody(cfg){
       if(bad.length) DBG("GROUNDCHECK", cfg.key, bad.length + " object(s) standing below their own ground:", bad);
     }catch(e){ DBG("groundcheck failed", e && e.message); }
   }
+  if(HORIZONQ) horizonBuild(I);   /* DISTANCE: far sea, haze band, far land (?horizon=old) */
   wetAll(scene);     /* again: the people, animals and anything added after the bake get wet too */
+  SHORE_FIELD = null;
   return I;
 }
 
@@ -8872,6 +10215,7 @@ function islandUpdate(I, dt, t){
   if(cfg.weather !== "embers" && AU.rumbleG) AU.rumbleG.gain.value = 0;
   if(cfg.weather !== "storm" && AU.surfG) AU.surfG.gain.value = .16 + storm*.07;
   I.sky.mat.uniforms.blend.value = I.dn ? storm*.22*(1 - I.dn.mix) : storm; I.fx.windMul = 1 + storm*2.2 + (cfg.weather==="storm" ? 1.2 : 0);
+  if(HORIZONQ) horizonUpdate(I);   /* DISTANCE: haze follows this frame's fog, sun and camera */
   $("weather").textContent = label;
   /* what parts the grass this frame: her (or the horse under her), the nearest animals, fans and rolling
      balls - the six closest win - plus the track she has just walked, which stays flat and recovers */
