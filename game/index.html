@@ -371,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-17e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-17f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1906,13 +1906,14 @@ function realBoat(g, len, keep){
    risers, thwarts, floorboards, gunwales, a transom with a hung rudder and tiller, and a wooden mast and
    boom, all in photographed wood (Poly Haven CC0). Same length, same seat for her, same canvas sail,
    figurehead and lanterns. Built once per boat as four merged meshes. */
-const HERBOAT = BOATSQ && ["varnish", "weathered", "paint"].includes(QS.get("herboat")) ? QS.get("herboat") : null;
+/* the owner's pick (Oct 17 2026): A, varnished. ?herboat=old brings back the sloop; weathered|paint still preview the others */
+const HERBOAT = !BOATSQ || QS.get("herboat") === "old" ? null : ["varnish", "weathered", "paint"].includes(QS.get("herboat")) ? QS.get("herboat") : "varnish";
 const DINGHY_SEAMS = {varnish:[105,241,377,513,649,785,920], weathered:[40,118,197,276,355,434,512,590,669,747,827,906,986]};
 let _dinghyTex = null;
-function dinghyTex(){ if(_dinghyTex) return _dinghyTex;
+function dinghyTex(){ if(_dinghyTex) return _dinghyTex;   /* each photo loads only when a boat first asks for it */
   const L = new THREE.TextureLoader(), mk = (f, srgb) => { const t = L.load("assets/boats/" + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
-  return (_dinghyTex = {varnish:mk("dinghy_varnish_diff.jpg", true), varnishN:mk("dinghy_varnish_nor.jpg"), weathered:mk("dinghy_weathered_diff.jpg", true),
-    weatheredN:mk("dinghy_weathered_nor.jpg"), paint:mk("dinghy_paint_diff.jpg", true)}); }
+  const F = {varnish:["dinghy_varnish_diff.jpg", true], varnishN:["dinghy_varnish_nor.jpg", false], weathered:["dinghy_weathered_diff.jpg", true], weatheredN:["dinghy_weathered_nor.jpg", false], paint:["dinghy_paint_diff.jpg", true]}, C = {};
+  return (_dinghyTex = new Proxy(C, {get:(o, k) => k in o ? o[k] : F[k] ? (o[k] = mk(...F[k])) : undefined})); }
 const DINGHY = (() => {
   const ZB = -4.45, ZT = 3.9, LEN = ZT - ZB, N = 8, LAP = .032, YF = .30;
   const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a)/(b - a))); return t*t*(3 - 2*t); };
@@ -2021,7 +2022,7 @@ function realDinghy(g, bodyN){
   const mat = (map, nmap, rough, col) => new THREE.MeshStandardMaterial({map, normalMap:nmap, normalScale:new THREE.Vector2(.9, .9), roughness:rough, metalness:0, color:col || 0xFFFFFF, side:THREE.DoubleSide});
   const mHull = mat(T[fin], nrmMap, fin === "varnish" ? .42 : fin === "paint" ? .55 : .86), mTrim = mat(T[wood], tNrm, wood === "varnish" ? .40 : .86);
   const add = (list, m, name) => { if(!list.length) return; const me = new THREE.Mesh(dMerge(list), m); me.name = name; me.castShadow = me.receiveShadow = true; g.add(me); };
-  add(hull, mHull, "planking"); add(bottom, mat(T.paint, T.weatheredN, .7, 0x8A3A2C), "bottom paint"); add(trim, mTrim, "timbers");
+  add(hull, mHull, "planking"); if(bottom.length) add(bottom, mat(T.paint, T.weatheredN, .7, 0x8A3A2C), "bottom paint"); add(trim, mTrim, "timbers");
   /* ---- rigging: two shrouds to the gunwales ---- */
   { const u = D.uAt(.85), rope = new THREE.MeshStandardMaterial({color:0x3B3128, roughness:.9});
     for(const s of [1, -1]){ const a = new THREE.Vector3(0, 7.7, .6), b = new THREE.Vector3(s*(D.B(u) - .02), D.S(u) + .02, .85), d = b.clone().sub(a);
@@ -2032,8 +2033,20 @@ function realDinghy(g, bodyN){
   for(let i=0;i<n0;i++){ const c = g.children[i];
     if(c.isLight){ lights.push(c); continue; } c.visible = false; }
   dinghyDress(g, D, mTrim, W, lights);
+  /* one mesh per material: ~70 draw calls down to a handful (the sail swings, so its rig merges on its own) */
+  { const swing = g.userData.sail, pivot = swing.parent;
+    dMergeParts(g, g.children.slice(n0).filter(c => !c.isLight && c !== pivot));
+    dMergeParts(swing, swing.children.filter(c => !(c.material && c.material.userData && c.material.userData.uniforms !== undefined) && !(c.material && c.material.map === _sailCanvas))); }
   g.userData.benchY = D.YF + .72; g.userData.dinghy = true;   /* her feet on the floorboards, hips on the thwart (same 0.49 rise as before) */
   return D;
+}
+function dMergeParts(root, parts){
+  root.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), rel = new THREE.Matrix4(), buckets = new Map();
+  parts.forEach(p => p.traverse(m => { if(!m.isMesh || !m.visible) return;
+    rel.multiplyMatrices(inv, m.matrixWorld); const geo = m.geometry.clone().applyMatrix4(rel); if(!geo.attributes.uv) return;
+    const k = m.material.uuid; if(!buckets.has(k)) buckets.set(k, {mat:m.material, geos:[], cast:m.castShadow}); buckets.get(k).geos.push(geo); }));
+  parts.forEach(p => { if(p.parent) p.parent.remove(p); });
+  buckets.forEach(b => { const me = new THREE.Mesh(dMerge(b.geos), b.mat); me.castShadow = b.cast; me.receiveShadow = true; root.add(me); });
 }
 /* sailcloth: a woven cream canvas sewn from vertical cloths, a darker boltrope hem, corner patches, a row
    of reef points, and her crescent painted into the cloth (not a ring stuck on top of it) */
