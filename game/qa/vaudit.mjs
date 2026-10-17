@@ -22,7 +22,7 @@ for (const island of islands) {
   for (const q of info.pts) {
     await p.evaluate(q => window.__put(q), q);
     await p.waitForTimeout(1400);
-    await p.screenshot({ path:`qa/out/va_${island}_${String(n).padStart(2,'0')}_${q.tag}.png` });
+    await p.screenshot({ path:`qa/out/va_${island}_${String(n).padStart(2,'0')}_${q.tag}.jpg`, type:'jpeg', quality:80, timeout:150000 });
     n++;
   }
   console.error(`[vaudit] ${island}: ${n} shots, npcs ${info.npcs}, creatures ${info.creatures}, errors ${H.log.errors.length}`);

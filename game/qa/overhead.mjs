@@ -31,7 +31,7 @@ for (const isl of argIslands()) {
   // keep the ortho frame on screen for the screenshot
   await page.evaluate(() => { const T = window.__T; T.present = () => T.renderer.render(T.CUR.scene, window.__mapCam); const tick = () => { T.renderer.render(T.CUR.scene, window.__mapCam); requestAnimationFrame(tick); }; tick(); });
   await page.waitForTimeout(1500);
-  await page.screenshot({ path: `${OUT}/map_${isl}.png` });
+  await page.screenshot({ path: `${OUT}/map_${isl}.png`, timeout: 150000 });
   writeFileSync(`${OUT}/map_${isl}.json`, JSON.stringify(data, null, 1));
   console.log(`[map] ${isl}: radius ${data.radius.toFixed(0)}  dock ${data.dock}  boat ${data.boat}  notes ${data.notes.length}  npcs ${data.npcs.length}+${data.crowd}  colliders ${data.colliders.length}`);
   await H.close();

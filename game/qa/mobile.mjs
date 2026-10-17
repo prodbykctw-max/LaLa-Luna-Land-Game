@@ -18,7 +18,7 @@ for (const isl of argIslands()) {
       const T = window.__T, I = T.CUR, W = I.W; W.active = true;
       // stand next to the first note so the prompt is live, and fire a toast so we can measure it
       const n = I.notes[0]; W.x = n.position.x + 1; W.z = n.position.z + 1; W.y = I.height(W.x, W.z);
-      document.getElementById('prompt').classList.add('on'); document.getElementById('pt').textContent = 'Read the note'; document.getElementById('act').classList.add('live');
+      document.getElementById('prompt').classList.add('on'); const pt = document.getElementById('pt'); if (pt) pt.textContent = 'Read the note';   /* the prompt has no caption since 2026-10-17 (only the key glows) */ document.getElementById('act').classList.add('live');
       document.getElementById('toast1').textContent = 'Her fans'; document.getElementById('toast2').textContent = 'Jump, then hold to glide'; document.getElementById('toast').classList.add('on');
       const ids = ['stick', 'act', 'jmp', 'prompt', 'lblL', 'valL', 'weather', 'letters', 'sub', 'moonsub', 'mute', 'secretsBtn', 'toast', 'khint'];
       const box = {}; for (const id of ids) { const e = document.getElementById(id); if (!e) continue; const cs = getComputedStyle(e); const b = e.getBoundingClientRect();
