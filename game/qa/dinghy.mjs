@@ -9,11 +9,13 @@ for (const fin of fins) {
     const yaw = Math.atan2(b.x - W.x, b.z - W.z) + YO; W.camYaw = yaw; W.heading = yaw; W.camPitch = .02; W.camDist = 6; W.lookHold = 999; W.recenter = false; }, +process.env.YO || 0);
   await new Promise(r => setTimeout(r, 6000));
   let f = `qa/out/dinghy_${isl}_${fin}_game.jpg`; await H.page.screenshot({ path: f, type: 'jpeg', quality: 86, timeout: 150000 }); shots.push(f);
-  for (const [tag, az, el, d] of [['side', 1.35, .28, 13], ['quarter', 2.5, .55, 12]]) {
-    await H.page.evaluate(([az, el, d]) => { const T = window.__T, I = T.CUR, b = I.boat; T.composer.render = () => { };
+  for (const [tag, az, el, d, fwd] of [['side', 1.35, .28, 13, 0], ['quarter', 2.5, .55, 12, 0], ['bow', Math.PI - .75, .22, 4.2, 3.7]]) {
+    await H.page.evaluate(([az, el, d, fwd]) => { const T = window.__T, I = T.CUR, b = I.boat; T.composer.render = () => { };
       const c = T.camera.clone(), p = b.position, a = b.rotation.y + az; b.updateMatrixWorld(true);
-      c.position.set(p.x + Math.sin(a)*d*Math.cos(el), p.y + 1.2 + Math.sin(el)*d, p.z + Math.cos(a)*d*Math.cos(el)); c.lookAt(p.x, p.y + 1.6, p.z); c.updateMatrixWorld(true);
-      window.__RAWCAM = c; T.renderer.setRenderTarget(null); T.renderer.render(I.scene, c); }, [az, el, d]);
+      c.position.set(p.x + Math.sin(a)*d*Math.cos(el), p.y + 1.2 + Math.sin(el)*d, p.z + Math.cos(a)*d*Math.cos(el)); const ry = b.rotation.y, tx = p.x - Math.sin(ry)*fwd*b.scale.x, tz = p.z - Math.cos(ry)*fwd*b.scale.x;
+      if(fwd){ c.position.set(tx + Math.sin(a)*d*Math.cos(el), p.y + 2.0*b.scale.x + Math.sin(el)*d, tz + Math.cos(a)*d*Math.cos(el)); c.lookAt(tx, p.y + 1.9*b.scale.x, tz); } else c.lookAt(p.x, p.y + 1.6, p.z);
+      c.updateMatrixWorld(true);
+      window.__RAWCAM = c; T.renderer.setRenderTarget(null); T.renderer.render(I.scene, c); }, [az, el, d, fwd]);
     f = `qa/out/dinghy_${isl}_${fin}_${tag}.jpg`; await H.page.screenshot({ path: f, type: 'jpeg', quality: 88, timeout: 150000 }); shots.push(f);
   }
   info[fin] = await H.page.evaluate(() => { const b = window.__T.CUR.boat; let tris = 0, meshes = 0; b.traverse(o => { if (o.isMesh && o.visible) { meshes++; const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count)/3; } });

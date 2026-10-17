@@ -371,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-17d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-17e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1950,7 +1950,7 @@ function dBox(cx, cy, cz, sx, sy, sz, W){ const g = new THREE.BoxGeometry(sx, sy
 function dSpar(r0, r1, h, W){ const g = new THREE.CylinderGeometry(r1, r0, h, 10, 6), p = g.attributes.position, uv = g.attributes.uv;
   for(let i=0;i<p.count;i++) uv.setXY(i, p.getY(i)/W.tile, W.vc + (uv.getX(i) - .5)*W.vh*1.8); return g; }
 function realDinghy(g, bodyN){
-  const oldRudder = g.children[g.children.length - 2], oldTiller = g.children[g.children.length - 1];
+  const n0 = g.children.length;   /* everything below this index is the old boat */
   const D = DINGHY, T = dinghyTex(), fin = HERBOAT, wood = fin === "weathered" ? "weathered" : "varnish";
   const seamsH = DINGHY_SEAMS[fin === "varnish" ? "varnish" : "weathered"], seamsT = DINGHY_SEAMS[wood];
   const plankTile = seams => .22/((seams[1] - seams[0])/1024);       /* world size of one texture tile: one plank of the photo ~ one strake */
@@ -2011,7 +2011,6 @@ function realDinghy(g, bodyN){
       for(let i=0;i<p.count;i++){ uv.setXY(i, p.getZ(i)/W.tile, W.vc + p.getX(i)/2*W.vh); } } fg.translate(0, y + .05, 0); trim.push(fg); }
   /* ---- mast, boom, rudder and tiller ---- */
   { const m = dSpar(.095, .055, 8.05, W); m.translate(0, D.YF + 4.025, .6); trim.push(m); }
-  { const old = g.children[26]; if(old){ old.updateMatrix(); const b = dSpar(.06, .045, 4.4, W); b.applyMatrix4(old.matrix); trim.push(b); } }
   { const sh = new THREE.Shape(), z0 = 0; sh.moveTo(z0, 1.38); sh.lineTo(z0 + .2, 1.38); sh.lineTo(z0 + .24, .35); sh.quadraticCurveTo(z0 + .78, .1, z0 + .74, -.55); sh.lineTo(z0 + .02, -.5); sh.closePath();
     const rg = new THREE.ExtrudeGeometry(sh, {depth:.06, bevelEnabled:true, bevelThickness:.01, bevelSize:.01, bevelSegments:1}), p = rg.attributes.position, uv = rg.attributes.uv;
     for(let i=0;i<p.count;i++) uv.setXY(i, p.getY(i)/W.tile, W.vc + p.getX(i)*W.vh);
@@ -2023,19 +2022,135 @@ function realDinghy(g, bodyN){
   const mHull = mat(T[fin], nrmMap, fin === "varnish" ? .42 : fin === "paint" ? .55 : .86), mTrim = mat(T[wood], tNrm, wood === "varnish" ? .40 : .86);
   const add = (list, m, name) => { if(!list.length) return; const me = new THREE.Mesh(dMerge(list), m); me.name = name; me.castShadow = me.receiveShadow = true; g.add(me); };
   add(hull, mHull, "planking"); add(bottom, mat(T.paint, T.weatheredN, .7, 0x8A3A2C), "bottom paint"); add(trim, mTrim, "timbers");
-  /* ---- rigging: two shrouds to the gunwales (the forestay and backstay are already aboard) ---- */
+  /* ---- rigging: two shrouds to the gunwales ---- */
   { const u = D.uAt(.85), rope = new THREE.MeshStandardMaterial({color:0x3B3128, roughness:.9});
     for(const s of [1, -1]){ const a = new THREE.Vector3(0, 7.7, .6), b = new THREE.Vector3(s*(D.B(u) - .02), D.S(u) + .02, .85), d = b.clone().sub(a);
       const r = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, d.length(), 5), rope); r.position.copy(a).addScaledVector(d, .5); r.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(r); } }
-  /* the toy hull goes; the sail (now plain canvas), her figurehead, lamp and lanterns stay */
-  const sail = g.userData.sail; for(let i=0;i<bodyN;i++){ if(g.children[i] !== sail) g.children[i].visible = false; }
-  if(sail){ sail.children.forEach(c => { if(c !== sail.userData.main) c.visible = false; }); const m = sail.userData.main.material; if(m && m.isMeshStandardMaterial){ m.map = canvasTex(); m.color.setRGB(.96, .94, .90); m.needsUpdate = true; } }
-  [oldRudder, oldTiller].forEach(o => { if(o) o.visible = false; });
-  /* the bow lanterns sit on the new gunwale */
-  [4, 6].forEach(k => { const gl = g.children[bodyN + k], li = g.children[bodyN + k + 1]; if(!gl || !gl.isMesh) return;
-    const s = Math.sign(gl.position.x) || 1, u = D.uAt(gl.position.z); gl.position.set(s*(D.B(u) - .05), D.S(u) + .16, gl.position.z); if(li && li.isLight) li.position.copy(gl.position); });
+  /* everything of the old boat goes: hull, sail, emblem ring, figurehead, ropes, lanterns, lamp, rudder, tiller.
+     The lights themselves are kept and moved into the new lanterns. */
+  const lights = [];
+  for(let i=0;i<n0;i++){ const c = g.children[i];
+    if(c.isLight){ lights.push(c); continue; } c.visible = false; }
+  dinghyDress(g, D, mTrim, W, lights);
   g.userData.benchY = D.YF + .72; g.userData.dinghy = true;   /* her feet on the floorboards, hips on the thwart (same 0.49 rise as before) */
   return D;
+}
+/* sailcloth: a woven cream canvas sewn from vertical cloths, a darker boltrope hem, corner patches, a row
+   of reef points, and her crescent painted into the cloth (not a ring stuck on top of it) */
+let _sailCanvas = null;
+function sailCanvasTex(){ if(_sailCanvas) return _sailCanvas;
+  const Wd = 512, Ht = 768, c = document.createElement("canvas"); c.width = Wd; c.height = Ht; const x = c.getContext("2d"), r = mulberry32(4242);
+  const im = x.createImageData(Wd, Ht), d = im.data;
+  for(let j=0;j<Ht;j++) for(let i=0;i<Wd;i++){ const w = ((i>>1) % 2) ^ ((j>>1) % 2) ? 1 : .968, n = .955 + r()*.06;
+    const st = 1 - .05*Math.max(0, Math.sin(i*.013 + Math.sin(j*.009)*2.4)*Math.sin(j*.011 + .7));   /* faint weather staining */
+    const v = 238*w*n*st, k = (j*Wd + i)*4; d[k] = v; d[k+1] = v*.962; d[k+2] = v*.885; d[k+3] = 255; }
+  x.putImageData(im, 0, 0);
+  const cloths = 7; x.lineWidth = 1.2;
+  for(let k=1;k<cloths;k++){ const px = k*Wd/cloths;
+    x.fillStyle = "rgba(120,100,70,.10)"; x.fillRect(px - 5, 0, 10, Ht);                         /* the overlap of two cloths */
+    x.strokeStyle = "rgba(90,72,50,.40)"; [-4, 4].forEach(o => { x.beginPath(); x.moveTo(px + o, 0); x.lineTo(px + o, Ht); x.stroke(); }); }
+  x.strokeStyle = "rgba(95,78,55,.55)"; x.lineWidth = 14; x.strokeRect(7, 7, Wd - 14, Ht - 14);      /* tabling and boltrope */
+  x.fillStyle = "rgba(150,125,90,.18)"; [[0,0,1,1],[Wd,0,-1,1],[0,Ht,1,-1],[Wd,Ht,-1,-1]].forEach(([a,b,sx,sy]) => {
+    x.beginPath(); x.moveTo(a, b); x.lineTo(a + sx*110, b); x.lineTo(a, b + sy*110); x.closePath(); x.fill(); });
+  const ry = Ht*.80; x.fillStyle = "rgba(70,55,38,.75)";
+  for(let i=1;i<14;i++){ const px = i*Wd/14; x.fillRect(px - 1.5, ry - 7, 3, 14); }                    /* reef points */
+  x.strokeStyle = "rgba(95,78,55,.35)"; x.lineWidth = 3; x.beginPath(); x.moveTo(0, ry); x.lineTo(Wd, ry); x.stroke();
+  /* her crescent, painted: lavender pigment soaked into the weave, slightly worn at the edges */
+  x.save(); x.globalCompositeOperation = "multiply"; x.fillStyle = "#A893E0";
+  const cx = Wd*.48, cy = Ht*.42, R = Wd*.2;
+  x.beginPath(); x.arc(cx, cy, R, 0, Math.PI*2); x.arc(cx + R*.42, cy - R*.12, R*.84, 0, Math.PI*2, true); x.fill("evenodd"); x.restore();
+  { const id = x.getImageData(0, 0, Wd, Ht), q = id.data; for(let k=0;k<q.length;k+=4){ if(q[k] < 200 && q[k+2] > q[k] + 20 && r() < .07){ q[k] += 30; q[k+1] += 30; q[k+2] += 18; } } x.putImageData(id, 0, 0); }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return (_sailCanvas = t); }
+/* a ship's lantern: brass base, glass chimney with a lit wick, guard wires, cap and carrying ring */
+function shipLantern(scale){
+  const L = new THREE.Group(), brass = new THREE.MeshStandardMaterial({color:0xB48A44, metalness:.85, roughness:.32}),
+    glass = new THREE.MeshStandardMaterial({color:0xFFF3DC, emissive:0xFFB45C, emissiveIntensity:1.1, roughness:.08, metalness:0, transparent:true, opacity:.88});
+  const add = (geo, m, y) => { const o = new THREE.Mesh(geo, m); o.position.y = y; o.castShadow = true; L.add(o); return o; };
+  add(new THREE.CylinderGeometry(.085, .095, .05, 16), brass, .025);
+  const gl = add(new THREE.SphereGeometry(.072, 16, 12), glass, .14); gl.scale.y = 1.3;
+  add(new THREE.SphereGeometry(.018, 8, 6), new THREE.MeshBasicMaterial({color:0xFFE2A0}), .12);
+  for(let k=0;k<4;k++){ const a = k*Math.PI/2 + Math.PI/4, w = add(new THREE.CylinderGeometry(.006, .006, .2, 5), brass, .14); w.position.x = Math.cos(a)*.088; w.position.z = Math.sin(a)*.088; }
+  [.07, .21].forEach(y => { const ring = add(new THREE.TorusGeometry(.088, .007, 5, 20), brass, y); ring.rotation.x = Math.PI/2; });
+  add(new THREE.ConeGeometry(.09, .07, 16), brass, .265); add(new THREE.CylinderGeometry(.022, .026, .05, 10), brass, .32);
+  const h = add(new THREE.TorusGeometry(.04, .006, 5, 14), brass, .38);
+  L.scale.setScalar(scale || 1); L.userData.flame = .15*(scale || 1); return L; }
+/* painted wing: pale at the root deepening outward, fine veins from the root, a dark border with pale spots */
+let _wingTex = null;
+function wingTex(){ if(_wingTex) return _wingTex;
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S; const x = c.getContext("2d");
+  const toPx = (u, v) => [u/.5*S, S - (v + .32)/.76*S];                       /* shape coords -> canvas */
+  const [ox, oy] = toPx(0, 0), gr = x.createRadialGradient(ox, oy, 4, ox, oy, S*.95);
+  gr.addColorStop(0, "#FFFFFF"); gr.addColorStop(.55, "#E9E4E8"); gr.addColorStop(.82, "#B9B0B8"); gr.addColorStop(.9, "#3A3236"); gr.addColorStop(1, "#2A2427");
+  x.fillStyle = gr; x.fillRect(0, 0, S, S);
+  x.strokeStyle = "rgba(60,48,54,.55)"; x.lineWidth = 1.6;
+  for(let k=0;k<9;k++){ const a = -1.05 + k*.27, [ex, ey] = [ox + Math.cos(a)*S*1.1, oy - Math.sin(a)*S*1.1];
+    x.beginPath(); x.moveTo(ox, oy); x.quadraticCurveTo((ox + ex)/2 + 10, (oy + ey)/2 - 6, ex, ey); x.stroke(); }
+  x.fillStyle = "rgba(255,255,255,.85)";
+  for(let k=0;k<11;k++){ const a = -1.0 + k*.22, d = S*.84, px = ox + Math.cos(a)*d, py = oy - Math.sin(a)*d; x.beginPath(); x.arc(px, py, 3.2, 0, Math.PI*2); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.repeat.set(2, 1/.76); t.offset.set(0, .32/.76); t.anisotropy = 4; return (_wingTex = t); }
+function dinghyDress(g, D, mTrim, W, lights){
+  const part = o => { o.userData.dinghyPart = true; o.traverse(q => { if(q.isMesh){ q.castShadow = true; q.receiveShadow = true; } }); g.add(o); return o; };
+  const rope = new THREE.MeshStandardMaterial({color:0x7A6448, roughness:.92}), wood = mTrim;
+  const line = (a, b, r, m) => { const d = b.clone().sub(a), o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 6), m || rope);
+    o.position.copy(a).addScaledVector(d, .5); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return o; };
+  const MZ = .6;
+  /* ---- gaff rig: boom, gaff and a four-sided mainsail laced to them, swinging together about the mast ---- */
+  const tack = [1.62, 0], throat = [6.3, 0], peak = [8.05, 3.25], clew = [1.68, 3.55];   /* [y, aft of the mast] */
+  const pivot = new THREE.Group(); pivot.position.set(0, 0, MZ); pivot.rotation.y = -(Math.PI/2 + .3) - .26;   /* cancels the old sail's swing, then trims the boom a little off the centreline */
+  const swing = new THREE.Group(); swing.rotation.y = Math.PI/2 + .3; pivot.add(swing);                           /* the crossing still rocks this, exactly as before */
+  { const b = dSpar(.058, .045, 3.75, W); b.rotateX(Math.PI/2); b.translate(0, tack[0] - .08, 3.75/2 - .05); swing.add(new THREE.Mesh(b, wood)); }
+  { const gl = Math.hypot(peak[0] - throat[0], peak[1] - throat[1]), ga = Math.atan2(peak[1] - throat[1], peak[0] - throat[0]);
+    const gg = dSpar(.045, .038, gl + .15, W); gg.translate(0, (gl + .15)/2 - .08, 0); gg.rotateX(ga); gg.translate(0, throat[0] + .05, 0); swing.add(new THREE.Mesh(gg, wood)); }
+  { const NU = 14, NV = 20, sg = dGrid(NU, NV, (i, j) => { const s = i/NU, t = j/NV;   /* s: luff -> leech, t: foot -> head */
+      const yL = tack[0] + (throat[0] - tack[0])*t, zL = 0, yR = clew[0] + (peak[0] - clew[0])*t, zR = clew[1] + (peak[1] - clew[1])*t;
+      const y = yL + (yR - yL)*s, z = zL + (zR - zL)*s, belly = .42*Math.sin(Math.PI*Math.min(1, s*1.08))*(.55 + .45*Math.sin(Math.PI*t));
+      return [-belly, y, z + .05, s, t]; });   /* the boom is out to port, so the cloth fills to port */
+    const sm = toon(0xFFFFFF, {map:sailCanvasTex(), side:THREE.DoubleSide}); sm.roughness = .92; sm.metalness = 0;
+    sm.userData.patches.push(["dsail", sh => { sh.uniforms.uTime = {value:0}; sh.uniforms.uWind = {value:1}; sm.userData.uniforms = sh.uniforms;
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uTime, uWind;")
+        .replace("#include <begin_vertex>", `#include <begin_vertex>
+          { float env = sin(clamp(uv.x, 0.0, 1.0)*3.14159265)*(.35 + .65*uv.x);
+            transformed.x += (sin(uTime*2.0 + uv.y*6.0 + uv.x*2.0)*.045 + sin(uTime*3.3 + uv.y*11.0)*.02)*env*uWind; }`); }]);
+    SAIL_MATS.push(sm);
+    const cloth = new THREE.Mesh(sg, sm); cloth.castShadow = true; swing.add(cloth); }
+  for(let k=0;k<7;k++){ const y = tack[0] + .35 + k*(throat[0] - tack[0] - .5)/6, hoop = new THREE.Mesh(new THREE.TorusGeometry(.13, .018, 6, 18), wood);   /* mast hoops on the luff */
+    hoop.rotation.x = Math.PI/2; hoop.position.set(0, y, 0); swing.add(hoop); }
+  swing.add(line(new THREE.Vector3(0, tack[0] - .08, 3.55), new THREE.Vector3(0, .98, 3.55), .013));                  /* mainsheet down to the stern sheets */
+  swing.add(line(new THREE.Vector3(0, 8.3 - MZ*0, -.05), new THREE.Vector3(0, peak[0] - .05, peak[1]*.55), .009));    /* peak halyard */
+  part(pivot); g.userData.sail = swing;
+  part(line(new THREE.Vector3(0, 8.28, MZ), new THREE.Vector3(0, 2.02, D.ZB - .08), .014));                           /* forestay to the stem head */
+  { const top = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .06, 10), wood); top.position.set(0, 8.38, MZ); part(top); }   /* mast truck */
+  /* ---- her figurehead: a carved, gilded crescent on the stem head with two painted, carved butterfly wings ---- */
+  { const F = new THREE.Group(), gilt = new THREE.MeshStandardMaterial({color:0xD8B45E, metalness:.88, roughness:.28});
+    /* a true crescent: the outer circle's arc outside the inner circle, closed by the inner circle's arc */
+    const R = .32, cx2 = .17, cy2 = .07, r2 = .28, dd = Math.hypot(cx2, cy2), aa = (R*R - r2*r2 + dd*dd)/(2*dd), hh = Math.sqrt(R*R - aa*aa);
+    const mx = aa*cx2/dd, my = aa*cy2/dd, p1 = [mx + hh*cy2/dd, my - hh*cx2/dd], p2 = [mx - hh*cy2/dd, my + hh*cx2/dd];
+    const o1 = Math.atan2(p1[1], p1[0]), o2 = Math.atan2(p2[1], p2[0]), i1 = Math.atan2(p1[1] - cy2, p1[0] - cx2), i2 = Math.atan2(p2[1] - cy2, p2[0] - cx2);
+    const cres = new THREE.Shape(); cres.absarc(0, 0, R, o2, o1 + Math.PI*2, false); cres.absarc(cx2, cy2, r2, i1 + Math.PI*2, i2, true);   /* back along the inner circle's left side */
+    const cg = new THREE.ExtrudeGeometry(cres, {depth:.06, bevelEnabled:true, bevelThickness:.022, bevelSize:.02, bevelSegments:3, curveSegments:32}); cg.translate(0, 0, -.03);
+    const cm = new THREE.Mesh(cg, gilt); cm.rotation.z = -.35; F.add(cm);
+    const wing = (side, col) => { const s = new THREE.Shape();
+      s.moveTo(0, 0); s.bezierCurveTo(.10, .30, .42, .40, .44, .18); s.bezierCurveTo(.46, .04, .26, .0, .18, -.02);
+      s.bezierCurveTo(.32, -.10, .34, -.30, .18, -.30); s.bezierCurveTo(.08, -.30, .02, -.14, 0, 0);
+      const wg = new THREE.ExtrudeGeometry(s, {depth:.018, bevelEnabled:true, bevelThickness:.008, bevelSize:.008, bevelSegments:2, curveSegments:20});
+      const w = new THREE.Mesh(wg, new THREE.MeshStandardMaterial({color:col, map:wingTex(), roughness:.42, metalness:.05})); w.scale.set(side*1.25, 1.25, 1);
+      const edge = new THREE.Mesh(wg, gilt); edge.scale.set(side*1.29, 1.29, .6); edge.position.z = -.008;   /* gilt rim behind the paint */
+      const W2 = new THREE.Group(); W2.add(edge, w); W2.position.set(side*.04, -.04, -.05); W2.rotation.y = -side*.35; return W2; };
+    F.add(wing(-1, 0xEFA6CF), wing(1, 0xB7AEF2));
+    F.position.set(0, 2.3, D.ZB - .2); F.rotation.y = Math.PI; F.rotation.x = -.12; part(F);
+    const plinth = new THREE.Mesh(new THREE.CylinderGeometry(.06, .08, .16, 10), wood); plinth.position.set(0, 2.13, D.ZB - .12); part(plinth); }
+  /* ---- lanterns: one on a short post at the bow, one each side on the gunwale; the old lights go inside them ---- */
+  const lan = [];
+  { const zP = D.ZB + .5, y0 = D.S(D.uAt(D.ZB + .95)), post = new THREE.Mesh(new THREE.CylinderGeometry(.04, .05, .62, 8), wood);
+    post.position.set(0, y0 + .31, zP); part(post); const L = shipLantern(1.15); L.position.set(0, y0 + .62, zP); part(L); lan.push(L); }
+  for(const s of [-1, 1]){ const z = -3.1, u = D.uAt(z), L = shipLantern(1.0); L.position.set(s*(D.B(u) - .06), D.S(u) + .05, z); part(L); lan.push(L); }
+  lights.forEach((li, i) => { const L = lan[[1, 2, 0][i % 3]] || lan[0]; li.position.copy(L.position); li.position.y += L.userData.flame; li.visible = true; });
+  /* ---- oars stowed on the thwarts, bronze rowlocks on the gunwales ---- */
+  for(const s of [-1, 1]){ const o = new THREE.Group(), sh = dSpar(.028, .028, 3.1, W); o.add(new THREE.Mesh(sh, wood));
+    const bl = dBox(0, 1.75, 0, .015, .62, .14, W); o.add(new THREE.Mesh(bl, wood)); const grip = dSpar(.034, .034, .24, W); grip.translate(0, -1.45, 0); o.add(new THREE.Mesh(grip, wood));
+    o.rotation.x = Math.PI/2 - .04; o.position.set(s*.62, .92, .2); o.rotation.z = s*.03; part(o);
+    const u = D.uAt(-.9), rl = new THREE.Mesh(new THREE.TorusGeometry(.05, .012, 6, 12, Math.PI), new THREE.MeshStandardMaterial({color:0x8C6A3C, metalness:.8, roughness:.38}));
+    rl.position.set(s*(D.B(u) - .03), D.S(u) + .09, -.9); rl.rotation.y = Math.PI/2; part(rl); }
 }
 function sailBoat(hullCol, sailCol, lamp){
   const g = new THREE.Group();
