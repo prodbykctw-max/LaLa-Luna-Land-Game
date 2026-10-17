@@ -371,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-17b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-17c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1855,6 +1855,52 @@ function starField(P, count){
   const pts = new THREE.Points(g, m); pts.frustumCulled = false; pts.renderOrder = -2;
   return pts;
 }
+/* ===================  REAL BOATS  (default; ?boats=old restores the toy hulls)  ===================
+   Every boat was a squashed sphere or an extruded outline with a flat sail. The fleet and her own boat
+   now carry a real ship: Poly Haven's CC0 "Dutch ship, medium" (wooden hull, rigging, cloth sails),
+   simplified to ~15k triangles and 512 px textures (1.4 MB) so it costs little more than a tree. One
+   GLB, loaded once; every boat gets a clone that shares its geometry and materials. The old parts stay
+   in the group, hidden, so bobbing, lamps, her figurehead and lanterns all work exactly as before. */
+const BOATSQ = QS.get("boats") !== "old";
+const BOAT_REAL = {gltf:null, waiting:[]};
+if(BOATSQ){
+  try{ new THREE.GLTFLoader().load("assets/boats/dutch_ship.glb", g => {
+    g.scene.traverse(o => { if(o.isMesh){ o.castShadow = true; o.receiveShadow = true;
+      const m = o.material; if(m && m.isMeshStandardMaterial){ m.envMapIntensity = .5; m.side = THREE.DoubleSide; } } });
+    BOAT_REAL.gltf = g; BOAT_REAL.waiting.splice(0).forEach(f => f()); }, undefined, e => DBG("boat model failed", e && e.message)); }
+  catch(e){ DBG("boat model unavailable", e && e.message); }
+}
+/* her sloop: photographed planks on the hull, deck and benches, a woven, weathered canvas sail */
+let _canvasTex = null;
+function canvasTex(){ if(_canvasTex) return _canvasTex;
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S; const x = c.getContext("2d"), d = x.createImageData(S, S);
+  const r = mulberry32(911);
+  for(let j=0;j<S;j++) for(let i=0;i<S;i++){
+    const w = ((i % 2) ^ (j % 2)) ? 1 : .975;                                 /* plain weave, fine */
+    const st = 1.0 - .035*Math.max(0, Math.sin(i*.021 + Math.sin(j*.017)*2.0)*Math.sin(j*.019 + 1.3));  /* faint water stains */
+    const n = .94 + r()*.08, v = 236*w*st*n;
+    const k = (j*S + i)*4; d.data[k] = v; d.data[k+1] = v*.965; d.data[k+2] = v*.90; d.data[k+3] = 255; }
+  x.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2.6); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (_canvasTex = t); }
+function realSloop(g){
+  if(!BUILD_TEX) return;
+  const plank = BUILD_TEX.planks.clone(), plankN = BUILD_TEX.planksN.clone(); [plank, plankN].forEach(t => { t.needsUpdate = true; t.repeat.set(.45, .45); });
+  g.traverse(o => { if(!o.isMesh || !o.material || o.material.isShaderMaterial || o.material.isMeshBasicMaterial) return;
+    const m = o.material; if(!m.isMeshStandardMaterial) return;
+    const geoUV = o.geometry && o.geometry.attributes.uv;
+    if(m.side === THREE.DoubleSide && g.userData.sail && (o === g.userData.sail.userData.main)){ m.map = canvasTex(); m.color.setRGB(.96, .94, .90); m.needsUpdate = true; return; }
+    if(geoUV){ m.map = plank; m.normalMap = plankN; m.color.lerp(new THREE.Color(1, .93, .84), .65); m.roughness = .82; m.needsUpdate = true; } });   /* the photo carries the wood colour */
+}
+/* hand a boat group its real ship: scale = metres of hull length wanted / the model's 24 u */
+function realBoat(g, len, keep){
+  if(!BOATSQ) return;
+  const hide = () => g.children.forEach(c => { if(!keep || !keep.includes(c)) c.visible = false; });
+  const add = () => { const m = BOAT_REAL.gltf.scene.clone(true), k = len/24;
+    m.scale.setScalar(k); m.rotation.y = Math.PI/2; m.position.y = -.35*k*2.0; m.userData.realBoat = 1;
+    hide(); g.add(m); g.userData.real = m; };
+  if(BOAT_REAL.gltf) add(); else BOAT_REAL.waiting.push(add);
+}
 function sailBoat(hullCol, sailCol, lamp){
   const g = new THREE.Group();
   const hull = inked(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI*2, Math.PI*.42, Math.PI*.58), hullCol, 1.2);
@@ -1874,6 +1920,8 @@ function sailBoat(hullCol, sailCol, lamp){
   sailPatch(1.2)(jib.userData.main.material);
   if(lamp){ const l = new THREE.Mesh(new THREE.SphereGeometry(.13,8,6), new THREE.MeshBasicMaterial({color:MOON}));
     l.position.set(0,4.5,.2); g.add(l); g.userData.lamp = l; }
+  realBoat(g, 22, g.userData.lamp ? [g.userData.lamp] : null);           /* a real ship at real size: ~22 u, 13 m on the waterline */
+  if(BOATSQ && g.userData.lamp) g.userData.lamp.position.set(0, 19.5, 0);   /* the riding light at the masthead */
   return g;
 }
 function sailFleet(scene, n, cfg, inside, P, lamps){
@@ -2019,14 +2067,23 @@ function skyDomeReal(top, mid, bot){
       uMoonPos:{value:new THREE.Vector3(0, 100, -300)}, uMoonR:{value:0}, uMoonCol:{value:C(MOON)}, uMoonAmt:{value:0},
       uCLit:{value:C(0xFFFFFF)}, uCDark:{value:C(0x8890A0)}, uStars:{value:0}, uTime:{value:0},
       uCover:{value:.4}, uCirrus:{value:.5}, uStorm:{value:0}, uPix:{value:.0015},
-      uWind:{value:new THREE.Vector2()}, uWind2:{value:new THREE.Vector2()}},
+      uWind:{value:new THREE.Vector2()}, uWind2:{value:new THREE.Vector2()},
+      uPhoto:{value:null}, uPhoto2:{value:null}, uPhotoAmt:{value:0}, uPhotoMix:{value:0}, uPhotoRot:{value:0}, uPhotoRot2:{value:0},
+      uPhotoGain:{value:1}, uPhotoTint:{value:C(0xFFFFFF)}},
     vertexShader:`varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position, 1.0); vW = w.xyz;
       gl_Position = projectionMatrix*viewMatrix*w; }`,
     fragmentShader:`uniform vec3 top, mid, bot; uniform float blend, flash;
       uniform vec3 uSunDir, uLDir, uSunCol, uFogCol, uMoonPos, uMoonCol, uCLit, uCDark;
       uniform float uSunAmt, uMoonR, uMoonAmt, uStars, uTime, uCover, uCirrus, uStorm, uPix;
       uniform vec2 uWind, uWind2;
+      uniform sampler2D uPhoto, uPhoto2; uniform float uPhotoAmt, uPhotoMix, uPhotoRot, uPhotoRot2, uPhotoGain; uniform vec3 uPhotoTint;
       varying vec3 vW;
+      /* a photographed sky: the upper half of an equirectangular pano, row 0 = horizon, row 1 = zenith */
+      vec3 skyPhoto(sampler2D tx, vec3 d, float rot){
+        float lat = asin(clamp(d.y, 0.0, 1.0));
+        vec2 uv = vec2(fract(atan(d.z, d.x)/6.2831853 + .5 + rot), clamp(lat/1.5707963, .002, .998));
+        return texture2D(tx, uv).rgb;
+      }
       ${SKY_NOISE}
       vec3 starL(vec3 d, float N, float seed){
         vec3 a = abs(d); vec2 uv; float fc;
@@ -2061,8 +2118,15 @@ function skyDomeReal(top, mid, bot){
         c *= mix(vec3(1.0), mix(vec3(.90, .93, 1.02), uSunCol*1.10, az), (1.0 - h)*.55*sunUp);
         float clear = 1.0 - .85*st;
         c += uSunCol*sunUp*(pow(mp, 6.0)*.14 + pow(mp, 64.0)*.40)*clear;
+        /* ---- a real photographed sky (Poly Haven CC0): clouds that are actual clouds ---- */
+        if(uPhotoAmt > .001){
+          vec3 ph = skyPhoto(uPhoto, d, uPhotoRot);
+          if(uPhotoMix > .001) ph = mix(ph, skyPhoto(uPhoto2, d, uPhotoRot2), uPhotoMix);
+          ph *= uPhotoGain*uPhotoTint;
+          c = mix(c, ph, uPhotoAmt*smoothstep(-.01, .05, y));
+        }
         /* ---- stars ---- */
-        if(uStars > .003 && y > 0.0){
+        if(uStars > .003 && y > 0.0 && uPhotoAmt < .5){
           vec3 s = starL(d, 60.0, 0.0);
           ${SKY_LITE ? "" : "s += starL(d, 130.0, 57.0)*.45;"}
           c += s*uStars*smoothstep(0.0, .22, y)*clear;
@@ -2085,9 +2149,9 @@ function skyDomeReal(top, mid, bot){
         }
         /* ---- sun disc (limb-darkened, under the clouds) ---- */
         float sa = length(d - uSunDir), sr = .0125;
-        float sd = smoothstep(sr + uPix*1.2, sr - uPix*1.2, sa);
+        float sd = smoothstep(sr + uPix*1.2, sr - uPix*1.2, sa)*(1.0 - uPhotoAmt);   /* the photo has its own sun */
         c += uSunCol*sd*(1.0 - .55*(1.0 - sqrt(max(0.0, 1.0 - sa*sa/(sr*sr)))))*5.0*sunUp*clear;
-        if(y > -.01){
+        if(y > -.01 && uPhotoAmt < .5){
           float yy = max(y, .012);
           float cov = clamp(uCover + st*.85, 0.0, 1.0);
           vec3 hzc = mix(bot, uFogCol, .6);
@@ -2138,9 +2202,21 @@ function skyDomeReal(top, mid, bot){
     side:THREE.BackSide, depthWrite:false});
   return {mesh:new THREE.Mesh(new THREE.SphereGeometry(600, 32, 20), m), mat:m};
 }
+/* Photographed skies (Poly Haven CC0 "puresky" panoramas, upper hemisphere only). SKY_PHOTO_SUN is where
+   the sun sits across each photo (0..1 of its width), measured offline, so the photo is turned until its
+   sun lines up with the game's own key light. ?skyphoto=<name> picks one for every island. */
+const SKY_PHOTO_SUN = {belfast_sunset:.678, industrial_sunset_02:.601, kloofendal_overcast:.579, kloppenheim_02:.599,
+  kloppenheim_06:.533, kloppenheim_07:.573, qwantani_night:.615, qwantani_sunset:.613, table_mountain_1:.634, wasteland_clouds:.597};
+const SKY_PHOTO_PICK = QS.get("skyphoto");
+let _skyTL = null;
+function skyPhotoTex(name){ _skyTL = _skyTL || new THREE.TextureLoader();
+  const t = _skyTL.load("assets/sky/" + name + "_puresky_up.jpg"); t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; t.anisotropy = 4; return t; }
 /* island setup: called once the island object exists */
 function skyRealInit(I, P){
   const U = I.sky.mat.uniforms; if(!U.uSunDir) return;
+  { const nm = SKY_PHOTO_PICK && SKY_PHOTO_SUN[SKY_PHOTO_PICK] != null ? SKY_PHOTO_PICK : null;
+    if(nm){ U.uPhoto.value = skyPhotoTex(nm); U.uPhoto2.value = skyPhotoTex(I.cfg.key === "sanity" ? "kloppenheim_07" : "kloofendal_overcast");
+      U.uPhotoAmt.value = 1; I.skyPhoto = {sun: SKY_PHOTO_SUN[nm], sun2: SKY_PHOTO_SUN[I.cfg.key === "sanity" ? "kloppenheim_07" : "kloofendal_overcast"]}; } }
   const cfg = I.cfg, key = cfg.key;
   if(I.moon) I.moon.children.forEach(o => o.visible = false);       /* drawn by the sky now, at the same place and size */
   if(I.stars) I.stars.visible = false;
@@ -2171,6 +2247,14 @@ function skyRealUpdate(I, dt, t){
   const sd = U.uSunDir.value;
   if(I.sunDir) sd.copy(I.sunDir); else if(I.sun) sd.copy(I.sun.position).sub(I.sun.target.position);
   if(sd.lengthSq() < 1e-6) sd.set(-.5, .8, .3); sd.normalize();
+  if(I.skyPhoto){ const su = Math.atan2(sd.z, sd.x)/(2*Math.PI) + .5;
+    U.uPhotoRot.value = I.skyPhoto.sun - su; U.uPhotoRot2.value = I.skyPhoto.sun2 - su;
+    const stp = Math.max(0, Math.min(1, I.dn ? I.dn.storm : U.blend.value)); U.uPhotoMix.value = Math.min(1, stp*1.4);
+    /* the photo keeps its clouds but takes the island's light: tinted toward this island's own sky, and
+       dimmed with it as Sanity's dial goes to night */
+    const R0 = I.skyR, zl = R0 ? R0.lum(U.mid.value) : .5;
+    U.uPhotoTint.value.copy(U.mid.value).lerp(U.bot.value, .5).multiplyScalar(1/Math.max(.05, R0 ? R0.lum(U.mid.value.clone().lerp(U.bot.value,.5)) : .5)).lerp(new THREE.Color(1,1,1), .55);
+    U.uPhotoGain.value = Math.max(.12, Math.min(.74, .10 + zl*.95)); }   /* photos are bright: under the bloom knee, never white */
   const ld = U.uLDir.value;
   if(R.night) ld.set(...I.cfg.moon.pos).sub(camera.position).normalize(); else ld.copy(sd);
   U.uFogCol.value.copy(I.scene.fog ? I.scene.fog.color : U.bot.value);
@@ -3195,6 +3279,7 @@ function preloadRigs(I){
   const names = new Set([I.W && I.W.rigName]);
   (I.npcs||[]).forEach(g => g.userData.R && names.add(g.userData.R.rigName));
   (I.creatures||[]).forEach(h => h.userData.R && names.add(h.userData.R.rigName));
+  if(I.quest && I.quest.horse && I.quest.horse.userData.R) names.add(I.quest.horse.userData.R.rigName);   /* the postman's horse */
   names.forEach(n => { if(n && RIGS[n] && !RIGS[n].gltf) loadRig(n); });
   /* ===================  TOWN'S CROWD PROXIES LOADED ON EVERY ISLAND  ===================
      Every island is built at boot (ISLANDS.forEach(buildIsland)), so a loadProxy() call sitting in
@@ -6334,6 +6419,7 @@ function makeBoat(wood, sailCol, scale){
   for(let i=0;i<sp.count;i++){ const x = sp.getX(i), y = sp.getY(i); sp.setZ(i, Math.sin((x/3.9+.5)*Math.PI)*.45*(1-(y/5.4+.5)*.3)); } sailG.computeVertexNormals();
   const cloth = inked(sailG, sailCol, 1.5, {side:THREE.DoubleSide}); cloth.rotation.y = Math.PI/2 + .3; cloth.position.set(.75, 5.0, 2.4); g.add(cloth); g.userData.sail = cloth;
   sailPatch(3.9)(cloth.userData.main.material);
+  const bodyN = g.children.length;          /* everything above is the toy hull: hidden when the real ship is aboard */
   const sig = new THREE.Mesh(new THREE.TorusGeometry(.55,.12,6,18,Math.PI*1.4), new THREE.MeshBasicMaterial({color:0x9B84DC})); sig.rotation.set(0, Math.PI/2 + .3, 1.1); sig.position.set(1.15, 5.2, 2.5); g.add(sig);
   /* Luna's bow figurehead: a crescent and two glassy butterfly wings, so her boat is identifiable
      before the camera gets close enough to read any HUD. */
@@ -6354,6 +6440,7 @@ function makeBoat(wood, sailCol, scale){
   const rudder = inked(new THREE.BoxGeometry(.12,1.6,.9), wood, 1.3); rudder.position.set(0, .3, 4.1); g.add(rudder);
   const tiller = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.6,6), toon(0x5E4630)); tiller.rotation.x = Math.PI/2; tiller.position.set(0, 1.3, 3.2); g.add(tiller);
   g.scale.setScalar(sc); g.userData.benchY = 1.44*sc; g.userData.benchZ = -1.9*sc;
+  if(BOATSQ) realSloop(g);   /* her own boat keeps its shape (a galleon at her scale is a toy); it gets real planking and real canvas */
   return g;
 }
 /* ---- static batching ----
@@ -6403,7 +6490,9 @@ const sailPatch = width => mat => { mat.userData.patches.push(["sail", sh => {
   SAIL_MATS.push(mat); return mat; };
 
 function mergeStatics(I, scene){
-  const skip = new Set([I.pickup, I.letterMesh, I.boat, I.door, I.W && I.W.group, I.sea, I.moon, I.rain, I.bow, I.beam && I.beam.target].filter(Boolean));
+  const skip = new Set([I.pickup, I.letterMesh, I.boat, I.door, I.W && I.W.group, I.sea, I.moon, I.rain, I.bow, I.beam && I.beam.target,
+                        I.quest && I.quest.horse].filter(Boolean));
+  (I.fleet||[]).forEach(b => skip.add(b));   /* boats bob: none of their parts may be baked into the static batch */   /* the postman's horse moves with him: baking it left him riding thin air */
   (I.gateMeshes||[]).forEach(m => skip.add(m)); (I.stones||[]).forEach(s => skip.add(s.mesh)); (I.moons||[]).forEach(m => skip.add(m));
   (I.creatures||[]).forEach(c => skip.add(c)); (I.npcs||[]).forEach(n => skip.add(n));
   /* the kickable props MUST stay out of the static batch. They were being baked into the world mesh
@@ -10304,7 +10393,7 @@ function islandUpdate(I, dt, t){
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
   I.sea.userData.mat.uniforms.t.value = t;
   I.moon.userData.halo.lookAt(camera.position);
-  I.boat.position.y = .1 + Math.sin(t*1.3)*.18; I.boat.rotation.z = Math.sin(t*.9)*.04;
+  I.boat.position.y = (BOATSQ ? -.72 : .1) + Math.sin(t*1.3)*.18;   /* a boat sits IN the water: a third of the hull below the line */ I.boat.rotation.z = Math.sin(t*.9)*.04;
   wadersUpdate(I, dt, t);
   if(I.water){ I.water.update(dt, t, I.seaY);
     /* the moored boat works at its line: a slow ring spreads from the hull every couple of seconds */
