@@ -371,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-17a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-17b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -4600,6 +4600,10 @@ function shoreMeadowPatch(sh, F, sandCol){
     .replace("#include <common>", "#include <common>\n" + SHORE_GLSL + "\nuniform sampler2D uShSand, uShSandN; uniform vec3 uShCol; float shK;")
     .replace("#include <color_fragment>", `#include <color_fragment>
       shK = shoreSandK(vShW) * (1.0 - smoothstep(4.0, 9.0, vShW.y));      /* up the foot of a coastal slope, never onto a hilltop */
+      shK = max(shK, (1.0 - smoothstep(-.04, .08, vShW.y)) * smoothstep(-10.0, -3.0, shoreSD(vShW.xz)));
+      /* the meadow slab's own low side wall along the old coastline stood 12 cm proud of the sand and drew a
+         thin dark line across the beach once the coast moved; near the sea that wall is not drawn */
+      if(vShW.y < .03 && shoreSD(vShW.xz) > -16.0 && abs(dot(normalize(vNormal), normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz))) < .6) discard;   /* where the meadow dips to the sand slab's level it IS sand: no green seam where the two cross */
       if(shK > .001){
         vec2 suv = vec2(vShW.x, -vShW.z) / ${SAND_TILE.toFixed(1)};
         vec3 sc = sRGBToLinear(texture2D(uShSand, suv)).rgb * uShCol;
@@ -4843,7 +4847,7 @@ function shoreRocks(scene, I, R, P, night){
 function shoreDuneGrass(scene, I, P, blocked){
   /* held back: on the beach the clumps read as dark square blocks and some stood in the water.
      ?dune=1 shows them for testing until they are fixed. */
-  if(QS.get("dune") !== "1") return;
+  if(QS.get("dune") === "0") return;
   if(!FINEGRASS || !I.shoreF) return;
   const POLY = I.cfg.poly, n = POLY.length, F = I.shoreF, seed = seedOf("dune:" + I.cfg.key) & 0xffff;
   const want = Math.round(n * (SHORE_PHONE ? 1.6 : 3.0)), M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
@@ -4857,7 +4861,7 @@ function shoreDuneGrass(scene, I, P, blocked){
     const d = -12 + Math.random()*14.5, s = (Math.random()-.5)*6;
     let x = POLY[i][0] + ox*d + oz*s, z = POLY[i][1] + oz*d - ox*s;
     const sd = F.sd(x, z);
-    if(sd > 2.4 || sd < -13) continue;
+    if(sd > .6 || sd < -13) continue;                                 /* never out on the wet sand or in the water */
     if(shVN(x/34, z/34, seed) < .48) continue;                        /* in patches */
     const sk = sd > 0 ? 1 : F.sandK(x, z);
     if(sk < .25 || (sd < 0 && Math.random() > sk*1.2) || (sd > 0 && Math.random() > .55)) continue;
@@ -4865,10 +4869,11 @@ function shoreDuneGrass(scene, I, P, blocked){
     const cl = 1 + (Math.random()*2|0);
     for(let j=0;j<cl && k<want;j++){
       const jx = x + (Math.random()-.5)*1.4, jz = z + (Math.random()-.5)*1.4;
-      q.setFromAxisAngle(up, Math.random()*Math.PI);
-      const hgt = .75 + Math.random()*.55, wd = .55 + Math.random()*.35;
+      q.setFromEuler(new THREE.Euler((Math.random()-.5)*.45, Math.random()*Math.PI, (Math.random()-.5)*.45));   /* blown about, never square to the ground */
+      const hgt = .55 + Math.random()*.55, wd = .22 + Math.random()*.20;
       sc.set(wd, hgt, wd*(.8 + Math.random()*.4));
-      pv.set(jx, I.height(jx, jz) + .01, jz);
+      const gy = I.height(jx, jz); if(gy < -.2 || !I.inside(jx, jz)) continue;
+      pv.set(jx, gy + .01, jz);
       M.compose(pv, q, sc); mesh.setMatrixAt(k, M);
       c.copy(gc).lerp(sand, .40 + Math.random()*.25).lerp(straw, Math.random()*.35).lerp(new THREE.Color(1,1,1), .62);
       mesh.setColorAt(k, c); k++;
@@ -10683,6 +10688,12 @@ function islandUpdate(I, dt, t){
       I.sun.intensity = O.key0*(1 - .74*k); if(I.hemiL) I.hemiL.intensity = O.hemi0*(1 + .45*k);
       fog.color.copy(O.fog0).lerp(O.grey, .55*k); fog.density = O.dens0*(1 + 1.3*k);
       const su = I.sea.userData.mat.uniforms; if(su.uFogCol){ su.uFogCol.value.copy(fog.color); su.uFogD.value = fog.density; }
+      /* the sea mirrors the sky it is under: grey cloud, not the sunset it was reflecting a minute ago */
+      if(su.uTop && su.uMid && su.uBot){
+        if(!O.sea) O.sea = [su.uTop.value.clone(), su.uMid.value.clone(), su.uBot.value.clone(), su.a.value.clone(), su.b.value.clone()];
+        su.uTop.value.copy(O.sea[0]).lerp(O.grey, .70*k); su.uMid.value.copy(O.sea[1]).lerp(O.grey, .70*k); su.uBot.value.copy(O.sea[2]).lerp(O.grey, .70*k);
+        su.a.value.copy(O.sea[3]).lerp(O.grey, .35*k).multiplyScalar(1 - .25*k); su.b.value.copy(O.sea[4]).lerp(O.grey, .40*k).multiplyScalar(1 - .25*k);   /* duller water under cloud */
+      }
       if(CUR === I){ try{ gradePass.uniforms.airCol.value.copy(fog.color); }catch(e){} }
       rainUpdate(I, dt, t, storm, [1.4, .6], 1 - .45*k, 0);
       if(su.uRain) su.uRain.value = storm; }
