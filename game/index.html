@@ -371,7 +371,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-17c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-17d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1901,6 +1901,142 @@ function realBoat(g, len, keep){
     hide(); g.add(m); g.userData.real = m; };
   if(BOAT_REAL.gltf) add(); else BOAT_REAL.waiting.push(add);
 }
+/* Her boat, made real (?herboat=varnish|weathered|paint while the owner picks a finish): a clinker-built
+   wooden sailing boat modelled plank by plank (eight lapped strakes a side), with keel and stem, ribs,
+   risers, thwarts, floorboards, gunwales, a transom with a hung rudder and tiller, and a wooden mast and
+   boom, all in photographed wood (Poly Haven CC0). Same length, same seat for her, same canvas sail,
+   figurehead and lanterns. Built once per boat as four merged meshes. */
+const HERBOAT = BOATSQ && ["varnish", "weathered", "paint"].includes(QS.get("herboat")) ? QS.get("herboat") : null;
+const DINGHY_SEAMS = {varnish:[105,241,377,513,649,785,920], weathered:[40,118,197,276,355,434,512,590,669,747,827,906,986]};
+let _dinghyTex = null;
+function dinghyTex(){ if(_dinghyTex) return _dinghyTex;
+  const L = new THREE.TextureLoader(), mk = (f, srgb) => { const t = L.load("assets/boats/" + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+  return (_dinghyTex = {varnish:mk("dinghy_varnish_diff.jpg", true), varnishN:mk("dinghy_varnish_nor.jpg"), weathered:mk("dinghy_weathered_diff.jpg", true),
+    weatheredN:mk("dinghy_weathered_nor.jpg"), paint:mk("dinghy_paint_diff.jpg", true)}); }
+const DINGHY = (() => {
+  const ZB = -4.45, ZT = 3.9, LEN = ZT - ZB, N = 8, LAP = .032, YF = .30;
+  const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a)/(b - a))); return t*t*(3 - 2*t); };
+  const B = u => u < .55 ? 1.72*Math.pow(Math.sin(Math.max(0, u)/.55*Math.PI/2), .72) : 1.72 - .44*sm(.55, 1, u);   /* half-beam at the sheer */
+  const S = u => u < .6 ? 1.05 + .72*Math.pow(1 - u/.6, 2) : 1.05 + .22*Math.pow((u - .6)/.4, 2);                       /* sheer: high bow */
+  const K = u => u < .22 ? -.45 + 1.25*Math.pow(1 - u/.22, 2) : u > .82 ? -.45 + .42*Math.pow((u - .82)/.18, 2) : -.45;  /* keel line with forefoot */
+  const sec = (u, t) => { const p = .6 + .4*(1 - sm(0, .4, u)), q = .8 + .2*sm(0, .4, u), a = t*Math.PI/2, b = B(u), s = S(u), k = K(u);
+    return [b*Math.pow(Math.sin(a), p), k + (s - k)*Math.pow(1 - Math.cos(a), q), ZB + u*LEN]; };
+  const nrm = (u, t) => { const e = .004, a = sec(u, Math.max(0, t - e)), b = sec(u, Math.min(1, t + e)), dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1;
+    return [dy/l, -dx/l]; };
+  const uAt = z => (z - ZB)/LEN;
+  const hwAt = (u, y) => { if(y <= K(u)) return 0; if(y >= S(u)) return B(u); let lo = 0, hi = 1;
+    for(let i=0;i<24;i++){ const m = (lo + hi)/2; if(sec(u, m)[1] < y) lo = m; else hi = m; } return sec(u, lo)[0]; };
+  return {ZB, ZT, LEN, N, LAP, YF, B, S, K, sec, nrm, uAt, hwAt};
+})();
+/* indexed grid (nu x nv) from f(i, j) -> [x, y, z, u, v] */
+function dGrid(nu, nv, f){ const P = [], U = [], I = [];
+  for(let i=0;i<=nu;i++) for(let j=0;j<=nv;j++){ const r = f(i, j); P.push(r[0], r[1], r[2]); U.push(r[3], r[4]); }
+  for(let i=0;i<nu;i++) for(let j=0;j<nv;j++){ const a = i*(nv + 1) + j, b = a + nv + 1; I.push(a, b, a + 1, b, b + 1, a + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2));
+  g.setIndex(I); g.computeVertexNormals(); return g; }
+function dMerge(list){ const P = [], Nn = [], U = [];
+  list.forEach(g => { const n = g.index ? g.toNonIndexed() : g; if(!n.attributes.normal) n.computeVertexNormals();
+    P.push(...n.attributes.position.array); Nn.push(...n.attributes.normal.array); U.push(...n.attributes.uv.array); });
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(Nn, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); g.computeBoundingSphere(); return g; }
+/* a straight box with its grain along its longest side, kept inside one plank of the photo */
+function dBox(cx, cy, cz, sx, sy, sz, W){ const g = new THREE.BoxGeometry(sx, sy, sz), p = g.attributes.position, n = g.attributes.normal, uv = g.attributes.uv;
+  const ax = sx >= sy && sx >= sz ? 0 : sy >= sz ? 1 : 2;
+  for(let i=0;i<p.count;i++){ const c = [p.getX(i), p.getY(i), p.getZ(i)], nn = [Math.abs(n.getX(i)), Math.abs(n.getY(i)), Math.abs(n.getZ(i))];
+    const nAx = nn[0] > .5 ? 0 : nn[1] > .5 ? 1 : 2, oth = [0, 1, 2].find(k => k !== ax && k !== nAx);
+    uv.setXY(i, (c[ax] + [cx, cy, cz][ax])/W.tile + cx*.7, W.vc + c[oth]/Math.max(.05, [sx, sy, sz][oth])*W.vh); }
+  g.translate(cx, cy, cz); return g; }
+/* a round spar along +y, grain along its length */
+function dSpar(r0, r1, h, W){ const g = new THREE.CylinderGeometry(r1, r0, h, 10, 6), p = g.attributes.position, uv = g.attributes.uv;
+  for(let i=0;i<p.count;i++) uv.setXY(i, p.getY(i)/W.tile, W.vc + (uv.getX(i) - .5)*W.vh*1.8); return g; }
+function realDinghy(g, bodyN){
+  const oldRudder = g.children[g.children.length - 2], oldTiller = g.children[g.children.length - 1];
+  const D = DINGHY, T = dinghyTex(), fin = HERBOAT, wood = fin === "weathered" ? "weathered" : "varnish";
+  const seamsH = DINGHY_SEAMS[fin === "varnish" ? "varnish" : "weathered"], seamsT = DINGHY_SEAMS[wood];
+  const plankTile = seams => .22/((seams[1] - seams[0])/1024);       /* world size of one texture tile: one plank of the photo ~ one strake */
+  const plankV = (seams, j) => { j = j % (seams.length - 1); return [1 - (seams[j] + 4)/1024, 1 - (seams[j + 1] - 4)/1024]; };
+  const tileH = plankTile(seamsH), tileT = plankTile(seamsT);
+  const W = (() => { const v = plankV(seamsT, 2); return {tile:tileT, vc:(v[0] + v[1])/2, vh:(v[0] - v[1])*.42}; })();
+  const hull = [], bottom = [], trim = [];
+  /* ---- the planking: strake k runs stem to transom, its lower edge lapped OVER the strake below ---- */
+  const NU = 56;
+  for(const s of [1, -1]) for(let k=0;k<D.N;k++){
+    const th = (k + 1)/D.N, tl = Math.max(0, k/D.N - (k ? .32/D.N : 0)), V = plankV(seamsH, k*5 + (s > 0 ? 0 : 3));
+    const off = (u, t) => k ? D.LAP*(1 - (t - tl)/(th - tl))*Math.min(1, D.B(u)/.45) : 0;
+    const pt = (u, t, o) => { const p = D.sec(u, t), n = D.nrm(u, t); return [s*(p[0] + n[0]*o), p[1] + n[1]*o, p[2]]; };
+    const geo = dGrid(NU, 4, (i, j) => { const u = i/NU, t = tl + (th - tl)*j/4, p = pt(u, t, off(u, t));
+      return [p[0], p[1], p[2], p[2]/tileH + k*.37 + (s > 0 ? 0 : .5), V[1] + (V[0] - V[1])*(j/4)]; });
+    (fin === "paint" && k < 2 ? bottom : hull).push(geo);
+    if(k) (fin === "paint" && k < 2 ? bottom : hull).push(dGrid(NU, 1, (i, j) => { const u = i/NU, p = pt(u, tl, j ? off(u, tl) : 0);   /* the plank's lower edge: the shadow line of a lap */
+      return [p[0], p[1], p[2], p[2]/tileH, V[1] + j*.006]; }));
+  }
+  /* ---- transom ---- */
+  { const sh = new THREE.Shape(), M = 16; for(let j=0;j<=M;j++){ const p = D.sec(1, j/M); j ? sh.lineTo(p[0], p[1]) : sh.moveTo(p[0], p[1]); }
+    for(let j=M;j>=0;j--){ const p = D.sec(1, j/M); sh.lineTo(-p[0], p[1]); }
+    const tg = new THREE.ExtrudeGeometry(sh, {depth:.08, bevelEnabled:false}), uv = tg.attributes.uv, p = tg.attributes.position;
+    for(let i=0;i<p.count;i++) uv.setXY(i, p.getX(i)/tileH, p.getY(i)/tileH*.5 + .3);
+    tg.translate(0, 0, D.ZT - .05); hull.push(tg); }
+  /* ---- keel and stem: one timber along the keel line and up the bow ---- */
+  { const path = []; for(let i=0;i<=40;i++){ const u = 1 - i/40; path.push([D.K(u) - .01, D.ZB + u*D.LEN]); }
+    path.push([1.4, D.ZB - .05], [2.08, D.ZB - .1]);
+    const ring = [[-.065, -.03], [.065, -.03], [.065, .13], [-.065, .13]], Lp = []; let acc = 0;
+    for(let i=0;i<path.length;i++){ if(i) acc += Math.hypot(path[i][0] - path[i-1][0], path[i][1] - path[i-1][1]); Lp.push(acc); }
+    trim.push(dGrid(path.length - 1, 4, (i, j) => { const a = path[Math.max(0, i - 1)], b = path[Math.min(path.length - 1, i + 1)];
+      let ty = b[0] - a[0], tz = b[1] - a[1]; const l = Math.hypot(ty, tz) || 1; ty /= l; tz /= l;
+      const ny = tz, nz = -ty, r = ring[j % 4];                    /* outward: down under the keel, forward on the stem */
+      return [r[0], path[i][0] + ny*r[1], path[i][1] + nz*r[1],
+        Lp[i]/W.tile, W.vc + (j/4 - .5)*W.vh*1.6]; })); }
+  /* ---- gunwales: a solid rail capping the top strake, inwale inside, rubbing strake outside ---- */
+  for(const s of [1, -1]){ const ring = [[-.11, -.10], [.06, -.10], [.06, .045], [-.11, .045]];
+    trim.push(dGrid(60, 4, (i, j) => { const u = .004 + .996*i/60, p = D.sec(u, 1), n = D.nrm(u, .97), r = ring[j % 4], nl = Math.hypot(n[0], n[1]) || 1;
+      return [s*(p[0] + n[0]/nl*r[0]), p[1] + r[1], p[2], p[2]/W.tile + (s > 0 ? 0 : .5), W.vc + (j/4 - .5)*W.vh*1.6]; })); }
+  /* ---- ribs (steamed frames) inside the planking, and a riser each side that carries the thwarts ---- */
+  for(let z = D.ZB + 1.0; z < D.ZT - .25; z += .46){ const u = D.uAt(z);
+    for(const s of [1, -1]) trim.push(dGrid(14, 4, (i, j) => { const t = .02 + .95*i/14, p = D.sec(u, t), n = D.nrm(u, t), c = [[-.006, -.03], [-.006, .03], [-.05, .03], [-.05, -.03]][j % 4];
+      return [s*(p[0] + n[0]*c[0]), p[1] + n[1]*c[0], p[2] + c[1], t*1.4/W.tile + z, W.vc + (j/4 - .5)*W.vh]; })); }
+  for(const s of [1, -1]) for(const y of [.70]) trim.push(dGrid(40, 4, (i, j) => { const u = .14 + .8*i/40, x = D.hwAt(u, y), c = [[-.035, -.04], [-.035, .04], [-.085, .04], [-.085, -.04]][j % 4];
+    return [s*(x + c[0]), y + c[1], D.ZB + u*D.LEN, (D.ZB + u*D.LEN)/W.tile + .2, W.vc + (j/4 - .5)*W.vh]; }));
+  /* ---- floorboards over a dark bilge, thwarts (hers at the original seat), a small foredeck ---- */
+  { const yB = D.YF - .05, sh = new THREE.Shape(), M = 30, pts = [];
+    for(let i=0;i<=M;i++){ const u = .12 + .82*i/M; pts.push([D.hwAt(u, yB) - .02, D.ZB + u*D.LEN]); }
+    pts.forEach((p, i) => i ? sh.lineTo(p[0], p[1]) : sh.moveTo(p[0], p[1])); for(let i=M;i>=0;i--) sh.lineTo(-pts[i][0], pts[i][1]);
+    const bg = new THREE.ShapeGeometry(sh); bg.rotateX(Math.PI/2); bg.translate(0, yB, 0);           /* shape y -> world z */
+    bg.computeVertexNormals(); g.add(Object.assign(new THREE.Mesh(bg, new THREE.MeshStandardMaterial({color:0x1E1712, roughness:.95, side:THREE.DoubleSide})), {name:"bilge"})); }
+  for(const xc of [-.5, -.25, 0, .25, .5]){ let z0 = null, z1 = null;
+    for(let i=0;i<=200;i++){ const u = i/200; if(D.hwAt(u, D.YF - .03) - .06 > Math.abs(xc) + .11){ const z = D.ZB + u*D.LEN; if(z0 === null) z0 = z; z1 = z; } }
+    if(z0 !== null){ z0 = Math.max(z0, D.ZB + .9); z1 = Math.min(z1, D.ZT - .35); trim.push(dBox(xc, D.YF - .02, (z0 + z1)/2, .22, .04, z1 - z0, W)); } }
+  [[-1.9, .79], [.6, .86], [2.55, .82]].forEach(([z, top]) => { const u = D.uAt(z), y = top - .035, hw = D.hwAt(u, y) - .03; trim.push(dBox(0, y, z, hw*2, .07, .30, W)); });
+  { const z1 = D.ZB + .95, u1 = D.uAt(z1), y = D.S(u1) - .05, sh = new THREE.Shape(); sh.moveTo(0, D.ZB + .05); sh.lineTo(D.B(u1)*.97, z1); sh.lineTo(-D.B(u1)*.97, z1); sh.closePath();
+    const fg = new THREE.ExtrudeGeometry(sh, {depth:.05, bevelEnabled:false}); fg.rotateX(Math.PI/2); { const p = fg.attributes.position, uv = fg.attributes.uv;
+      for(let i=0;i<p.count;i++){ uv.setXY(i, p.getZ(i)/W.tile, W.vc + p.getX(i)/2*W.vh); } } fg.translate(0, y + .05, 0); trim.push(fg); }
+  /* ---- mast, boom, rudder and tiller ---- */
+  { const m = dSpar(.095, .055, 8.05, W); m.translate(0, D.YF + 4.025, .6); trim.push(m); }
+  { const old = g.children[26]; if(old){ old.updateMatrix(); const b = dSpar(.06, .045, 4.4, W); b.applyMatrix4(old.matrix); trim.push(b); } }
+  { const sh = new THREE.Shape(), z0 = 0; sh.moveTo(z0, 1.38); sh.lineTo(z0 + .2, 1.38); sh.lineTo(z0 + .24, .35); sh.quadraticCurveTo(z0 + .78, .1, z0 + .74, -.55); sh.lineTo(z0 + .02, -.5); sh.closePath();
+    const rg = new THREE.ExtrudeGeometry(sh, {depth:.06, bevelEnabled:true, bevelThickness:.01, bevelSize:.01, bevelSegments:1}), p = rg.attributes.position, uv = rg.attributes.uv;
+    for(let i=0;i<p.count;i++) uv.setXY(i, p.getY(i)/W.tile, W.vc + p.getX(i)*W.vh);
+    rg.rotateY(-Math.PI/2); rg.translate(.03, 0, D.ZT + .05); trim.push(rg); }
+  { const tl = dSpar(.035, .03, 1.45, W); tl.rotateX(-Math.PI/2 - .05); tl.translate(0, 1.36, D.ZT - .55); trim.push(tl); }
+  /* ---- materials: photographed wood (or paint over it) ---- */
+  const nrmMap = fin === "varnish" ? T.varnishN : T.weatheredN, tNrm = wood === "varnish" ? T.varnishN : T.weatheredN;
+  const mat = (map, nmap, rough, col) => new THREE.MeshStandardMaterial({map, normalMap:nmap, normalScale:new THREE.Vector2(.9, .9), roughness:rough, metalness:0, color:col || 0xFFFFFF, side:THREE.DoubleSide});
+  const mHull = mat(T[fin], nrmMap, fin === "varnish" ? .42 : fin === "paint" ? .55 : .86), mTrim = mat(T[wood], tNrm, wood === "varnish" ? .40 : .86);
+  const add = (list, m, name) => { if(!list.length) return; const me = new THREE.Mesh(dMerge(list), m); me.name = name; me.castShadow = me.receiveShadow = true; g.add(me); };
+  add(hull, mHull, "planking"); add(bottom, mat(T.paint, T.weatheredN, .7, 0x8A3A2C), "bottom paint"); add(trim, mTrim, "timbers");
+  /* ---- rigging: two shrouds to the gunwales (the forestay and backstay are already aboard) ---- */
+  { const u = D.uAt(.85), rope = new THREE.MeshStandardMaterial({color:0x3B3128, roughness:.9});
+    for(const s of [1, -1]){ const a = new THREE.Vector3(0, 7.7, .6), b = new THREE.Vector3(s*(D.B(u) - .02), D.S(u) + .02, .85), d = b.clone().sub(a);
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, d.length(), 5), rope); r.position.copy(a).addScaledVector(d, .5); r.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); g.add(r); } }
+  /* the toy hull goes; the sail (now plain canvas), her figurehead, lamp and lanterns stay */
+  const sail = g.userData.sail; for(let i=0;i<bodyN;i++){ if(g.children[i] !== sail) g.children[i].visible = false; }
+  if(sail){ sail.children.forEach(c => { if(c !== sail.userData.main) c.visible = false; }); const m = sail.userData.main.material; if(m && m.isMeshStandardMaterial){ m.map = canvasTex(); m.color.setRGB(.96, .94, .90); m.needsUpdate = true; } }
+  [oldRudder, oldTiller].forEach(o => { if(o) o.visible = false; });
+  /* the bow lanterns sit on the new gunwale */
+  [4, 6].forEach(k => { const gl = g.children[bodyN + k], li = g.children[bodyN + k + 1]; if(!gl || !gl.isMesh) return;
+    const s = Math.sign(gl.position.x) || 1, u = D.uAt(gl.position.z); gl.position.set(s*(D.B(u) - .05), D.S(u) + .16, gl.position.z); if(li && li.isLight) li.position.copy(gl.position); });
+  g.userData.benchY = D.YF + .72; g.userData.dinghy = true;   /* her feet on the floorboards, hips on the thwart (same 0.49 rise as before) */
+  return D;
+}
 function sailBoat(hullCol, sailCol, lamp){
   const g = new THREE.Group();
   const hull = inked(new THREE.SphereGeometry(1, 12, 8, 0, Math.PI*2, Math.PI*.42, Math.PI*.58), hullCol, 1.2);
@@ -2207,14 +2343,17 @@ function skyDomeReal(top, mid, bot){
    sun lines up with the game's own key light. ?skyphoto=<name> picks one for every island. */
 const SKY_PHOTO_SUN = {belfast_sunset:.678, industrial_sunset_02:.601, kloofendal_overcast:.579, kloppenheim_02:.599,
   kloppenheim_06:.533, kloppenheim_07:.573, qwantani_night:.615, qwantani_sunset:.613, table_mountain_1:.634, wasteland_clouds:.597};
-const SKY_PHOTO_PICK = QS.get("skyphoto");
+/* the owner's pick (Oct 17 2026): A, kloppenheim_06, on every island but Sanity, which keeps its own night sky.
+   ?skyphoto=old brings back the drawn clouds; ?skyphoto=<name> tries another photo anywhere (Sanity included). */
+const SKY_PHOTO_Q = QS.get("skyphoto"), SKY_PHOTO_DEFAULT = "kloppenheim_06";
+const SKY_PHOTO_PICK = SKY_PHOTO_Q === "old" ? null : (SKY_PHOTO_Q && SKY_PHOTO_SUN[SKY_PHOTO_Q] != null ? SKY_PHOTO_Q : SKY_PHOTO_DEFAULT);
 let _skyTL = null;
 function skyPhotoTex(name){ _skyTL = _skyTL || new THREE.TextureLoader();
   const t = _skyTL.load("assets/sky/" + name + "_puresky_up.jpg"); t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; t.anisotropy = 4; return t; }
 /* island setup: called once the island object exists */
 function skyRealInit(I, P){
   const U = I.sky.mat.uniforms; if(!U.uSunDir) return;
-  { const nm = SKY_PHOTO_PICK && SKY_PHOTO_SUN[SKY_PHOTO_PICK] != null ? SKY_PHOTO_PICK : null;
+  { const nm = SKY_PHOTO_PICK && (SKY_PHOTO_Q === SKY_PHOTO_PICK || I.cfg.key !== "sanity") ? SKY_PHOTO_PICK : null;
     if(nm){ U.uPhoto.value = skyPhotoTex(nm); U.uPhoto2.value = skyPhotoTex(I.cfg.key === "sanity" ? "kloppenheim_07" : "kloofendal_overcast");
       U.uPhotoAmt.value = 1; I.skyPhoto = {sun: SKY_PHOTO_SUN[nm], sun2: SKY_PHOTO_SUN[I.cfg.key === "sanity" ? "kloppenheim_07" : "kloofendal_overcast"]}; } }
   const cfg = I.cfg, key = cfg.key;
@@ -6440,7 +6579,7 @@ function makeBoat(wood, sailCol, scale){
   const rudder = inked(new THREE.BoxGeometry(.12,1.6,.9), wood, 1.3); rudder.position.set(0, .3, 4.1); g.add(rudder);
   const tiller = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.6,6), toon(0x5E4630)); tiller.rotation.x = Math.PI/2; tiller.position.set(0, 1.3, 3.2); g.add(tiller);
   g.scale.setScalar(sc); g.userData.benchY = 1.44*sc; g.userData.benchZ = -1.9*sc;
-  if(BOATSQ) realSloop(g);   /* her own boat keeps its shape (a galleon at her scale is a toy); it gets real planking and real canvas */
+  if(BOATSQ){ if(HERBOAT) realDinghy(g, bodyN); else realSloop(g); }   /* ?herboat=<finish>: the real clinker boat; otherwise the sloop with real planking and canvas */
   return g;
 }
 /* ---- static batching ----
@@ -10393,7 +10532,7 @@ function islandUpdate(I, dt, t){
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
   I.sea.userData.mat.uniforms.t.value = t;
   I.moon.userData.halo.lookAt(camera.position);
-  I.boat.position.y = (BOATSQ ? -.72 : .1) + Math.sin(t*1.3)*.18;   /* a boat sits IN the water: a third of the hull below the line */ I.boat.rotation.z = Math.sin(t*.9)*.04;
+  I.boat.position.y = I.boat.userData.dinghy ? SEA_Y - .12 + Math.sin(t*1.3)*.06 : (BOATSQ ? -.72 : .1) + Math.sin(t*1.3)*.18;   /* the real boat rides low and only rocks at its mooring */   /* a boat sits IN the water: a third of the hull below the line */ I.boat.rotation.z = Math.sin(t*.9)*.04;
   wadersUpdate(I, dt, t);
   if(I.water){ I.water.update(dt, t, I.seaY);
     /* the moored boat works at its line: a slow ring spreads from the hull every couple of seconds */
@@ -11112,6 +11251,13 @@ function setSailTarget(key){
   const luna=key==="moon",a=sSea.userData.mat.uniforms.a.value,b=sSea.userData.mat.uniforms.b.value;
   a.setHex(luna?0x136F86:0x5AA0C8); b.setHex(luna?0x71DDD0:0x86C4E0);
   sSky.mat.uniforms.top.value.setHex(luna?0x172044:0x4A3A63); sSky.mat.uniforms.mid.value.setHex(luna?0x76529C:0xF0A56D); sSky.mat.uniforms.bot.value.setHex(luna?0x71D8D0:0xA8DCD8);
+  if(SKYQ && SKY_PHOTO_PICK && sSky.mat.uniforms.uPhoto){ const U = sSky.mat.uniforms;   /* the same photographed sky on the crossing (not the night crossing to the moon) */
+    if(!U.uPhoto.value) U.uPhoto.value = skyPhotoTex(SKY_PHOTO_PICK);
+    U.uPhotoAmt.value = luna ? 0 : 1; U.uPhotoMix.value = 0;
+    const sd = U.uSunDir.value, lum = c => c.r*.3 + c.g*.59 + c.b*.11, mb = U.mid.value.clone().lerp(U.bot.value, .5);
+    U.uPhotoRot.value = SKY_PHOTO_SUN[SKY_PHOTO_PICK] - (Math.atan2(sd.z, sd.x)/(2*Math.PI) + .5);
+    U.uPhotoTint.value.copy(mb).multiplyScalar(1/Math.max(.05, lum(mb))).lerp(new THREE.Color(1,1,1), .55);
+    U.uPhotoGain.value = Math.max(.12, Math.min(.74, .10 + lum(U.mid.value)*.95)); }
   sRoute.visible=true; sMoon.visible=true;
   const labels={hub:"Home Island",green:"Green",gr:"Good Riddance",sanity:"Sanity",town:"Town Square",moon:"Lala Luna Land"};
   $("sailDest").textContent=labels[key]||"Open Water";
