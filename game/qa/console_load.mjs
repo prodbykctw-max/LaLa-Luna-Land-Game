@@ -8,7 +8,7 @@ import { writeFileSync } from 'fs';
 const results = { runs: [] };
 for (const isl of ISLANDS) {
   const t0 = Date.now();
-  const H = await open({ island: isl, viewport: { width: 1100, height: 650 }, wait: 100, navigate: true, query: 'fps=1' });
+  const H = await open({ island: isl, viewport: { width: 1100, height: 650 }, wait: 100, navigate: true, query: 'fps=1' + (process.env.QX ? '&' + process.env.QX : '') });
   const page = H.page;
   const firstFrame = await page.waitForFunction(() => window.__T && window.__T.CUR && window.__T.CUR.W, null, { timeout: 90000 }).then(() => Date.now() - t0).catch(() => null);
   if (isl === 'hub') { await page.evaluate(() => { const b = document.getElementById('bBegin'); if (b) b.click(); }); }
@@ -30,5 +30,5 @@ for (const isl of ISLANDS) {
   console.error(`[console] ${isl}: errors=${[...new Set(H.log.errors)].length} warnings=${[...new Set(H.log.warnings)].length} failed=${H.log.failed.length} http>=400=${bad.length} firstFrame=${firstFrame}ms rig=${rigMs}ms`);
   await H.close();
 }
-writeFileSync(OUT + '/console_load.json', JSON.stringify(results, null, 1));
+writeFileSync(OUT + '/console_load' + (process.env.QX ? '_' + process.env.QX.replace(/\W/g, '') : '') + '.json', JSON.stringify(results, null, 1));
 out(results);
