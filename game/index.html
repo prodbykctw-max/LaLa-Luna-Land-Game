@@ -372,7 +372,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-18a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-18b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1529,13 +1529,13 @@ function builtMesh(geo, tex, ntex, col, night, rough){
   const m = new THREE.Mesh(geo, toon(new THREE.Color(col).multiplyScalar(night ? .5 : 1), {map:tex, normalMap:ntex, roughness:rough || .9}));
   m.castShadow = true; m.receiveShadow = true; return m;
 }
-/* ===================  REAL REPLACEMENTS  (?looks=new while the owner compares; the old look stays live until he picks)  ===================
+/* ===================  REAL REPLACEMENTS  (the default since 2026-10-18; ?looks=old shows the earlier pieces)  ===================
    The toy pieces the Oct 17 audit listed, rebuilt as the real things: the Town Square paved in stone with a
    carved stone fountain and running water, wooden market stalls under striped canvas, real beach umbrellas and
    towels, a sandcastle made of sand, plastered and tiled storefronts, a painted lighthouse with a lantern room,
    tide pools that are water. Every piece draws the same random numbers the old one did, so nothing else on
    the island moves. Textures: Poly Haven CC0 (assets/real2). */
-const LOOKS2 = QS.get("looks") === "new";
+const LOOKS2 = QS.get("looks") !== "old";   /* the real replacements are the default (picked 2026-10-18); ?looks=old brings back the earlier pieces */
 let _r2 = null;
 function R2(){ if(_r2) return _r2;
   const L = new THREE.TextureLoader(), mk = (f, srgb) => { const t = L.load("assets/real2/" + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
@@ -9129,7 +9129,7 @@ function buildIslandBody(cfg){
       const m = new THREE.Mesh(lg2, f.crater ? canyonMaterial(P, RLF ? RLF.hole : null)
               : photoHill ? withMacro(meadowMat(P.grass, {side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2}))
               : toon(P.grassDk, {side:THREE.DoubleSide, map:TEX.meadow}));
-      if(f.crater && LOOKS2 && ROCKQ){   /* ?looks=new: the strata are photographed rock, wrapped round the bowl, with the rust/cream bands as a soft tint */
+      if(f.crater && LOOKS2 && ROCKQ){   /* the strata are photographed rock, wrapped round the bowl, with the rust/cream bands as a soft tint */
         m.material.map = ROCK_TEX.strata; m.material.roughness = .94;
         m.material.userData.patches.push(["caltri", sh => {   /* projected from the sides and the top, so the layers lie level all round the bowl with no seam */
           sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vCtN;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvCtN = normalize(mat3(modelMatrix) * normal);");
@@ -9444,7 +9444,7 @@ function buildIslandBody(cfg){
        on the way to the bridge, after the misty-forest reference photo */
     const mossDk = 0x2E5238, mossLt = 0x4E7A52;
     const spC = {x:-4, z:27};
-    const arcCount = LOOKS2 ? 0 : 7;   /* ?looks=new: the coiled arcs (they read as a tangled claw) give way to fallen, mossy trunks */
+    const arcCount = LOOKS2 ? 0 : 7;   /* the coiled arcs (they read as a tangled claw) give way to fallen, mossy trunks */
     if(LOOKS2 && TREE_TEX){ const bark = r2Std(TREE_TEX.bark, TREE_TEX.barkN, 0xB8A890, .95), moss = r2Std(TREE_TEX.bark, TREE_TEX.barkN, 0x6E8A52, .98);
       [[-2, 0, 9.5, .62, .25, 1.0], [3.5, 4.5, 7.0, .48, -.6, .18], [-5, 7, 5.5, .4, 1.9, -.12]].forEach(([ox, oz, len, r, yaw, tilt]) => {
         const x = spC.x + ox, z = spC.z + oz, y = height(x, z);
@@ -9485,7 +9485,7 @@ function buildIslandBody(cfg){
       leaves.material = toon(0xffffff, {side:THREE.DoubleSide}); scene.add(leaves);
       for(let i=0;i<7;i++){ const t = i/6, rad = 7.2 - t*5.0, cy = height(spC.x, spC.z) + 1.2 + t*3.6, cz = spC.z - 7 + t*13;
         for(let k=0;k<5;k++){ const a = Math.PI*.2 + Math.random()*Math.PI*.6; const mx = spC.x + Math.cos(a)*rad*.98, my = cy + Math.sin(a)*rad*.98*.42, mz = cz + (Math.random()-.5)*.6;
-          if(DFOREST) DFOREST.bush(.30 + Math.random()*.25, mx, arcCount ? my - .2 : -400, mz);   /* no arcs (?looks=new): same draws, parked out of sight */
+          if(DFOREST) DFOREST.bush(.30 + Math.random()*.25, mx, arcCount ? my - .2 : -400, mz);   /* no arcs: same draws, parked out of sight */
           else { const cushion = inked(new THREE.SphereGeometry(.28+Math.random()*.3, 7, 5), Math.random()<.5?mossDk:mossLt, 1.1); cushion.scale.set(1.4,.6,1); cushion.position.set(mx, my, mz); if(arcCount) scene.add(cushion); }
           if(Math.random()<.6){ const lf = new THREE.Mesh(new THREE.PlaneGeometry(.5,.34), stdMat({color:0x4F8A5C, gradientMap:GRAD, side:THREE.DoubleSide})); lf.position.set(mx, my-.35, mz); lf.rotation.set(.4, Math.random()*6, 0); if(arcCount) scene.add(lf); } } }
       const mistTex = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const ctx = cv.getContext("2d"); const g = ctx.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,"rgba(255,255,255,.55)"); g.addColorStop(1,"rgba(255,255,255,0)"); ctx.fillStyle = g; ctx.fillRect(0,0,128,128); return new THREE.CanvasTexture(cv); })();
@@ -9974,7 +9974,7 @@ function buildIslandBody(cfg){
        several fish that happen to be near each other. */
     const loose = !!(c.fly || c.water || c.soar);
     const shoal = c.school ? {a: Math.random()*Math.PI*2, r: c.r[0]+Math.random()*(c.r[1]-c.r[0]), sp: c.sp[0]+Math.random()*(c.sp[1]-c.sp[0])} : null;
-    for(let i=0;i<c.n;i++){ const h = makeCreature(c.type); if(LOOKS2 && c.type === "jelly") h.visible = false;   /* ?looks=new: no jellyfish floating in the air over land */
+    for(let i=0;i<c.n;i++){ const h = makeCreature(c.type); if(LOOKS2 && c.type === "jelly") h.visible = false;   /* no jellyfish floating in the air over land */
       let a0 = Math.random()*Math.PI*2, r0 = c.r[0]+Math.random()*(c.r[1]-c.r[0]);
       if(!loose){ const hit = landOnBearing(I, a0, r0); if(hit){ a0 = hit[3]; r0 = hit[2]; h.userData.lx = hit[0]; h.userData.lz = hit[1]; } }
       if(!loose) groundShadow(h, c.shadow != null ? c.shadow : CREATURE_SHADOW[c.type] || .8);
