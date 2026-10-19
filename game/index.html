@@ -12198,13 +12198,22 @@ DBG("islands are built on demand");
 const PREP = {};
 let WARM_RT = null;
 function warmRange(I, a, b){
-  const kids = I.scene.children, vis = kids.map(o => o.visible), fc = [];
-  kids.forEach((o, i) => { if(o.isLight) return; if(i < a || i >= b){ o.visible = false; return; }
-    o.traverse(k => { if(k.frustumCulled){ fc.push(k); k.frustumCulled = false; } }); });
+  /* Only pieces a..b are drawn, but every light in the island must stay on while they are: a shader is built
+     for the exact number of lights in the scene, so hiding a group that holds a lamp or a lantern made every
+     shader here the wrong one and they were all built again on the first real frame. Out-of-range pieces hide
+     their meshes, not themselves, and a mesh that carries a light stays. In-range pieces show everything,
+     hidden things too (a pickup, a moon), so whatever can appear later is already built. Lights are never touched. */
+  const kids = I.scene.children, flips = [], fc = [];
+  const P = PREP[I.cfg.key] || (PREP[I.cfg.key] = {i:0, done:false, ms:0});
+  if(!P.lit){ P.lit = new Set(); I.scene.traverse(o => { if(o.isLight) for(let q = o.parent; q && q !== I.scene; q = q.parent) P.lit.add(q); }); }
+  const drawn = k => k.isMesh || k.isPoints || k.isLine || k.isSprite;
+  kids.forEach((o, i) => { if(o.isLight) return;
+    if(i >= a && i < b) o.traverse(k => { if(k.isLight) return; if(!k.visible){ flips.push(k); k.visible = true; } if(k.frustumCulled){ fc.push(k); k.frustumCulled = false; } });
+    else o.traverse(k => { if(drawn(k) && k.visible && !P.lit.has(k)){ flips.push(k); k.visible = false; } }); });
   if(!WARM_RT){ const src = composer.renderTarget1.texture; WARM_RT = new THREE.WebGLRenderTarget(8, 8, {type: src.type, format: src.format}); WARM_RT.texture.encoding = src.encoding; }
   const prev = renderer.getRenderTarget();
   try { renderer.setRenderTarget(WARM_RT); renderer.render(I.scene, camera); }
-  finally { renderer.setRenderTarget(prev); kids.forEach((o, i) => { o.visible = vis[i]; }); fc.forEach(k => { k.frustumCulled = true; }); }
+  finally { renderer.setRenderTarget(prev); flips.forEach(k => { k.visible = !k.visible; }); fc.forEach(k => { k.frustumCulled = true; }); }
 }
 function warmStep(I, budget){
   const P = PREP[I.cfg.key] || (PREP[I.cfg.key] = {i:0, done:false, ms:0});
