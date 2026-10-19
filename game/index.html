@@ -373,7 +373,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-18c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-19a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -1543,7 +1543,14 @@ function R2(){ if(_r2) return _r2;
   const F = {paving:["paving_diff.jpg", 1], pavingN:["paving_nor.jpg", 0], plaster:["plaster_grey.jpg", 1], plasterN:["plaster_nor.jpg", 0],
     roof:["rooftiles_diff.jpg", 1], roofN:["rooftiles_nor.jpg", 0], white:["whitewall_diff.jpg", 1], whiteN:["whitewall_nor.jpg", 0]}, C = {};
   return (_r2 = new Proxy(C, {get:(o, k) => k in o ? o[k] : F[k] ? (o[k] = mk(F[k][0], !!F[k][1])) : undefined})); }
-function r2Std(map, nmap, col, rough, extra){ const m = new THREE.MeshStandardMaterial(Object.assign({map, normalMap:nmap, color:col == null ? 0xFFFFFF : col, roughness:rough == null ? .9 : rough, metalness:0}, extra || {})); return m; }
+/* one material per distinct look, shared by every stall, umbrella and shop that uses it, so the town's props can be
+   merged into a handful of draw calls instead of a thousand (that many is what makes a phone stutter) */
+const _r2Mats = new Map(), R2_MERGE = [];
+function r2Std(map, nmap, col, rough, extra){
+  const key = [map ? map.uuid : 0, nmap ? nmap.uuid : 0, col == null ? "f" : new THREE.Color(col).getHexString(), rough, extra ? JSON.stringify(extra) : ""].join("|");
+  if(_r2Mats.has(key)) return _r2Mats.get(key);
+  const m = r2StdNew(map, nmap, col, rough, extra); _r2Mats.set(key, m); return m; }
+function r2StdNew(map, nmap, col, rough, extra){ const m = new THREE.MeshStandardMaterial(Object.assign({map, normalMap:nmap, color:col == null ? 0xFFFFFF : col, roughness:rough == null ? .9 : rough, metalness:0}, extra || {})); return m; }
 function r2Mesh(geo, mat){ const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; }
 /* striped awning / towel / umbrella cloth */
 const _r2cloth = new Map();
@@ -1591,7 +1598,8 @@ function r2Stall(scene, x, y, z, rotY, col){
   const cl = r2Std(r2Cloth(col, 8), null, 0xFFFFFF, .95, {side:THREE.DoubleSide});
   [-1, 1].forEach(s => { const a = r2Mesh(new THREE.PlaneGeometry(4.3, 1.65, 6, 2), cl); a.rotation.set(-Math.PI/2 + s*.36, 0, 0); a.position.set(0, 4.05 - .18, s*.78); g.add(a); });
   const fr = r2Mesh(new THREE.PlaneGeometry(4.3, .32), cl); fr.position.set(0, 3.55, 1.6); g.add(fr);    /* the valance along the front */
-  scene.add(g); return g;
+  g.traverse(o => { if(o.isMesh) camFadeWrap(o.material); });
+  scene.add(g); R2_MERGE.push(g); return g;
 }
 /* a beach umbrella: a ribbed canvas canopy in panels, a wooden pole, a little finial */
 function r2Umbrella(scene, x, y, z, col){
@@ -1602,7 +1610,8 @@ function r2Umbrella(scene, x, y, z, col){
   can.computeVertexNormals(); const c = r2Mesh(can, cl); c.position.y = 3.05; g.add(c);
   const pole = r2Mesh(new THREE.CylinderGeometry(.045, .055, 3.4, 8), r2Std(TREE_TEX.bark, TREE_TEX.barkN, 0xD8C4A8, .7)); pole.position.y = 1.7; g.add(pole);
   const fin = r2Mesh(new THREE.SphereGeometry(.09, 10, 8), r2Std(null, null, 0xD8C4A8, .5)); fin.position.y = 3.5; g.add(fin);
-  scene.add(g); return g;
+  g.traverse(o => { if(o.isMesh) camFadeWrap(o.material); });
+  scene.add(g); R2_MERGE.push(g); return g;
 }
 /* a sandcastle made of sand: bucket-moulded towers with crenels, a keep, a moat ring and a paper flag */
 function r2Sandcastle(scene, cx, cz, by){
@@ -1631,7 +1640,8 @@ function r2Store(scene, x, y, z, w, h, col, awnCol){
   const door = r2Mesh(boxUV(new THREE.BoxGeometry(1.9, 3.5, .14), 1.9, 3.5, .14, 1.6), r2Std(BUILD_TEX.planks, BUILD_TEX.planksN, 0x8C6644, .7)); door.position.set(-2.0, 1.75, 4.02); g.add(door);
   const dfr = r2Mesh(boxUV(new THREE.BoxGeometry(2.3, 3.8, .2), 2.3, 3.8, .2, 1.6), trim); dfr.position.set(-2.0, 1.85, 3.98); g.add(dfr);
   const aw = r2Mesh(new THREE.PlaneGeometry(w - 1.0, 3.0, 4, 1), r2Std(r2Cloth(awnCol, 12), null, 0xFFFFFF, .95, {side:THREE.DoubleSide})); aw.rotation.x = -Math.PI/2 + .38; aw.position.set(0, 4.55, 5.35); g.add(aw);
-  scene.add(g); return g;
+  g.traverse(o => { if(o.isMesh) camFadeWrap(o.material); });
+  scene.add(g); R2_MERGE.push(g); return g;
 }
 /* the lighthouse: a tapered white plastered tower with two red bands, a gallery and rail, a glazed lantern room */
 function r2Lighthouse(scene, x, base, z){
@@ -1647,6 +1657,7 @@ function r2Lighthouse(scene, x, base, z){
   for(let k=0;k<8;k++){ const a = k/8*Math.PI*2, m = r2Mesh(new THREE.BoxGeometry(.07, 1.5, .07), iron); m.position.set(Math.cos(a)*1.26, 11.9, Math.sin(a)*1.26); g.add(m); }
   const cap = r2Mesh(new THREE.ConeGeometry(1.55, 1.1, 24), iron); cap.position.y = 13.2; g.add(cap);
   const vent = r2Mesh(new THREE.SphereGeometry(.22, 10, 8), iron); vent.position.y = 13.85; g.add(vent);
+  g.traverse(o => { if(o.isMesh) camFadeWrap(o.material); });   /* like the posts and trees: it dissolves when it stands between the camera and her */
   scene.add(g); return g;
 }
 /* a lantern on a post: timber post and arm, an iron cage, a warm pane that is the light */
@@ -3478,6 +3489,9 @@ function makeLala(){
   lg.position.y = .02; R.lantern.add(lg);
   const lLight = new THREE.PointLight(0xFFE2A8, 0, 14); lLight.position.y = .3; R.lantern.add(lLight); R.lanternLight = lLight;
   R.lantern.position.set(.62,1.75,.25); R.lantern.visible = false; p.add(R.lantern);
+  /* at night, before she has her lantern, her dark clothes sank into the dark ground: a soft cool fill from
+     behind her shoulder (the side the camera sits on) keeps her readable without lighting up the night */
+  const fill = new THREE.PointLight(0xC9D6FF, 0, 9); fill.position.set(0, 2.5, -1.9); p.add(fill); R.fill = fill;
   const cr = new THREE.Mesh(new THREE.TorusGeometry(.3,.06,8,5), new THREE.MeshBasicMaterial({color:0xFFD37A}));
   cr.rotation.x = Math.PI/2; cr.position.y = 3.12; cr.visible = false; p.add(cr); R.crown = cr;
   R.primitive = [dress, torso, head, hair, brim, crown, band, ...R.legs, ...R.patches]; R.wearsHat = true;
@@ -5147,6 +5161,8 @@ function shoreMeadowPatch(sh, F, sandCol){
     .replace("#include <color_fragment>", `#include <color_fragment>
       shK = shoreSandK(vShW) * (1.0 - smoothstep(4.0, 9.0, vShW.y));      /* up the foot of a coastal slope, never onto a hilltop */
       shK = max(shK, (1.0 - smoothstep(-.04, .08, vShW.y)) * smoothstep(-10.0, -3.0, shoreSD(vShW.xz)));
+      { float up = dot(normalize(vNormal), normalize((viewMatrix*vec4(0., 1., 0., 0.)).xyz));
+        shK *= mix(smoothstep(.62, .84, up), 1.0, 1.0 - smoothstep(.10, .45, vShW.y)); }   /* sand does not lie on a steep face: the rock under it shows (the waterline itself stays sand) */
       /* the meadow slab's own low side wall along the old coastline stood 12 cm proud of the sand and drew a
          thin dark line across the beach once the coast moved; near the sea that wall is not drawn */
       if(vShW.y < .03 && shoreSD(vShW.xz) > -16.0 && abs(dot(normalize(vNormal), normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz))) < .6) discard;   /* where the meadow dips to the sand slab's level it IS sand: no green seam where the two cross */
@@ -7546,7 +7562,11 @@ function cueUpdate(I, dt, t){
       /* only cue a jump she can actually make: apex = v^2/2g with whatever boots she is wearing */
       const apex = Math.pow(JUMPV * ab.jumpMul, 2) / (2 * Math.abs(GRAV));
       const h = I.height(px, pz);
-      if(h - h0 > 2.2 && h - h0 < apex*.92){ mode = "jump"; cx = px; cz = pz; cy = h0; lift = 1.9; break; }
+      if(h - h0 > 2.2 && h - h0 < apex*.92){
+        /* a slope she can simply walk up is not a ledge: only cue the jump when the walker itself would refuse a step on the way */
+        let walk = true; for(let q = .35; q <= d + 1e-6 && walk; q += .35) walk = stepOK(I, W.x + hx*(q - .35), W.z + hz*(q - .35), W.x + hx*q, W.z + hz*q, true);
+        if(walk) continue;
+        mode = "jump"; cx = px; cz = pz; cy = h0; lift = 1.9; break; }
     }
   }
   if(mode !== C.mode){
@@ -8063,7 +8083,13 @@ function reliefBuild(o){
       if(d < PADR[3]){ if(padY == null){ padY = land(PADR[0], PADR[1], coastDist(PADR[0], PADR[1]), det(PADR[0], PADR[1], coastDist(PADR[0], PADR[1]))); }
         y += (padY - y)*(1 - rlSs(PADR[2], PADR[3], d)); } }
     return y; };
-  const full0 = (x, z, cd) => { const m = det(x, z, cd); return landP(x, z, cd, m) + (m > 0 ? rlMicro(x, z, s0)*m : 0); };
+  /* High ground used to run at full height right up to the grid's edge, 2.5 u from the water, and stop there in
+     mid-air. It now comes down to the shore over a band about as wide as it is high, so a hill that meets the sea
+     ends in a steep rock slope into the water (the relief paints rock where it is steep) and a low shore
+     barely changes. */
+  const coastFade = (y, cd) => { if(y <= .02 || cd > 22) return y;
+    const B = Math.min(18, Math.max(8, y)); return y*rlSs(0, B, cd - 1.2); };   /* steep enough to read as rock, never a sheer wall, and always several grid cells wide so a shore that runs across the grid does not come out as a zigzag */
+  const full0 = (x, z, cd) => { const m = det(x, z, cd); return coastFade(landP(x, z, cd, m) + (m > 0 ? rlMicro(x, z, s0)*m : 0), cd); };
 
   /* ---- Green's stream ---- the same meander the decor has always drawn, sampled finely */
   let ST = null;
@@ -8131,6 +8157,22 @@ function reliefBuild(o){
     if(!polyInside(inner, x, z)) continue;
     H[j*NX+i] = sampleV(x, z); T0[j*NX+i] = terr(x, z, coastDist(x, z));
   }
+  /* The grid stopped 2.5 u inside the coast while the walker's height ran on to the waterline, so wherever
+     high ground meets the sea (Lighthouse Rock above all) there was a strip she could stand on, and things
+     were planted on, with nothing drawn under it: boulders and a signpost hanging in the air, no cliff face.
+     One more ring of vertices now sits just past the grid's edge, under the sand and the water, so the
+     edge cells are drawn: low shores dip out of sight beneath the beach, high ground falls away as a rock
+     face, and the walker reads the same triangles. */
+  const RIM_Y = -.35;
+  const rimRing = (A, nx, nz, T) => { const add = [];
+    for(let j=0;j<nz;j++) for(let i=0;i<nx;i++){ const k = j*nx + i; if(A[k] === A[k]) continue;
+      let near = false; for(let b=-1;b<=1 && !near;b++) for(let a=-1;a<=1;a++){ const ii = i + a, jj = j + b;
+        if(ii < 0 || jj < 0 || ii >= nx || jj >= nz) continue; const v = A[jj*nx + ii]; if(v === v){ near = true; break; } }
+      if(near) add.push(k); }
+    for(const k of add){ A[k] = RIM_Y; if(T) T[k] = 0; } return add; };
+  const VX = new Float32Array(NX*NZ), VZ = new Float32Array(NX*NZ), MV = new Uint8Array(NX*NZ);
+  for(let j=0;j<NZ;j++) for(let i=0;i<NX;i++){ VX[j*NX+i] = x0 + i*S; VZ[j*NX+i] = z0 + j*S; }
+  rimRing(H, NX, NZ, T0);
   /* exact: the same two triangles per cell the mesh is drawn with, (a,d,b) and (b,d,e) */
   const tri = (A, nx, gx, gz, gs, ni, nj, x, z) => {
     const fi = (x - gx)/gs, fj = (z - gz)/gs, i = Math.floor(fi), j = Math.floor(fj);
@@ -8140,7 +8182,18 @@ function reliefBuild(o){
     const u = fi - i, v = fj - j;
     return u + v <= 1 ? a + (b - a)*u + (d - a)*v : e + (d - e)*(1 - u) + (b - e)*(1 - v);
   };
-  const atC = (x, z) => tri(H, NX, x0, z0, S, NX, NZ, x, z);
+  const triAt = (k0, k1, k2, x, z) => {                               /* one real triangle, or null if (x,z) is outside it */
+    const ax = VX[k0], az = VZ[k0], bx = VX[k1], bz = VZ[k1], cx = VX[k2], cz = VZ[k2];
+    const den = (bz - cz)*(ax - cx) + (cx - bx)*(az - cz); if(Math.abs(den) < 1e-9) return null;
+    const l0 = ((bz - cz)*(x - cx) + (cx - bx)*(z - cz))/den, l1 = ((cz - az)*(x - cx) + (ax - cx)*(z - cz))/den, l2 = 1 - l0 - l1;
+    if(l0 < -1e-6 || l1 < -1e-6 || l2 < -1e-6) return null; return l0*H[k0] + l1*H[k1] + l2*H[k2]; };
+  const cellAt = (i, j, x, z) => { if(i < 0 || j < 0 || i >= NX-1 || j >= NZ-1) return null;
+    const a = j*NX + i, b = a + 1, d = a + NX, e = d + 1; if(H[a] !== H[a] || H[b] !== H[b] || H[d] !== H[d] || H[e] !== H[e]) return null;
+    const v = triAt(a, d, b, x, z); return v !== null ? v : triAt(b, d, e, x, z); };
+  const atC = (x, z) => { const i = Math.floor((x - x0)/S), j = Math.floor((z - z0)/S);
+    if(i >= 0 && j >= 0 && i < NX-1 && j < NZ-1){ const a = j*NX + i; if(!MV[a] && !MV[a+1] && !MV[a+NX] && !MV[a+NX+1]){ const v = tri(H, NX, x0, z0, S, NX, NZ, x, z); if(v !== null) return v; } }
+    for(let b=-1;b<=1;b++) for(let a=-1;a<=1;a++){ const v = cellAt(i + a, j + b, x, z); if(v !== null) return v; }
+    return null; };
   /* A hill's gullies are a few units across - narrower than two coarse cells - so each hill gets a
      patch at half the spacing. The patch's outer ring takes the coarse grid's own interpolated
      values, so the two meet without a crack, and the coarse cells it covers are not drawn. */
@@ -8163,17 +8216,19 @@ function reliefBuild(o){
     /* a coarse cell is handed to the patch only if all nine of its fine samples exist */
     for(let j=j0;j<j1;j++) for(let i=i0;i<i1;i++){ let ok = true;
       for(let b=0;b<3 && ok;b++) for(let a2=0;a2<3;a2++){ const v = PH[((j-j0)*2 + b)*pnx + (i-i0)*2 + a2]; if(v !== v){ ok = false; break; } }
+      const kc = j*NX + i; if(MV[kc] || MV[kc+1] || MV[kc+NX] || MV[kc+NX+1]) ok = false;   /* a coastal cell is drawn by the coarse grid, on the shore */
       if(ok) rep[j*NX+i] = 1; }
     patches.push(P2);
   }
   const at = (x, z) => {
     for(const q of patches){ const i = Math.floor((x - x0)/S), j = Math.floor((z - z0)/S);
-      if(i >= q.i0 && i < q.i1 && j >= q.j0 && j < q.j1 && rep[j*NX+i]) return tri(q.PH, q.pnx, q.px0, q.pz0, PS, q.pnx, q.pnz, x, z); }
+      if(i >= q.i0 && i < q.i1 && j >= q.j0 && j < q.j1 && rep[j*NX+i]){ const v = tri(q.PH, q.pnx, q.px0, q.pz0, PS, q.pnx, q.pnz, x, z); if(v !== null) return v; } }
     return atC(x, z);
   };
   const y = (x, z, cd) => {
     if(ST){ const c = ST.q(x, z); if(c) return ST.carve(full0(x, z, cd), c); }
-    const g = at(x, z); return g !== null ? g : full0(x, z, cd);
+    const g = at(x, z); if(g !== null) return g;
+    return cd < 8 ? Math.min(0, full0(x, z, cd)) : full0(x, z, cd);   /* the odd undrawn cell in a tight bend of the coast is beach */
   };
 
   /* ---- colour and the rock / pebble-bed mask, shared by the grid and the channel mesh ---- */
@@ -8200,11 +8255,11 @@ function reliefBuild(o){
       const pos = [], idx = [], colA = [], rkA = [];
       const cT = new Float32Array(3), rT = new Float32Array(2);
       /* one grid into the shared buffers: A heights, T terrain-only (for the elevation tint), keep(i,j) = draw this cell */
-      const emit = (A, T, nx, nz, gx, gz, gs, keep) => {
+      const emit = (A, T, nx, nz, gx, gz, gs, keep, PX, PZ) => {
         const ix = new Int32Array(nx*nz).fill(-1);
         const hv = (i, j, k) => { if(i < 0 || j < 0 || i >= nx || j >= nz) return A[k]; const v = A[j*nx+i]; return v === v ? v : A[k]; };
         for(let j=0;j<nz;j++) for(let i=0;i<nx;i++){ const k = j*nx+i; if(A[k] !== A[k]) continue;
-          const x = gx + i*gs, z = gz + j*gs; ix[k] = pos.length/3; pos.push(x, A[k], z);
+          const x = PX ? PX[k] : gx + i*gs, z = PZ ? PZ[k] : gz + j*gs; ix[k] = pos.length/3; pos.push(x, A[k], z);
           const l = hv(i-1, j, k), r = hv(i+1, j, k), d = hv(i, j-1, k), u = hv(i, j+1, k);
           const sl = Math.hypot(r - l, u - d)/(2*gs), lap = (l + r + d + u - 4*A[k])/(gs*gs)*(gs/S);
           shade(T[k], sl, lap, wetBed(x, z, A[k])[0], cT, rT, 0, 0);
@@ -8213,7 +8268,7 @@ function reliefBuild(o){
           const a = ix[j*nx+i], b = ix[j*nx+i+1], d = ix[(j+1)*nx+i], e = ix[(j+1)*nx+i+1];
           if(a<0||b<0||d<0||e<0) continue; idx.push(a,d,b, b,d,e); }
       };
-      emit(H, T0, NX, NZ, x0, z0, S, (i, j) => !rep[j*NX+i]);
+      emit(H, T0, NX, NZ, x0, z0, S, (i, j) => !rep[j*NX+i], VX, VZ);
       for(const q of patches) emit(q.PH, q.PT, q.pnx, q.pnz, q.px0, q.pz0, PS, (ii, jj) => rep[(q.j0 + (jj >> 1))*NX + q.i0 + (ii >> 1)] === 1);
       const n = pos.length/3, col = new Float32Array(colA), rk = new Float32Array(rkA);
       if(!idx.length) return null;
@@ -8948,7 +9003,7 @@ function buildIslandBody(cfg){
        the sampled height fades to nothing over that same strip and she matches what is drawn. */
     const inn = inside(x, z), cd = coastDist(x, z);
     let y = inn ? terrainAt(cfg.key, x, z, TMAX) * Math.min(1, cd/SHORE_BLEND) : 0;
-    const rlf = !!(RLF && inn); if(rlf) y = RLF.y(x, z, cd);   /* TERRAINQ: the exact surface the relief mesh draws */
+    const rlf = !!(RLF && inn); if(rlf){ y = RLF.y(x, z, cd); if(cd < 6) y = Math.max(y, -.12); }   /* TERRAINQ: the exact surface the relief mesh draws; at the water's edge, where it dips under the beach, the sand */
     if(Math.abs(x-cfg.dock[0]) < 3 && Math.abs(z-cfg.dock[1]) < DOCK_LEN/2) y = Math.max(y, .75);   /* the dock planks are a deck, not a decal */
     for(const f of cfg.features){
       if(rlf && RLF.folds(f)) continue;                /* TERRAINQ: already in the grid */
@@ -8956,7 +9011,10 @@ function buildIslandBody(cfg){
       if(f.type === "hill" && d < f.r){
         let h = f.h*Math.pow(1-d/f.r, 1.35);
         if(f.crater && d < f.r*.28) h = f.h*Math.pow(1-.28, 1.35) - (f.r*.28-d)*.6;
+        if(f.crater && f.__exact && d < f.__exactR){ const v = f.__exact(x, z);   /* inside the bowl only the wall is drawn, so only the wall counts */
+          if(v !== null){ y = v; if(f.__lavaY != null && d < f.r*.26) y = Math.max(y, f.__lavaY); continue; } }
         y = Math.max(y, h);
+        if(f.crater && f.__lavaY != null && d < f.r*.26) y = Math.max(y, f.__lavaY);
       }
       /* ===============  A MESA WAS A STEP FUNCTION  ===============
          This was `if(d < f.r) y = max(y, f.h)` - inside the radius the ground jumps to full height,
@@ -8974,6 +9032,7 @@ function buildIslandBody(cfg){
          being a perfect disc. The phase is seeded from the feature's own name so it is the same
          mesa on every load, and the whole branch early-outs past 1.35r so this costs nothing for
          the rest of the island. */
+      if(f.type === "mesa" && f.__exact && d < f.__exactR){ const v = f.__exact(x, z); if(v !== null){ y = Math.max(y, v); continue; } }
       if(f.type === "mesa" && d < f.r*1.35){
         if(f.__ph == null) f.__ph = (seedOf((f.name || "") + f.x + "," + f.z) % 6283) / 1000;
         const ang = Math.atan2(z-f.z, x-f.x);
@@ -9118,6 +9177,7 @@ function buildIslandBody(cfg){
          so nothing can sit "inside" the slope any more */
       const pts = [new THREE.Vector2(f.r+.6, -.6)];
       for(let k=28;k>=0;k--){ const d = f.r*(k/28); pts.push(new THREE.Vector2(Math.max(d, .001), height(f.x + d, f.z) - .05)); }
+      if(f.crater){ f.__exact = null; f.__lavaY = null; }   /* a rebuild samples the formula again */
       const lg2 = TERRAINQ && f.crater ? rlRadial(height, f) : new THREE.LatheGeometry(pts, 48);   /* TERRAINQ: sampled at every bearing, not spun from one */
       /* ?ground=real: same overlap as the mesa below - the lathe and the terrain mesh are both sampled
          from the ground, so the hill takes the photo meadow on the terrain's world-planar uv */
@@ -9140,6 +9200,22 @@ function buildIslandBody(cfg){
     diffuseColor *= mapTexelToLinear(texelColor); }
 #endif`); }]);
         m.material.needsUpdate = true; }
+      if(f.crater && TERRAINQ){
+        /* the bowl's rings are metres apart at the rim, so between them the drawn wall and the cone formula
+           parted by ~0.4 u; inside the part of the bowl only the wall draws, she walks the wall's own triangles */
+        const P = lg2.attributes.position.array, SEG = 96, RN = 44, TWO = Math.PI*2;
+        const triY = (k0, k1, k2, x, z) => { const ax = P[k0*3], az = P[k0*3+2], bx = P[k1*3], bz = P[k1*3+2], cx = P[k2*3], cz = P[k2*3+2];
+          const den = (bz - cz)*(ax - cx) + (cx - bx)*(az - cz); if(Math.abs(den) < 1e-9) return null;
+          const l0 = ((bz - cz)*(x - cx) + (cx - bx)*(z - cz))/den, l1 = ((cz - az)*(x - cx) + (ax - cx)*(z - cz))/den, l2 = 1 - l0 - l1;
+          if(l0 < -1e-5 || l1 < -1e-5 || l2 < -1e-5) return null; return l0*P[k0*3+1] + l1*P[k1*3+1] + l2*P[k2*3+1]; };
+        f.__exactR = f.r*.78;
+        f.__exact = (x, z) => { const lx = x - f.x, lz = z - f.z, d = Math.hypot(lx, lz); if(d >= f.__exactR) return null;
+          let a = Math.atan2(lz, lx); if(a < 0) a += TWO;
+          const ri0 = Math.min(RN, Math.floor(RN*Math.pow(d/f.r, 1/.9))), si0 = Math.floor(a/TWO*SEG) % SEG;
+          for(const dr of [0, -1, 1]) for(const ds of [0, -1, 1]){ const ri = ri0 + dr; if(ri < 0 || ri > RN) continue; const si = (si0 + ds + SEG) % SEG;
+            const a0 = ri*SEG + si, a1 = ri*SEG + (si+1)%SEG, b0 = a0 + SEG, b1 = a1 + SEG;
+            let v = triY(a0, b1, b0, lx, lz); if(v === null) v = triY(a0, a1, b1, lx, lz); if(v !== null) return v + .05; }
+          return null; }; }
       if(f.crater){ const sr = canyonStripes(lg2, f.h); if(m.material.userData.st){ m.material.userData.st.value.set(sr.ymin, sr.span, f.x, f.z); m.material.userData.soft.value = LOOKS2 && ROCKQ ? 1 : 0; } I.noGrass.push({x:f.x, z:f.z, r:f.r, keep:(x, z) => !RLF || rhKeepJS(RLF.hole, x, z) < -.08}); }   /* bare rock: no meadow clumps poking through the strata; grass only where the meadow takes the ground back */
       m.position.set(f.x, 0, f.z); m.userData.ground = true; scene.add(m);   /* a hill IS the ground */
       if(f.crater){
@@ -9148,7 +9224,7 @@ function buildIslandBody(cfg){
            oil-slick spectrum, so it reads as the iridescent light in her ceiling-fan reference
            rather than as lava. ?holo=0 turns it back into the flat disc. */
         const lava = new THREE.Mesh(new THREE.CircleGeometry(f.r*.26, 48), holoFire());
-        lava.rotation.x = -Math.PI/2; lava.position.set(f.x, height(f.x,f.z)+.15, f.z); scene.add(lava);
+        lava.rotation.x = -Math.PI/2; lava.position.set(f.x, height(f.x,f.z)+.15, f.z); scene.add(lava); f.__lavaY = lava.position.y;   /* she walks on the glow, not knee-deep in it */
         const lg = new THREE.PointLight(0xFF8A4A, 1.6, 40); lg.position.set(f.x, height(f.x,f.z)+4, f.z); scene.add(lg);
       }
     } else {
@@ -9210,6 +9286,7 @@ function buildIslandBody(cfg){
       const pos = [], uv = [], col = [], idx = [];
       const acc = new Float32Array(SEG);                 /* arc length outward, per bearing */
       const pvx = new Float32Array(SEG), pvy = new Float32Array(SEG), pvz = new Float32Array(SEG);
+      f.__exact = null;                                  /* a rebuild samples the formula again, never the last mesh */
       const y0 = height(f.x, f.z), EPS = 1.1, vc = new THREE.Color();
       for(let ri=0; ri<=RINGS; ri++){
         const rr = f.r * ringT(ri / RINGS);
@@ -9255,6 +9332,23 @@ function buildIslandBody(cfg){
       mg.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
       mg.setIndex(idx);
       mg.computeVertexNormals();
+      /* From here on she walks on the triangles that are drawn, not on the formula they were sampled from.
+         The rings are a few units apart round a cliff full of ledges and cuts, and between them the formula
+         and the mesh parted by up to 1.8 u: boots sunk into the rock in one place, standing on air in the next. */
+      { const P = pos, TWO = Math.PI*2;
+        const triY = (k0, k1, k2, x, z) => { const ax = P[k0*3], az = P[k0*3+2], bx = P[k1*3], bz = P[k1*3+2], cx = P[k2*3], cz = P[k2*3+2];
+          const den = (bz - cz)*(ax - cx) + (cx - bx)*(az - cz); if(Math.abs(den) < 1e-9) return null;
+          const l0 = ((bz - cz)*(x - cx) + (cx - bx)*(z - cz))/den, l1 = ((cz - az)*(x - cx) + (ax - cx)*(z - cz))/den, l2 = 1 - l0 - l1;
+          if(l0 < -1e-5 || l1 < -1e-5 || l2 < -1e-5) return null; return l0*P[k0*3+1] + l1*P[k1*3+1] + l2*P[k2*3+1]; };
+        f.__exactR = RMAX*.995;
+        f.__exact = (x, z) => { const lx = x - f.x, lz = z - f.z, t = Math.hypot(lx, lz)/f.r; if(t*f.r >= f.__exactR) return null;
+          let a = Math.atan2(lz, lx); if(a < 0) a += TWO;
+          const kk = t < .64 ? t/.64*.25 : t < .90 ? .25 + (t - .64)/.26*.5 : .75 + (t - .90)/.44*.25;
+          const ri0 = Math.min(RINGS - 1, Math.floor(kk*RINGS)), si0 = Math.floor(a/TWO*SEG) % SEG;
+          for(const dr of [0, -1, 1]) for(const ds of [0, -1, 1]){ const ri = ri0 + dr; if(ri < 0 || ri >= RINGS) continue; const si = (si0 + ds + SEG) % SEG;
+            const a0 = ri*SEG + si, a1 = ri*SEG + (si+1)%SEG, b0 = (ri+1)*SEG + si, b1 = (ri+1)*SEG + (si+1)%SEG;
+            let v = triY(a0, b0, b1, lx, lz); if(v === null) v = triY(a0, b1, a1, lx, lz); if(v !== null) return v + .05; }
+          return null; }; }
       const mex = {map: f.ink ? TEX.bed : (stoneOnly ? TEX.rock : TEX.meadow),
                    side:THREE.DoubleSide, roughness:1, vertexColors:true};
       if(f.ink && ROCKQ){ mex.map = ROCK_TEX.strata; mex.normalMap = ROCK_TEX.strataN; mex.roughness = .93; }
@@ -9511,7 +9605,7 @@ function buildIslandBody(cfg){
     if(LOOKS2){ r2Lighthouse(scene, lhx, base, lhz); const core = new THREE.Mesh(new THREE.SphereGeometry(.45,12,10), new THREE.MeshBasicMaterial({color:0xFFF2CF})); core.position.set(lhx, base+11.9, lhz); scene.add(core); }
     else { const tower = ROCKQ ? stoneMesh(new THREE.CylinderGeometry(1.6,2.2,11,28,6), P.stone, 4, 4, true) : inked(new THREE.CylinderGeometry(1.6,2.2,11,12), P.stone, 2.0); tower.position.set(lhx, base+5.5, lhz); scene.add(tower);
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(1.2,12,10), new THREE.MeshBasicMaterial({color:MOON})); lamp.position.set(lhx, base+11.6, lhz); scene.add(lamp); }
-    const beam = new THREE.SpotLight(0xFFF0C0, 2.2, 160, .35, .5); beam.position.set(lhx, base+11.6, lhz); scene.add(beam);
+    const beam = new THREE.SpotLight(0xFFF0C0, 2.2, 160, .13, .5);   /* as narrow as the cone you can see, so it never paints a hard ellipse on the grass round the tower */ beam.position.set(lhx, base+11.6, lhz); scene.add(beam);
     beam.target.position.set(lhx+40, 0, lhz); scene.add(beam.target); I.beam = beam; I.beamC = [lhx, lhz];
     /* the beam you can SEE: a long soft cone of light in the air, swept round with the lamp. It shows
        in the haze, which is the REANIMAL shot - one cold light carving through fog. */
@@ -9759,6 +9853,7 @@ function buildIslandBody(cfg){
       const p = inked(new THREE.CylinderGeometry(.16,.2,2.4,6), P.wood, 1.4); p.position.set(x+ox, height(x+ox,z)+1.4, z); scene.add(p);
       const l = new THREE.Mesh(new THREE.SphereGeometry(.42,10,8), new THREE.MeshBasicMaterial({color:MOON})); l.position.set(x+ox, height(x+ox,z)+2.9, z); scene.add(l); }); }
   if(LANTERNS.length) mergeByMaterial(scene, LANTERNS);
+  if(R2_MERGE.length) mergeByMaterial(scene, R2_MERGE.splice(0));   /* the town's stalls, umbrellas and shops: same look, few draw calls */
 
   /* hub castle */
   if(cfg.hub){
@@ -9895,7 +9990,7 @@ function buildIslandBody(cfg){
 
   /* moons */
   I.moons = [];
-  { const geo = new THREE.SphereGeometry(.42,14,12), mat = toon(MOON, {emissive:MOON, emissiveIntensity:.45});
+  { const geo = new THREE.SphereGeometry(.42,14,12), mat = camFadeWrap(toon(MOON, {emissive:MOON, emissiveIntensity:.45}));   /* a moon right in front of the lens dissolves instead of filling the screen */
     const spots = [];
     for(let i=0;i<18;i++){ const s = sample(10,58,false); if(s) spots.push([s[0],s[1],1.4]); }
     cfg.features.forEach(f => { for(let i=0;i<5;i++){ const a = (i/5)*Math.PI*2; spots.push([f.x+Math.cos(a)*f.r*.45, f.z+Math.sin(a)*f.r*.45, 1.6]); } });
@@ -10781,6 +10876,7 @@ function walkerUpdate(I, dt, t){
     if(W.model) f.rotation.z = (i?1:-1)*(W.gliding ? 1.6 : .9) + Math.sin(t*3+i)*.05;
     else f.rotation.z = (i?1:-1)*(W.gliding ? 1.25 : .5) + Math.sin(t*3+i)*.05; });
   W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? 1.6 + 1.6*(CUR && CUR.dn ? CUR.dn.mix : (CUR && CUR.dark ? 1 : 0)) : 0;
+  if(W.fill) W.fill.intensity = ab.lantern ? 0 : .85*(CUR && CUR.dn ? CUR.dn.mix : (CUR && CUR.dark ? 1 : 0));
 
   updateCamera(I, dt, mag > .08 ? curSpeed : 0);
 }
@@ -11342,8 +11438,9 @@ function islandUpdate(I, dt, t){
   I.stones.forEach(s => s.mesh.visible = ab.lantern);
   I.gateMeshes.forEach(m => m.visible = !ab.gateOpen);
   if(I.beam){ const bc = I.beamC || [-30, -25], ba = t*.4;
-    I.beam.target.position.set(bc[0] + Math.cos(ba)*60, 0, bc[1] + Math.sin(ba)*60);
-    if(I.beamCone){ I.beamCone.lookAt(bc[0] + Math.cos(ba)*60, I.beamCone.position.y - 9, bc[1] + Math.sin(ba)*60); } }
+    const by = I.beam.position.y - 4;                                  /* out toward the horizon, the way a lighthouse sweeps, not down onto its own rock */
+    I.beam.target.position.set(bc[0] + Math.cos(ba)*60, by, bc[1] + Math.sin(ba)*60);
+    if(I.beamCone){ I.beamCone.lookAt(bc[0] + Math.cos(ba)*60, by, bc[1] + Math.sin(ba)*60); } }
   if(cfg.hub){ const all = G.letters.every(Boolean);
     /* ===================  A CRASH ONLY A LONG SESSION SEES  ===================
        qa/traversal.mjs, 2026-09-12: 3x "Cannot read properties of undefined (reading 'setHex')" over a
