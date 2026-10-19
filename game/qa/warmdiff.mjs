@@ -16,6 +16,7 @@ const r = await H.page.evaluate(async (TGT) => {
     if (sawBlack && k === TGT && !black) break;
   }
   for (let i = 0; i < 6; i++) await new Promise(res => requestAnimationFrame(res));
+  if (!before) return { neverLanded: true, cur: T.CUR && T.CUR.cfg && T.CUR.cfg.key, black: fade.classList.contains('on'), secs: Math.round((performance.now() - t0) / 1000) };
   const set = new Set(before), added = T.renderer.info.programs.filter(p => !set.has(p.cacheKey));
   /* which materials in the island use the new programs */
   const props = T.renderer.properties, who = [];
@@ -27,5 +28,5 @@ const r = await H.page.evaluate(async (TGT) => {
     return best ? a.map((v, i) => v !== best[i] ? i + ':' + best[i] + '->' + v : null).filter(Boolean).join(' ') : 'no match ' + a.length; });
   return { lightsBefore, lightsAfter: lights(), hasProps: !!(props && props.get), diffs, before: before && before.length, after: T.renderer.info.programs.length, added: added.map(p => p.name + ' #' + p.id), who: [...new Set(who)].slice(0, 60) };
 }, tgt);
-console.log(JSON.stringify(r, null, 1));
+console.log(JSON.stringify(r, null, 1)); console.log('errors', JSON.stringify(H.log.errors.slice(0, 5)));
 await H.close();
