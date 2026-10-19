@@ -24,7 +24,7 @@ export function ensureTestBuild(){
   const selfPath = new URL(import.meta.url).pathname;
   const newest = Math.max(statSync(src).mtimeMs, statSync(selfPath).mtimeMs);
   if(existsSync(dst) && statSync(dst).mtimeMs >= newest) return;
-  const hook = "window.__T = {tryJump, canStand, guideUpdate, objectiveOf, ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat, goSail, nearest, interact, objectiveOf, qGet, PROXIES, RIGS, hatPhysics, cutPlay, cutEnd, cutUpdate, qNum, dissolveAway, dissolveUpdate, dissolveCount: () => DISSOLVING.length, walkerUpdate, stepOK, tooSteep, audioInit, introPlay, musSetIsland, ov, get AU(){return AU;}, get MUS(){return MUS;}, keys, setJoy: (x,y) => { joy.x = x; joy.y = y; }};\nwindow.__goKeep = goKeep; window.__presentKeep = () => present(keep); window.__MODE = () => MODE;\nwindow.__keepState = () => ({bookRead, bubblesVisible: bubbles.filter(b=>b.visible).length, fifthVisible: bookG.userData.fifth.visible, glow: bookG.userData.glow.material.opacity, popped});\nwindow.__KW = KW; window.__outfitFor = outfitFor; window.__sizeOf = ty => (CREATURE_SHADOW[ty] != null ? CREATURE_SHADOW[ty] : .8);";
+  const hook = "window.__T = {tryJump, canStand, guideUpdate, objectiveOf, ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat, goSail, nearest, interact, objectiveOf, qGet, PROXIES, RIGS, hatPhysics, cutPlay, cutEnd, cutUpdate, qNum, dissolveAway, dissolveUpdate, dissolveCount: () => DISSOLVING.length, walkerUpdate, stepOK, tooSteep, audioInit, introPlay, musSetIsland, ov, get AU(){return AU;}, get MUS(){return MUS;}, keys, setJoy: (x,y) => { joy.x = x; joy.y = y; }};\nwindow.__prep = typeof islandStepper !== 'undefined' ? {islandStepper, ISL_STEPPER, ISL_BUILT, PREP, islandReady, warmStep, ISLANDS} : null;\nwindow.__goKeep = goKeep; window.__presentKeep = () => present(keep); window.__MODE = () => MODE;\nwindow.__keepState = () => ({bookRead, bubblesVisible: bubbles.filter(b=>b.visible).length, fifthVisible: bookG.userData.fifth.visible, glow: bookG.userData.glow.material.opacity, popped});\nwindow.__KW = KW; window.__outfitFor = outfitFor; window.__sizeOf = ty => (CREATURE_SHADOW[ty] != null ? CREATURE_SHADOW[ty] : .8);";
   const txt = readFileSync(src, 'utf8'); if(txt.includes('window.__T = {')) { writeFileSync(dst, txt); return; }
   /* index.html has more than one top-level "})();" — the hook must go in the LAST one (the game's IIFE),
      not the first, or it lands in a scope where ISL/goIsland do not exist and __T never appears. */
@@ -50,9 +50,10 @@ export async function open(opts = {}) {
     : { viewport: opts.viewport || { width: 1280, height: 720 } };
   const context = await browser.newContext(ctxOpts);
   const page = await context.newPage();
+  if (opts.init) await page.addInitScript(opts.init);   /* runs in the page before any of its scripts */
   const log = { errors: [], warnings: [], failed: [], requests: [] };
   page.on('pageerror', e => log.errors.push('PAGEERROR: ' + e.message));
-  page.on('console', m => { const t = m.type(); if (t === 'error') log.errors.push(m.text().slice(0, 400)); else if (t === 'warning') log.warnings.push(m.text().slice(0, 400)); });
+  page.on('console', m => { const t = m.type(); if (t === 'error') log.errors.push(m.text().slice(0, 400)); else if (t === 'warning') log.warnings.push(m.text().slice(0, 400)); else if (t === 'log' && m.text().startsWith('[lala]')) (log.info = log.info || []).push(m.text().slice(0, 300)); });
   page.on('requestfailed', r => log.failed.push({ url: r.url(), err: r.failure() && r.failure().errorText }));
   page.on('response', async r => { try { const h = r.headers(); log.requests.push({ url: r.url(), status: r.status(), len: +(h['content-length'] || 0), type: h['content-type'] || '' }); } catch (e) { } });
   const base = `http://localhost:${port}/${opts.file || 'index_test.html'}`;
