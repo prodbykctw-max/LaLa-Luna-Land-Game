@@ -373,7 +373,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-19b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-21a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -6899,7 +6899,7 @@ const ISLANDS = [
     {rig:"fan", name:"Cass", h:1.78, at:[-19,14], wander:9, line:"The gate on the east road? They only open it for people they know. Wear the crown."},
         {rig:"dock", name:"Rafa", h:1.95, at:[-38,22], wander:8, line:"Beach is better at golden hour. Everything is. That's the whole trick of this town."}],
   grassCols:[0x9ED49A,0x7CC383,0xB6E2AE],
-  ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true},
+  ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true, reach:7.6},   /* the crown floats over the fountain, whose collider keeps her 6.5 u away: the usual 4.8 u could never be met */
   letter:{at:[58,-20], y:2.4, gate:"gate"},
   gate:{x:24, zMin:-48, zMax:48}, beach:{x:-40, z:20, r:23},
   places:[{x:0,z:0,r:16,name:"The Square"},{x:58,z:-20,r:12,name:"The Point"},{x:-40,z:20,r:18,name:"The Beach"},{x:0,z:54,r:12,name:"Harbor Landing"}],
@@ -7640,18 +7640,25 @@ function cueUpdate(I, dt, t){
     for(let d = 1.8; d <= 4.4; d += .5){
       const px = W.x + hx*d, pz = W.z + hz*d;
       if(!canStand(I, px, pz)){
-        for(let f = d + 1.6; f <= d + 12.5; f += .8){     /* hang time is ~1.0 s, so she clears about 12 u at a run */
-          if(canStand(I, W.x + hx*f, W.z + hz*f)){ mode = "jump"; cx = px; cz = pz; cy = h0; lift = 1.9; break; }
-        }
+        /* This used to look past the edge for ground she could land on and say "jump". But the walker refuses
+           every move onto a cell she cannot stand on, in the air as well (stepOK -> canStand), so a jump never
+           carries her over water, a closed gate or the keep's footprint - the cue was telling her to do the one
+           thing that cannot work (the 2026-10-19b Sanity screenshot: TAP JUMP at the shoreline, with the stones
+           out of reach). A cue now only fires for what a jump can actually do: get UP onto a ledge, below. */
         break;
       }
       /* only cue a jump she can actually make: apex = v^2/2g with whatever boots she is wearing */
       const apex = Math.pow(JUMPV * ab.jumpMul, 2) / (2 * Math.abs(GRAV));
       const h = I.height(px, pz);
-      if(h - h0 > 2.2 && h - h0 < apex*.92){
+      /* and only when the top is somewhere she can stand and stay: the face of a cliff (tooSteep) sheds her again, which is what the
+         tall mesa and hill walls on Green showed - TAP JUMP at the foot of a rock she cannot get onto */
+      if(h - h0 > 2.2 && h - h0 < apex*.92 && !tooSteep(I, px, pz)){
         /* a slope she can simply walk up is not a ledge: only cue the jump when the walker itself would refuse a step on the way */
         let walk = true; for(let q = .35; q <= d + 1e-6 && walk; q += .35) walk = stepOK(I, W.x + hx*(q - .35), W.z + hz*(q - .35), W.x + hx*q, W.z + hz*q, true);
         if(walk) continue;
+        /* a jump cannot cross ground she cannot stand on (stepOK -> canStand), so no gap between her and the ledge either */
+        let gap = false; for(let q = .35; q < d && !gap; q += .35) gap = !canStand(I, W.x + hx*q, W.z + hz*q);
+        if(gap) break;
         mode = "jump"; cx = px; cz = pz; cy = h0; lift = 1.9; break; }
     }
   }
@@ -7692,7 +7699,10 @@ function objectiveOf(I){
   if(Q.pen && !qGet(cfg,"pen"))       return {x:Q.pen.position.x, z:Q.pen.position.z, label:"The pen"};
   if(I.letterMesh && !qGet(cfg,"paper")) return {x:I.letterMesh.position.x, z:I.letterMesh.position.z, label:"The paper"};
   if(Q.desk && !qGet(cfg,"written"))  return {x:Q.desk.position.x, z:Q.desk.position.z, label:"The writing desk"};
-  if(Q.post && !qGet(cfg,"delivered"))return {x:Q.post.position.x, z:Q.post.position.z, label:"The postman"};
+  /* Q.post was never assigned anywhere, so this step was dead and the arrow skipped from the desk straight to the
+     secret note or the boat. Ollie is an NPC with `post` in his config; point at him wherever he is riding now. */
+  const po = Q.post || (I.npcs || []).find(g => g.userData.cfg && g.userData.cfg.post);
+  if(po && !qGet(cfg,"delivered"))    return {x:po.position.x, z:po.position.z, label:"The postman"};
   if(Q.secret && Q.secret.visible)    return {x:Q.secret.position.x, z:Q.secret.position.z, label:"One more letter out here"};
   return {x:cfg.dock[0], z:cfg.dock[1], label:"The boat"};
 }
@@ -8441,7 +8451,7 @@ function* reliefBuildSteps(o){   /* pauses between rows so a background build ne
         const clear = (x, z, r) => {
           if(!inside(x, z)) return false; const cd = coastDist(x, z); if(cd < 16 || det(x, z, cd) < .6) return false;
           for(const c of I.colliders) if(Math.hypot(c.x - x, c.z - z) < (c.r || 1) + r + .8) return false;
-          for(const nn of cfg.notes) if(Math.hypot(nn.x - x, nn.z - z) < 9) return false;
+          for(const nn of cfg.notes) if(Math.hypot((nn.gx ?? nn.x) - x, (nn.gz ?? nn.z) - z) < 9) return false;
           for(const nn of (cfg.npcs || [])) if(Math.hypot(nn.at[0] - x, nn.at[1] - z) < 10) return false;
           for(const pt of [cfg.ability && cfg.ability.at, cfg.letter && cfg.letter.at, cfg.pen && cfg.pen.at, cfg.secret && cfg.secret.at, cfg.desk && cfg.desk.at])
             if(pt && Math.hypot(pt[0] - x, pt[1] - z) < 9) return false;
@@ -9077,7 +9087,15 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
         f.dx = fx-ox; f.dz = fz-oz; f.x = +fx.toFixed(1); f.z = +fz.toFixed(1); return; }
       const [x,z] = land(f.x, f.z, (f.r||6)*.5); f.x = x; f.z = z; });
     const outer = (cfg.features||[]).find(f => f.outer);
-    (cfg.notes||[]).forEach(n => { const [x,z] = land(n.x, n.z, 5); n.x = x; n.z = z; });
+    (cfg.notes||[]).forEach(n => {
+      /* a note written for the rock out in the sea ("On the sea stack") stays on it - walking it back to the
+         nearest dry land put it on the beach, 140 u from the rock it names */
+      if(outer && Math.hypot(n.x-(outer.x-(outer.dx||0)), n.z-(outer.z-(outer.dz||0))) < outer.r){
+        /* gx/gz: where the old rule put it. The scatter below keeps clear of a note by this spot, as it always did, so every tree, rock and
+           moon after it falls exactly where it did - moving the note must not re-roll the island */
+        const [bx,bz] = land(n.x, n.z, 5); n.gx = bx; n.gz = bz;
+        n.x = +(n.x+(outer.dx||0)).toFixed(1); n.z = +(n.z+(outer.dz||0)).toFixed(1); return; }
+      const [x,z] = land(n.x, n.z, 5); n.x = x; n.z = z; });
     (cfg.npcs||[]).forEach(n => { const [x,z] = land(n.at[0], n.at[1], 6); n.at = [x,z]; });
     (cfg.places||[]).forEach(q => { const [x,z] = land(q.x, q.z, Math.min(q.r*.4, 8)); q.x = x; q.z = z; });
     if(cfg.stones && cfg.stones.length && outer){       /* re-lay the stepping stones from the shore to the stack */
@@ -9130,6 +9148,34 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   yield;
   const SHORE_R = SHOREQ && POLY ? shoreRoughen(POLY, cfg, TMAX) : null;   /* SHORE: coves and points, now every position is final */
   yield;
+  /* ===================  THE STEPPING STONES ARE A PATH SHE WALKS  ===================
+     She can stand on a stone's disc (canStand: 3.3 u round each one) and nowhere else on the open sea, and the
+     walker refuses every move onto a cell she cannot stand on, in the air too - so a jump cannot carry her over
+     water. The path therefore has to be CONTINUOUS: every disc overlapping the next, the first overlapping the
+     wade zone, the last overlapping the rock. At the authored scale that was true (stones 5 u apart). When the
+     island was scaled to WORLD 4 the four stones were re-laid along the whole way out to the stack - 25 u apart, 23 u
+     out from the shore - and the hop between them was impossible: the shore, a stone, nothing.
+     The four anchor positions stay where they were while the coast is roughened above (they protect the shore
+     there, and they are where the moons over the stones sit), and the real chain is laid now the coast is final,
+     from the water's edge to the foot of the stack at the authored spacing. Deterministic: no random numbers. */
+  if(POLY && cfg.stones && cfg.stones.length && !cfg.stonesLaid){
+    const outerF = (cfg.features || []).find(f => f.outer);
+    if(outerF){
+      cfg.stonesLaid = true; cfg.stoneMoons = cfg.stones.map(s => s.slice());
+      const L = Math.hypot(outerF.x, outerF.z) || 1, ux = outerF.x/L, uz = outerF.z/L, STEP = 5.2;
+      let rLand = 0; for(let r = 0; r < L; r += .5) if(inside(ux*r, uz*r)) rLand = r;           /* the last dry point on the way out */
+      /* The rock's foot is where its own ground starts to rise - the rim of the mesa along the bearing the stones come in on
+         (same outline formula as height()). Past that rim the ground is the sea bed, so the last stone has to sit a little
+         INSIDE it: its disc then runs straight onto the foot of the way up, with no drop between. */
+      const ph = (seedOf((outerF.name || "") + outerF.x + "," + outerF.z) % 6283) / 1000, bear = Math.atan2(-outerF.z, -outerF.x);
+      const rim = outerF.r*(1 + Math.sin(bear*3 + ph)*0.155 + Math.sin(bear*5 - ph*1.7)*0.080 + Math.sin(bear*8 + ph*2.4)*0.038);
+      const rEnd = L - Math.max(6, rim - 3);
+      const chain = [];
+      for(let r = rLand + 4.5; r < rEnd - STEP*.5; r += STEP) chain.push([+(ux*r).toFixed(1), +(uz*r).toFixed(1)]);
+      chain.push([+(ux*rEnd).toFixed(1), +(uz*rEnd).toFixed(1)]);
+      cfg.stones = chain;
+    }
+  }
   const stoneXZ = cfg.stones || [];
   yield;
   let RLF = null;                                    /* TERRAINQ: the island's relief grid, built just below */
@@ -9186,11 +9232,13 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
              inked ones get one. */
           if(f.__ra == null){
             f.__ra = (seedOf("ramp" + (f.name || "") + f.x) % 6283) / 1000;
+            /* a rock out in the sea is reached along the stones, so its way up faces the island they start from */
+            if(f.outer) f.__ra = Math.atan2(-f.z, -f.x);
             /* A rock mesa gets one breach in the rim so she can get up - UNLESS the island's own
                design says the top is air-only. Green's brief is "the letter is somewhere you can
                only reach on the air", so a way up on foot would quietly defeat the glide gate. */
             const L = cfg.letter;
-            f.__noRamp = !!(L && L.gate && Math.hypot(L.at[0]-f.x, L.at[1]-f.z) < f.r);
+            f.__noRamp = !!(L && (L.gate === "glide" || L.gate === "jump") && Math.hypot(L.at[0]-f.x, L.at[1]-f.z) < f.r);   /* only an AIR gate seals the top: Sanity's gate is the lantern and Town's is the crown, and their paper is meant to be walked to */
           }
           let h;
           if(!f.ink){
@@ -9535,7 +9583,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       if(Math.hypot(x-cfg.spawn[0], z-cfg.spawn[1]) < 7) continue;
       if(cfg.ability && Math.hypot(x-cfg.ability.at[0], z-cfg.ability.at[1]) < 4) continue;
       if(cfg.letter && Math.hypot(x-cfg.letter.at[0], z-cfg.letter.at[1]) < 4) continue;
-      if(cfg.notes.some(n => Math.hypot(x-n.x, z-n.z) < 3)) continue;
+      if(cfg.notes.some(n => Math.hypot(x-(n.gx ?? n.x), z-(n.gz ?? n.z)) < 3)) continue;
       if((cfg.npcs||[]).some(n => Math.hypot(x-n.at[0], z-n.at[1]) < 3)) continue;
       if(cfg.grotto && Math.hypot(x-cfg.grotto.x, z-cfg.grotto.z) < cfg.grotto.r + 2.5) continue;
       return [x,z];
@@ -9812,8 +9860,13 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
           geo.setAttribute("aSt", new THREE.Float32BufferAttribute(st, 2)); const Wm = rlWaterMat(true); const mm = new THREE.Mesh(geo, Wm.m); mm.renderOrder = 2; mm.onBeforeRender = () => { Wm.uT.value = performance.now()/1000; }; return mm; })()
         : new THREE.Mesh(new THREE.CircleGeometry(pr,16), new THREE.MeshBasicMaterial({color:0x2E5A86, transparent:true, opacity:.8}));
       pool.rotation.x=-Math.PI/2; pool.position.set(s[0],height(s[0],s[1])+.05,s[1]); scene.add(pool); }
-    (cfg.stones||[]).forEach(([x,z]) => {
+    /* a stone costs the material 16 random draws. The path is now longer than the four the island was authored with, and the extra
+       stones draw from their own generator, so the rest of the build (moons, birds, clouds) comes out exactly as it did */
+    const nAuth = (cfg.stoneMoons || cfg.stones || []).length, rKeep = Math.random, rOwn = mulberry32(seedOf(cfg.key + ":stones"));
+    (cfg.stones||[]).forEach(([x,z], si) => {
+      Math.random = si < nAuth ? rKeep : rOwn;
       const st = inked(new THREE.CylinderGeometry(2,2.3,1.4,10), P.stone, 1.8); st.position.set(x,-.2,z); st.visible = false; scene.add(st);
+      Math.random = rKeep;
       I.stones.push({x,z,mesh:st});
     });
     /* the grotto — a flowstone cave off the west shore (the cave photos): amber-lit curtains of stone,
@@ -10212,8 +10265,11 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     for(let i=0;i<18;i++){ const s = sample(10,58,false); if(s) spots.push([s[0],s[1],1.4]); }
     cfg.features.forEach(f => { for(let i=0;i<5;i++){ const a = (i/5)*Math.PI*2; spots.push([f.x+Math.cos(a)*f.r*.45, f.z+Math.sin(a)*f.r*.45, 1.6]); } });
     if(cfg.letter && cfg.letter.gate === "glide"){ const h = cfg.features[0], m = cfg.features[1];
-      for(let i=0;i<7;i++) spots.push([h.x+(m.x-h.x)*(i/7), h.z+(m.z-h.z)*(i/7), 11-i*.5]); }
-    (cfg.stones||[]).forEach(([x,z]) => spots.push([x,z,2.0]));
+      /* the glide trail hangs on the line she actually flies (hill top, then down about 2.2 u a step), not a fixed height over the
+         ground: the ground falls 28 u between the hill and the plain, so the old trail left four of the seven 12-16 u under her */
+      { const y0 = height(h.x, h.z);
+        for(let i=0;i<7;i++){ const x0 = h.x+(m.x-h.x)*(i/7), z0 = h.z+(m.z-h.z)*(i/7); spots.push([x0, z0, (i === 0 ? y0 + 1.4 : y0 + 2.4 - 2.2*(i-1)) - height(x0, z0)]); } } }
+    (cfg.stoneMoons || cfg.stones || []).forEach(([x,z]) => spots.push([x,z,2.0]));   /* the four moons keep their authored places; the path itself is longer than that (see the stepping stones, above) */
     if(I.grotto) spots.push([I.grotto.x + Math.cos(I.grotto.ga+Math.PI)*4.2, I.grotto.z + Math.sin(I.grotto.ga+Math.PI)*4.2, 1.6]);
     /* every moon gets a soft ground marker so a collectible always reads as placed on purpose */
     const ringG = new THREE.RingGeometry(.7,1.05,20), ringM = new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.22, side:THREE.DoubleSide, depthWrite:false});
@@ -10593,7 +10649,9 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
    WALKER PHYSICS
    ============================================================ */
 /* jump apex = JUMPV^2/(2*GRAV) = 3.35 u = 1.90 m — clears a stall counter, the dock deck, the storefront step */
-const GRAV = -26, JUMPV = 13.2, GLIDE_VY = -2.0, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
+/* GLIDE_VY: the fans have to carry her from the Green cap to the paper. At -2.0 she fell short on every approach
+   (closest ~36 u, measured with the real walker); -1.2 reaches it from the whole width of the cap (qa/questpath.mjs). */
+const GRAV = -26, JUMPV = 13.2, GLIDE_VY = -1.2, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
 /* on foot: 12.4 u/s = 7.1 m/s. 1 game unit = 0.576 m (Lala 3.00 u = 1.727 m = 5 ft 8). ?speed= overrides. */
 const SPEED = parseFloat(QS.get("speed")) || 12.4;
 /* riding: the horses are the reason a 4x island is walkable. ?ride= and ?saddle= tune it. */
@@ -10911,7 +10969,8 @@ function canStand(I, x, z){
     return true;
   }
   if(abilityOf(I).lantern && I.stones.some(s => Math.hypot(x-s.x, z-s.z) < 3.3)) return true;
-  if(abilityOf(I).lantern) { const f = I.cfg.features.find(f => f.outer); if(f && Math.hypot(x-f.x,z-f.z) < f.r) return true; }
+  /* the sea stack: the rock and its ramp only. The disc round it also holds the sea floor (-3.3), a pit she could step off the last stone into and not climb out of */
+  if(abilityOf(I).lantern) { const f = I.cfg.features.find(f => f.outer); if(f && Math.hypot(x-f.x,z-f.z) < f.r && I.height(x, z) > -1) return true; }
   if(Math.hypot(x - I.cfg.dock[0], z - I.cfg.dock[1]) < 4 || (Math.abs(x - I.cfg.dock[0]) < 3.2 && z > I.cfg.dock[1]-DOCK_LEN/2 && z < I.cfg.dock[1]+DOCK_LEN/2)) return true;
   if(I.shoreOut && I.shoreOut(x, z) <= WADE_MAX) return true;   /* the shallows: she can wade out to about waist depth */
   return false;
@@ -11808,7 +11867,7 @@ function nearest(I){
         add("desk", d, {label: ready ? "Write the letter" : "The desk — you need the pen and the paper"}); } }
   }
   if(I.pickup && I.pickup.visible){ const d = Math.hypot(W.x-I.pickup.position.x, W.z-I.pickup.position.z);
-    if(d < 4.8 && Math.abs(W.y+2-I.pickup.position.y) < 5) add("ability", d, {label:"Take "+cfg.ability.name.toLowerCase()}); }
+    if(d < (cfg.ability.reach || 4.8) && Math.abs(W.y+2-I.pickup.position.y) < 5) add("ability", d, {label:"Take "+cfg.ability.name.toLowerCase()}); }
   if(cfg.hub){ const d = Math.hypot(W.x,W.z); if(d < 14 && d > 6) add("castle", d, {label: G.letters.every(Boolean) ? "Go inside" : "Try the doors"}); }
   for(const g of (I.npcs||[])){ const n = g.userData.cfg; if(!n.name) continue;
     const d = Math.hypot(W.x-g.position.x, W.z-g.position.z); if(d >= 4.4) continue;
