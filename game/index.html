@@ -169,7 +169,14 @@ body.walk .topbtn{display:block}
 body.walk.desktop #khint{display:block}
 
 .ov{position:fixed;inset:0;z-index:9;display:grid;place-items:center;padding:26px;
- background:rgba(18,16,28,.88);backdrop-filter:blur(8px);text-align:center;overflow:auto}
+ background:rgba(18,16,28,.88);backdrop-filter:blur(8px);text-align:center;overflow:auto;
+ transition:opacity .32s ease,visibility 0s linear 0s}
+.ov .card{transition:transform .38s cubic-bezier(.2,.7,.2,1)}
+/* A card used to appear and disappear on one frame (display:none). Hidden is now invisible-and-inert rather than absent, so
+   it fades both ways; .hide keeps meaning "not showing" to the script. */
+.ov.hide{display:grid!important;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .26s ease,visibility 0s linear .26s}
+.ov.hide .card{transform:translateY(10px)}
+@media(prefers-reduced-motion:reduce){.ov,.ov.hide{transition:none}.ov .card,.ov.hide .card{transition:none;transform:none}}
 .card{max-width:460px;width:100%}
 .eyebrow{font-size:10px;letter-spacing:.34em;text-transform:uppercase;opacity:.5;margin-bottom:16px}
 h1{font-family:"Instrument Serif",serif;font-style:italic;font-weight:400;
@@ -373,7 +380,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-21a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-22a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3521,9 +3528,15 @@ function makeLala(){
     f.position.set(s*.72,1.95,.12); f.rotation.set(-Math.PI/2,0,s*.5); R.fans.add(f);
   });
   R.fans.visible = false; p.add(R.fans); R.fanMeshes = [...R.fans.children];
-  const lb = inked(new THREE.CylinderGeometry(.16,.2,.42,8), 0x8D6141, 1.4); R.lantern.add(lb);
+  /* The lantern's BODY and its LIGHT are separate things. A light that sits inside a hidden group is not in the
+     scene as far as the renderer is concerned, so switching the group on added a point light, and every lit
+     material in the island was compiled again on that frame: 26 new programs the frame she picked it up, measured
+     on Sanity (qa/smooth.mjs ability sanity) - the freeze he saw. The island that gives the lantern now keeps the
+     light switched on from the start at intensity 0 (see buildIslandBody) and only the body appears. */
+  R.lanternBody = new THREE.Group(); R.lantern.add(R.lanternBody);
+  const lb = inked(new THREE.CylinderGeometry(.16,.2,.42,8), 0x8D6141, 1.4); R.lanternBody.add(lb);
   const lg = new THREE.Mesh(new THREE.SphereGeometry(.16,10,8), new THREE.MeshBasicMaterial({color:MOON}));
-  lg.position.y = .02; R.lantern.add(lg);
+  lg.position.y = .02; R.lanternBody.add(lg);
   const lLight = new THREE.PointLight(0xFFE2A8, 0, 14); lLight.position.y = .3; R.lantern.add(lLight); R.lanternLight = lLight;
   R.lantern.position.set(.62,1.75,.25); R.lantern.visible = false; p.add(R.lantern);
   /* at night, before she has her lantern, her dark clothes sank into the dark ground: a soft cool fill from
@@ -3532,6 +3545,7 @@ function makeLala(){
   const cr = new THREE.Mesh(new THREE.TorusGeometry(.3,.06,8,5), new THREE.MeshBasicMaterial({color:0xFFD37A}));
   cr.rotation.x = Math.PI/2; cr.position.y = 3.12; cr.visible = false; p.add(cr); R.crown = cr;
   R.primitive = [dress, torso, head, hair, brim, crown, band, ...R.legs, ...R.patches]; R.wearsHat = true;
+  R.wd = wdNew();                       /* what she is wearing, as numbers that ease - see WARDROBE */
   wantRig(R, "lala");
   return R;
 }
@@ -3786,9 +3800,40 @@ function loadRig(name){
    random stream instead, exactly as it does when the model arrives later. */
 const FREE_RANDOM = Math.random;
 function wantRig(R, name){ const rig = RIGS[name]; if(!rig) return; R.rigName = name;
-  if(rig.gltf){ const r0 = Math.random; Math.random = FREE_RANDOM; try { attachRig(R, name); } finally { Math.random = r0; } }
+  if(rig.gltf){ const r0 = Math.random; Math.random = FREE_RANDOM; RIG_QUIET = true; try { attachRig(R, name); } finally { Math.random = r0; RIG_QUIET = false; } }
   else { rig.waiting.push(R); if(RIGS_EAGER) loadRig(name); } }
-let RIGS_EAGER = false;
+let RIGS_EAGER = false, RIG_QUIET = false;
+/* ===================  A MODEL ARRIVING OVER ITS STAND-IN  ===================
+   Every character and animal is built as a sketch figure and swapped for the real model when its GLB lands. If that
+   happens while the island is on screen the figure used to change shape in one frame. Now the real model grows up from
+   the ground while the sketch shrinks into it (about a third of a second). Arrivals that nobody can see - while the
+   island is being built, or while the boat is still at sea - are not animated, they simply are there. */
+const ARRIVING = [], ARRIVE_T = .38;
+function arriveStart(R, model){
+  R.arrive = {t:0, s1:model.scale.clone(), prims:(R.primitive||[]).map(m => ({m, p:m.position.clone(), s:m.scale.clone(), vis:m.visible}))};
+  model.scale.multiplyScalar(.001); ARRIVING.push(R);
+}
+function arriveStep(dt){
+  for(let i = ARRIVING.length - 1; i >= 0; i--){
+    const R = ARRIVING[i], A = R.arrive;
+    if(!A || !R.model){ ARRIVING.splice(i, 1); continue; }
+    A.t += dt/ARRIVE_T; const k = Math.min(1, A.t);
+    R.model.scale.copy(A.s1).multiplyScalar(Math.max(.001, easeOut3(k)));
+    const f = Math.max(.001, 1 - wdEase(k*1.3));
+    A.prims.forEach(o => { if(!o.vis) return; o.m.visible = k < .77; o.m.position.copy(o.p).multiplyScalar(f); o.m.scale.copy(o.s).multiplyScalar(f); });
+    if(k >= 1){ A.prims.forEach(o => { o.m.position.copy(o.p); o.m.scale.copy(o.s); o.m.visible = false; }); R.model.scale.copy(A.s1); R.arrive = null; ARRIVING.splice(i, 1); }
+  }
+}
+function inScene(o, scene){ for(; o; o = o.parent) if(o === scene) return true; return false; }
+function rigsPending(I){
+  preloadRigs(I);
+  const names = new Set([I.W && I.W.rigName]);
+  (I.npcs||[]).forEach(g => g.userData.R && names.add(g.userData.R.rigName));
+  (I.creatures||[]).forEach(h => h.userData.R && names.add(h.userData.R.rigName));
+  if(I.quest && I.quest.horse && I.quest.horse.userData.R) names.add(I.quest.horse.userData.R.rigName);
+  let n = 0; names.forEach(k => { const r = k && RIGS[k]; if(r && !r.gltf && !r.failed && r.loading) n++; });
+  return n;
+}
 function preloadRigs(I){
   const names = new Set([I.W && I.W.rigName]);
   (I.npcs||[]).forEach(g => g.userData.R && names.add(g.userData.R.rigName));
@@ -3828,7 +3873,10 @@ function attachRig(R, name){
     o.frustumCulled = false;                    /* skinned bounds are the bind pose; culling pops her out */
   });
   R.inkTwins = []; R.skins = []; model.traverse(o => { if(!o.isMesh) return; if(o.material.userData && o.material.userData.isInk) R.inkTwins.push(o); else R.skins.push(o); });
-  (R.primitive||[]).forEach(m => m.visible = false);
+  const live = !RIG_QUIET && MODE === "island" && CUR && CUR.scene && inScene(R.group, CUR.scene);
+  if(!live) (R.primitive||[]).forEach(m => m.visible = false);
+  if(!live && !RIG_QUIET){ for(const key in ISL_BUILT){ const J = ISL_BUILT[key];       /* a model landing on an island that has already been drawn in advance: draw it again */
+      if(J && J.scene && PREP[key] && PREP[key].done && inScene(R.group, J.scene)){ PREP[key].done = false; PREP[key].i = 0; } } }
   bindAttachments(R, model, gltf.scene.scale.x);
   R.mixer = new THREE.AnimationMixer(model); R.actions = {}; R.current = null;
   /* ===================  HER HEAD WAS PERMANENTLY COCKED  ===================
@@ -3876,6 +3924,7 @@ function attachRig(R, name){
   for(const k in map) if(map[k]){ R.actions[k] = R.mixer.clipAction(map[k]); }
   if(!R.actions.run) R.actions.run = R.actions.walk;
   playClip(R, "idle", 0);
+  if(live) arriveStart(R, model);                      /* last, so everything above measured the model at full size */
 }
 /* =====================  HAIR UNDER THE HAT  =====================
    A lock of her hair came through the crown WALL just above the band - visible in the render, and
@@ -3951,10 +4000,10 @@ function bindAttachments(R, model, s){
   if(R.fanMeshes && LH && RH){
     [LH, RH].forEach((b,i) => { const f = R.fanMeshes[i]; if(!f) return;
       const a = anchor(b, new THREE.Vector3(0, 0, 0), [0,0,0]); if(!a) return;
-      a.add(f); f.scale.setScalar(.62); f.position.set(0, .42, 0); f.rotation.set(-.4, i ? -1.0 : 1.0, i ? .5 : -.5); });
+      a.add(f); f.scale.setScalar(.62); f.userData.sc = null; f.position.set(0, .42, 0); f.rotation.set(-.4, i ? -1.0 : 1.0, i ? .5 : -.5); });
   }
   if(R.lantern && RH){ const a = anchor(RH, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.lantern); R.lantern.position.set(0, .4, 0); R.lantern.rotation.set(0, 0, 0); } }
-  if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, .3, 0); R.crown.rotation.set(Math.PI/2, 0, 0); R.crown.scale.setScalar(.7); } }
+  if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, .3, 0); R.crown.rotation.set(Math.PI/2, 0, 0); R.crown.scale.setScalar(.7); R.crown.userData.s0 = R.crown.scale.clone(); } }
   /* her white cowgirl hat — the band takes the island's colour when she wears that island's outfit */
   if(R.wearsHat && HD){ hatHairSquash(model, s); const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){
     /* Full-size brim (56 cm across in game units, 1 u = 0.576 m) seated lower on her head: y .25
@@ -3968,6 +4017,7 @@ function bindAttachments(R, model, s){
     const BRIM = parseFloat(QSH.get("brim") || String(HAT_BRIM));
     const hat = cowgirlHat(BRIM); hat.scale.multiplyScalar(HS);   /* multiply: cowgirlHat already set the oval */
     hat.position.set(0, HY, 0); hat.rotation.set(HAT_BASE_X, 0, 0); a.add(hat);
+    hat.userData.s0 = hat.scale.clone(); hat.userData.y0 = HY;     /* the wardrobe scales and lifts the hat about its seat */
     R.hat = hat; R.hatBandMesh = hat.userData.band;
     if(R.pendingBand != null) R.hatBandMesh.material.color.setHex(R.pendingBand);
   } }
@@ -3977,10 +4027,39 @@ function bindAttachments(R, model, s){
 /* How much the wild-hair dial runs the squash morph backwards. ?wildhair= to taste. */
 const WILD_HAIR = (() => { const v = parseFloat(QS.get("wildhair")); return isNaN(v) ? -0.55 : Math.max(-1.5, Math.min(1, v)); })();
 const WET_HAIR  = (() => { const v = parseFloat(QS.get("wethair"));  return isNaN(v) ?  1.55 : Math.max(0, Math.min(2.5, v)); })();
-function applyHeadwear(ch){
+/* ===================  WARDROBE  ===================
+   An article of clothing used to be a boolean: applyOutfit flipped .visible on the hat, the crown, the fans and the
+   lantern and set the hair morph, all in the one frame, so a pickup read as a cut - and on Sanity the frame it
+   happened in also compiled 26 shaders (the lantern's light switched on). His words: it is "supposed to be like a
+   wardrobe change".
+   Each article is now a number from 0 (not on her) to 1 (on her) that eases toward where the outfit wants it:
+   the hat lifts off and shrinks away or drops onto her head, the hair loosens or packs down, the fans, the lantern
+   and the crown grow out of her hands and her head, the hat band changes colour, and a ring of the game's own
+   glitter climbs her while it happens. Nothing here builds anything: every object already exists (hidden) from the
+   island's build, so the frame she changes only moves numbers.
+     R.wd.cur  what is on screen      R.wd.to  where it is going      R.wd.hold  a beat before it starts, so the
+     thing she picked up has reached her first.
+   applyOutfit(ch, key, extra) with no 4th argument is the instant version: arrival on an island, the crossing, the
+   keep. The fade to black hides that one, exactly as before. */
+const WD_SPAN = {hat:.8, crown:.8, patches:.5, fans:.75, lantern:.75};      /* seconds for 0 -> 1 */
+const WD_HAIR_RATE = 1.5, WD_DELAY = .4;
+const wdEase = k => { k = k < 0 ? 0 : k > 1 ? 1 : k; return k*k*(3 - 2*k); };
+function wdNew(){
+  return {cur:{hat:1, crown:0, patches:0, fans:0, lantern:0, hair:1}, to:{hat:1, crown:0, patches:0, fans:0, lantern:0, hair:1},
+          band:new THREE.Color(0x6FBF92), bandTo:new THREE.Color(0x6FBF92), hold:0, burst:0, acc:0};
+}
+const wdDark = () => CUR && CUR.dn ? CUR.dn.mix : (CUR && CUR.dark ? 1 : 0);
+/* put the numbers on screen. `lights` also sets the two point lights, which only an island's own walker does. */
+function wdApply(ch, lights){
   if(!ch) return;
-  const bare = ch.wantBareHead === true;
-  if(ch.hat) ch.hat.visible = !bare;
+  const w = ch.wd; if(!w) return; const c = w.cur;
+  const hv = c.hat > .004, hk = Math.max(.001, wdEase(c.hat));
+  if(ch.hat){
+    ch.hat.visible = hv;
+    if(hv){ const u = ch.hat.userData, s0 = u.s0 || (u.s0 = ch.hat.scale.clone());
+      ch.hat.scale.copy(s0).multiplyScalar(hk);
+      ch.hat.position.y = (u.y0 != null ? u.y0 : (u.y0 = ch.hat.position.y)) + (1 - hk)*.55; }      /* it lifts off as it shrinks */
+  }
   /* ===================  SHE WAS WEARING THE PLACEHOLDER'S HAT  ===================
      makeLala() builds a sketch figure to stand in until the GLB arrives, and its hat is a flat
      CylinderGeometry(.68,.68,.08) disc under a near-straight (.32,.36,.4) drum. attachRig() hides
@@ -3994,12 +4073,41 @@ function applyHeadwear(ch){
      hatTop and band.
      The stand-in only wears a hat while the stand-in IS the figure being drawn. */
   const stand = !ch.model;
-  [ch.brim, ch.hatTop].forEach(m => { if(m && m.parent) m.parent.visible = stand && !bare; });
-  if(ch.band) ch.band.visible = stand && !bare;
+  [ch.brim, ch.hatTop].forEach(m => { if(m && m.parent) m.parent.visible = stand && c.hat > .5; });
+  if(ch.band) ch.band.visible = stand && c.hat > .5;
   /* the hair dial: 1 packs it under the hat, 0 is as built, negative is wild, and past 1 is WET -
      flat to the skull and a little heavier, which is the same displacement pushed further */
-  const inf = bare ? (ch.wantWildHair ? WILD_HAIR : 0) : (ch.wantWetHair ? WET_HAIR : 1);
-  (ch.hairMorphs || []).forEach(o => { if(o.morphTargetInfluences) o.morphTargetInfluences[0] = inf; });
+  (ch.hairMorphs || []).forEach(o => { if(o.morphTargetInfluences) o.morphTargetInfluences[0] = c.hair; });
+  if(ch.hatBandMesh) ch.hatBandMesh.material.color.copy(w.band);
+  if(ch.band) ch.band.material.color.copy(w.band);
+  const cv = c.crown > .004; ch.crown.visible = cv;
+  if(cv){ const u = ch.crown.userData, s0 = u.s0 || (u.s0 = ch.crown.scale.clone()); ch.crown.scale.copy(s0).multiplyScalar(Math.max(.001, wdEase(c.crown))); }
+  ch.patches.forEach(q => { q.visible = c.patches > .5; });
+  const fv = c.fans > .004, fk = Math.max(.001, wdEase(c.fans));
+  ch.fans.visible = fv;
+  ch.fanMeshes.forEach(f => { f.visible = fv; const u = f.userData; if(u.sc == null) u.sc = f.scale.x; f.scale.setScalar(u.sc*fk); });
+  const lv = c.lantern > .004, lk = wdEase(c.lantern);
+  ch.lanternBody.visible = lv; if(lv) ch.lanternBody.scale.setScalar(Math.max(.001, lk));
+  ch.lantern.visible = lv || !!ch.lanternKeepsLight;      /* the island that gives the lantern keeps its (dark) light in the scene */
+  if(lights){ const dn = wdDark(); ch.lanternLight.intensity = lk*(1.6 + 1.6*dn); if(ch.fill) ch.fill.intensity = .85*dn*(1 - lk); }
+}
+function applyHeadwear(ch){ if(ch) wdApply(ch, false); }
+/* everything where it is going, now */
+function wdSnap(ch, ab, lights){
+  const w = ch.wd; if(!w) return;
+  if(ab){ w.to.fans = ab.glide ? 1 : 0; w.to.lantern = ab.lantern ? 1 : 0; }
+  Object.assign(w.cur, w.to); w.band.copy(w.bandTo); w.hold = 0; w.burst = 0;
+  wdApply(ch, lights);
+}
+/* one frame of the change; called from the walker with the abilities she holds */
+function wdStep(ch, dt, ab){
+  const w = ch.wd, c = w.cur, to = w.to;
+  to.fans = ab.glide ? 1 : 0; to.lantern = ab.lantern ? 1 : 0;
+  if(w.hold > 0){ w.hold -= dt; if(w.hold <= 0){ w.hold = 0; w.burst = 1; w.acc = 0; } wdApply(ch, true); return; }
+  for(const k in WD_SPAN){ const t = to[k], d = dt/WD_SPAN[k]; c[k] = c[k] < t ? Math.min(t, c[k] + d) : Math.max(t, c[k] - d); }
+  const dh = to.hair - c.hair, mh = WD_HAIR_RATE*dt; c.hair += dh > mh ? mh : dh < -mh ? -mh : dh;
+  w.band.lerp(w.bandTo, Math.min(1, dt*3.2)); if(Math.abs(w.band.r - w.bandTo.r) + Math.abs(w.band.g - w.bandTo.g) + Math.abs(w.band.b - w.bandTo.b) < .006) w.band.copy(w.bandTo);
+  wdApply(ch, true);
 }
 /* ---- her head, measured ----
    tools/head_measure.py, in game units in the head bone's own space:
@@ -4466,21 +4574,25 @@ function playClip(R, name, fade){
   if(R.current) R.current.fadeOut(fade == null ? .18 : fade);
   R.current = a;
 }
-function applyOutfit(ch, key, extra){
+function applyOutfit(ch, key, extra, animate){
   /* `extra` is the secret-note reward: one article of clothing swapped on top of the island outfit,
-     so finding the hidden letter reads as a level-up you can see. */
+     so finding the hidden letter reads as a level-up you can see. `animate` makes the change a wardrobe
+     change (see WARDROBE) instead of a cut. */
   const o = Object.assign({}, OUTFITS[key] || OUTFITS.base, extra || null);
   ch.dress.material.color.setHex(o.dress);
   ch.wantBareHead = (o.hat === null);
   ch.wantWildHair = !!o.wild;
   ch.wantWetHair  = !!o.wet;
   if(o.hat !== null){ ch.brim.material.color.setHex(o.hat); ch.hatTop.material.color.setHex(o.hat); }
-  ch.band.material.color.setHex(o.hatBand);
   ch.legs.forEach(l => l.userData.main.material.color.setHex(o.boots));
-  ch.patches.forEach(p => p.visible = o.patches);
-  ch.crown.visible = o.crown;
-  if(ch.hatBandMesh) ch.hatBandMesh.material.color.setHex(o.hatBand); else ch.pendingBand = o.hatBand;
-  applyHeadwear(ch);
+  const w = ch.wd || (ch.wd = wdNew());
+  w.to.hat = ch.wantBareHead ? 0 : 1;
+  w.to.crown = o.crown ? 1 : 0;
+  w.to.patches = o.patches ? 1 : 0;
+  w.to.hair = ch.wantBareHead ? (ch.wantWildHair ? WILD_HAIR : 0) : (ch.wantWetHair ? WET_HAIR : 1);
+  w.bandTo.setHex(o.hatBand);
+  if(animate){ w.hold = WD_DELAY; }
+  else wdSnap(ch, null, false);
 }
 try{ window.applyOutfit = applyOutfit; window.applyHeadwear = applyHeadwear; }catch(e){}
 
@@ -7671,14 +7783,19 @@ function cueUpdate(I, dt, t){
     el.textContent = mode === "jump"  ? (isTouch ? "Tap jump" : "Space — jump")
                    : mode === "glide" ? (isTouch ? "Hold jump to glide" : "Hold space to glide") : "";
   }
-  if(!mode){ C.arrows.forEach(a => a.visible = false); return; }
+  /* They come in and go out with a fade (C.amt), instead of being there at full strength on the first frame of the
+     cue and gone on the first frame after it; on the way out they stay where they were. */
+  if(mode) C.at = {cx, cy, cz, lift};
+  C.amt = (C.amt || 0) + ((mode ? 1 : 0) - (C.amt || 0))*Math.min(1, dt*(mode ? 6 : 4.5));
+  if(!mode && C.amt < .02){ C.amt = 0; C.arrows.forEach(a => a.visible = false); return; }
+  const A = C.at || {cx, cy, cz, lift};
   C.arrows.forEach((a, i) => {
     a.visible = true;
     const climb = ((t*1.5 + i*.34) % 1);                       /* they rise and fade, over and over */
-    a.position.set(cx, cy + lift + climb*2.4, cz);
+    a.position.set(A.cx, A.cy + A.lift + climb*2.4, A.cz);
     a.lookAt(camera.position);                                  /* always readable from wherever the camera is */
-    a.scale.setScalar(.62 * (1 - climb*.28));
-    a.userData.main.material.opacity = Math.min(1, (1 - climb) * 1.8) * .95;
+    a.scale.setScalar(.62 * (1 - climb*.28) * (.75 + .25*C.amt));
+    a.userData.main.material.opacity = Math.min(1, (1 - climb) * 1.8) * .95 * C.amt;
   });
 }
 function guideInit(I){
@@ -7765,13 +7882,18 @@ function guideUpdate(I, dt, t){
   /* arrows walk out along the line to the objective, closest first, and stop short of it */
   g.arrows.forEach((a, i) => {
     const along = 11 + i*8.5 + Math.sin(t*1.3 - i*.55)*.7;
-    if(along > dist - 6){ a.visible = false; return; }
     const px = W.x + ux*along, pz = W.z + uz*along;
-    if(!I.inside(px, pz) && Math.hypot(px-I.cfg.dock[0], pz-I.cfg.dock[1]) > 12){ a.visible = false; return; }
+    /* an arrow that runs out of road (it would pass the objective, or leave the island) fades out where it is, and fades
+       back in when it has road again, instead of blinking */
+    const road = !(along > dist - 6) && !(!I.inside(px, pz) && Math.hypot(px-I.cfg.dock[0], pz-I.cfg.dock[1]) > 12);
+    const u = a.userData; u.k = (u.k || 0) + ((road ? 1 : 0) - (u.k || 0))*Math.min(1, dt*7);
+    if(!road && u.k < .02){ u.k = 0; a.visible = false; return; }
     a.visible = true;
-    a.position.set(px, I.height(px, pz) + 0.70 + Math.sin(t*2.2 - i*.8)*.18, pz);   /* knee-to-waist height: it marks the ground, it never covers her */
+    if(road){ u.lx = px; u.lz = pz; }
+    const qx = road ? px : u.lx, qz = road ? pz : u.lz;
+    a.position.set(qx, I.height(qx, qz) + 0.70 + Math.sin(t*2.2 - i*.8)*.18, qz);   /* knee-to-waist height: it marks the ground, it never covers her */
     a.rotation.y = yaw + Math.PI + Math.sin(t*.9 + i)*.05;          /* +PI: the chevron tip lies on local -z */
-    const fade = Math.max(.12, 1 - i*.16) * amt;
+    const fade = Math.max(.12, 1 - i*.16) * amt * u.k;
     a.userData.body.userData.main.material.opacity = fade;
     a.userData.halo.material.opacity = .22*fade;
     a.userData.body.scale.setScalar((.62 + Math.min(.30, i*.09)) + Math.sin(t*2.2 - i*.8)*.05);   /* the nearest one is smallest, so it never fills the frame */
@@ -10208,6 +10330,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     const lgy = height(L.at[0], L.at[1]);
     const ly = (isFinite(lgy) ? Math.max(lgy, L.y) : L.y) + 2.2;
     lm.position.set(L.at[0], ly, L.at[1]); scene.add(lm); I.letterMesh = lm;
+    dissolvePrep(lm, cfg.key === "moon" ? 0xFFF0C0 : 0xFFE9A8);      /* same edge colours interact() asks for */
     lm.userData.flat = (cfg.key !== "town");     /* the turtle is not a sheet of paper */
     lm.userData.y0 = lm.position.y;
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,26,16,1,true), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.10, side:THREE.DoubleSide}));
@@ -10443,6 +10566,9 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     shoot: (cfg.key === "gr" || cfg.key === "sanity") ? shootingStars(scene, 4) : null,
     /* her glitter trail: A Place for Me is the island that asked for it */
     glitter: (cfg.key === "town" || cfg.key === "moon") ? glitterTrail(scene, 260, 0xFFE9A8) : null,
+    /* the ring of glitter that climbs her when she changes clothes (WARDROBE), and the sparkle where a moon is taken.
+       Hidden until used; same Points program as the motes, so showing it compiles nothing. */
+    spark: cfg.hub ? null : (() => { const g = glitterTrail(scene, 150, 0xFFE9A8); g.visible = false; return g; })(),
     windMul:1,
     [(yield, "meadow")]: MEADOW_BLOOM > 0 ? flowerMeadow(scene, (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? 2200 : 4400, cfg.spawn, height, noGrass) : null
   };
@@ -10472,6 +10598,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   /* walker */
   yield;
   I.W = makeLala(); yield; scene.add(I.W.group);
+  if(cfg.ability && cfg.ability.lantern){ I.W.lanternKeepsLight = true; I.W.lantern.visible = true; }   /* the lantern's light is in the scene from the start (intensity 0), see makeLala */
   yield;
   I.W.shadow = groundShadow(I.W.group, .55);
   yield;
@@ -10669,6 +10796,13 @@ const SPEED = parseFloat(QS.get("speed")) || 12.4;
    "that ease curve is half the magic. linear fall just reads as rain on a teal set." A camera that
    lerps linearly between two points reads as a slideshow no matter how good the frame is. smootherstep
    starts and ends at zero velocity, which is what a real dolly does. */
+const CUT_BLEND = .9, CUT_BACK = 1.0;      /* seconds to glide into a scene's first shot, and back out to the chase camera */
+function camBlendStep(I, dt){
+  const B = I.camBlend; if(!B || I.cut) return;
+  B.t += dt; const w = wdEase(B.t/CUT_BACK), q1 = camera.quaternion.clone();
+  camera.position.lerpVectors(B.p, camera.position.clone(), w); camera.quaternion.slerpQuaternions(B.q, q1, w);
+  if(B.t >= CUT_BACK) I.camBlend = null;
+}
 function cutText(sh){
   const T = $("cutT"), S = $("cutS");
   if(!T || !S) return;
@@ -10689,7 +10823,7 @@ function cutPlay(I, shots, onDone){
      was. The first version set active=false here and never restored it, so the reward for winning
      the horse was being frozen in place next to it - qa/horse.mjs caught it by finding no interact
      prompt on the horse she had just tamed. A scene that takes control owns putting it back. */
-  I.cut = {shots, i:0, t:0, onDone, wasActive: !!I.W.active};
+  I.cut = {shots, i:0, t:0, T:0, onDone, wasActive: !!I.W.active, p0: camera.position.clone(), q0: camera.quaternion.clone()};
   I.W.active = false;                                    /* she does not walk through her own scene */
   musCine(true);                                         /* the score comes forward for the length of the scene */
   const el = $("cutscene"); el.classList.remove("hide");
@@ -10699,11 +10833,12 @@ function cutPlay(I, shots, onDone){
 function cutEnd(I){
   const C = I.cut; if(!C) return;
   I.cut = null;
+  I.camBlend = {p: camera.position.clone(), q: camera.quaternion.clone(), t: 0};     /* the chase camera takes over from wherever the scene left it */
   musCine(false);
   const el = $("cutscene"); el.classList.remove("on");
   $("cutT").classList.remove("in"); $("cutS").classList.remove("in");
   setTimeout(() => el.classList.add("hide"), 650);
-  camRig(I, true); placeCamera(I, 1);                    /* snap the chase camera back, no swoop */
+  camRig(I, true); placeCamera(I, 1);                    /* the chase rig is put back where it belongs; camBlendStep eases the lens there */
   I.W.active = C.wasActive;                              /* hand control back exactly as it was */
   I.W.target = null;                                     /* rescan from where she is standing now */
   if(C.onDone) try{ C.onDone(); }catch(e){ DBG("cut onDone", e); }
@@ -10711,13 +10846,16 @@ function cutEnd(I){
 function cutUpdate(I, dt){
   const C = I.cut; if(!C) return;
   const sh = C.shots[C.i];
-  C.t += dt;
+  C.t += dt; C.T += dt;
   const k = Math.max(0, Math.min(1, C.t / sh.dur));
   const e = k*k*k*(k*(k*6 - 15) + 10);                   /* smootherstep: zero velocity at both ends */
   const f = sh.from, o = sh.to;
   camera.position.set(f[0]+(o[0]-f[0])*e, f[1]+(o[1]-f[1])*e, f[2]+(o[2]-f[2])*e);
   const L = typeof sh.look === "function" ? sh.look() : sh.look;
   if(L) camera.lookAt(L[0], L[1], L[2]);
+  /* the first shot does not cut in from the chase camera: it glides from where the camera was to where the shot is */
+  if(C.T < CUT_BLEND){ const w = wdEase(C.T/CUT_BLEND), q1 = camera.quaternion.clone();
+    camera.position.lerpVectors(C.p0, camera.position.clone(), w); camera.quaternion.slerpQuaternions(C.q0, q1, w); }
   if(C.t >= sh.dur){
     C.i++; C.t = 0;
     if(C.i >= C.shots.length){ cutEnd(I); return; }
@@ -10834,10 +10972,10 @@ const dissolveNoise = (() => {
     return t;
   };
 })();
-function dissolvePatch(mat, col){
+function dissolvePatch(mat, col, keepOpaque){
   if(!mat || mat.userData.__dis) return mat;
   mat.userData.__dis = {value:-1};                 /* -1 = not dissolving, so nothing is clipped */
-  mat.transparent = true;
+  if(!keepOpaque) mat.transparent = true;
   const edge = new THREE.Color(col == null ? 0xFFD98A : col);
   const prev = mat.onBeforeCompile;
   /* ===============  TWO WAYS TO GET THIS WRONG, AND I GOT BOTH  ===============
@@ -10885,6 +11023,14 @@ function dissolvePatch(mat, col){
 /* Run the dissolve across an object and hide it when the burn has passed the far edge. Returns a
    promise so a caller can wait for it without owning a timer. */
 const DISSOLVING = [];
+/* The dissolve is a shader patch, and patching a material changes its program: the first time anything dissolved, the
+   frame it started on compiled a new shader for it (measured, qa/smooth.mjs letter). Things that will dissolve are patched
+   when the island is built (inert: uDis is -1) so the crossing's pre-draw compiles it, and they stay opaque, and so
+   exactly as they looked, until the burn begins. */
+function dissolvePrep(obj, col){
+  if(!obj) return;
+  obj.traverse(o => { if(o.isMesh && o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => dissolvePatch(m, col, true)); });
+}
 function dissolveAway(obj, dur, col){
   if(!obj) return Promise.resolve();
   const mats = [];
@@ -10892,6 +11038,7 @@ function dissolveAway(obj, dur, col){
     (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { dissolvePatch(m, col); mats.push(m); }); });
   if(!mats.length){ obj.visible = false; return Promise.resolve(); }
   return new Promise(res => {
+    mats.forEach(m => { m.transparent = true; });     /* a pre-patched material (dissolvePrep) is still opaque until it starts to burn */
     DISSOLVING.push({obj, mats, t:0, dur: dur || 1.1, done: () => {
       obj.visible = false;
       mats.forEach(m => { if(m.userData.__dis) m.userData.__dis.value = -1; });   /* reset for reuse */
@@ -10907,6 +11054,102 @@ function dissolveUpdate(dt){
     d.mats.forEach(m => { if(m.userData.__dis) m.userData.__dis.value = k; });
     if(k >= 1){ d.done(); DISSOLVING.splice(i, 1); }
   }
+}
+/* ===================  SMALL TWEENS, GHOSTS, SPARKS  ===================
+   Things that used to change on one frame - a pickup vanishing from the ground, the stones under the water appearing,
+   the fence at the east road being there and then not, a moon blinking out - ease now. A tween is
+   {dur, delay, fn(k), done, hold}: fn gets 0..1 and runs inside islandUpdate of the island being played; `hold`
+   freezes it while it returns true (a card is open and she is not playing, so the thing waits for her). Nothing a
+   tween touches is created here: ghosts share the original's geometry and materials, so no shader, no upload. */
+function twAdd(I, o){ (I.tw || (I.tw = [])).push(Object.assign({t:0, delay:0, dur:.6}, o)); }
+function twUpdate(I, dt){
+  const L = I.tw; if(!L || !L.length) return;
+  for(let i = L.length - 1; i >= 0; i--){ const o = L[i];
+    if(o.hold && o.hold()) continue;
+    if(o.delay > 0){ o.delay -= dt; continue; }
+    o.t += dt; const k = Math.min(1, o.t/o.dur); o.fn(k);
+    if(k >= 1){ L.splice(i, 1); if(o.done) o.done(); } }
+}
+/* anything still easing when she leaves lands where it was going, so nothing is left half-way or in the scene */
+function twFinish(I){ const L = I.tw; if(!L || !L.length) return; I.tw = []; L.forEach(o => { o.fn(1); if(o.done) o.done(); }); }
+const easeOut3 = k => 1 - Math.pow(1 - k, 3), easeIn2 = k => k*k;
+/* a copy of a thing in the world made of the same geometry and the same materials (Object3D.clone would JSON-copy userData,
+   which holds mesh references) */
+const _gI = new THREE.Matrix4();
+function ghostOf(I, src){
+  const g = new THREE.Group(); src.updateWorldMatrix(true, true);
+  _gI.copy(src.matrixWorld).invert();
+  src.traverse(o => { if(!o.isMesh) return;
+    const m = new THREE.Mesh(o.geometry, o.material); m.matrixAutoUpdate = false; m.matrix.multiplyMatrices(_gI, o.matrixWorld); m.frustumCulled = false; m.renderOrder = o.renderOrder; g.add(m); });
+  src.matrixWorld.decompose(g.position, g.quaternion, g.scale);
+  g.userData.dyn = 1; I.scene.add(g); return g;
+}
+/* what she has picked up flies into her hands and is gone, instead of vanishing from the ground */
+function absorbInto(I, src, dur){
+  if(!src) return;
+  const W = I.W, g = ghostOf(I, src), p0 = g.position.clone(), s0 = g.scale.x, y0 = g.rotation.y;
+  twAdd(I, {dur: dur || .5, hold: () => !W.active, fn: k => {
+    const e = easeIn2(k), tx = W.x, ty = W.y + 1.9, tz = W.z;
+    g.position.set(p0.x + (tx - p0.x)*e, p0.y + (ty - p0.y)*e + Math.sin(k*Math.PI)*.9, p0.z + (tz - p0.z)*e);
+    g.scale.setScalar(Math.max(.001, s0*(1 - .85*e))); g.rotation.y = y0 + k*9; },
+    done: () => { I.scene.remove(g); } });
+}
+/* a beam of light fades out instead of snapping off */
+function fadeBeam(I, beam, dur){
+  if(!beam || !beam.visible) return;
+  const m = beam.material, o0 = m.opacity;
+  twAdd(I, {dur: dur || .9, fn: k => { m.opacity = o0*(1 - k); }, done: () => { beam.visible = false; m.opacity = o0; } });
+}
+/* a few sparks at a point (a moon taken) and the ring that climbs her (WARDROBE) both go through the spark pool */
+function sparkPuff(I, x, y, z, n){
+  const tr = I.fx && I.fx.spark; if(!tr) return;
+  const u = tr.userData, P = tr.geometry.attributes.position, N = u.life.length;
+  for(let q = 0; q < n; q++){ const i = u.head, a = q/n*Math.PI*2 + Math.random()*.5; u.head = (u.head + 1) % N;
+    P.setXYZ(i, x + Math.cos(a)*.3, y + (Math.random() - .5)*.4, z + Math.sin(a)*.3);
+    u.vel[i*3] = Math.cos(a)*(1.2 + Math.random()*.8); u.vel[i*3+1] = .6 + Math.random()*1.0; u.vel[i*3+2] = Math.sin(a)*(1.2 + Math.random()*.8); u.life[i] = .8; }
+  tr.visible = true;
+}
+function sparkBurst(I, dt){
+  const W = I.W, w = W.wd, tr = I.fx.spark;
+  if(w && w.burst > 0){
+    if(!tr){ w.burst = 0; }
+    else {
+      const u = tr.userData, P = tr.geometry.attributes.position, N = u.life.length;
+      w.burst = Math.max(0, w.burst - dt/1.0);
+      const p = 1 - w.burst;                                      /* climbs from her feet to the crown of her head */
+      w.acc += dt*100;
+      while(w.acc >= 1){ w.acc -= 1;
+        const i = u.head; u.head = (u.head + 1) % N;
+        const a = p*Math.PI*7 + (i & 1)*Math.PI + (Math.random() - .5)*.5, r = .55 + Math.random()*.35;
+        P.setXYZ(i, W.x + Math.cos(a)*r, W.y + .15 + p*2.8 + (Math.random() - .5)*.25, W.z + Math.sin(a)*r);
+        u.vel[i*3] = -Math.sin(a)*.5; u.vel[i*3+1] = .5 + Math.random()*.5; u.vel[i*3+2] = Math.cos(a)*.5; u.life[i] = .85; }
+      tr.visible = true;
+    }
+  }
+  if(tr && tr.visible){ glitterUpdate(tr, dt, W, false); if(tr.material.opacity <= 0) tr.visible = false; }
+}
+/* a moon is taken: it climbs and spins away into a puff of sparks instead of blinking out */
+function moonTake(I, m){
+  const g = ghostOf(I, m), p0 = g.position.clone(), s0 = g.scale.x, y0 = g.rotation.y;
+  m.visible = false;
+  sparkPuff(I, p0.x, p0.y, p0.z, 14);
+  twAdd(I, {dur: .6, fn: k => { g.position.y = p0.y + easeOut3(k)*1.9; g.rotation.y = y0 + k*k*12; g.scale.setScalar(Math.max(.001, s0*(1 - easeIn2(k)))); }, done: () => { I.scene.remove(g); } });
+}
+/* The stones under the lantern's light rise to the surface one after another from the shore, and the east road's fence
+   sinks into the ground, a post at a time. Both used to be .visible flips. `snap` is the arrival on the island. */
+function stonesSet(I, on, snap){
+  I.stones.forEach((s, i) => { const m = s.mesh; if(s.y1 == null) s.y1 = m.position.y;
+    if(snap){ m.visible = on; m.position.y = s.y1; m.scale.setScalar(1); return; }
+    if(!on){ m.visible = false; return; }
+    m.position.y = s.y1 - 2.4; m.scale.setScalar(.7);
+    twAdd(I, {delay: .5 + i*.11, dur: .8, fn: k => { const e = easeOut3(k); m.visible = true; m.position.y = s.y1 - 2.4*(1 - e); m.scale.setScalar(.7 + .3*e); }}); });
+}
+function gateSet(I, open, snap){
+  I.gateMeshes.forEach((m, i) => { if(m.userData.y1 == null) m.userData.y1 = m.position.y;
+    const y1 = m.userData.y1;
+    if(snap){ m.visible = !open; m.position.y = y1; return; }
+    if(!open){ m.visible = true; m.position.y = y1; return; }
+    twAdd(I, {delay: .15 + i*.12, dur: 1.0, fn: k => { m.position.y = y1 - 4.6*easeIn2(k); }, done: () => { m.visible = false; m.position.y = y1; } }); });
 }
 const RIDEABLE = {horse:1, cow:1};
 const RIDE_MUL = parseFloat(QS.get("ride")) || 3.2;
@@ -10975,12 +11218,45 @@ function canStand(I, x, z){
   if(I.shoreOut && I.shoreOut(x, z) <= WADE_MAX) return true;   /* the shallows: she can wade out to about waist depth */
   return false;
 }
+/* ===================  GETTING ON AND OFF  ===================
+   Mounting set W.x to the animal's x on the frame of the press (up to 5.5 u of teleport), snapped the rider from the
+   ground to the saddle (1.3 u) and the animal to her heading; dismounting did the same in reverse, and the animal,
+   which had been parked while ridden, then went straight back to wherever its orbit said it should be - across the
+   island. Now she hops: an eased arc from where she stands to the saddle (or from the saddle to the ground), turning
+   to the animal's heading on the way, the animal stands still for it, and when she gets down it carries on from where
+   she left it. */
+function releaseMount(I){
+  const W = I.W, h = W.mount; if(!h) return;
+  const u = h.userData;
+  W.mount = null; W.hop = null; u.ridden = false; W.seated = false;
+  if(W.seatBones && W.model) W.model.traverse(o => { if(o.isBone && o.userData.rest) o.quaternion.copy(o.userData.rest); });
+  /* the orbit picks up from here: same bearing, same radius, no remembered velocity to swing the nose round */
+  const x = h.position.x, z = h.position.z;
+  u.a = Math.atan2(z, x); u.rOff = Math.max(6, Math.hypot(x, z)) - u.r;
+  u.px0 = x; u.pz0 = z; u.ox = x; u.oz = z; u.lx = x; u.lz = z; u.vx = 0; u.vz = 0;
+}
+/* one frame of the hop; returns the rider's lift above the straight line (the arc) */
+function hopStep(I, dt){
+  const W = I.W, H = W.hop; if(!H) return 0;
+  H.t += dt; const k = Math.min(1, H.t/H.dur), e = k*k*(3 - 2*k);
+  W.x = H.x0 + (H.x1 - H.x0)*e; W.z = H.z0 + (H.z1 - H.z0)*e; W.vx = W.vz = 0;
+  if(H.face != null) W.heading = H.face;
+  H.k = k;
+  if(k >= 1){
+    W.x = H.x1; W.z = H.z1;
+    if(H.kind === "off"){ releaseMount(I); W.y = I.height(W.x, W.z); W.vy = 0; W.grounded = true; }
+    W.hop = null; return 0;
+  }
+  return Math.sin(k*Math.PI)*1.0;
+}
 function walkerUpdate(I, dt, t){
   const W = I.W, ab = abilityOf(I);
   let ix=0, iz=0;
   if(keys.KeyW||keys.ArrowUp) iz-=1; if(keys.KeyS||keys.ArrowDown) iz+=1;
   if(keys.KeyA||keys.ArrowLeft) ix-=1; if(keys.KeyD||keys.ArrowRight) ix+=1;
   ix += joy.x; iz += joy.y;
+  const hopLift = W.hop ? hopStep(I, dt) : 0;          /* getting on or off an animal: it owns her position until it is done */
+  if(W.hop){ ix = 0; iz = 0; }
   const mag = Math.min(1, Math.hypot(ix,iz));
   /* ===================  SHE HAD NO MASS  ===================
      Vertical motion was already real - vy integrates GRAV and the jump is a launch velocity. HORIZONTAL
@@ -11162,35 +11438,44 @@ function walkerUpdate(I, dt, t){
     W.shadow.material.opacity = .85 * Math.max(.15, k);
     W.shadow.visible = !W.mount;                       /* the horse carries its own while she rides */
   }
+  /* the stride and the bob switch on and off over a few frames, not on the frame the speed crosses a threshold */
+  W.stepK = (W.stepK || 0) + ((moving ? 1 : 0) - (W.stepK || 0))*Math.min(1, dt*9);
   if(W.mount){
     /* she sits the horse: the animal is planted on the ground under her and she rides at saddle height */
-    const gy = I.height(W.x, W.z);
-    W.mount.position.set(W.x, gy + (moving ? Math.abs(Math.sin(t*7))*.09 : 0), W.z);
-    /* She rode backwards, and so did the animal, because this said +PI/2.
-       Worked through rather than guessed: a Y-rotation of theta maps the model's local +x to world
-       (cos theta, -sin theta). The animals do face local +x - measured, hips-to-head, in
-       qa/facing.mjs: the cow reads [1.000, -0.001]. Her heading g sends her travelling along
-       (sin g, cos g). At theta = g + PI/2 the animal's nose lands on (-sin g, -cos g), which is
-       exactly the negative of where she is going. theta = g - PI/2 puts it right, and matches what
-       the loose creatures already do (h.rotation.y = -a - PI/2 against a velocity of
-       (-sin a, cos a)). qa/mountdir.mjs asserts nose and travel agree. */
-    W.mount.rotation.y = W.group.rotation.y - Math.PI/2;
-    (W.mount.userData.legs||[]).forEach((l,i) => l.rotation.x = moving ? Math.sin(t*9+i*Math.PI/2)*.55 : 0);
-    if(W.mount.userData.R && W.mount.userData.R.mixer) W.mount.userData.R.mixer.update(dt * (moving ? 1.5 : .35));
-    W.group.position.set(W.x, gy + SADDLE_Y, W.z);
+    const hop = W.hop, gy = I.height(W.x, W.z), rk = W.stepK;
+    /* The animal bobs with its stride and so does she - it used to bob alone (up to .09 u) and she stayed at a fixed
+       height, so the saddle slid up and down under her. */
+    const bob = Math.abs(Math.sin(t*7))*.09*rk;
+    if(!hop){
+      W.mount.position.set(W.x, gy + bob, W.z);
+      W.mount.rotation.y = W.group.rotation.y - Math.PI/2;
+      /* nose up on a rise, down on a fall, eased so a bump does not rock it */
+      const fx = Math.sin(W.group.rotation.y)*1.3, fz = Math.cos(W.group.rotation.y)*1.3;
+      const pt = Math.max(-.28, Math.min(.28, Math.atan2(I.height(W.x+fx, W.z+fz) - I.height(W.x-fx, W.z-fz), 2.6)));
+      W.ridePitch = (W.ridePitch || 0) + (pt - (W.ridePitch || 0))*Math.min(1, dt*8);
+      W.mount.rotation.z = W.ridePitch;
+    }
+    (W.mount.userData.legs||[]).forEach((l,i) => l.rotation.x = Math.sin(t*9+i*Math.PI/2)*.55*rk);
+    if(W.mount.userData.R && W.mount.userData.R.mixer) W.mount.userData.R.mixer.update(dt * (.35 + 1.15*rk));
+    const hk = hop ? hop.k*hop.k*(3 - 2*hop.k) : 1;
+    const seat = hop ? (hop.kind === "on" ? SADDLE_Y*hk : SADDLE_Y*(1 - hk)) : SADDLE_Y;
+    W.group.position.set(W.x, gy + seat + (hop ? 0 : bob) + hopLift, W.z);
     W.group.rotation.z = 0;
+    /* the seated pose comes in and goes out with the hop, not on the frame she presses the button */
+    W.seatW = hop ? (hop.kind === "on" ? wdEase((hop.k - .3)/.7) : 1 - wdEase(hop.k/.6)) : 1;
     if(W.model) applySeated(W);
   } else {
-  W.group.position.set(W.x, W.y + (moving ? Math.abs(Math.sin(t*10))*.07 : 0), W.z);
+  W.group.position.set(W.x, W.y + Math.abs(Math.sin(t*10))*.07*W.stepK, W.z);
   W.group.rotation.z = W.gliding ? Math.sin(t*2)*.06 : 0;
   }
-  W.fans.visible = ab.glide; W.fanMeshes.forEach(f => f.visible = ab.glide);
+  /* the fans spread when she glides and fold when she lands; how big they are is eased, and so is whether they are on
+     her at all (the wardrobe) */
   if(ab.glide) W.fanMeshes.forEach((f,i) => { const s = (W.model ? .62 : 1) * (W.gliding ? 1.6 : .7);
-    f.scale.setScalar(f.scale.x + (s - f.scale.x)*Math.min(1, dt*8));
+    f.userData.sc = (f.userData.sc == null ? f.scale.x : f.userData.sc);
+    f.userData.sc += (s - f.userData.sc)*Math.min(1, dt*8);
     if(W.model) f.rotation.z = (i?1:-1)*(W.gliding ? 1.6 : .9) + Math.sin(t*3+i)*.05;
     else f.rotation.z = (i?1:-1)*(W.gliding ? 1.25 : .5) + Math.sin(t*3+i)*.05; });
-  W.lantern.visible = ab.lantern; W.lanternLight.intensity = ab.lantern ? 1.6 + 1.6*(CUR && CUR.dn ? CUR.dn.mix : (CUR && CUR.dark ? 1 : 0)) : 0;
-  if(W.fill) W.fill.intensity = ab.lantern ? 0 : .85*(CUR && CUR.dn ? CUR.dn.mix : (CUR && CUR.dark ? 1 : 0));
+  wdStep(W, dt, ab);        /* hat, hair, crown, fans, lantern and the two lights that go with them */
 
   updateCamera(I, dt, mag > .08 ? curSpeed : 0);
 }
@@ -11233,7 +11518,6 @@ function updateCamera(I, dt, speed){
   hatPhysics(W, dt);
   /* while a cut scene is running it owns the camera outright - the chase rig would fight it and
      the frame would crab sideways on every shot change */
-  dissolveUpdate(dt);
   if(I.cut) cutUpdate(I, dt); else placeCamera(I, dt);
 }
 const CAM_W_IN  = (() => { const v = parseFloat(QS.get("camw"));   return isNaN(v) ? 20 : v; })();   /* pull in */
@@ -11437,6 +11721,7 @@ function islandUpdate(I, dt, t){
     W.gx = W.x; W.gz = W.z;
     glitterUpdate(I.fx.glitter, dt, W, W.active && sp > dt * 1.2);   /* only while she is really moving */
   }
+  sparkBurst(I, dt);
   guideUpdate(I, dt, t);
   cueUpdate(I, dt, t);
   if(I.letterMesh && I.letterMesh.visible){
@@ -11448,7 +11733,7 @@ function islandUpdate(I, dt, t){
   }
   I.moons.forEach(m => { if(!m.visible) return; m.rotation.y += dt*1.8;
     if(Math.hypot(W.x-m.position.x, W.z-m.position.z) < 1.7 && Math.abs(W.y+1.2-m.position.y) < 2.2){
-      m.visible = false; G.moonsTaken[m.userData.id] = true; G.moons++; syncHUD(); save(); auChime([880,1175],.06,.4); } });
+      moonTake(I, m); G.moonsTaken[m.userData.id] = true; G.moons++; syncHUD(); save(); auChime([880,1175],.06,.4); } });
   /* loose props: she kicks them and they roll, bounce, slow down and settle back on the ground */
   (I.fleet||[]).forEach(b => { const u = b.userData.bob;
     b.position.y = -.55 + Math.sin(t*u.sp + u.ph)*.22;
@@ -11597,6 +11882,7 @@ function islandUpdate(I, dt, t){
       u.spK = (u.spK == null ? 1 : u.spK + (want - u.spK) * Math.min(1, dt * 1.6));   /* ease, never snap */
     }
     u.a += u.sp*dt*(u.spK == null ? 1 : u.spK);
+    if((u.type === "horse" || u.type === "cow") && h.rotation.z) h.rotation.z *= 1 - Math.min(1, dt*5);   /* the pitch it had under her eases back to level */
     if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
        radius walks straight into the sea. Pull the radius in until the step lands on land (with a
@@ -11749,8 +12035,9 @@ function islandUpdate(I, dt, t){
     }
     if(u.sparkle) u.sparkle.rotation.y = t*.8; });
   const ab = abilityOf(I);
-  I.stones.forEach(s => s.mesh.visible = ab.lantern);
-  I.gateMeshes.forEach(m => m.visible = !ab.gateOpen);
+  if(I.stonesOn !== ab.lantern){ stonesSet(I, ab.lantern, I.stonesOn == null); I.stonesOn = ab.lantern; }
+  if(I.gateOn !== ab.gateOpen){ gateSet(I, ab.gateOpen, I.gateOn == null); I.gateOn = ab.gateOpen; }
+  twUpdate(I, dt);
   if(I.beam){ const bc = I.beamC || [-30, -25], ba = t*.4;
     const by = I.beam.position.y - 4;                                  /* out toward the horizon, the way a lighthouse sweeps, not down onto its own rock */
     I.beam.target.position.set(bc[0] + Math.cos(ba)*60, by, bc[1] + Math.sin(ba)*60);
@@ -11837,12 +12124,24 @@ function islandUpdate(I, dt, t){
   if(AU.birdT <= 0){ if(cfg.birds > 0 && storm < .2) auChirp(); AU.birdT = 1.4 + Math.random()*4; }
   if(Math.random() < dt*.06) auGust();
 
+  /* ===================  THESE USED TO STOP WHEN SHE DID  ===================
+     dissolveUpdate and cutUpdate were called from updateCamera, which only runs inside walkerUpdate, which only runs while
+     she is active. A cut scene switches her off, so the camera never left the chase pose and the scene never advanced
+     (the horse scene hung until a tap; the opening never flew), and the last letter - which switches her off the same
+     frame it starts to dissolve - sat there whole until the ending card covered it. They run here now, every frame. */
+  dissolveUpdate(dt);
   if(W.active){
     walkerUpdate(I, dt, t);
     W.target = nearest(I);
     $("prompt").classList.toggle("on", !!W.target); $("act").classList.toggle("live", !!W.target);
     const pl = cfg.places.find(p => Math.hypot(W.x-p.x, W.z-p.z) < p.r);
     $("valL").textContent = pl ? pl.name : cfg.fallback;
+    camBlendStep(I, dt);              /* after the chase camera has been placed this frame */
+  } else if(I.cut){
+    /* she stands in her own scene breathing, with her hat riding on her */
+    if(W.mixer){ playClip(W, "idle"); W.mixer.update(dt); }
+    hatPhysics(W, dt);
+    cutUpdate(I, dt);
   }
 }
 /* Every interactable in range is scored; the letter and the outfit always win over a note that
@@ -11851,7 +12150,7 @@ function nearest(I){
   const W = I.W, cfg = I.cfg, cands = [];
   const PRI = {letter:0, pen:0, secret:0, desk:.5, post:.8, ability:1, castle:2, npc:2.5, note:3, mount:3.5, dock:4};
   const add = (kind, d, extra) => cands.push(Object.assign({kind, d, pri:PRI[kind]}, extra));
-  if(I.letterMesh && I.letterMesh.visible){ const d = Math.hypot(W.x-I.letterMesh.position.x, W.z-I.letterMesh.position.z);
+  if(I.letterMesh && I.letterMesh.visible && !DISSOLVING.some(q => q.obj === I.letterMesh)){ const d = Math.hypot(W.x-I.letterMesh.position.x, W.z-I.letterMesh.position.z);
     /* against the MESH's height, not cfg.letter.y - the authored number is where the letter was
        said to be, the mesh is where it actually is, and those were 7 units apart */
     if(d < 4.6 && Math.abs(W.y - I.letterMesh.position.y) < 3.9) add("letter", d, {label: cfg.questSeeded ? "Take the paper" : "Take the letter"}); }
@@ -11927,7 +12226,7 @@ function interact(){
     $("castleBody").textContent = all ? "All four letters. The keep is open, and what's inside is the fifth song." : `Four letters open the keep. One waits on each island. ${got} of 4 found.`;
     $("bEnter").classList.toggle("hide", !all); W.active = false; ov("ovCastle");
   } else if(t.kind === "carrot"){
-    t.obj.userData.taken = true; t.obj.visible = false;
+    t.obj.userData.taken = true; absorbInto(I, t.obj, .4); t.obj.visible = false;
     G.quest["green:carrotTaken:" + t.obj.userData.ci] = true;
     qAdd(cfg, "carrots", 1); syncHUD();
     auChime([523,659]);
@@ -11973,24 +12272,27 @@ function interact(){
     });
 
   } else if(t.kind === "mount"){
-    if(W.mount){ const h = W.mount; W.mount = null; h.userData.ridden = false;
-      /* step off to her left, onto ground she can actually stand on */
+    if(W.hop) return;                                   /* she is already on her way up or down */
+    if(W.mount){ const h = W.mount;
+      /* step off to her left, onto ground she can actually stand on: she hops down to it instead of being set there */
+      let sx = W.x, sz = W.z;
       for(const a of [Math.PI/2, -Math.PI/2, 0, Math.PI]){
         const nx = W.x + Math.cos(W.heading+a)*2.2, nz = W.z + Math.sin(W.heading+a)*2.2;
-        if(canStand(I,nx,nz)){ W.x = nx; W.z = nz; break; }
+        if(canStand(I,nx,nz)){ sx = nx; sz = nz; break; }
       }
-      W.y = I.height(W.x,W.z); W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true;
-      if(W.seatBones) W.model && W.model.traverse(o => { if(o.isBone && o.userData.rest) o.quaternion.copy(o.userData.rest); });
-      W.seated = false; toast("Down", "");
+      W.vx = 0; W.vz = 0;
+      W.hop = {kind:"off", t:0, dur:.5, x0:W.x, z0:W.z, x1:sx, z1:sz, k:0};
+      toast("Down", "");
     } else {
-      const h = t.obj; W.mount = h; h.userData.ridden = true;
-      W.x = h.position.x; W.z = h.position.z; W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true; W.seated = true;
+      const h = t.obj; W.mount = h; h.userData.ridden = true; W.seated = true; W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true;
+      /* she climbs on from where she stands, turning to face the way the animal faces (its nose is local +x) */
+      W.hop = {kind:"on", t:0, dur:.55, x0:W.x, z0:W.z, x1:h.position.x, z1:h.position.z, k:0, face:h.rotation.y + Math.PI/2};
       auChime([392,523,659]); toast("Riding", "Interact again to get down");
     }
   } else if(t.kind === "dock"){
     renderDock(); W.active = false; ov("ovDock");
   } else if(t.kind === "pen"){
-    qSet(cfg, "pen", true); I.quest.pen.visible = false; I.quest.penBeam.visible = false; syncHUD();
+    qSet(cfg, "pen", true); absorbInto(I, I.quest.pen, .45); I.quest.pen.visible = false; fadeBeam(I, I.quest.penBeam); syncHUD();
     auChime([523,659,784]); toast("Her pen", qGet(cfg,"paper") ? "Now go and write it" : "Now find something to write on");
   } else if(t.kind === "desk"){
     if(!(qGet(cfg,"pen") && qGet(cfg,"paper"))){ toast("Not yet", "The pen and the paper first"); return; }
@@ -12018,27 +12320,27 @@ function interact(){
     W.active = false; ov("ovNote");
   } else if(t.kind === "secret"){
     const sec = SECRET_TEXT[cfg.key] || {who:"A folded note", text:"..."}, wear = SECRET_WEAR[cfg.key];
-    G.wear[cfg.key] = true; save(); I.quest.secret.visible = false;
-    applyOutfit(W, outfitFor(cfg), wear);
+    G.wear[cfg.key] = true; save(); absorbInto(I, I.quest.secret, .45); I.quest.secret.visible = false;
+    applyOutfit(W, outfitFor(cfg), wear, true);
     auChime([659,784,988,1319],.15,1.3);
     $("noteWho").textContent = sec.who;
     $("noteBody").textContent = sec.text + (wear ? "\n\nShe puts it away and comes back wearing " + wear.wearName + "." : "");
     W.active = false; ov("ovNote");
   } else if(t.kind === "ability"){
-    G.abilities[cfg.ability.key] = true; save(); I.pickup.visible = false; applyOutfit(W, outfitFor(cfg));
+    G.abilities[cfg.ability.key] = true; save(); absorbInto(I, I.pickup, .45); I.pickup.visible = false; applyOutfit(W, outfitFor(cfg), null, true);
     auChime([523,659,784,1047]); toast(cfg.ability.name, cfg.ability.hint);
   } else if(t.kind === "letter"){
     if(cfg.key === "moon"){          /* the fifth song, at the top of the rock — this is the ending */
       /* it comes APART rather than blinking out - his reference, and the last thing the player
          sees before the ending card, so it is the one that most deserves it */
       dissolveAway(I.letterMesh, 1.5, 0xFFF0C0);
-      if(I.letterBeam) I.letterBeam.visible = false; G.finished = true; save();
+      fadeBeam(I, I.letterBeam, 1.4); G.finished = true; save();
       auChime([392,440,523,587,659,784,880,1047,1175,1319,1568],.16,1.6);
       $("endBody").textContent = "The fifth song was never hidden. It was waiting for someone who'd found the other four. — L";
       W.active = false; setTimeout(() => ov("ovEnd"), 2400); return;
     }
     dissolveAway(I.letterMesh, 1.15, 0xFFE9A8);
-    I.letterBeam.visible = false;
+    fadeBeam(I, I.letterBeam, 1.1);
     if(cfg.questSeeded){
       qSet(cfg, "paper", true); syncHUD();
       auChime([392,523,659]); toast("Paper", qGet(cfg,"pen") ? "Now go and write it" : "Now find her pen");
@@ -12067,11 +12369,14 @@ const sBoat = makeBoat(0x8D6141, MOON, 1.16); const sRider = makeLala();
 /* seated pose: overrides the leg bones after the idle clip so she sits on the bench, knees forward, hands on the rail */
 function applySeated(R){
   if(!R.model) return;
+  const wgt = R.seatW == null ? 1 : R.seatW;
+  if(wgt <= .001) return;                                   /* not seated yet / any more: leave the clip's pose alone */
   const find = n => { let h = null; R.model.traverse(o => { if(!h && o.isBone && o.name.replace(/[^a-z]/gi,"").toLowerCase().endsWith(n)) h = o; }); return h; };
   if(!R.seatBones){ R.seatBones = {hips:find("hips"), lu:find("leftupleg"), ru:find("rightupleg"), ll:find("leftleg"), rl:find("rightleg"), sp:find("spine"), la:find("leftarm"), ra:find("rightarm"),
     lf:find("leftfoot"), rf:find("rightfoot")}; R.model.updateMatrixWorld(true); }
   const B = R.seatBones; if(!B.hips) return;
   R.model.updateMatrixWorld(true);
+  const blend = wgt < .999 ? ["lu","ru","ll","rl","lf","rf","sp","la","ra"].map(k => B[k] && [B[k], B[k].quaternion.clone()]).filter(Boolean) : null;
   /* aim a bone's +Y (Mixamo bones point at their child) along a world direction — no guessing at local axes */
   const qW = new THREE.Quaternion(), qP = new THREE.Quaternion(), qR = new THREE.Quaternion(), cur = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
   const aim = (b, dir) => { if(!b) return; b.getWorldQuaternion(qW); cur.copy(up).applyQuaternion(qW);
@@ -12087,6 +12392,7 @@ function applySeated(R){
   /* hands come forward to rest on her lap */
   const Q = new THREE.Quaternion(), E = new THREE.Euler(); const turn = (b, x, y, z) => { if(!b) return; Q.setFromEuler(E.set(x, y, z)); b.quaternion.multiply(Q); };
   turn(B.sp, P.lean, 0, 0); turn(B.la, .55, 0, .25); turn(B.ra, .55, 0, -.25);
+  if(blend) blend.forEach(([b, q0]) => { b.quaternion.slerpQuaternions(q0, b.quaternion.clone(), wgt); });
 }
 const sFar = [];   /* the green blobs on the horizon read as toy islands: the crossing is open water now (?crossing=old brings them back) */
 for(let i=0;i<7;i++){ const a = Math.random()*Math.PI*2, r = 120+Math.random()*140;
@@ -12334,6 +12640,10 @@ async function goIsland(I, skipFade){
   W.x = cfg.spawn[0]; W.z = cfg.spawn[1]; W.y = I.height(W.x,W.z); W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true; W.heading = Math.PI; W.camYaw = Math.PI; W.active = false;
   W.camPitch = CAM.pitch; W.lookHold = 0; W.recenter = false; camRig(I, true); W.camDistCur = W.camDist; placeCamera(I, 1);
   applyOutfit(W, outfitFor(cfg), wearOf(cfg));
+  twFinish(I);
+  { const ab = abilityOf(I); wdSnap(W, ab, true);                    /* arrive already wearing what she has earned: no wardrobe change behind the fade */
+    stonesSet(I, ab.lantern, true); I.stonesOn = ab.lantern; gateSet(I, ab.gateOpen, true); I.gateOn = ab.gateOpen;
+    W.wd.burst = 0; }
   I.moons.forEach(m => m.visible = !G.moonsTaken[m.userData.id]);
   if(I.pickup && cfg.ability) I.pickup.visible = !G.abilities[cfg.ability.key];
   if(I.letterMesh){ const got = cfg.key === "moon" ? G.finished : (cfg.questSeeded ? qGet(cfg,"paper") : G.letters[cfg.idx]);
@@ -12351,7 +12661,7 @@ async function goIsland(I, skipFade){
 async function goKeep(){
   await toBlack(); CUR = keepI; setMode("keep"); ovNone(); musSetIsland("keep");
   KW.x = 0; KW.z = 16; KW.y = 0; KW.vy = 0; KW.vx = 0; KW.vz = 0; KW.grounded = true; KW.heading = Math.PI; KW.camYaw = Math.PI; KW.active = true;
-  applyOutfit(KW, "town"); popped = 0; bubbles.forEach(b => { b.userData.popped = false; b.visible = false; }); keep.userData.fin.visible = false; finaleDone = false;
+  applyOutfit(KW, "town"); popped = 0; bubbles.forEach(b => { const u = b.userData; u.popped = false; u.pop = null; u.born = 1; b.visible = false; b.material.opacity = .55; b.scale.setScalar(u.s); }); keep.userData.fin.visible = false; keep.userData.fin.scale.setScalar(3); finaleDone = false;
   bookRead = false; bookT = 0;
   bookG.visible = true; bookG.userData.fifth.visible = false;
   bookG.userData.glow.material.opacity = 0; bookG.userData.light.intensity = 0;
@@ -12411,7 +12721,7 @@ function renderTravel(){
     d.onclick = async () => {
       ovNone(); await toBlack();
       const W = I.W;
-      if(W.mount){ W.mount.userData.ridden = false; W.mount = null; W.seated = false; }
+      if(W.mount) releaseMount(I);
       W.x = q.x; W.z = q.z; W.y = I.height(q.x, q.z); W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true;
       camRig(I, true); placeCamera(I, 1);
       if(I.fx && I.fx.grass && I.fx.grass.follow) for(let k=0;k<10;k++) I.fx.grass.follow(W.x, W.z);
@@ -12452,6 +12762,7 @@ function tick(){
     SAIL_MATS.forEach(m => { const u = m.userData.uniforms; if(u){ u.uTime.value = T; u.uWind.value = wnd; } }); }
   FRAMES++; if(FRAMES < 4 || FRAMES % 300 === 0) DBG("frame", FRAMES, "dt", dt.toFixed(3));
   if(FRAMES > 2) prepTick();
+  if(ARRIVING.length) arriveStep(dt);
   if(MUS.bus) musPump();          /* the frame is the clock that matters; the interval is the backstop */
   if(FPS_EL){ const now = performance.now(); if(!fpsT0) fpsT0 = now; fpsAcc = (now - fpsT0)/1000; fpsN++; if(fpsAcc >= .5){ FPS_EL.textContent = Math.round(fpsN/fpsAcc) + " fps · " + Math.round(renderer.info.render.triangles/fpsN).toLocaleString() + " tris · " + Math.round(renderer.info.render.calls/fpsN) + " calls"; fpsAcc = 0; fpsN = 0; fpsT0 = now; renderer.info.reset(); } }
   if(toastT > 0){ toastT -= dt; if(toastT <= 0) $("toast").classList.remove("on"); }
@@ -12474,25 +12785,36 @@ function tick(){
         bookG.userData.fifth.visible = true;
         toast("The fifth letter", "Red leather, gold leaf. It was on the stand the whole time.");
         $("valL").textContent = "The fifth letter"; $("weather").textContent = "Pop them all";
-        bubbles.forEach(b => { b.visible = true; });        /* NOW the bubble room begins */
+        bubbles.forEach((b, i) => { b.visible = true; b.userData.born = -.15 - i*.07; });        /* NOW the bubble room begins - they swell in one after another */
       }
     } else if(bookT < 3.2){
       /* the flash, then the letter lifts out and fades into the room */
       bookT += dt;
-      const k = Math.min(1, bookT/1.1);
-      bookG.userData.glow.material.opacity = (1-k)*.95;
+      const k = Math.min(1, bookT/1.1), at = wdEase(bookT/.18);      /* the flash swells up from the pulse it was on rather than jumping to full */
+      bookG.userData.glow.material.opacity = (1-k)*.95*at + (1-at)*bookG.userData.glow.material.opacity;
       bookG.userData.glow.scale.setScalar(1 + k*5.5);
-      bookG.userData.light.intensity = (1-k)*7.0;
+      bookG.userData.light.intensity = (1-k)*7.0*at + (1-at)*bookG.userData.light.intensity;
       const f = bookG.userData.fifth;
       f.position.y = 2.1 + bookT*1.15; f.rotation.y = bookT*2.2;
       f.children.forEach(c => { c.material.transparent = true; c.material.opacity = Math.max(0, 1 - bookT/3.2); });
       if(bookT >= 3.2){ f.visible = false; bookG.userData.light.intensity = 0; }
     }
-    bubbles.forEach(b => { if(b.userData.popped || !b.visible) return; const u = b.userData; u.a += u.sp*dt*.3; u.y += u.rise*dt; if(u.y > 16) u.y = 0;
+    /* A bubble swells in when the book opens, thins out at the top before it starts again at the bottom (it used to
+       blink from the ceiling to the floor), and when it is touched it swells and fades instead of vanishing. */
+    bubbles.forEach(b => { const u = b.userData;
+      if(u.pop != null){ u.pop += dt/.24; if(u.pop >= 1){ b.visible = false; u.pop = null; return; }
+        const e = easeOut3(u.pop); b.scale.setScalar(u.s*(1 + .55*e)); b.material.opacity = .55*(1 - u.pop); return; }
+      if(u.popped || !b.visible) return;
+      u.a += u.sp*dt*.3; u.y += u.rise*dt; if(u.y > 16) u.y = 0;
+      u.born = Math.min(1, (u.born == null ? 1 : u.born) + dt/.9);
+      const edge = wdEase(u.y/1.6)*(1 - wdEase((u.y - 13.6)/2.4));
+      b.scale.setScalar(Math.max(.001, u.s*wdEase(u.born)*(.35 + .65*edge)));
+      b.material.opacity = .55*edge;
       b.position.set(Math.cos(u.a)*u.r, u.y+1.5, Math.sin(u.a)*u.r);
-      if(Math.hypot(KW.x-b.position.x, KW.z-b.position.z) < 1.4+u.s && Math.abs(KW.y+1.5-b.position.y) < 2.4){ u.popped = true; b.visible = false; popped++; auPop(); auChime([[523,659,784,988,1175][popped%5]],0,.3); $("valL").textContent = `${popped} / 24`; } });
+      if(u.born >= .5 && Math.hypot(KW.x-b.position.x, KW.z-b.position.z) < 1.4+u.s && Math.abs(KW.y+1.5-b.position.y) < 2.4){ u.popped = true; u.pop = 0; popped++; auPop(); auChime([[523,659,784,988,1175][popped%5]],0,.3); $("valL").textContent = `${popped} / 24`; } });
     const fin = keep.userData.fin;
-      if(popped >= 24 && !fin.visible){ fin.visible = true; $("valL").textContent = "A way out"; $("weather").textContent = "Something opened"; }
+      if(popped >= 24 && !fin.visible){ fin.visible = true; fin.userData.born = 0; $("valL").textContent = "A way out"; $("weather").textContent = "Something opened"; }
+    if(fin.visible && fin.userData.born < 1){ fin.userData.born = Math.min(1, fin.userData.born + dt/1.1); fin.scale.setScalar(Math.max(.001, 3*easeOut3(fin.userData.born))); }
     if(fin.visible && !finaleDone){ fin.position.y = 4 + Math.sin(T*1.2)*.6; fin.rotation.y = T*.3;
       if(Math.hypot(KW.x,KW.z) < 4 && KW.y < 6){ finaleDone = true; auPop();
         auChime([392,440,523,587,659,784,880,1047,1175,1319,1568],.16,1.4);
@@ -12522,7 +12844,7 @@ function tick(){
       camera.position.set(sBoat.position.x-sideX*9-Math.sin(sailHeading)*16, 5.5+k*3, sBoat.position.z-sideZ*9-Math.cos(sailHeading)*16);
       camera.lookAt(sBoat.position.x, sBoat.position.y+2.5, sBoat.position.z); }
     $("capq").textContent = SAIL_LINES[Math.min(SAIL_LINES.length-1, Math.floor(sailT/2.4))] || "";
-    if(sailT > SAIL_DUR && sailDone && (islandReady(SAIL_TARGET) || !SAIL_TARGET || sailT > SAIL_DUR + 90)){ const f = sailDone; sailDone = null; f(); }   /* she keeps sailing until the island is ready, not a black screen after */
+    if(sailT > SAIL_DUR && sailDone && ((islandReady(SAIL_TARGET) && (!ISL_BUILT[SAIL_TARGET] || !rigsPending(ISL_BUILT[SAIL_TARGET]) || sailT > SAIL_DUR + 25)) || !SAIL_TARGET || sailT > SAIL_DUR + 90)){ const f = sailDone; sailDone = null; f(); }   /* she keeps sailing until the island is ready, not a black screen after */
     present(sail);
   }
 }
