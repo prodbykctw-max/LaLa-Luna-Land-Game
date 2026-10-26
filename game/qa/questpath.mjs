@@ -25,11 +25,41 @@ for(const isl of argIslands(['hub', 'green', 'gr', 'sanity', 'town', 'moon'])){
     for(const p of c.phases) bad += p.lieCount > Math.max(3, p.jump*.1) ? 1 : 0;
     await H.close(); continue; }
   const r = await H.page.evaluate(({isl, g, drive}) => window.QP.audit(isl, {g, drive}), {isl, g, drive});
+  /* Moons out in the air: the lattice above only knows the ground and a jump. On an island whose gift is the glide, fly its glide
+     line with the real walker (run over the hill top toward the rock, jump at the top, hold) and count every moon the game's own
+     pick-up rule takes on the way (islandUpdate: within 1.7 u across and |y+1.2 - moon| < 2.2). */
+  if(r.moons && r.moons.unreachable && r.moons.unreachable.length){
+    const fl = await H.page.evaluate(() => {
+      const T = window.__T, I = T.CUR, W = I.W, cfg = I.cfg, ab = cfg.ability;
+      if(!ab || !ab.glide || !cfg.letter || cfg.letter.gate !== 'glide') return null;
+      T.G.abilities[ab.key] = true;
+      const h = cfg.features[0], m = cfg.features[1], L = Math.hypot(m.x - h.x, m.z - h.z), ux = (m.x - h.x)/L, uz = (m.z - h.z)/L;
+      W.active = false; W.camYaw = 0; W.vx = W.vz = 0; W.vy = 0; W.grounded = true; W.gliding = false; W.mount = null;
+      W.x = h.x - ux*14; W.z = h.z - uz*14; W.y = I.height(W.x, W.z);
+      const got = new Set(); let t = 0, dt = 1/60, air = false;
+      while(t < 60){
+        const a = Math.atan2(ux, uz) - W.camYaw; T.setJoy(-Math.sin(a), -Math.cos(a));
+        const s = (W.x - h.x)*ux + (W.z - h.z)*uz;
+        if(!air && s >= 0 && W.grounded){ W.vy = 13.2*(T.abilityOf(I).jumpMul || 1); W.grounded = false; T.setJump(true); air = true; }
+        T.walkerUpdate(I, dt, t); t += dt;
+        if(air){ for(const mo of I.moons) if(Math.hypot(W.x - mo.position.x, W.z - mo.position.z) < 1.7 && Math.abs(W.y + 1.2 - mo.position.y) < 2.2)
+                   got.add([+mo.position.x.toFixed(0), +mo.position.y.toFixed(1), +mo.position.z.toFixed(0)].join(','));
+                 if(W.grounded) break; }
+      }
+      T.setJoy(0, 0); T.setJump(false);
+      return [...got];
+    });
+    if(fl){ const before = r.moons.unreachable.length;
+      r.moons.unreachable = r.moons.unreachable.filter(q => !fl.includes(q.join(',')));
+      r.moons.byGlide = before - r.moons.unreachable.length; }
+  }
   r.pageErrors = H.log.errors.slice(0, 5);
   results[isl] = r;
   const line = r.targets.map(t => `${t.kind}:${t.found ? (t.drive ? (t.drive.ok ? 'OK' : (t.drive.skipped ? 'ok*' : 'REPLAY-FAIL')) : 'ok') : 'UNREACHABLE'}`).join(' ');
   console.error(`[questpath] ${isl} ${r.ms} ms  ${line}`);
   for(const t of r.targets) if(!t.found || (t.drive && !t.drive.ok && !t.drive.skipped)) bad++;
+  if(r.moons){ console.error(`[questpath] ${isl} moons ${r.moons.total}: on foot ${r.moons.onFoot}, with a jump ${r.moons.withJump}, by glide ${r.moons.byGlide || 0}, unreachable ${r.moons.unreachable.length}`);
+    bad += r.moons.unreachable.length; }   /* every moon has to be collectable */
   await H.close();
 }
 writeFileSync(OUT + (cues ? '/questpath_cues.json' : '/questpath.json'), JSON.stringify(results, null, 1));
