@@ -392,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-27d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-27e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -464,6 +464,20 @@ function seaHeight(x, z, t, base, damp){
   const py = -z;   /* the sea plane is rotated -90 deg about x, so its local y runs along world -z */
   const w = (Math.sin(x*.055 + t*1.05)*.5 + Math.sin(py*.07 - t*.8)*.4 + Math.sin((x+py)*.11 + t*1.6)*.22) * WAVE;
   return (base == null ? SEA_Y : base) + w * (damp == null ? 1 : damp);
+}
+/* ===================  A BOAT SITS ON THE SEA UNDER IT  ===================
+   The boats bobbed on a sine of their own while the sea rose and fell on the wave field, so on a crest the water stood
+   above the floorboards of the open dinghy and the boat looked full of sea (Melvin, Oct 27). Now the sea height under the
+   bow, the stern and both sides sets where a boat floats, and how they differ pitches and rolls it. The bow is the
+   boat's local -z. L and B are half the length and half the beam; lift raises it above that mean surface. */
+function rideSea(b, seaAt, t, dt, L, B, lift){
+  const ry = b.rotation.y, fx = -Math.sin(ry), fz = -Math.cos(ry), sx = Math.cos(ry), sz = -Math.sin(ry), X = b.position.x, Z = b.position.z;
+  const yb = seaAt(X + fx*L, Z + fz*L, t), ys = seaAt(X - fx*L, Z - fz*L, t), yp = seaAt(X + sx*B, Z + sz*B, t), yq = seaAt(X - sx*B, Z - sz*B, t), yc = seaAt(X, Z, t);
+  const u = b.userData, k = Math.min(1, dt*7), want = (yb + ys + yp + yq + yc*2)/6 + (lift || 0);
+  u.rideY = u.rideY == null ? want : u.rideY + (want - u.rideY)*k;
+  u.ridePitch = (u.ridePitch || 0) + (Math.atan2(yb - ys, 2*L) - (u.ridePitch || 0))*k;
+  u.rideRoll = (u.rideRoll || 0) + (Math.atan2(yp - yq, 2*B) - (u.rideRoll || 0))*k;
+  b.rotation.order = "YXZ"; b.position.y = u.rideY; b.rotation.x = u.ridePitch; b.rotation.z = u.rideRoll;
 }
 /* The shore mask the sea shader samples: one small single-channel texture per island holding
    distance-to-coastline, normalised by SHORE_FADE. 160 x 160 over the island's bounding square is
@@ -2267,6 +2281,19 @@ function* realDinghySteps(g, bodyN){
   { const swing = g.userData.sail, pivot = swing.parent;
     yield* dMergePartsSteps(g, g.children.slice(n0).filter(c => !c.isLight && c !== pivot)); yield;
     yield* dMergePartsSteps(swing, swing.children.filter(c => !(c.material && c.material.userData && c.material.userData.uniforms !== undefined) && !(c.material && c.material.map === _sailCanvas))); }
+  /* ===================  THE SEA CAME UP THROUGH THE FLOOR  ===================
+     Melvin, Oct 27: riding the swell, water filled the boat - in a trough the crests fore and aft stand higher than her
+     floorboards, and the sea is one surface drawn everywhere, inside the hull too. A real hull keeps the water out, so
+     this one does: a lid across the open top at the gunwale, drawn into depth only (no colour), after everything solid
+     and just before the sea. Wherever the sea lies under that lid - inside the boat - it is never drawn. She, the
+     thwarts and the floorboards were already drawn, so they stay. */
+  { const NU = 28, NV = 6, P = [], I2 = [];
+    for(let i = 0; i <= NU; i++){ const u = i/NU, b = D.B(u)*.965, y = D.S(u) - .03, z = D.ZB + u*D.LEN;
+      for(let j = 0; j <= NV; j++) P.push((j/NV*2 - 1)*b, y, z); }
+    for(let i = 0; i < NU; i++) for(let j = 0; j < NV; j++){ const a = i*(NV + 1) + j, c = a + NV + 1; I2.push(a, c, a + 1, c, c + 1, a + 1); }
+    const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); lg.setIndex(I2);
+    const lid = new THREE.Mesh(lg, new THREE.MeshBasicMaterial({colorWrite:false, depthWrite:true, transparent:true, side:THREE.DoubleSide}));
+    lid.renderOrder = .5; lid.name = "seaLid"; lid.userData.dyn = 1; lid.castShadow = false; lid.receiveShadow = false; g.add(lid); g.userData.seaLid = lid; }
   g.userData.benchY = D.YF + .72; g.userData.dinghy = true;   /* her feet on the floorboards, hips on the thwart (same 0.49 rise as before) */
   return D;
 }
@@ -10700,7 +10727,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   if(cfg.questSeeded){
     I.quest = {};
     const pen = penMesh(); pen.position.set(cfg.pen.at[0], height(cfg.pen.at[0], cfg.pen.at[1]) + 2.2, cfg.pen.at[1]);
-    scene.add(pen); I.quest.pen = pen; realItem(pen, "pen");
+    scene.add(pen); I.quest.pen = pen; itemGlint(pen, 3.0); realItem(pen, "pen");
     const pbeam = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,26,14,1,true), new THREE.MeshBasicMaterial({color:0xFFE08A, transparent:true, opacity:.09, side:THREE.DoubleSide}));
     pbeam.position.set(cfg.pen.at[0], height(cfg.pen.at[0], cfg.pen.at[1]) + 13, cfg.pen.at[1]); scene.add(pbeam); I.quest.penBeam = pbeam;
     /* The desk waits near the landing — but it has to stand in a CLEARING, or the chase camera ends
@@ -10727,7 +10754,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     scene.add(desk); I.quest.desk = desk; I.colliders.push({x:cfg.desk.at[0], z:cfg.desk.at[1], r:1.7});
     const sec = paperMesh(); sec.scale.setScalar(.8);
     sec.position.set(cfg.secret.at[0], height(cfg.secret.at[0], cfg.secret.at[1]) + 1.7, cfg.secret.at[1]);
-    scene.add(sec); I.quest.secret = sec; realItem(sec, "note");
+    scene.add(sec); I.quest.secret = sec; itemGlint(sec, 2.6); realItem(sec, "note");
     I.noGrass.push({x:cfg.desk.at[0], z:cfg.desk.at[1], r:2.6});
     /* the postman rides — his horse is a real rig that tracks him, and he sits it with the same
        seated pose Lala uses when she is mounted. */
@@ -11461,6 +11488,13 @@ function itemLoad(key){ if(!ITEMSQ || ITEM_G[key] || ITEM_WAIT[key] || !THREE.GL
       const m = o.material; if(m){ m.envMapIntensity = .55; if(m.transparent && !/glass/i.test(m.name || "")){ m.transparent = false; m.alphaTest = .5; } } });
     ITEM_G[key] = g.scene; const w = ITEM_WAIT[key]; ITEM_WAIT[key] = null; w.forEach(fn => fn()); },
     undefined, e => { console.warn("Item " + key + " not loaded - keeping the old piece", e); ITEM_WAIT[key] = null; }); }
+/* A GLINT ON WHAT SHE CAN TAKE. The real pen is an ink bottle and a brown quill: true to life, and dark on dark grass and
+   wet sand at golden hour, where the old one was a white feather. "Pen was invisible" (Melvin, Oct 27). Each takeable
+   item carries a soft warm glint at its heart that breathes, so it reads from across the beach - and it goes when the
+   item does, because it is part of it. */
+function itemGlint(group, size){
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:glitterSprite(), color:0xFFE6A8, transparent:true, opacity:.5, blending:THREE.AdditiveBlending, depthWrite:false}));
+  s.scale.setScalar(size); s.userData.keep = 1; s.userData.glint = 1; s.renderOrder = 2; group.add(s); group.userData.glint = s; return s; }
 function realItem(group, key, opts){ if(!ITEMSQ || !ITEM_URL[key] || !group) return;
   const go = () => itemSwap(group, ITEM_G[key], opts || {});
   if(ITEM_G[key]) go(); else { itemLoad(key); if(ITEM_WAIT[key]) ITEM_WAIT[key].push(go); } }
@@ -11468,7 +11502,7 @@ function itemSwap(group, src, opts){
   if(group.userData.realItem) return;
   group.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(group.matrixWorld).invert(), B = new THREE.Box3(), bb = new THREE.Box3(), olds = [];
-  group.children.forEach(c => { if(c.isLight) return;
+  group.children.forEach(c => { if(c.isLight || c.userData.keep) return;
     let ring = false; c.traverse(o => { if(o.geometry && o.geometry.type === "RingGeometry") ring = true; }); if(ring) return;   /* the find-me ring stays */
     olds.push(c); c.traverse(o => { if(!o.isMesh || !o.geometry) return; if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
       bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld).applyMatrix4(inv); B.union(bb); }); });
@@ -12101,7 +12135,8 @@ function islandUpdate(I, dt, t){
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
   I.sea.userData.mat.uniforms.t.value = t;
   I.moon.userData.halo.lookAt(camera.position);
-  I.boat.position.y = I.boat.userData.dinghy ? SEA_Y - .12 + Math.sin(t*1.3)*.06 : (BOATSQ ? -.72 : .1) + Math.sin(t*1.3)*.18;   /* the real boat rides low and only rocks at its mooring */   /* a boat sits IN the water: a third of the hull below the line */ I.boat.rotation.z = Math.sin(t*.9)*.04;
+  if(I.boat.userData.dinghy){ rideSea(I.boat, I.seaY, t, dt, 3.6, 1.4, -.12); I.boat.position.y += Math.sin(t*1.3)*.03; }   /* the open dinghy sits on the sea under it, so no crest stands inside it */
+  else { I.boat.position.y = (BOATSQ ? -.72 : .1) + Math.sin(t*1.3)*.18; I.boat.rotation.z = Math.sin(t*.9)*.04; }   /* a boat sits IN the water: a third of the hull below the line */
   wadersUpdate(I, dt, t);
   if(I.water){ I.water.update(dt, t, I.seaY);
     /* the moored boat works at its line: a slow ring spreads from the hull every couple of seconds */
@@ -12147,6 +12182,7 @@ function islandUpdate(I, dt, t){
     I.letterMesh.rotation.y += dt*1.4;
     if(I.letterMesh.userData.flat) I.letterMesh.rotation.x += dt*.6;
     else I.letterMesh.position.y = I.letterMesh.userData.y0 + Math.sin(t*1.3)*.18;
+    if(I.quest) [I.quest.pen, I.quest.secret].forEach((q, k) => { const g = q && q.userData.glint; if(g) g.material.opacity = .34 + .22*Math.sin(t*2.2 + k*1.7); });   /* the glints breathe */
   }
   I.moons.forEach(m => { if(!m.visible) return; m.rotation.y += dt*1.8;
     if(Math.hypot(W.x-m.position.x, W.z-m.position.z) < 1.7 && Math.abs(W.y+1.2-m.position.y) < 2.2){
@@ -13272,7 +13308,9 @@ function tick(){
     present(keep);
   } else {
     sailT += dt; sSea.userData.mat.uniforms.t.value = T; sMoon.userData.halo.lookAt(camera.position);
-    const sailSpeed=sailSteer(dt); sBoat.position.y = Math.sin(T*1.4)*.3; sBoat.rotation.z=Math.max(-.08,Math.min(.08,sailVx*.008+Math.sin(T*.95)*.02));
+    const sailSpeed=sailSteer(dt);
+    rideSea(sBoat, sSeaAt, T, dt, 3.6, 1.5, .1);                       /* it sits on the swell under it - see rideSea */
+    sBoat.position.y += Math.sin(T*1.4)*.05; sBoat.rotation.z += Math.max(-.08,Math.min(.08,sailVx*.008));
     /* she is sailing at 15 u/s: the stern trails a wake laid on the swell, and the bow throws spray
        every time it comes down - more when the hull is dropping, none as it lifts */
     sWake.update(sBoat.position.x, sBoat.position.z, sailHeading, sailSpeed, T);
