@@ -299,6 +299,9 @@ body.sail #khint{display:block}
      open. Walk the grounds first. She left notes.</p>
   <button id="bBegin">Step outside</button>
   <button class="ghost" id="bTitleReset" style="margin-top:10px">Start over</button>
+  <p id="animalCredits" hidden style="margin:14px 0 0;font-size:10px;line-height:1.5;opacity:.55">Animals from Sketchfab, CC BY 4.0:
+     "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries ·
+     "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D. Optimised for the game.</p>
 </div></div>
 
 <div class="ov hide" id="ovNote"><div class="card">
@@ -3600,6 +3603,44 @@ const RIGS = {
   green:{url:"assets/npc-green.glb", height:M(1.72), ink:.010},
   crowd:{url:"assets/npc-crowd.glb", height:M(1.74), ink:.010}
 };
+/* ===================  ?animals=new: REAL ANIMALS  ===================
+   Rigged, animated models from Sketchfab (all CC BY 4.0, credited on the title card while this is on) in place of the
+   sketch animals. They are photographed/painted PBR models, so they keep their own materials (`real`), stand on the
+   ground without the sketch bob, face +x like every creature here (`yaw`: their files face +z), and their walk plays at
+   the speed their feet actually travel (measured from the clip when the rig loads), so nothing slides.
+   The cow has no walking clip, only two idles: cows graze where they stand. The chicken's one long clip is flapping,
+   lying down, running and walking in turn; its walk is the stretch from 5.75 s (`sub`). The sauropod's only clip is
+   its walk (`clips`). Heights are the ones the sketch animals had, so the islands keep their scale. */
+const ANIMALSQ = QS.get("animals") === "new";
+if(ANIMALSQ){ const c = document.getElementById("animalCredits"); if(c) c.hidden = false; }   /* the licence asks for the credit wherever they appear */
+if(ANIMALSQ) Object.assign(RIGS, {
+  cow:     {url:"assets/animals/cow.glb",      height:M(1.75), real:true, yaw:Math.PI/2},
+  dino:    {url:"assets/animals/sauropod.glb", height:M(4.30), real:true, yaw:Math.PI/2, clips:{walk:"armatureaction"}},
+  raptor:  {url:"assets/animals/raptor.glb",   height:M(1.44), real:true, yaw:Math.PI/2},
+  chicken: {url:"assets/animals/chicken.glb",  height:M(0.48), real:true, yaw:Math.PI/2, sub:{walk:[5.75, 7.55]}}
+});
+/* the extent of a skinned model as it is actually drawn (bones applied), not its bind-pose box: the raptor's bind box
+   is 60 times its real size, which fitted it to a speck */
+function drawnBox(root){
+  root.updateMatrixWorld(true);
+  const b = new THREE.Box3(), v = new THREE.Vector3();
+  root.traverse(m => { if(!m.isMesh) return; const pos = m.geometry.attributes.position, st = Math.max(1, Math.floor(pos.count/3000));
+    for(let i = 0; i < pos.count; i += st){ v.fromBufferAttribute(pos, i); if(m.isSkinnedMesh) m.boneTransform(i, v); v.applyMatrix4(m.matrixWorld); b.expandByPoint(v); } });
+  return b;
+}
+/* how fast a clip carries the animal over the ground: the feet are planted while the body passes over them, so a foot
+   bone's travel along the facing axis over one cycle is about a stride, covered in the half of the cycle it is down */
+function clipGroundSpeed(root, clip){
+  const feet = []; root.traverse(o => { if(o.isBone && /foot|toe|ankle|paw|hoof/i.test(o.name)) feet.push(o); });
+  if(!feet.length || !clip) return 0;
+  const mx = new THREE.AnimationMixer(root), act = mx.clipAction(clip); act.play();
+  const lo = feet.map(() => 1e9), hi = feet.map(() => -1e9), v = new THREE.Vector3(), N = 24;
+  for(let k = 0; k <= N; k++){ mx.setTime(clip.duration*k/N); root.updateMatrixWorld(true);
+    feet.forEach((f, i) => { f.getWorldPosition(v); lo[i] = Math.min(lo[i], v.x); hi[i] = Math.max(hi[i], v.x); }); }
+  act.stop(); mx.uncacheRoot(root);
+  const stride = Math.max(...feet.map((f, i) => hi[i] - lo[i]));
+  return stride > 1e-3 ? stride / (clip.duration*.5) : 0;
+}
 /* the twelve LUNA-tics: distinct generated fans (different people, heights, styles) — light crowd builds */
 /* heights are world units; Lala is 2.95u = 1.70 m, so 1 m = 1.735u. Every fan sits in a real adult range
    (1.55-1.90 m) — measured after loading, because each GLB's own proportions differ (qa/scale.mjs). */
@@ -3734,7 +3775,15 @@ function loadRig(name){
   DBG("rig load start", name);
   new THREE.GLTFLoader().load(rig.url, gltf => {
     DBG("rig parsed", name, gltf.animations.length);
-    const box = new THREE.Box3().setFromObject(gltf.scene), size = box.getSize(new THREE.Vector3());
+    if(rig.yaw) gltf.scene.rotation.y = rig.yaw;
+    if(rig.clips) for(const k in rig.clips){ const c = gltf.animations.find(c => c.name.toLowerCase().includes(rig.clips[k])); if(c) c.name = k; }
+    if(rig.sub && gltf.animations[0]) for(const k in rig.sub){ const [a, b] = rig.sub[k];
+      gltf.animations.push(THREE.AnimationUtils.subclip(gltf.animations[0], k, Math.round(a*30), Math.round(b*30), 30)); }
+    let box;
+    if(rig.real){ const mx = new THREE.AnimationMixer(gltf.scene), c = gltf.animations.find(c => /walk/i.test(c.name)) || gltf.animations.find(c => /idle/i.test(c.name)) || gltf.animations[0];
+      if(c){ mx.clipAction(c).play(); mx.setTime(0); } box = drawnBox(gltf.scene); mx.stopAllAction(); mx.uncacheRoot(gltf.scene); }
+    else box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = box.getSize(new THREE.Vector3());
     const s = rig.height / Math.max(size.y, 1e-3);
     gltf.scene.scale.setScalar(s);
     gltf.scene.position.set(-(box.min.x+box.max.x)/2*s, -box.min.y*s, -(box.min.z+box.max.z)/2*s);
@@ -3743,6 +3792,11 @@ function loadRig(name){
     const meshes = []; gltf.scene.traverse(o => { if(o.isMesh) meshes.push(o); });
     meshes.forEach(o => {
       o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false;
+      if(rig.real){                                  /* their own photographed materials, front faces, cut-out feathers rather than sorted glass */
+        const m = o.material; if(!m) return;
+        m.side = THREE.FrontSide; m.envMapIntensity = .55;
+        if(m.transparent){ m.transparent = false; m.alphaTest = .5; m.depthWrite = true; }
+        return; }
       if(rig.pbr){
         /* Keep the model's own material and texture - but do NOT light it as if the texture were
            raw albedo. Autosprite's atlas is a PAINTED portrait: the nostril shadow, the cheekbone,
@@ -3785,6 +3839,9 @@ function loadRig(name){
       if(o.isSkinnedMesh) tw.bind(o.skeleton, o.bindMatrix);
       tw.frustumCulled = false; tw.castShadow = false; o.parent.add(tw);
     });
+    if(rig.real){ rig.speeds = {};
+      for(const k of ["walk", "jog", "run"]){ const c = gltf.animations.find(c => c.name.toLowerCase().includes(k)); if(c) rig.speeds[k === "jog" ? "run" : k] = clipGroundSpeed(gltf.scene, c); }
+      DBG("rig speeds", name, JSON.stringify(rig.speeds)); }
     rig.gltf = gltf;
     DBG("rig reshaded", name, "attaching", rig.waiting.length);
     rig.waiting.forEach(R => attachRig(R, name)); rig.waiting.length = 0;
@@ -3898,7 +3955,8 @@ function attachRig(R, name){
      quaternions is not the average of the composition. So the correction is applied after the
      mixer instead, where it is exact and measurable: slerp neck and head back toward their bind
      rotations. ?headfix=0 turns it off, ?headfix=0.5 does half. */
-  levelClipHeads(model, gltf.animations, name);
+  const realRig = !!RIGS[name].real;
+  if(!realRig) levelClipHeads(model, gltf.animations, name);     /* a correction for the people's captured clips; the animals' own heads are right */
   if(name === "lala"){ tameJumpClips(model, gltf.animations); narrowStance(model, gltf.animations); }
   /* Hygiene, not a fix: these clips carry position AND scale tracks on every bone. Here they are
      no-ops (constant values equal to the bind offsets, scale exactly 1) - I checked, and stripping
@@ -3907,7 +3965,7 @@ function attachRig(R, name){
      silently. The real cause of the deformed face is in levelHead(), below. */
   const IS_ROOT = /(hips|root|armature)$/i;
   let stripped = 0;
-  for(const clip of (QS.get("keeptracks") ? [] : (gltf.animations || []))){
+  for(const clip of (QS.get("keeptracks") || realRig ? [] : (gltf.animations || []))){   /* the animals' bodies bob on their hips: keep it */
     const before = clip.tracks.length;
     clip.tracks = clip.tracks.filter(t => {
       const m = t.name.match(/^(.*)\.(position|scale)$/);
@@ -3921,6 +3979,7 @@ function attachRig(R, name){
   if(stripped) DBG("stripped", stripped, "position/scale tracks from", name);
   const find = (...names) => gltf.animations.find(c => names.some(n => c.name.toLowerCase().includes(n)));
   const map = {idle: find("idle","breath","stand"), walk: find("walk"), run: find("run","jog","sprint"), jump: find("jump","fall"), dance: find("dance","celebrat")};
+  if(realRig){ map.idle2 = gltf.animations.find(c => /idle.?2/i.test(c.name)); R.speeds = RIGS[name].speeds || {}; }
   for(const k in map) if(map[k]){ R.actions[k] = R.mixer.clipAction(map[k]); }
   if(!R.actions.run) R.actions.run = R.actions.walk;
   playClip(R, "idle", 0);
@@ -11881,7 +11940,9 @@ function islandUpdate(I, dt, t){
       const want = u.tame ? (pd < 14 ? .18 : .7) : (pd < 10 ? 2.4 : 1);
       u.spK = (u.spK == null ? 1 : u.spK + (want - u.spK) * Math.min(1, dt * 1.6));   /* ease, never snap */
     }
-    u.a += u.sp*dt*(u.spK == null ? 1 : u.spK);
+    /* a real animal with no walking clip (the cow) grazes where it stands instead of gliding along on an idle */
+    const grazing = !!(u.R && u.R.model && u.R.actions && !u.R.actions.walk);
+    if(!grazing) u.a += u.sp*dt*(u.spK == null ? 1 : u.spK);
     if((u.type === "horse" || u.type === "cow") && h.rotation.z) h.rotation.z *= 1 - Math.min(1, dt*5);   /* the pitch it had under her eases back to level */
     if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
@@ -11968,7 +12029,7 @@ function islandUpdate(I, dt, t){
     } else if(u.fly){
       base = 5 + Math.sin(t*.9+u.ph)*1.6;
     } else {
-      base = I.height(x,z) + Math.abs(Math.sin(t*5))*.12;
+      base = I.height(x,z) + (u.R && u.R.model && RIGS[u.R.rigName] && RIGS[u.R.rigName].real ? 0 : Math.abs(Math.sin(t*5))*.12);   /* a real animal's own walk carries its bob */
     }
     /* Face where you are ACTUALLY going, not where the orbit parameter says you should be.
        Deriving the yaw from u.a was right until the herd-separation push started nudging animals
@@ -11987,7 +12048,8 @@ function islandUpdate(I, dt, t){
     u.vz = (u.vz || 0) * (1 - sm) + rvz * sm;
     const pvx = u.vx, pvz = u.vz;
     h.position.set(x, base, z);
-    if(pvx*pvx + pvz*pvz > 1e-6){
+    if(grazing && u.grazeYaw == null){ u.grazeYaw = ((hi * 2.399) % 1) * Math.PI * 2; h.rotation.y = u.grazeYaw; }
+    if(!grazing && pvx*pvx + pvz*pvz > 1e-6){
       const want = Math.atan2(-pvz, pvx);
       let da3 = want - h.rotation.y;
       while(da3 >  Math.PI) da3 -= Math.PI*2;
@@ -12021,12 +12083,21 @@ function islandUpdate(I, dt, t){
     } else if(u.type === "raptor"){
       /* a bipedal stride: the two legs are exactly out of phase, and the body bobs on each step */
       (u.legs||[]).forEach(l => { l.rotation.x = Math.sin(t*5.2 + l.userData.phase)*.62; });
-      h.position.y += Math.abs(Math.sin(t*5.2 + u.ph))*.09 - .19;   /* the swinging legs lift the feet ~0.2 u off the ground: the body sits that much lower */
-    } else if(u.type === "chicken") h.position.y -= .12;          /* same for the chicken's stiff legs */
+      if(!(u.R && u.R.model)) h.position.y += Math.abs(Math.sin(t*5.2 + u.ph))*.09 - .19;   /* the swinging legs lift the feet ~0.2 u off the ground: the body sits that much lower */
+    } else if(u.type === "chicken"){ if(!(u.R && u.R.model)) h.position.y -= .12; }        /* same for the chicken's stiff legs */
     if(u.type === "jelly"){ const p = Math.sin(t*2+u.ph); h.scale.set(1 - p*.06, 1 + p*.14, 1 - p*.06);
       u.legs.forEach(l => { l.rotation.x = Math.sin(t*2+l.userData.phase)*.3; l.rotation.z = Math.cos(t*1.6+l.userData.phase)*.25; l.userData.child.rotation.x = Math.sin(t*2.4+l.userData.phase+1)*.45; }); }
     else u.legs.forEach(l => l.rotation.x = Math.sin(t*(u.type==="dino"?2.2:5) + l.userData.phase)*.45);
-    if(u.R && u.R.mixer){ if(u.R.current !== u.R.actions.walk) playClip(u.R, "walk", 0); u.R.mixer.update(dt * (u.type==="dino" ? .7 : 1)); }
+    if(u.R && u.R.mixer && u.R.speeds){
+      /* real animals: idle where they graze; otherwise walk or run by how fast they are really going, and play the clip at the rate
+         their feet cover that ground (rig.speeds, measured from the clip), so the feet stay planted instead of sliding */
+      const R = u.R, sp = grazing ? 0 : Math.abs(u.sp) * rr * (u.spK == null ? 1 : u.spK);
+      if(grazing){ const two = R.actions.idle2 && Math.floor((t + u.ph*7) / 11) % 2; playClip(R, two ? "idle2" : "idle", .6); R.mixer.update(dt); }
+      else { const run = R.actions.run && R.actions.run !== R.actions.walk && R.speeds.run && sp > R.speeds.walk * 1.7;
+        playClip(R, run ? "run" : "walk", .3);
+        const v = run ? R.speeds.run : R.speeds.walk; R.mixer.update(dt * (v > .05 ? Math.min(2.5, Math.max(.4, sp / v)) : 1)); }
+    }
+    else if(u.R && u.R.mixer){ if(u.R.current !== u.R.actions.walk) playClip(u.R, "walk", 0); u.R.mixer.update(dt * (u.type==="dino" ? .7 : 1)); }
     if(u.type === "crab"){
       /* a land crab goes into the sand when she comes close, and comes back up once she has gone */
       const dp = Math.hypot(W.x-h.position.x, W.z-h.position.z);
