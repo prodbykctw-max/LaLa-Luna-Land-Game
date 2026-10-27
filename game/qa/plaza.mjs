@@ -1,0 +1,21 @@
+/* Town plaza edge: node qa/plaza.mjs <tag> [query] -> qa/out/plaza_<tag>_top.jpg + _eye.jpg (top-down of the square, and an eye-level look across it) */
+import { open, OUT } from './_harness.mjs';
+import { writeFileSync } from 'fs';
+const [tag, query] = process.argv.slice(2);
+const H = await open({ island: 'town', query: 'guide=off' + (query ? '&' + query : ''), viewport: { width: 900, height: 900 }, wait: 20000 });
+await H.page.waitForTimeout(3000);
+const shots = await H.page.evaluate(() => { const T = window.__T, I = T.CUR, cfg = I.cfg, sq = cfg.features.find(f => f.name === 'The Square'); window.__sq = sq;
+  I.W.active = false; I.W.group.visible = false; const rd = T.renderer, prev = rd.getRenderTarget(); rd.setRenderTarget(null); const out = {};
+  const R = sq.r*1.5, oc = new THREE.OrthographicCamera(-R, R, R, -R, .1, 900); oc.position.set(sq.x, 400, sq.z); oc.up.set(0, 0, -1); oc.lookAt(sq.x, 0, sq.z); oc.updateProjectionMatrix();
+  rd.render(I.scene, oc); out.top = rd.domElement.toDataURL('image/jpeg', .85);
+  const GR = []; I.scene.traverse(o => { if(o.isMesh && o.userData.ground) GR.push(o); });
+  const gy = (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 200, z), new THREE.Vector3(0, -1, 0)); const hs = rc.intersectObjects(GR, false); return hs.length ? hs[0].point.y : 0; };
+  const cam = new THREE.PerspectiveCamera(60, 1, .1, 2000);
+  const view = (name, fx, fz, tx, tz) => { cam.position.set(fx, gy(fx, fz) + 5, fz); cam.lookAt(tx, gy(tx, tz) + 1, tz); rd.render(I.scene, cam); out[name] = rd.domElement.toDataURL('image/jpeg', .85); };
+  view('eye', sq.x + sq.r*.95, sq.z + sq.r*.55, sq.x, sq.z);
+  view('eye2', sq.x - sq.r*.2, sq.z + sq.r*1.15, sq.x, sq.z - sq.r*.3);
+  view('eye3', sq.x - sq.r*.9, sq.z - sq.r*.2, sq.x + sq.r*.5, sq.z + sq.r*.4);
+  rd.setRenderTarget(prev); return out; });
+for (const [k, u] of Object.entries(shots)) writeFileSync(`${OUT}/plaza_${tag}_${k}.jpg`, Buffer.from(u.split(',')[1], 'base64'));
+console.log('errors', JSON.stringify(H.log.errors.slice(0, 4)));
+await H.close();

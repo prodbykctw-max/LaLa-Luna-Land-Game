@@ -258,7 +258,7 @@ body.sail #khint{display:block}
 <body class="walk">
 <!-- The model credits the CC BY licence asks for, shown once on a black screen while the game loads instead of on the
      title card (Melvin, Oct 27: they were crowding the title). It fades by itself; a tap skips it. -->
-<div id="creditSplash"><div class="cs-in"><div class="cs-t">Lala Luna Land</div><p id="animalCredits">Animals from Sketchfab, CC BY 4.0: "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries · "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D · "Horse" by MAXDESIGN-3D · "Horse Rigged(Game Ready)" by abhayexe · "Bull" by stealth86 · "Lizard" by Froggreen · "Lizard" by LostBoyz2078 · "low poly animated and rigged gecko model" by Msassasa · "Bored-monkey-h-bosch-v-van-gogh-mashup" by eyork4633 · "Flamingosf" by kenchoo · "Pteranodon (Animated)" by Chistodrako._. · "parrot rebuilt" by kenchoo · "Parrot" by NewGameDeveloper · "Hermit Crab" by kenchoo · "Sea Turtle Lowpoly Animated" by kenchoo · "Sea Turtle" by Eloi · "Model 53A - Flatback Sea Turtle" by DigitalLife3D · "Bottlenose Dolphin" by popcornbag · "Game-Ready dolphin (Swimming)" by Allie2k · "blue powder tang" by Major. Items: "Carrot (.c4d and .fbx)" by NeoT1 · "Low-Poly 3D Folded Letter Paper" by Produk Cerdas · "Ink Bottle with Quill" by Matthew Collings · "Vintage Hurricane Lantern" by Chris Torres. Optimised for the game.</p></div></div>
+<div id="creditSplash"><div class="cs-in"><div class="cs-t">Lala Luna Land</div><p id="animalCredits">Animals from Sketchfab, CC BY 4.0: "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries · "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D · "Horse" by MAXDESIGN-3D · "Horse Rigged(Game Ready)" by abhayexe · "Bull" by stealth86 · "Lizard" by Froggreen · "Lizard" by LostBoyz2078 · "low poly animated and rigged gecko model" by Msassasa · "Bored-monkey-h-bosch-v-van-gogh-mashup" by eyork4633 · "Flamingosf" by kenchoo · "Pteranodon (Animated)" by Chistodrako._. · "parrot rebuilt" by kenchoo · "Parrot" by NewGameDeveloper · "Hermit Crab" by kenchoo · "Sea Turtle Lowpoly Animated" by kenchoo · "Sea Turtle" by Eloi · "Model 53A - Flatback Sea Turtle" by DigitalLife3D · "Bottlenose Dolphin" by popcornbag · "Game-Ready dolphin (Swimming)" by Allie2k · "blue powder tang" by Major. Items: "Carrot (.c4d and .fbx)" by NeoT1 · "Low-Poly 3D Folded Letter Paper" by Produk Cerdas · "Ink Bottle with Quill" by Matthew Collings · "Vintage Hurricane Lantern" by Chris Torres.<span id="bldCredits"> Buildings: "Amsterdam Canal House by Jungle Jim" and "Amsterdam Canal House" by Jungle Jim · "Stylized Amsterdam House" by ChrisCLP · "DAE Rowhomes - Amsterdam" by Vladimir Prisacaru · "Dutch House" by Bjarne Stokhof · "Casario Colonial Centro Histórico de Paraty" by DanielGrps · "Colonial House" by luahart · "Mexican House 3" and "Mexican House 4" by Hollow_Soul_09 · "Low Poly Portuguese Village House 1" and "3" by AlexFerrart3D · "Bungalow game ready" by Maria So · "Rusty Old Tropical Shop" by Nodeaxis Interactive.</span> Optimised for the game.</p></div></div>
 
 <div id="vig"></div><div id="flash"></div><div id="grain"></div>
 
@@ -392,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-27c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-27d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3629,10 +3629,61 @@ const ANIMALSQ = QS.get("animals") !== "old";
 const ITEMSQ = QS.get("items") !== "old";
 const ITEM_URL = {carrot:"assets/items/carrot.glb", note:"assets/items/note.glb", pen:"assets/items/quill.glb", lantern:"assets/items/lantern.glb"};
 const ITEM_G = {}, ITEM_WAIT = {};
+/* ===================  TOWN: REAL BUILDINGS (?town=new until Melvin picks)  ===================
+   Willemstad, not a toy town: narrow Dutch gable houses shoulder to shoulder along the water (the Handelskade row),
+   pastel plaster houses with tiled roofs round the square, and a tin-roofed shop and a thatched bungalow at the beach.
+   yaw = quarter-turns that bring the model's front round to +z. h = real height, w = width along the front, d = depth
+   (metres, after that turn; measured from the models). strip = the modeller's ground the house was stood on (a lawn
+   and a road, a water slab, a concrete pad, an asphalt patch) - the island has its own ground. base = the parts whose
+   bottom is the ground line, when other parts hang below it (the Dutch House's stairs run down into its water slab). */
+const TOWNQ = QS.get("town") === "new";
+const BLD = {
+  b2:{h:15, yaw:0, w:6.2, d:5.1},
+  b3:{h:14, yaw:2, w:8.9, d:8.4},
+  b4:{h:13, yaw:3, w:5.1, d:6.1},
+  b5:{h:11, yaw:0, w:5.4, d:7.9, strip:/^SM_(Ground|Dirt|Road|Tiles|Grass|Curbstone|Fence|Garden|PlantsPlane|GrassPatch|FlowerPatch|Bicycle|Football|Bush|Lamppost)/},
+  b7:{h:10, yaw:3, w:7.7, d:4.9, strip:/^soloport_alpha/, base:/^soloport_house/},
+  b8:{h:8,  yaw:3, w:13.2, d:10},
+  b9:{h:8,  yaw:1, w:9.2, d:8.9, strip:/^ch.{1,4}o_chao/},
+  b10:{h:7, yaw:0, w:7.3, d:6.4, strip:/^Object_62$/},
+  b11:{h:7, yaw:0, w:7.9, d:8.1},
+  b15:{h:7, yaw:0, w:11.5, d:5.2},
+  b16:{h:7, yaw:0, w:11.8, d:5.0},
+  b18:{h:4.5, yaw:2, w:7.4, d:7.5},
+  b19:{h:5, yaw:2, w:5.9, d:8.0}
+};
+const BLD_P = {};
+/* one load per model; every house that uses it is a clone (shared geometry and textures) */
+function bldProto(key){
+  if(BLD_P[key]) return BLD_P[key];
+  const B = BLD[key];
+  return BLD_P[key] = new Promise(res => {
+    if(!THREE.GLTFLoader) return res(null);
+    new THREE.GLTFLoader().load(`assets/buildings/${key}.glb`, g => {
+      const root = g.scene; root.updateMatrixWorld(true);
+      const all = new THREE.Box3().setFromObject(root), H = all.max.y - all.min.y, A = (all.max.x - all.min.x)*(all.max.z - all.min.z), kill = [];
+      const named = (m, re) => re && (re.test(m.name) || (m.parent && re.test(m.parent.name)));
+      root.traverse(m => { if(!m.isMesh) return;
+        if(named(m, B.strip)){ kill.push(m); return; }
+        const b = new THREE.Box3().setFromObject(m);          /* any other flat sheet lying on the bottom: a shadow card, a lawn */
+        if(b.max.y - b.min.y < .04*H && b.min.y < all.min.y + .08*H && (b.max.x - b.min.x)*(b.max.z - b.min.z) > .25*A) kill.push(m); });
+      kill.forEach(m => m.parent && m.parent.remove(m));
+      root.updateMatrixWorld(true);
+      const box = new THREE.Box3(); root.traverse(m => { if(m.isMesh && (!B.base || named(m, B.base))) box.expandByObject(m); });
+      if(box.isEmpty()) return res(null);
+      const s = M(B.h) / (box.max.y - box.min.y), inner = new THREE.Group(), turn = new THREE.Group();
+      inner.add(root); inner.scale.setScalar(s); inner.position.set(-(box.min.x + box.max.x)/2*s, -box.min.y*s, -(box.min.z + box.max.z)/2*s);
+      turn.add(inner); turn.rotation.y = B.yaw*Math.PI/2;
+      root.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; m.userData.dyn = true; } });
+      res(turn);
+    }, undefined, () => res(null));
+  });
+}
 
 /* the licence asks for the credit wherever the models appear: once, on black, as the game loads (it is loading anyway) */
 { const c = document.getElementById("creditSplash"); if(c){                 /* it is up from the first paint and fades by itself (CSS) */
-  if(!(ANIMALSQ || ITEMSQ)) c.remove();
+  if(!TOWNQ){ const b = document.getElementById("bldCredits"); if(b) b.remove(); }
+  if(!(ANIMALSQ || ITEMSQ || TOWNQ)) c.remove();
   else { const done = () => { c.classList.add("out"); setTimeout(() => c.remove(), 950); };
     const t = setTimeout(done, 3400); c.addEventListener("pointerdown", () => { clearTimeout(t); done(); }, {once:true}); } } }
 if(ANIMALSQ) Object.assign(RIGS, {
@@ -3648,14 +3699,14 @@ if(ANIMALSQ) Object.assign(RIGS, {
   horse:     {url:"assets/animals/horse_b.glb",   height:M(2.06), real:true, yaw:Math.PI/2, sub:HORSE_B_SUB, speedsM:{walk:1.6, run:7}},
   horse_c:   {url:"assets/animals/horse_c.glb",   height:M(2.06), real:true, yaw:Math.PI/2, sub:HORSE_C_SUB, speedsM:{walk:1.6, run:7}},
   bull:      {url:"assets/animals/bull.glb",      height:M(1.60), real:true, yaw:0, clips:{run:"trot"}, speedsM:{walk:1.1, run:3}},
-  iguana_a:  {url:"assets/animals/iguana_a.glb",  height:M(1.40), fit:"length", real:true, yaw:Math.PI/2},
-  iguana_b:  {url:"assets/animals/iguana_b.glb",  height:M(1.20), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"gltfanimation"}},
-  iguana_c:  {url:"assets/animals/iguana_c.glb",  height:M(1.00), fit:"length", real:true, yaw:Math.PI, clips:{walk:"armatureaction|armature|armatureaction.001"}},
-  anole:     {url:"assets/animals/iguana_c.glb",  height:M(0.25), fit:"length", real:true, yaw:Math.PI, clips:{walk:"armatureaction|armature|armatureaction.001"}},
+  iguana_a:  {url:"assets/animals/iguana_a.glb",  height:M(1.40), fit:"length", real:true, yaw:Math.PI/2, speedsM:{walk:.12, run:.36}},
+  iguana_b:  {url:"assets/animals/iguana_b.glb",  height:M(1.20), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"gltfanimation"}, speedsM:{walk:.111, run:.33}},
+  iguana_c:  {url:"assets/animals/iguana_c.glb",  height:M(1.00), fit:"length", real:true, yaw:Math.PI, clips:{walk:"armatureaction|armature|armatureaction.001"}, speedsM:{walk:.119, run:.36}},
+  anole:     {url:"assets/animals/iguana_c.glb",  height:M(0.25), fit:"length", real:true, yaw:Math.PI, clips:{walk:"armatureaction|armature|armatureaction.001"}, speedsM:{walk:.03, run:.09}},
   monkey:    {url:"assets/animals/monkey.glb",    height:M(0.70), real:true, yaw:0, speedsM:{walk:.9, run:3}},
   flamingo:  {url:"assets/animals/flamingo.glb",  height:M(1.30), real:true, yaw:Math.PI/2, clips:{idle:"animation"}},
   ptero:     {url:"assets/animals/ptero.glb",     height:M(6.00), fit:"length", real:true, yaw:0, clips:{walk:"flying"}},
-  macaw_b:   {url:"assets/animals/macaw_b.glb",   height:M(1.00), fit:"length", real:true, yaw:0, clips:{walk:"land"}},
+  macaw_b:   {url:"assets/animals/macaw_b.glb",   height:M(1.00), fit:"length", real:true, yaw:0, clips:{walk:"land"}, pitch:-.7},   /* its one clip is a landing: flown level it stood bolt upright in the air (Melvin, Oct 27) - pitched nose-down it flies */
   macaw_c:   {url:"assets/animals/macaw_c.glb",   height:M(1.40), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"animation"}},
   crab:      {url:"assets/animals/crab.glb",      height:M(0.30), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"animation"}},
   turtle_a:  {url:"assets/animals/turtle_a.glb",  height:M(1.00), fit:"length", real:true, yaw:0, clips:{walk:"seaturtle"}},
@@ -4196,7 +4247,10 @@ function wdApply(ch, lights){
   if(ch.band) ch.band.material.color.copy(w.band);
   const cv = c.crown > .004; ch.crown.visible = cv;
   if(cv){ const u = ch.crown.userData, s0 = u.s0 || (u.s0 = ch.crown.scale.clone()); ch.crown.scale.copy(s0).multiplyScalar(Math.max(.001, wdEase(c.crown))); }
-  ch.patches.forEach(q => { q.visible = c.patches > .5; });
+  /* the cow-print spots were three black balls stuck on the stand-in's cone dress. On the real figure they hung in the
+     air round her hips and feet - the black dots in Melvin's Town shots (Oct 27). Like the stand-in's hat, they are
+     only drawn while the stand-in is the figure. */
+  ch.patches.forEach(q => { q.visible = stand && c.patches > .5; });
   const fv = c.fans > .004, fk = Math.max(.001, wdEase(c.fans));
   ch.fans.visible = fv;
   ch.fanMeshes.forEach(f => { f.visible = fv; const u = f.userData; if(u.sc == null) u.sc = f.scale.x; f.scale.setScalar(u.sc*fk); });
@@ -5895,6 +5949,19 @@ function ringPath(pts){
 }
 /* a bird standing in the shallows: it dips to feed, takes the odd step, and when she runs at it
    wades away a few strides rather than flying. Rings under it from the water system. */
+/* a two-legged step laid over the current pose: each thigh swings about the body's own side-to-side axis (taken into each
+   bone's frame, since every rig's bone axes differ) and the knee folds while that leg is carried forward */
+const _lsV = new THREE.Vector3(), _lsA = new THREE.Vector3(), _lsQ = new THREE.Quaternion(), _lsQ2 = new THREE.Quaternion(), _lsQ3 = new THREE.Quaternion();
+function legStep(h, R, ph, amt){
+  if(!R.legB){ R.legB = []; R.model.traverse(o => { if(!o.isBone) return; const n = o.name.toLowerCase(), s = /_r_/.test(n) ? 1 : /_l_/.test(n) ? -1 : 0; if(!s) return;
+      if(/thigh/.test(n)) R.legB.push({b:o, s, k:"t"}); else if(/knee/.test(n)) R.legB.push({b:o, s, k:"k"}); }); }
+  if(!R.legB.length || amt < .01) return;
+  h.updateMatrixWorld(true);
+  const lat = _lsV.set(0, 0, 1).applyQuaternion(h.getWorldQuaternion(_lsQ));
+  for(const L of R.legB){ const p = ph + (L.s > 0 ? 0 : Math.PI), ax = _lsA.copy(lat).applyQuaternion(L.b.getWorldQuaternion(_lsQ2).invert()).normalize();
+    const ang = L.k === "t" ? .18*Math.sin(p) : -.7*Math.max(0, Math.cos(p));
+    L.b.quaternion.multiply(_lsQ3.setFromAxisAngle(ax, ang*amt)); }
+}
 function shallowsUpdate(I, h, u, dt, t){
   const W = I.W, dp = Math.hypot(W.x-h.position.x, W.z-h.position.z);
   u.timer = (u.timer || 0) - dt;
@@ -5904,13 +5971,19 @@ function shallowsUpdate(I, h, u, dt, t){
     const nx = h.position.x + ax/al*6, nz = h.position.z + az/al*6, o = I.shoreOut(nx, nz); if(o > 3 && o < WADE_MAX){ u.tx = nx; u.tz = nz; } }
   else if(u.timer <= 0){ const a = Math.random()*6.283, nx = h.position.x + Math.cos(a)*2.5, nz = h.position.z + Math.sin(a)*2.5, o = I.shoreOut(nx, nz);
     if(o > 3.5 && o < 9 && I.height(nx, nz) <= 0){ u.tx = nx; u.tz = nz; } u.timer = 4 + Math.random()*6; }
+  let moved = 0;
   if(u.tx != null){ const dx = u.tx-h.position.x, dz = u.tz-h.position.z, d = Math.hypot(dx, dz);
-    if(d > .05){ const st = Math.min(d, 1.6*dt); h.position.x += dx/d*st; h.position.z += dz/d*st; h.rotation.y = Math.atan2(dx, dz) - Math.PI/2;
+    if(d > .05){ const st = Math.min(d, 1.6*dt); moved = st; h.position.x += dx/d*st; h.position.z += dz/d*st; h.rotation.y = Math.atan2(dx, dz) - Math.PI/2;
       (u.legs||[]).forEach(l => l.rotation.x = Math.sin(t*6 + l.userData.phase)*.35); if(I.water && Math.random() < dt*3) I.water.ripple(h.position.x, h.position.z, .5); }
     else { u.tx = null; (u.legs||[]).forEach(l => l.rotation.x = 0); } }
   else if(I.water && Math.random() < dt*.4) I.water.ripple(h.position.x, h.position.z, .45);
   h.position.y = I.height(h.position.x, h.position.z);
-  if(u.R && u.R.mixer){ playClip(u.R, (u.tx != null && u.R.actions.walk) ? "walk" : "idle", .4); u.R.mixer.update(dt); }   /* a real flamingo preens where it stands */
+  if(u.R && u.R.mixer){ playClip(u.R, (u.tx != null && u.R.actions.walk) ? "walk" : "idle", .4); u.R.mixer.update(dt);   /* a real flamingo preens where it stands */
+    /* ...and walks on its own legs. The model has no walking clip, so it glided from spot to spot with its feet still
+       (Melvin, Oct 27). Its legs now step, laid over whatever the clip is doing, one stride per its own height. */
+    if(!u.R.actions.walk && u.R.model){ u.stepAmt = (u.stepAmt || 0) + ((moved > 0 ? 1 : 0) - (u.stepAmt || 0))*Math.min(1, dt*6);
+      u.stepPh = (u.stepPh || 0) + moved/(1.0*(RIGS[u.R.rigName] ? RIGS[u.R.rigName].height : 2.2))*Math.PI*2;
+      legStep(h, u.R, u.stepPh, u.stepAmt); } }
 }
 function wadersUpdate(I, dt, t){
   const list = I.fx.waders; if(!list || !list.length) return;
@@ -6975,7 +7048,9 @@ function makeCreature(type){
     const gl = new THREE.BufferGeometry(), p = new Float32Array(30*3);
     for(let i=0;i<30;i++){ p[i*3]=(Math.random()-.5)*3.4; p[i*3+1]=Math.random()*2.6+.4; p[i*3+2]=(Math.random()-.5)*2.4; }
     gl.setAttribute("position", new THREE.BufferAttribute(p,3));
-    const sp = new THREE.Points(gl, new THREE.PointsMaterial({color:0xFFE59A, size:.18, transparent:true, opacity:.9}));
+    /* "cows in glitter". With no sprite map a Points material draws every point as a hard square: Melvin's phone shots
+       (Oct 27) show cream tiles hanging round the bulls. Each point is the game's own glint now, added to the light. */
+    const sp = new THREE.Points(gl, new THREE.PointsMaterial({color:0xFFE59A, size:.55, map:glitterSprite(), transparent:true, opacity:.85, depthWrite:false, blending:THREE.AdditiveBlending}));
     h.add(sp); h.userData.sparkle = sp;
   }
   h.userData.legs = legs; h.userData.type = type;
@@ -9834,9 +9909,32 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       m.position.set(f.x, 0, f.z); m.traverse(k => k.userData.ground = true); scene.add(m);   /* a mesa IS the ground */
       if(LOOKS2 && f.name === "The Square"){   /* paved in stone, world-planar so the setts run straight across it */
         const uvA = mg.attributes.uv, pA = mg.attributes.position; for(let i=0;i<pA.count;i++) uvA.setXY(i, (pA.getX(i) + f.x)/4.2, -(pA.getZ(i) + f.z)/4.2); uvA.needsUpdate = true;
-        m.material = r2Std(R2().paving, R2().pavingN, 0xE4DCCF, .86, {side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2});
+        m.material = r2StdNew(R2().paving, R2().pavingN, 0xE4DCCF, .86, {side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2});
+        /* ===================  ONE EDGE FOR THE SQUARE  ===================
+           Melvin, Oct 27: "it starts off brick from a distance and then turns into grass". The paving is the mesa's own
+           mesh, sampled on coarse rings and laid a hair under the ground, and the meadow under it is the finer relief
+           grid sampled from the same heights - so wherever the two samplings parted by more than that hair the meadow
+           came up through the bricks in tongues, and out past the plaza the bricks broke through the meadow in stray
+           patches. Close up the grass blades stood on top of the bricks too (they stopped at 1.02 r; the paving ran to
+           1.34 r). Now the square has one edge, PLAZA_R: a gentle wobble round the radius. Inside it the meadow is
+           pushed down out of sight so the bricks always win; outside it the paving is not drawn, and the grass grows
+           right up to it and no further. */
+        const ph = f.__ph || 0, PLAZA_R = a => f.r*(1.03 + .018*Math.sin(a*7 + 1.3 + ph) + .011*Math.sin(a*13 + .4));
+        f.__plazaR = PLAZA_R;
+        m.material.onBeforeCompile = sh => {
+          sh.uniforms.uSq = {value:new THREE.Vector4(f.x, f.z, f.r, ph)};
+          sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec2 vSqW;")
+            .replace("#include <begin_vertex>", "#include <begin_vertex>\nvSqW = (modelMatrix * vec4(transformed, 1.0)).xz;");
+          sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec4 uSq; varying vec2 vSqW;")
+            .replace("void main() {", "void main() {\n  { vec2 dq = vSqW - uSq.xy; float aq = atan(dq.y, dq.x);\n    if(length(dq) > uSq.z*(1.03 + .018*sin(aq*7.0 + 1.3 + uSq.w) + .011*sin(aq*13.0 + .4))) discard; }"); };
+        m.material.customProgramCacheKey = () => "plazaEdge";
+        if(I.terrainMesh && I.terrainMesh.geometry){ const pa = I.terrainMesh.geometry.attributes.position;
+          for(let k = 0; k < pa.count; k++){ const dx = pa.getX(k) - f.x, dz = pa.getZ(k) - f.z, d = Math.hypot(dx, dz);
+            if(d < PLAZA_R(Math.atan2(dz, dx)) - .3) pa.setY(k, pa.getY(k) - .45); }
+          pa.needsUpdate = true; I.terrainMesh.geometry.computeBoundingSphere(); }
         }
-      if(f.name === "The Square") I.noGrass.push({x:f.x, z:f.z, r:f.r*1.02});   /* grass doesn't grow up through the plaza */
+      if(f.name === "The Square"){ const PR = f.__plazaR;                         /* grass doesn't grow up through the plaza, and stops at its edge */
+        I.noGrass.push(PR ? {x:f.x, z:f.z, r:f.r*1.06, keep:(x, z) => Math.hypot(x - f.x, z - f.z) > PR(Math.atan2(z - f.z, x - f.x))} : {x:f.x, z:f.z, r:f.r*1.02}); }
     }
   })(feat); }
 
@@ -10301,6 +10399,87 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
        of the eight were skipped as not on land: one building was all Town had (Melvin, Oct 27). They now stand round the
        landward side of the square, facing it, on dry ground with room around them - clear of the beach, the gate and the
        road up from the harbour - so the square reads as a square. */
+    if(TOWNQ){
+      /* REAL BUILDINGS: see BLD. Every spot is chosen here, at build time, from the footprints in the table, and its
+         collider goes in now; the model itself drops in when its file arrives. */
+      const sqF = cfg.features.find(f => f.name === "The Square"), cx = sqF ? sqF.x : 0, cz = sqF ? sqF.z : 0, sqR = sqF ? sqF.r : 64;
+      const beachP = cfg.beach, dockA = Math.atan2(cfg.dock[1] - cz, cfg.dock[0] - cx);   /* the sand patch, not the label: the label sits at the square's edge */
+      const dryS = (x, z) => inside(x, z) && coastDist(x, z) > 2.5;
+      const placed = [];
+      /* the footprint, corners and edge midpoints, in world space */
+      const corners = (B, x, z, rot) => { const w = M(B.w)/2, d = M(B.d)/2, c = Math.cos(rot), s = Math.sin(rot), out = [];
+        for(const [lx, lz] of [[-w,-d],[w,-d],[w,d],[-w,d],[0,-d],[0,d],[-w,0],[w,0],[0,0]]) out.push([x + lx*c + lz*s, z - lx*s + lz*c]); return out; };
+      const inRect = (p, px, pz, m) => { const c = Math.cos(p.rot), s = Math.sin(p.rot), dx = px - p.x, dz = pz - p.z; return Math.abs(dx*c - dz*s) < M(p.B.w)/2 + m && Math.abs(dx*s + dz*c) < M(p.B.d)/2 + m; };
+      const fits = (B, x, z, rot, gap, atBeach) => {
+        if(!corners(B, x, z, rot).every(([px, pz]) => dryS(px, pz))) return false;
+        const w = M(B.w)/2, d = M(B.d)/2, c = Math.cos(rot), s = Math.sin(rot);
+        const local = (px, pz) => { const dx = px - x, dz = pz - z; return [dx*c - dz*s, dx*s + dz*c]; };
+        if(cfg.gate && Math.abs(x - cfg.gate.x) < Math.hypot(w, d) + 10) return false;                  /* the fence and its gate stay clear */
+        if(!atBeach && beachP && Math.hypot(x - beachP.x, z - beachP.z) < beachP.r + Math.min(w, d)) return false;
+        { let da = Math.abs(Math.atan2(z - cz, x - cx) - dockA) % (Math.PI*2); if(da > Math.PI) da = Math.PI*2 - da;   /* the road up from the harbour */
+          const dd = Math.hypot(x - cfg.dock[0], z - cfg.dock[1]);
+          if(da < .22 && Math.hypot(x - cx, z - cz) < Math.hypot(cfg.dock[0] - cx, cfg.dock[1] - cz) + 10) return false;
+          if(dd < DOCK_LEN/2 + Math.hypot(w, d) + 8) return false; }
+        for(const q of I.colliders){ if(q.camOnly || q.bld) continue; const [lx, lz] = local(q.x, q.z), m = (q.camR || q.r || 1) + 1;   /* trunks and their crowns */
+          if(Math.abs(lx) < w + m && Math.abs(lz) < d + m) return false; }
+        const me = {x, z, rot, B}, mine = corners(B, x, z, rot);
+        for(const p of placed){ if(mine.some(([px, pz]) => inRect(p, px, pz, gap/2 - .05)) || corners(p.B, p.x, p.z, p.rot).some(([px, pz]) => inRect(me, px, pz, gap/2 - .05))) return false; }
+        return true; };
+      const put = (key, x, z, rot) => {
+        const B = BLD[key], w = M(B.w), d = M(B.d), cs = corners(B, x, z, rot);
+        const gy = Math.min(...cs.map(([px, pz]) => height(px, pz))) - .12;          /* never float: the low corner sits on the ground */
+        const g = new THREE.Group(); g.position.set(x, gy, z); g.rotation.y = rot; g.userData.dyn = true; g.userData.bld = key; scene.add(g);
+        /* walls: a row of circles along the long side, their radius the short side */
+        const lng = Math.max(w, d), sht = Math.min(w, d), n = Math.max(1, Math.ceil((lng - sht)/(sht*.55)) + 1), alongX = w >= d, c = Math.cos(rot), s = Math.sin(rot);
+        for(let k = 0; k < n; k++){ const t = n === 1 ? 0 : (k/(n - 1) - .5)*(lng - sht), lx = alongX ? t : 0, lz = alongX ? 0 : t;
+          I.colliders.push({x:x + lx*c + lz*s, z:z - lx*s + lz*c, r:sht/2*1.08, bld:true}); }
+        I.noGrass.push({x, z, r:Math.hypot(w, d)/2 + .5});
+        placed.push({x, z, rot, B, key});
+        (I.buildings = I.buildings || []).push(g);
+        bldProto(key).then(p => { if(p) g.add(p.clone()); });
+      };
+      /* 1. THE WATERFRONT: the gable houses stand in one row along the harbour shore, fronts to the water, a quay's
+         width back from it - Willemstad's Handelskade, the first thing she sees from the boat. The row runs both ways
+         from Harbor Landing and leaves the road up from the pier to the square open. */
+      { const Q = M(5), grad = (x, z) => { const e = 1.5, gx = coastDist(x + e, z) - coastDist(x - e, z), gz = coastDist(x, z + e) - coastDist(x, z - e), L = Math.hypot(gx, gz) || 1; return [gx/L, gz/L]; };
+        const onLine = (x, z, want) => { for(let k = 0; k < 8; k++){ const [gx, gz] = grad(x, z), cd = coastDist(x, z); x += gx*(want - cd); z += gz*(want - cd); } return [x, z]; };
+        /* where the pier meets the land */
+        let lx = cfg.dock[0], lz = cfg.dock[1]; { const dx = cx - lx, dz = cz - lz, L = Math.hypot(dx, dz); for(let k = 0; k < 200 && !inside(lx, lz); k++){ lx += dx/L*2; lz += dz/L*2; } }
+        const road = (x, z) => { const ex = cx - lx, ez = cz - lz, L2 = ex*ex + ez*ez; let u = ((x - lx)*ex + (z - lz)*ez)/L2; u = u < 0 ? 0 : u > 1 ? 1 : u; return Math.hypot(x - lx - ex*u, z - lz - ez*u); };
+        const order = ["b2","b4","b5","b3","b7","b4","b2","b5","b3","b7","b2","b4"], GAP = .5;
+        const lines = [-1, 1].map(sg => ({sg, x:lx, z:lz, t:null, walked:0, prevHalf:0, done:false}));
+        let oi = 0;
+        for(let guard = 0; guard < 600 && oi < order.length && lines.some(L => !L.done); guard++){
+          const L = lines[guard % 2]; if(L.done) continue;
+          const key = order[oi], B = BLD[key], w = M(B.w), d = M(B.d), hd = Math.hypot(w, d)/2;
+          let [px, pz] = onLine(L.x, L.z, Q + d/2), [gx, gz] = grad(px, pz), tx = -gz*L.sg, tz = gx*L.sg;
+          if(L.t && tx*L.t[0] + tz*L.t[1] < 0){ tx = -tx; tz = -tz; }
+          const step = L.prevHalf ? L.prevHalf + GAP + w/2 : 0;
+          [px, pz] = onLine(px + tx*step, pz + tz*step, Q + d/2); [gx, gz] = grad(px, pz);
+          const rot = Math.atan2(-gx, -gz);                                                            /* front to the sea */
+          if(L.walked > 300 || (cfg.gate && px > cfg.gate.x - hd - 8) || (beachP && Math.hypot(px - beachP.x, pz - beachP.z) < beachP.r*1.2 + hd)){ L.done = true; continue; }
+          if(road(px, pz) > 13 + hd && Math.hypot(px - cx, pz - cz) > sqR + hd + 4 && fits(B, px, pz, rot, GAP)){
+            put(key, px, pz, rot); L.prevHalf = w/2; L.walked += step; oi++; }
+          else { L.prevHalf = 0; L.walked += 3; [px, pz] = onLine(px + tx*3, pz + tz*3, Q + d/2); }   /* blocked here: walk on and try again */
+          L.x = px; L.z = pz; L.t = [tx, tz];
+          if(guard % 6 === 5) yield; } }
+      yield;
+      /* 2. THE SQUARE: plaster houses with tiled roofs round the plaza's edge, fronts to the fountain */
+      { const order = ["b10","b15","b9","b11","b16","b8","b10","b15","b11","b9"]; let oi = 0, a = dockA + .3, prev = null;
+        while(a < dockA + Math.PI*2 - .3 && oi < order.length){
+          const key = order[oi], B = BLD[key], w = M(B.w), d = M(B.d), R = sqR + 6 + d/2;
+          if(prev) a = Math.max(a, prev.a + ((prev.w + w)/2 + 4)/R);                     /* room for both, and a lane between */
+          if(a >= dockA + Math.PI*2 - .3) break;
+          const x = cx + Math.cos(a)*R, z = cz + Math.sin(a)*R, rot = Math.atan2(cx - x, cz - z);
+          if(fits(B, x, z, rot, 4)){ put(key, x, z, rot); prev = {a, w}; oi++; yield; }
+          a += .025; } }
+      /* 3. THE BEACH: a tin-roofed shop and a thatched bungalow at the back of the sand, facing it */
+      if(beachP){ const order = ["b18","b19","b19"]; let oi = 0;
+        const toIsl = Math.atan2(beachP.z - cz, beachP.x - cx);                          /* the far side of the sand, away from the square */
+        for(let k = 0; k < 90 && oi < order.length; k++){ const a = toIsl + (k % 2 ? 1 : -1)*Math.ceil(k/2)*.04, key = order[oi], B = BLD[key], R = beachP.r + M(B.d)/2 + 4;
+          const x = beachP.x + Math.cos(a)*R, z = beachP.z + Math.sin(a)*R, rot = Math.atan2(beachP.x - x, beachP.z - z);
+          if(Math.hypot(x - cx, z - cz) > sqR + Math.hypot(M(B.w), M(B.d))/2 + 4 && fits(B, x, z, rot, 6, true)){ put(key, x, z, rot); oi++; } } }
+    } else
     {
       const sqF = cfg.features.find(f => f.name === "The Square"), cx = sqF ? sqF.x : 0, cz = sqF ? sqF.z : 0;
       const beachP = cfg.places.find(p => p.name === "The Beach"), dockA = Math.atan2(cfg.dock[1] - cz, cfg.dock[0] - cx);
@@ -12123,13 +12302,18 @@ function islandUpdate(I, dt, t){
     }
     /* a real animal with no walking clip (the cow) grazes where it stands instead of gliding along on an idle */
     const grazing = !u.fly && !!(u.R && u.R.model && u.R.actions && !u.R.actions.walk);   /* a swimmer or a flier never stops to graze */
-    if(!grazing) u.a += u.sp*dt*(u.spK == null ? 1 : u.spK);
+    /* NO FASTER THAN ITS FEET. A real animal is moved at its species' pace, but a clip only covers so much ground: the lizards'
+       walk covers about 12 cm a second, and the island moved them three times that while the clip ran flat out - a lizard
+       thrashing in place like a worm, sliding over the ground (Melvin, Oct 27). The pace is held to what the clip can carry. */
+    if(!grazing) u.a += u.sp*dt*(u.spK == null ? 1 : u.spK)*(u.paceK == null ? 1 : u.paceK);
     if((u.type === "horse" || u.type === "cow") && h.rotation.z) h.rotation.z *= 1 - Math.min(1, dt*5);   /* the pitch it had under her eases back to level */
     if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
        radius walks straight into the sea. Pull the radius in until the step lands on land (with a
        margin so they do not paddle along the waterline) — the herd then follows the shore. */
     const rr = Math.max(6, u.r + u.rOff);
+    if(!u.fly && u.R && u.R.speeds && u.R.actions){ const R = u.R, top = (R.actions.run && R.actions.run !== R.actions.walk && R.speeds.run) ? R.speeds.run : R.speeds.walk;
+      u.paceK = top > .02 ? Math.min(1, 1.3*top/Math.max(1e-4, Math.abs(u.sp)*rr*(u.spK == null ? 1 : u.spK))) : 1; }
     let x = Math.cos(u.a)*rr, z = Math.sin(u.a)*rr;
     if(!u.fly && I.inside && !onLand(I, x, z)){
       const hit = landOnBearing(I, u.a, rr);
@@ -12239,7 +12423,7 @@ function islandUpdate(I, dt, t){
     }
     if(u.type === "troupial"){
       (u.legs||[]).forEach((w,i) => { w.rotation.x = Math.sin(t*9 + u.ph + (i?Math.PI:0))*.75; });
-      h.rotation.z = Math.sin(t*1.4+u.ph)*.12;
+      h.rotation.z = (u.R && u.R.model && RIGS[u.R.rigName] && RIGS[u.R.rigName].pitch || 0) + Math.sin(t*1.4+u.ph)*.12;
     } else if(u.type === "monkey"){
       (u.legs||[]).forEach(l => { l.rotation.x = Math.sin(t*6.5 + l.userData.phase)*.5; });
     } else if(u.type === "anole"){
@@ -12282,7 +12466,7 @@ function islandUpdate(I, dt, t){
     if(u.R && u.R.mixer && u.R.speeds){
       /* real animals: idle where they graze; otherwise walk or run by how fast they are really going, and play the clip at the rate
          their feet cover that ground (rig.speeds, measured from the clip), so the feet stay planted instead of sliding */
-      const R = u.R, sp = grazing ? 0 : Math.abs(u.sp) * rr * (u.spK == null ? 1 : u.spK);
+      const R = u.R, sp = grazing ? 0 : Math.abs(u.sp) * rr * (u.spK == null ? 1 : u.spK) * (u.paceK == null ? 1 : u.paceK);
       if(grazing){ const two = R.actions.idle2 && Math.floor((t + u.ph*7) / 11) % 2; playClip(R, two ? "idle2" : "idle", .6); R.mixer.update(dt); }
       else { const run = R.actions.run && R.actions.run !== R.actions.walk && R.speeds.run && sp > R.speeds.walk * 2.2;   /* the raptor's jog throws its tail up: it walks, faster, until it is really moving */
         playClip(R, run ? "run" : "walk", .3);
@@ -12295,7 +12479,7 @@ function islandUpdate(I, dt, t){
       u.hide = Math.max(0, Math.min(1, (u.hide || 0) + (dp < 4.5 ? dt*3 : dp > 8 ? -dt*1.2 : 0)));
       h.scale.y = 1 - u.hide*.92; h.position.y -= u.hide*.12;
     }
-    if(u.sparkle) u.sparkle.rotation.y = t*.8; });
+    if(u.sparkle){ u.sparkle.rotation.y = t*.8; u.sparkle.material.opacity = .55 + Math.sin(t*5.3 + (u.ph || 0))*.3; } });
   const ab = abilityOf(I);
   if(I.stonesOn !== ab.lantern){ stonesSet(I, ab.lantern, I.stonesOn == null); I.stonesOn = ab.lantern; }
   if(I.gateOn !== ab.gateOpen){ gateSet(I, ab.gateOpen, I.gateOn == null); I.gateOn = ab.gateOpen; }
