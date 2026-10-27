@@ -383,7 +383,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-27a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-27b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -4701,19 +4701,23 @@ async function fromBlack(){ $("fade").classList.remove("on"); await wait(850); }
 let toastT = 0;
 function toast(a,b){ $("toast1").textContent = a; $("toast2").textContent = b||""; $("toast").classList.add("on"); toastT = 3.6; }
 function noteCount(key){ return Object.keys(G.notes).filter(k => k.startsWith(key+":")).length; }
+let hudHorseUntil = 0;
+function horseHUD(){ hudHorseUntil = performance.now() + 6000; syncHUD(); setTimeout(syncHUD, 6100); }
 function syncHUD(){
   G.letters.forEach((v,i) => glyphs[i].classList.toggle("on", !!v));
   const cur = CUR ? CUR.cfg : null;
   $("sub").textContent = cur ? `Notes ${noteCount(cur.key)} / ${cur.notes.length}` : "";
   $("moonsub").textContent = `Moons ${G.moons}`;
   let ql = ""; try{ const o = CUR ? objectiveOf(CUR) : null; if(o) ql = o.label; }catch(e){}
-  /* Green's own line: the horse comes first there, because it is how she reaches the rest of it */
+  /* Green's horse line used to REPLACE the objective for the whole island: "FIND A CARROT" until a horse was won, then
+     "JUNIPER IS YOURS" for good, so the line never named her fans, the pen or the paper (Oct 27). The horse is optional;
+     its line now shows for a few seconds after a carrot or a horse changes hands, and the objective comes back. */
   try{
-    if(CUR && CUR.cfg.key === "green" && CUR.creatures){
+    if(CUR && CUR.cfg.key === "green" && CUR.creatures && performance.now() < hudHorseUntil){
       const mine = CUR.creatures.find(c => c.userData.tame);
       const n = qNum(CUR.cfg, "carrots");
       if(mine) ql = mine.userData.horseName.toUpperCase() + " IS YOURS";
-      else ql = n > 0 ? ("CARROTS " + n + " / OFFER ONE TO A HORSE") : "FIND A CARROT";
+      else if(n > 0) ql = "CARROTS " + n + " / OFFER ONE TO A HORSE";
     }
   }catch(e){}
   $("questLine").textContent = ql;
@@ -6686,6 +6690,9 @@ function fxUpdate(fx, dt, t, camPos){
 /* ============================================================
    CREATURES
    ============================================================ */
+const GAIT = {horse:1, dino:1, armadillo:1, monkey:1, anole:1, iguana:1, gator:1, cow:1};
+/* how fast each land animal ambles, in m/s (a horse walking 1.5, an armadillo or an iguana under half a metre a second) */
+const WALK_MS = {horse:1.5, cow:.9, dino:1.6, raptor:2.2, chicken:.5, armadillo:.45, iguana:.35, anole:.3, gator:.35, monkey:.8, crab:.45};
 function makeCreature(type){
   const h = new THREE.Group(), legs = [];
   if(type === "horse"){
@@ -6916,6 +6923,18 @@ function makeCreature(type){
     h.add(sp); h.userData.sparkle = sp;
   }
   h.userData.legs = legs; h.userData.type = type;
+  /* WALKING, NOT SKATING. Every four-legged sketch animal swung its legs about local x from the middle of each leg: the
+     nose is local +x, so that is a sideways paddle, with the top of the leg poking through the body - and at one fixed
+     rate whatever the speed, so the body slid over feet that were not carrying it ("like on rollerskates", Oct 27). The
+     legs now hang from the hip and swing fore-aft (about z), diagonal pairs together like a walk/trot, at a rate set by
+     how far the animal really moves each frame (see GAIT in the creature loop). */
+  if(GAIT[type]) legs.forEach(l => {
+    const m = l.userData.main || l, gp = m.geometry && m.geometry.parameters;
+    if(gp && gp.height != null){ const hh = gp.height/2;
+      const top = new THREE.Vector3(0, hh, 0).applyEuler(l.rotation).add(l.position);
+      l.children.forEach(c => { c.position.y -= hh; }); l.position.copy(top); h.userData.legL = gp.height; }
+    l.userData.trot = (Math.sign(l.position.x) * Math.sign(l.position.z) > 0) ? 0 : Math.PI;
+    l.userData.rz0 = l.rotation.z; });
   if(RIGS[type]){ const R = {group:h, primitive:[...h.children].filter(c => !c.isPoints)}; h.userData.R = R; wantRig(R, type); }
   return h;
 }
@@ -6986,7 +7005,7 @@ const ISLANDS = [
        water:0x3C6F8C, waterHi:0x5E93AE, key:0xFFCB9A, leaf:0x3E6B3C, leaf2:0x7EB56A, wood:0x5A3E2B, stone:0x9C8A78},
   moon:{pos:[-110,60,-300], r:14},
   lobes:[{x:0,z:0,r:55},{x:40,z:10,r:28},{x:-30,z:30,r:26},{x:0,z:45,r:20}],
-  features:[{type:"hill",x:0,z:-25,r:22,h:20,name:"The Caldera",crater:true},{type:"mesa",x:40,z:12,r:10,h:5.6,name:"Bone Ledge",ink:true}],
+  features:[{type:"hill",x:0,z:-25,r:22,h:20,name:"The Caldera",crater:true},{type:"mesa",x:40,z:12,r:10,h:8.4,name:"Bone Ledge",ink:true}],
   trees:{n:60, min:20, max:64, s:[1.0,2.2], palm:true},
   dock:[0,58], spawn:[0,50],
   /* One dinosaur read as cheap for a dinosaur island. The big one is untouched; a pack of raptors
@@ -7072,7 +7091,7 @@ const ISLANDS = [
   grassCols:[0x9ED49A,0x7CC383,0xB6E2AE],
   ability:{key:"crown", at:[0,0], y:2.6, name:"Her crown",hint:"The gate on the east road is open", gate:true, reach:7.6},   /* the crown floats over the fountain, whose collider keeps her 6.5 u away: the usual 4.8 u could never be met */
   letter:{at:[58,-20], y:2.4, gate:"gate"},
-  gate:{x:24, zMin:-48, zMax:48}, beach:{x:-40, z:20, r:23},
+  gate:{x:24, zMin:-130, zMax:130}, beach:{x:-40, z:20, r:23},   /* the fence runs the island's whole width at x=24: it stopped at z=±48 and she walked round its north end to The Point without the crown (qa/gatepath.mjs, Oct 27) */
   places:[{x:0,z:0,r:16,name:"The Square"},{x:58,z:-20,r:12,name:"The Point"},{x:-40,z:20,r:18,name:"The Beach"},{x:0,z:54,r:12,name:"Harbor Landing"}],
   fallback:"The Backstreets",
   decor:"town",
@@ -7239,6 +7258,13 @@ const sailPatch = width => mat => { mat.userData.patches.push(["sail", sh => {
 function mergeStatics(I, scene){
   const skip = new Set([I.pickup, I.letterMesh, I.boat, I.door, I.W && I.W.group, I.sea, I.moon, I.rain, I.bow, I.beam && I.beam.target,
                         I.quest && I.quest.horse].filter(Boolean));
+  /* Anything she can take, or that goes away when a step is done, must stay its own object. The pen, the folded note,
+     the carrots and the Town litter were baked in here: taking them hid the object but not its baked copy, so the quill
+     stayed floating where it had been (Melvin's GR shot, Oct 27) and the litter never cleared. Only the desk is
+     furniture. */
+  if(I.quest) for(const [k, v] of Object.entries(I.quest)){ if(k === "desk") continue;
+    (Array.isArray(v) ? v : [v]).forEach(o => { if(o && o.isObject3D) skip.add(o); }); }
+  (I.litter||[]).forEach(o => skip.add(o));
   (I.fleet||[]).forEach(b => skip.add(b));   /* boats bob: none of their parts may be baked into the static batch */   /* the postman's horse moves with him: baking it left him riding thin air */
   (I.gateMeshes||[]).forEach(m => skip.add(m)); (I.stones||[]).forEach(s => skip.add(s.mesh)); (I.moons||[]).forEach(m => skip.add(m));
   (I.creatures||[]).forEach(c => skip.add(c)); (I.npcs||[]).forEach(n => skip.add(n));
@@ -7269,6 +7295,9 @@ function mergeStatics(I, scene){
   };
   scene.children.slice().forEach(visit);
   if(!mains.length) return;
+  /* where each baked piece sat, for qa/worldcheck.mjs: a piece of anything takeable showing up in here is the floating-quill bug */
+  I.bakedAt = mains.map(m => { const g = m.geometry; if(!g.boundingSphere) g.computeBoundingSphere();
+    const c = g.boundingSphere.center.clone().applyMatrix4(m.matrixWorld); return [+c.x.toFixed(2), +c.y.toFixed(2), +c.z.toFixed(2)]; });
   const bake = (list, withTh) => {
     const pos = [], nor = [], col = [], th = [], sw = []; const v = new THREE.Vector3(), nm = new THREE.Matrix3();
     for(const m of list){
@@ -9736,7 +9765,11 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       yield;
       const mex = {map: f.ink ? TEX.bed : (stoneOnly ? TEX.rock : TEX.meadow),
                    side:THREE.DoubleSide, roughness:1, vertexColors:true};
-      if(f.ink && ROCKQ){ mex.map = ROCK_TEX.strata; mex.normalMap = ROCK_TEX.strataN; mex.roughness = .93; }
+      if(f.ink && ROCKQ){ mex.map = ROCK_TEX.strata; mex.normalMap = ROCK_TEX.strataN; mex.roughness = .93;
+        /* the rock's talus apron lies in the same plane as the meadow it runs out onto, and the two fought for the pixel:
+           black shards scattered round Bone Ledge and the other rock mesas. Where they coincide the meadow wins now; the
+           cliff stands well in front of the ground, so it is untouched. */
+        mex.polygonOffset = true; mex.polygonOffsetFactor = 1; mex.polygonOffsetUnits = 3; }
       const m = f.ink && ROCKQ ? (() => { const mm = new THREE.Mesh(mg, toon(0xffffff, mex)); mm.material.color.setScalar(1.30); return mm; })()   /* the photo is darker than the cream it replaces; lift it back to the island's stone value */
               : f.ink ? inked(mg, 0xffffff, 2.0, mex)
               : photoMesa ? new THREE.Mesh(mg, withMacro(meadowMat(0xFFFFFF, {side:THREE.DoubleSide, vertexColors:true, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2})))
@@ -10109,7 +10142,13 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     fw.rotation.x = -Math.PI/2; fw.position.set(0,1.95,0); scene.add(fw); }
     yield;
     const NSTALL = Math.round(8*Math.sqrt(DECOR));
+    /* The Square sits right on Curacao's shore: the ring of stalls and the string lights went round it whatever was under
+       them, so a stall stood half in the sea and lamp posts and bulbs hung over the water (Melvin's Town shot, Oct 27;
+       qa/worldcheck.mjs "shore"). Anything whose footprint is not on dry land, with a margin, is left out. */
+    const dry = (x, z, m) => inside(x, z) && coastDist(x, z) > m;
+    const dryAll = (x, z, r, m) => [0, 1, 2, 3, 4, 5, 6, 7].every(k => dry(x + Math.cos(k*Math.PI/4)*r, z + Math.sin(k*Math.PI/4)*r, m)) && dry(x, z, m);
     for(let i=0;i<NSTALL;i++){ const a = (i/NSTALL)*Math.PI*2, x = Math.cos(a)*12*DECOR, z = Math.sin(a)*12*DECOR;
+      if(!dryAll(x, z, 2.8, 2)) continue;
       I.colliders.push({x, z, r:2.3});
       if(LOOKS2){ r2Stall(scene, x, height(x,z), z, -a, [0xF2A6C8,0xFFD37A,0x9B84DC,0x8ED8E8][i%4]); continue; }
       const stall = inked(new THREE.BoxGeometry(3.8,1.8,2.4), [0xF2A6C8,0xFFD37A,0x9B84DC,0x8ED8E8][i%4], 1.6);
@@ -10120,7 +10159,11 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     yield;
     const NLAMP = Math.round(10*Math.sqrt(DECOR));
     for(let i=0;i<NLAMP;i++){ const a = (i/NLAMP)*Math.PI*2, x = Math.cos(a)*15.5*DECOR, z = Math.sin(a)*15.5*DECOR;
+      const a2 = ((i+1)/NLAMP)*Math.PI*2;
+      if(!dry(x, z, 2)) continue;
       const post = inked(new THREE.CylinderGeometry(.14,.18,5,6), P.wood, 1.3); post.position.set(x, height(x,z)+2.5, z); scene.add(post);
+      /* the string runs to the next post: only when that post stands too, or it would end in the air */
+      if(!dry(Math.cos(a2)*15.5*DECOR, Math.sin(a2)*15.5*DECOR, 2)) continue;
       for(let k=0;k<5;k++){ const b = (i/NLAMP + k/(NLAMP*5))*Math.PI*2;
         const bulb = new THREE.Mesh(new THREE.SphereGeometry(.16,6,5), new THREE.MeshBasicMaterial({color:[0xFFE59A,0xF2A6C8,0x8ED8E8][k%3]}));
         bulb.position.set(Math.cos(b)*15.5*DECOR, height(x,z)+4.6-Math.sin(k/5*Math.PI)*.5, Math.sin(b)*15.5*DECOR); scene.add(bulb); } }
@@ -10248,9 +10291,10 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       g.position.set(s[0], height(s[0],s[1]), s[1]); scene.add(g); I.npcs.push(g); wantRig(R, "fan"+order[i]); }
     if(cfg.gate){
       for(let z = cfg.gate.zMin; z <= cfg.gate.zMax; z += 4){
-        if(!inside(cfg.gate.x, z)) continue;   /* the fence spans the island's width, not out over the sea */
+        const wet = q => !inside(cfg.gate.x, q) && shoreOut(cfg.gate.x, q) > WADE_MAX + 1;
+        if(wet(z)) continue;   /* the fence spans the island's width and runs on out through the shallows, as far as she can wade: the gate holds there too */
         const post = inked(new THREE.CylinderGeometry(.35,.4,3.6,8), BONE, 1.6); post.position.set(cfg.gate.x, height(cfg.gate.x,z)+1.8, z); scene.add(post); I.gateMeshes.push(post);
-        if(z + 4 > cfg.gate.zMax || !inside(cfg.gate.x, z + 4)) continue;
+        if(z + 4 > cfg.gate.zMax || wet(z + 4)) continue;
         const rail = inked(new THREE.BoxGeometry(.3,.3,4.2), BONE, 1.3); rail.position.set(cfg.gate.x, height(cfg.gate.x,z)+2.6, z+2); scene.add(rail); I.gateMeshes.push(rail);
       }
     }
@@ -10455,7 +10499,16 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     if(I.grotto) spots.push([I.grotto.x + Math.cos(I.grotto.ga+Math.PI)*4.2, I.grotto.z + Math.sin(I.grotto.ga+Math.PI)*4.2, 1.6]);
     /* every moon gets a soft ground marker so a collectible always reads as placed on purpose */
     const ringG = new THREE.RingGeometry(.7,1.05,20), ringM = new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.22, side:THREE.DoubleSide, depthWrite:false});
-    spots.forEach(([x0,z0,dy],i) => { const [x,z] = cfg.landify ? cfg.landify(x0, z0, 2.5) : [x0,z0];
+    /* a moon never sits inside something: three on Town were inside a market stall, one on Sanity hung in a signpost
+       (qa/worldcheck.mjs). It steps out of any solid thing's footprint, and clear of a note, before it is placed. */
+    const clearOf = (x, z) => { for(let pass = 0; pass < 3; pass++){
+        for(const c of I.colliders){ if(c.camOnly) continue; const r = (c.r || 1) + 1.6, dx = x - c.x, dz = z - c.z, d = Math.hypot(dx, dz);
+          if(d < r){ const k = d > 1e-3 ? r/d : 0; x = c.x + (d > 1e-3 ? dx*k : r); z = c.z + (d > 1e-3 ? dz*k : 0); } }
+        for(const n of (I.notes || [])){ const dx = x - n.position.x, dz = z - n.position.z, d = Math.hypot(dx, dz);
+          if(d < 2.4){ const k = d > 1e-3 ? 2.4/d : 0; x = n.position.x + (d > 1e-3 ? dx*k : 2.4); z = n.position.z + (d > 1e-3 ? dz*k : 0); } } }
+      return [x, z]; };
+    spots.forEach(([x0,z0,dy],i) => { let [x,z] = cfg.landify ? cfg.landify(x0, z0, 2.5) : [x0,z0];
+      if(dy < 2.2){ const q = clearOf(x, z); if(!cfg.landify || inside(q[0], q[1])){ x = q[0]; z = q[1]; } }   /* the glide trail's moons hang in the air: leave those */
       const m = new THREE.Mesh(geo, mat); m.position.set(x, height(x,z)+dy, z);
       const ring = new THREE.Mesh(ringG, ringM); ring.rotation.x = -Math.PI/2; ring.position.y = -dy + .08; m.add(ring);
       m.userData = {id:cfg.key+":"+i}; if(G.moonsTaken[m.userData.id]) m.visible = false; scene.add(m); I.moons.push(m); }); }
@@ -10537,6 +10590,11 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       if(!loose) groundShadow(h, c.shadow != null ? c.shadow : CREATURE_SHADOW[c.type] || .8);
       h.userData.a = a0; h.userData.r = r0;
       h.userData.sp = c.sp[0]+Math.random()*(c.sp[1]-c.sp[0]); h.userData.fly = loose; h.userData.ph = Math.random()*6;
+      /* An orbit speed is an ANGLE per second, and the islands were made four times bigger (WORLD) without slowing the
+         angle: every animal walking the ground was covering four times the ground - armadillos at 7-11 u/s, near her own
+         sprint, horses at a permanent 11-34 u/s gallop - with legs and clips that cannot keep up, which is the skating
+         look (Oct 27). Land animals now walk at their real pace, in metres per second, whatever their radius. */
+      if(!loose && WALK_MS[c.type]) h.userData.sp = M(WALK_MS[c.type]*(.8 + Math.random()*.4)) / Math.max(6, r0);
       h.userData.water = !!c.water; h.userData.soar = !!c.soar;
       h.userData.alt = c.alt != null ? c.alt : 22;
       h.userData.shoal = shoal;
@@ -11265,8 +11323,9 @@ function stepOK(I, x, z, nx, nz, grounded){
   return true;
 }
 function canStand(I, x, z){
+  /* the Town gate holds the line in the shallows too: checked on land only, she waded round the fence's end (Oct 27) */
+  if(I.cfg.gate && !abilityOf(I).gateOpen && Math.abs(x - I.cfg.gate.x) < 1.6 && z > I.cfg.gate.zMin-2 && z < I.cfg.gate.zMax+2) return false;
   if(I.inside(x,z)) {
-    if(I.cfg.gate && !abilityOf(I).gateOpen && Math.abs(x - I.cfg.gate.x) < 1.6 && z > I.cfg.gate.zMin-2 && z < I.cfg.gate.zMax+2) return false;
     if(I.cfg.hub && Math.hypot(x,z) < 11 && !(G.finished || G.letters.every(Boolean))) return false;
     return true;
   }
@@ -11514,7 +11573,7 @@ function walkerUpdate(I, dt, t){
       W.ridePitch = (W.ridePitch || 0) + (pt - (W.ridePitch || 0))*Math.min(1, dt*8);
       W.mount.rotation.z = W.ridePitch;
     }
-    (W.mount.userData.legs||[]).forEach((l,i) => l.rotation.x = Math.sin(t*9+i*Math.PI/2)*.55*rk);
+    (W.mount.userData.legs||[]).forEach((l,i) => { if(l.userData.trot != null) l.rotation.z = (l.userData.rz0||0) + Math.sin(t*9 + l.userData.trot)*.55*rk; else l.rotation.x = Math.sin(t*9+i*Math.PI/2)*.55*rk; });
     if(W.mount.userData.R && W.mount.userData.R.mixer) W.mount.userData.R.mixer.update(dt * (.35 + 1.15*rk));
     const hk = hop ? hop.k*hop.k*(3 - 2*hop.k) : 1;
     const seat = hop ? (hop.kind === "on" ? SADDLE_Y*hk : SADDLE_Y*(1 - hk)) : SADDLE_Y;
@@ -11888,7 +11947,7 @@ function islandUpdate(I, dt, t){
   (I.mounts||[]).forEach(m => {
     const r = m.rider, u = r.userData;
     m.mount.position.set(r.position.x, r.position.y, r.position.z);
-    m.mount.rotation.y = r.rotation.y;
+    m.mount.rotation.y = r.rotation.y - Math.PI/2;    /* the turtle's head is its local +x, the rider faces his +z: Neri sat sideways (qa/worldcheck "mounts") */
     /* a sea turtle on land does not trot: the flippers sweep slowly and the shell rocks with them */
     const sw = Math.sin(t*1.1) * ((u.state === "walk") ? .42 : .16);
     m.mount.children.forEach((c,i) => { if(i >= 6 && i <= 9) c.rotation.z = sw * (i % 2 ? 1 : -1); });
@@ -11902,10 +11961,12 @@ function islandUpdate(I, dt, t){
     if(rider){
       const hz = I.quest.horse, u = rider.userData;
       hz.position.set(rider.position.x, rider.position.y, rider.position.z);
-      hz.rotation.y = rider.rotation.y;
+      /* a rider faces his local +z, an animal's nose is its local +x: without the quarter turn Ollie rode one way and his
+         horse faced another (Melvin's GR shots, Oct 27). Lala's own mount takes the same quarter turn. */
+      hz.rotation.y = rider.rotation.y - Math.PI/2;
       const legs = hz.userData.legs || [];
       if(u.state === "walk" || u.delivering){ hz.userData.gait = (hz.userData.gait||0) + dt*7;
-        legs.forEach(l => { if(l.rotation) l.rotation.x = Math.sin(hz.userData.gait + (l.userData.phase||0))*.4; }); }
+        legs.forEach(l => { if(l.rotation) l.rotation.z = (l.userData.rz0||0) + Math.sin(hz.userData.gait + (l.userData.trot != null ? l.userData.trot : (l.userData.phase||0)))*.4; }); }
       if(hz.userData.R && hz.userData.R.mixer){ playClip(hz.userData.R, (u.state === "walk" || u.delivering) ? "walk" : "idle"); hz.userData.R.mixer.update(dt); }
       rider.position.y += SADDLE_Y;
       if(u.R && u.R.model) applySeated(u.R);
@@ -12087,6 +12148,16 @@ function islandUpdate(I, dt, t){
     } else if(u.type === "chicken"){ if(!(u.R && u.R.model)) h.position.y -= .12; }        /* same for the chicken's stiff legs */
     if(u.type === "jelly"){ const p = Math.sin(t*2+u.ph); h.scale.set(1 - p*.06, 1 + p*.14, 1 - p*.06);
       u.legs.forEach(l => { l.rotation.x = Math.sin(t*2+l.userData.phase)*.3; l.rotation.z = Math.cos(t*1.6+l.userData.phase)*.25; l.userData.child.rotation.x = Math.sin(t*2.4+l.userData.phase+1)*.45; }); }
+    else if(GAIT[u.type]){
+      /* the stride follows the ground actually covered: one full cycle per ~1.7 leg-lengths, swing growing with speed */
+      const sc = h.scale.x || 1, L = (u.legL || .5)*sc;
+      const v = u.gpx == null ? 0 : Math.hypot(h.position.x - u.gpx, h.position.z - u.gpz)/Math.max(dt, 1e-3);
+      u.gpx = h.position.x; u.gpz = h.position.z;
+      u.gv = (u.gv || 0) + (Math.min(v, 12) - (u.gv || 0))*Math.min(1, dt*6);
+      u.gait = (u.gait || 0) + u.gv*dt/(1.7*L)*Math.PI*2;
+      const amp = .48*Math.min(1, u.gv/(.5*L + 1e-3));
+      u.legs.forEach(l => { l.rotation.z = (l.userData.rz0 || 0) + Math.sin(u.gait + (l.userData.trot || 0))*amp; });
+    }
     else u.legs.forEach(l => l.rotation.x = Math.sin(t*(u.type==="dino"?2.2:5) + l.userData.phase)*.45);
     if(u.R && u.R.mixer && u.R.speeds){
       /* real animals: idle where they graze; otherwise walk or run by how fast they are really going, and play the clip at the rate
@@ -12299,7 +12370,7 @@ function interact(){
   } else if(t.kind === "carrot"){
     t.obj.userData.taken = true; absorbInto(I, t.obj, .4); t.obj.visible = false;
     G.quest["green:carrotTaken:" + t.obj.userData.ci] = true;
-    qAdd(cfg, "carrots", 1); syncHUD();
+    qAdd(cfg, "carrots", 1); horseHUD();
     auChime([523,659]);
     const n = qNum(cfg, "carrots");
     toast("Carrot", n === 1 ? "The horses on this island are shy. This is why." : n + " carrots");
@@ -12316,11 +12387,11 @@ function interact(){
     if(u.trust < CARROTS_TO_TAME){
       auChime([392,523]);
       toast(u.horseName + " takes it", "Still deciding about you");
-      syncHUD();
+      horseHUD();
       return;
     }
     /* ---- she has won the horse. This is the moment Lala asked for a scene on. ---- */
-    u.tame = true; G.quest["green:tame:" + u.horse] = true; save(); syncHUD();
+    u.tame = true; G.quest["green:tame:" + u.horse] = true; save(); horseHUD();
     auChime([392,523,659,784], .16, 1.15);
     W.active = false;
     const hp = () => [h.position.x, h.position.y + 1.5, h.position.z];
