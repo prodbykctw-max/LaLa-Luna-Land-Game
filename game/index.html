@@ -10691,7 +10691,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     const pgy = height(a.at[0], a.at[1]);
     const py = (a.y != null ? (isFinite(pgy) ? Math.max(pgy, a.y) : a.y) : pgy) + 2.2;
     pk.position.set(a.at[0], py, a.at[1]); scene.add(pk); I.pickup = pk;
-    if(a.lantern){ itemGlint(pk, 3.0); realItem(pk, "lantern", {flame:true}); }
+    if(a.lantern){ itemGlint(pk, 3.0); realItem(pk, "lantern", {flame:true, scale:1.6}); }   /* the real lantern at the old one's size read as a speck on the hill */
   }
   yield;
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
@@ -11519,8 +11519,12 @@ function itemSwap(group, src, opts){
   m.scale.multiplyScalar(k); m.updateMatrixWorld(true); nb.setFromObject(m); const nC = nb.getCenter(new THREE.Vector3());
   m.position.add(oC.clone().sub(nC)); if(opts.ground) m.position.y += B.min.y - (nb.min.y + oC.y - nC.y);
   group.add(m); olds.forEach(o => { o.visible = false; }); group.userData.realItem = m;
-  if(opts.flame){ const f = new THREE.Mesh(new THREE.SphereGeometry(Math.max(oS.x, oS.y, oS.z)*.045, 10, 8), new THREE.MeshBasicMaterial({color:0xFFE2A8}));
-    f.position.copy(oC); f.position.y -= oS.y*.08; group.add(f); }
+  /* the flame: the old lantern was a glowing ball, readable from across Sanity's dark hill; the real one is dark iron and
+     glass, so its flame is a proper light now - a bright core and a warm halo - or at night there is nothing to walk to */
+  if(opts.flame){ const S = Math.max(oS.x, oS.y, oS.z)*(opts.scale || 1), f = new THREE.Mesh(new THREE.SphereGeometry(S*.075, 10, 8), new THREE.MeshBasicMaterial({color:0xFFE9B8}));
+    f.position.copy(oC); f.position.y -= oS.y*.08; f.userData.keep = 1; group.add(f);
+    const h = new THREE.Sprite(new THREE.SpriteMaterial({map:glitterSprite(), color:0xFFD9A0, transparent:true, opacity:.85, blending:THREE.AdditiveBlending, depthWrite:false}));
+    h.position.copy(f.position); h.scale.setScalar(S*1.5); h.userData.keep = 1; h.renderOrder = 2; group.add(h); }
 }
 if(ITEMSQ) Object.keys(ITEM_URL).forEach(itemLoad);
 function ghostOf(I, src){
