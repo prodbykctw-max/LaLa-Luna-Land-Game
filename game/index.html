@@ -3611,7 +3611,7 @@ const RIGS = {
    The cow has no walking clip, only two idles: cows graze where they stand. The chicken's one long clip is flapping,
    lying down, running and walking in turn; its walk is the stretch from 5.75 s (`sub`). The sauropod's only clip is
    its walk (`clips`). Heights are the ones the sketch animals had, so the islands keep their scale. */
-const ANIMALSQ = QS.get("animals") === "new";
+const ANIMALSQ = QS.get("animals") !== "old";
 if(ANIMALSQ){ const c = document.getElementById("animalCredits"); if(c) c.hidden = false; }   /* the licence asks for the credit wherever they appear */
 if(ANIMALSQ) Object.assign(RIGS, {
   cow:     {url:"assets/animals/cow.glb",      height:M(1.75), real:true, yaw:Math.PI/2},
