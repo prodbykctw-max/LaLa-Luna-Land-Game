@@ -392,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-27e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-27f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -10691,7 +10691,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     const pgy = height(a.at[0], a.at[1]);
     const py = (a.y != null ? (isFinite(pgy) ? Math.max(pgy, a.y) : a.y) : pgy) + 2.2;
     pk.position.set(a.at[0], py, a.at[1]); scene.add(pk); I.pickup = pk;
-    if(a.lantern) realItem(pk, "lantern", {flame:true});
+    if(a.lantern){ itemGlint(pk, 3.0); realItem(pk, "lantern", {flame:true}); }
   }
   yield;
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
@@ -11485,7 +11485,13 @@ const _gI = new THREE.Matrix4();
 function itemLoad(key){ if(!ITEMSQ || ITEM_G[key] || ITEM_WAIT[key] || !THREE.GLTFLoader) return; ITEM_WAIT[key] = [];
   new THREE.GLTFLoader().load(ITEM_URL[key], g => {
     g.scene.traverse(o => { if(!o.isMesh) return; o.castShadow = true; o.frustumCulled = false;
-      const m = o.material; if(m){ m.envMapIntensity = .55; if(m.transparent && !/glass/i.test(m.name || "")){ m.transparent = false; m.alphaTest = .5; } } });
+      /* ===================  ITEMS ARE SOLID  ===================
+         Melvin, Oct 27: the pen, then the lantern at the lighthouse - walked right up to them on his iPhone and they were
+         not there, while every test browser drew them. They were the only two items whose models came alpha-blended, on
+         palette PNGs with a transparency table, and the blend was being turned into a cut-out at alpha 0.5: wherever the
+         phone read that alpha as low, the whole item was cut away. Nothing she picks up needs to be see-through, so an
+         item's alpha is never read at all - and the two models now carry plain JPEG colour with no alpha in them. */
+      const m = o.material; if(m){ m.envMapIntensity = .55; m.transparent = false; m.alphaTest = 0; m.opacity = 1; m.depthWrite = true; m.alphaMap = null; m.needsUpdate = true; } });
     ITEM_G[key] = g.scene; const w = ITEM_WAIT[key]; ITEM_WAIT[key] = null; w.forEach(fn => fn()); },
     undefined, e => { console.warn("Item " + key + " not loaded - keeping the old piece", e); ITEM_WAIT[key] = null; }); }
 /* A GLINT ON WHAT SHE CAN TAKE. The real pen is an ink bottle and a brown quill: true to life, and dark on dark grass and
@@ -12182,7 +12188,7 @@ function islandUpdate(I, dt, t){
     I.letterMesh.rotation.y += dt*1.4;
     if(I.letterMesh.userData.flat) I.letterMesh.rotation.x += dt*.6;
     else I.letterMesh.position.y = I.letterMesh.userData.y0 + Math.sin(t*1.3)*.18;
-    if(I.quest) [I.quest.pen, I.quest.secret].forEach((q, k) => { const g = q && q.userData.glint; if(g) g.material.opacity = .34 + .22*Math.sin(t*2.2 + k*1.7); });   /* the glints breathe */
+    [I.quest && I.quest.pen, I.quest && I.quest.secret, I.pickup].forEach((q, k) => { const g = q && q.userData.glint; if(g) g.material.opacity = .34 + .22*Math.sin(t*2.2 + k*1.7); });   /* the glints breathe */
   }
   I.moons.forEach(m => { if(!m.visible) return; m.rotation.y += dt*1.8;
     if(Math.hypot(W.x-m.position.x, W.z-m.position.z) < 1.7 && Math.abs(W.y+1.2-m.position.y) < 2.2){

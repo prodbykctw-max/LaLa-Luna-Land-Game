@@ -21,21 +21,22 @@ for (const island of isl) {
       let chain = true; for(let q = o; q; q = q.parent) if(!q.visible) chain = false;
       const inScene = (() => { let q = o; while(q.parent) q = q.parent; return q === I.scene; })();
       o.updateMatrixWorld(true);
-      const vb = new THREE.Box3(); let drawn = 0, cut = 0;
+      const vb = new THREE.Box3(); let drawn = 0, cut = 0, alphaRead = 0;
       o.traverse(m => { if(!m.isMesh) return; let vis = true; for(let q = m; q && q !== o.parent; q = q.parent) if(!q.visible) vis = false; if(!vis) return;
         const mt = Array.isArray(m.material) ? m.material[0] : m.material; if(mt && (mt.opacity < .05 || mt.visible === false)) { cut++; return; }
+        if(mt && !m.userData.glint && m.geometry.type !== "RingGeometry" && (mt.alphaTest > 0 || (mt.transparent && mt.blending !== THREE.AdditiveBlending))) alphaRead++;   /* an item that reads alpha can be cut away by a phone that decodes it low (Oct 27) */
         drawn++; if(!m.geometry.boundingBox) m.geometry.computeBoundingBox(); vb.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld)); });
       const sz = vb.isEmpty() ? [0,0,0] : vb.getSize(new THREE.Vector3()).toArray().map(v => +v.toFixed(2));
       const c = vb.isEmpty() ? o.getWorldPosition(new THREE.Vector3()) : vb.getCenter(new THREE.Vector3()), g = gy(c.x, c.z);
       const real = o.userData.realItem;
-      out.push({ name, inScene, chainVisible: chain, drawnMeshes: drawn, hiddenByMaterial: cut, realWanted: realKey, realLoaded: !!real, size: sz,
+      out.push({ name, alphaRead, inScene, chainVisible: chain, drawnMeshes: drawn, hiddenByMaterial: cut, realWanted: realKey, realLoaded: !!real, size: sz,
         at: [+c.x.toFixed(1), +c.y.toFixed(1), +c.z.toFixed(1)], aboveGround: g == null ? null : +(vb.isEmpty() ? c.y - g : vb.min.y - g).toFixed(2) });
       const R = Math.max(2.5, Math.max(...sz)*3), cam = new THREE.PerspectiveCamera(40, 1, .05, 800);
       cam.position.set(c.x + R, c.y + R*.6, c.z + R); cam.lookAt(c); rd.render(I.scene, cam); shots[name] = rd.domElement.toDataURL('image/jpeg', .8);
     }
     rd.setRenderTarget(prev); I.W.group.visible = true; return { out, shots }; });
   for (const r of res.out) {
-    const ok = r.inScene && r.chainVisible && r.drawnMeshes > 0 && Math.max(...r.size) > .25 && (!r.realWanted || r.realLoaded) && (r.aboveGround == null || r.aboveGround > -.3);
+    const ok = !r.alphaRead && r.inScene && r.chainVisible && r.drawnMeshes > 0 && Math.max(...r.size) > .25 && (!r.realWanted || r.realLoaded) && (r.aboveGround == null || r.aboveGround > -.3);
     if (!ok) bad++;
     console.log(`[itemcheck] ${island} ${r.name}: ${ok ? 'OK' : 'BAD'} ${JSON.stringify(r)}`);
     writeFileSync(`${OUT}/item_${island}_${r.name}.jpg`, Buffer.from(res.shots[r.name].split(',')[1], 'base64'));
