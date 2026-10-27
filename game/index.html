@@ -383,7 +383,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-22a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-27a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -12093,7 +12093,7 @@ function islandUpdate(I, dt, t){
          their feet cover that ground (rig.speeds, measured from the clip), so the feet stay planted instead of sliding */
       const R = u.R, sp = grazing ? 0 : Math.abs(u.sp) * rr * (u.spK == null ? 1 : u.spK);
       if(grazing){ const two = R.actions.idle2 && Math.floor((t + u.ph*7) / 11) % 2; playClip(R, two ? "idle2" : "idle", .6); R.mixer.update(dt); }
-      else { const run = R.actions.run && R.actions.run !== R.actions.walk && R.speeds.run && sp > R.speeds.walk * 1.7;
+      else { const run = R.actions.run && R.actions.run !== R.actions.walk && R.speeds.run && sp > R.speeds.walk * 2.2;   /* the raptor's jog throws its tail up: it walks, faster, until it is really moving */
         playClip(R, run ? "run" : "walk", .3);
         const v = run ? R.speeds.run : R.speeds.walk; R.mixer.update(dt * (v > .05 ? Math.min(2.5, Math.max(.4, sp / v)) : 1)); }
     }
