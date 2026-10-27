@@ -1,0 +1,12 @@
+import { open, OUT } from './_harness.mjs';
+const MOB = !!process.env.MOBILE;
+const H = await open({ island: 'town', query: 'guide=off', wait: 20000, mobile: MOB, viewport: MOB ? { width: 390, height: 844 } : { width: 800, height: 600 } });
+await H.page.waitForTimeout(5000);
+const r = await H.page.evaluate(() => { const T = window.__T, I = T.CUR, W = I.W, p = I.quest.pen.position;
+  W.x = p.x + 2.5; W.z = p.z + 6; if(W.pos) W.pos.set(W.x, W.y, W.z); return {pen: [p.x, p.y, p.z], W: [W.x, W.y, W.z], keys: Object.keys(W).slice(0, 40).join(',')}; });
+console.log(JSON.stringify(r));
+await H.page.waitForTimeout(6000);
+const r2 = await H.page.evaluate(() => { const I = window.__T.CUR, W = I.W, p = I.quest.pen.position; return {pen: [p.x, p.y, p.z].map(v => +v.toFixed(2)), W: [W.x, W.y, W.z].map(v => +v.toFixed(2)), vis: I.quest.pen.visible}; });
+console.log(JSON.stringify(r2));
+await H.page.screenshot({ path: `${OUT}/pensee${MOB ? '_m' : ''}${process.env.WEBKIT ? '_wk' : ''}.png` });
+await H.close();
