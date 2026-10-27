@@ -177,6 +177,15 @@ body.walk.desktop #khint{display:block}
 .ov.hide{display:grid!important;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .26s ease,visibility 0s linear .26s}
 .ov.hide .card{transform:translateY(10px)}
 @media(prefers-reduced-motion:reduce){.ov,.ov.hide{transition:none}.ov .card,.ov.hide .card{transition:none;transform:none}}
+#creditSplash{position:fixed;inset:0;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;padding:28px;transition:opacity .9s ease;animation:csOut .9s ease 3.4s forwards}
+@keyframes csOut{to{opacity:0;visibility:hidden}}
+#creditSplash[hidden]{display:none}
+#creditSplash.out{opacity:0;pointer-events:none}
+#creditSplash .cs-in{max-width:420px;text-align:center;opacity:0;animation:csIn .9s ease .15s forwards}
+#creditSplash .cs-t{font-family:inherit;font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#FFF6D6;opacity:.8;margin-bottom:14px}
+#creditSplash p{margin:0;font-size:7.5px;line-height:1.6;letter-spacing:.02em;color:#fff;opacity:.5}
+@keyframes csIn{to{opacity:1}}
+@media(prefers-reduced-motion:reduce){#creditSplash .cs-in{animation:none;opacity:1}}
 .card{max-width:460px;width:100%}
 .eyebrow{font-size:10px;letter-spacing:.34em;text-transform:uppercase;opacity:.5;margin-bottom:16px}
 h1{font-family:"Instrument Serif",serif;font-style:italic;font-weight:400;
@@ -247,6 +256,9 @@ body.sail #khint{display:block}
 </style>
 </head>
 <body class="walk">
+<!-- The model credits the CC BY licence asks for, shown once on a black screen while the game loads instead of on the
+     title card (Melvin, Oct 27: they were crowding the title). It fades by itself; a tap skips it. -->
+<div id="creditSplash"><div class="cs-in"><div class="cs-t">Lala Luna Land</div><p id="animalCredits">Animals from Sketchfab, CC BY 4.0: "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries · "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D · "Horse" by MAXDESIGN-3D · "Horse Rigged(Game Ready)" by abhayexe · "Bull" by stealth86 · "Lizard" by Froggreen · "Lizard" by LostBoyz2078 · "low poly animated and rigged gecko model" by Msassasa · "Bored-monkey-h-bosch-v-van-gogh-mashup" by eyork4633 · "Flamingosf" by kenchoo · "Pteranodon (Animated)" by Chistodrako._. · "parrot rebuilt" by kenchoo · "Parrot" by NewGameDeveloper · "Hermit Crab" by kenchoo · "Sea Turtle Lowpoly Animated" by kenchoo · "Sea Turtle" by Eloi · "Model 53A - Flatback Sea Turtle" by DigitalLife3D · "Bottlenose Dolphin" by popcornbag · "Game-Ready dolphin (Swimming)" by Allie2k · "blue powder tang" by Major. Items: "Carrot (.c4d and .fbx)" by NeoT1 · "Low-Poly 3D Folded Letter Paper" by Produk Cerdas · "Ink Bottle with Quill" by Matthew Collings · "Vintage Hurricane Lantern" by Chris Torres. Optimised for the game.</p></div></div>
 
 <div id="vig"></div><div id="flash"></div><div id="grain"></div>
 
@@ -299,9 +311,6 @@ body.sail #khint{display:block}
      open. Walk the grounds first. She left notes.</p>
   <button id="bBegin">Step outside</button>
   <button class="ghost" id="bTitleReset" style="margin-top:10px">Start over</button>
-  <p id="animalCredits" hidden style="margin:14px 0 0;font-size:10px;line-height:1.5;opacity:.55">Animals from Sketchfab, CC BY 4.0:
-     "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries ·
-     "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D. Optimised for the game.</p>
 </div></div>
 
 <div class="ov hide" id="ovNote"><div class="card">
@@ -383,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-27b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-27c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3540,6 +3549,7 @@ function makeLala(){
   const lb = inked(new THREE.CylinderGeometry(.16,.2,.42,8), 0x8D6141, 1.4); R.lanternBody.add(lb);
   const lg = new THREE.Mesh(new THREE.SphereGeometry(.16,10,8), new THREE.MeshBasicMaterial({color:MOON}));
   lg.position.y = .02; R.lanternBody.add(lg);
+  realItem(R.lanternBody, "lantern", {flame:true});   /* the one she carries is the same lantern she found */
   const lLight = new THREE.PointLight(0xFFE2A8, 0, 14); lLight.position.y = .3; R.lantern.add(lLight); R.lanternLight = lLight;
   R.lantern.position.set(.62,1.75,.25); R.lantern.visible = false; p.add(R.lantern);
   /* at night, before she has her lantern, her dark clothes sank into the dark ground: a soft cool fill from
@@ -3611,14 +3621,57 @@ const RIGS = {
    The cow has no walking clip, only two idles: cows graze where they stand. The chicken's one long clip is flapping,
    lying down, running and walking in turn; its walk is the stretch from 5.75 s (`sub`). The sauropod's only clip is
    its walk (`clips`). Heights are the ones the sketch animals had, so the islands keep their scale. */
+/* the two horses' one long take each, cut into loops whose first and last poses match (found by comparing every bone's
+   rotation across the take at 30 fps: qa loop search, Oct 27) */
+const HORSE_B_SUB = {idle:[21.5, 23.6], walk:[9.267, 11.967], run:[0, 2.0]};
+const HORSE_C_SUB = {idle:[0.333, 13.4], walk:[26.5, 29.133], run:[33.667, 34.333]};
 const ANIMALSQ = QS.get("animals") !== "old";
-if(ANIMALSQ){ const c = document.getElementById("animalCredits"); if(c) c.hidden = false; }   /* the licence asks for the credit wherever they appear */
+const ITEMSQ = QS.get("items") !== "old";
+const ITEM_URL = {carrot:"assets/items/carrot.glb", note:"assets/items/note.glb", pen:"assets/items/quill.glb", lantern:"assets/items/lantern.glb"};
+const ITEM_G = {}, ITEM_WAIT = {};
+
+/* the licence asks for the credit wherever the models appear: once, on black, as the game loads (it is loading anyway) */
+{ const c = document.getElementById("creditSplash"); if(c){                 /* it is up from the first paint and fades by itself (CSS) */
+  if(!(ANIMALSQ || ITEMSQ)) c.remove();
+  else { const done = () => { c.classList.add("out"); setTimeout(() => c.remove(), 950); };
+    const t = setTimeout(done, 3400); c.addEventListener("pointerdown", () => { clearTimeout(t); done(); }, {once:true}); } } }
 if(ANIMALSQ) Object.assign(RIGS, {
   cow:     {url:"assets/animals/cow.glb",      height:M(1.75), real:true, yaw:Math.PI/2},
   dino:    {url:"assets/animals/sauropod.glb", height:M(4.30), real:true, yaw:Math.PI/2, clips:{walk:"armatureaction"}},
   raptor:  {url:"assets/animals/raptor.glb",   height:M(1.44), real:true, yaw:Math.PI/2},
-  chicken: {url:"assets/animals/chicken.glb",  height:M(0.48), real:true, yaw:Math.PI/2, sub:{walk:[5.75, 7.55]}}
+  chicken: {url:"assets/animals/chicken.glb",  height:M(0.48), real:true, yaw:Math.PI/2, sub:{walk:[5.75, 7.55]}},
+  /* Oct 27, his picks from the old-vs-new sheets. Several species are a MIX of models (VARIANTS, below): the herd takes
+     them in turn. `fit:"length"` scales by the longest horizontal extent instead of height - a lizard, a fish or a bird in
+     flight is measured nose to tail (or wingtip to wingtip), not by how tall it stands. Lengths and heights are real ones.
+     A single clip that is a swim or a flight is played as the animal's walk (`clips`). The two horses' clips are one long
+     take each; `sub` cuts the idle, walk and gallop out of it. */
+  horse:     {url:"assets/animals/horse_b.glb",   height:M(2.06), real:true, yaw:Math.PI/2, sub:HORSE_B_SUB, speedsM:{walk:1.6, run:7}},
+  horse_c:   {url:"assets/animals/horse_c.glb",   height:M(2.06), real:true, yaw:Math.PI/2, sub:HORSE_C_SUB, speedsM:{walk:1.6, run:7}},
+  bull:      {url:"assets/animals/bull.glb",      height:M(1.60), real:true, yaw:0, clips:{run:"trot"}, speedsM:{walk:1.1, run:3}},
+  iguana_a:  {url:"assets/animals/iguana_a.glb",  height:M(1.40), fit:"length", real:true, yaw:Math.PI/2},
+  iguana_b:  {url:"assets/animals/iguana_b.glb",  height:M(1.20), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"gltfanimation"}},
+  iguana_c:  {url:"assets/animals/iguana_c.glb",  height:M(1.00), fit:"length", real:true, yaw:Math.PI, clips:{walk:"armatureaction|armature|armatureaction.001"}},
+  anole:     {url:"assets/animals/iguana_c.glb",  height:M(0.25), fit:"length", real:true, yaw:Math.PI, clips:{walk:"armatureaction|armature|armatureaction.001"}},
+  monkey:    {url:"assets/animals/monkey.glb",    height:M(0.70), real:true, yaw:0, speedsM:{walk:.9, run:3}},
+  flamingo:  {url:"assets/animals/flamingo.glb",  height:M(1.30), real:true, yaw:Math.PI/2, clips:{idle:"animation"}},
+  ptero:     {url:"assets/animals/ptero.glb",     height:M(6.00), fit:"length", real:true, yaw:0, clips:{walk:"flying"}},
+  macaw_b:   {url:"assets/animals/macaw_b.glb",   height:M(1.00), fit:"length", real:true, yaw:0, clips:{walk:"land"}},
+  macaw_c:   {url:"assets/animals/macaw_c.glb",   height:M(1.40), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"animation"}},
+  crab:      {url:"assets/animals/crab.glb",      height:M(0.30), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"animation"}},
+  turtle_a:  {url:"assets/animals/turtle_a.glb",  height:M(1.00), fit:"length", real:true, yaw:0, clips:{walk:"seaturtle"}},
+  turtle_b:  {url:"assets/animals/turtle_b.glb",  height:M(1.00), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"tortue"}},
+  turtle_c:  {url:"assets/animals/turtle_c.glb",  height:M(1.00), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"emptyaction"}},
+  dolphin_b: {url:"assets/animals/dolphin_b.glb", height:M(2.30), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"swim"}},
+  dolphin_c: {url:"assets/animals/dolphin_c.glb", height:M(2.30), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"take"}},
+  tang:      {url:"assets/animals/tang.glb",      height:M(0.30), fit:"length", real:true, yaw:Math.PI/2, clips:{walk:"armatureaction"}}
 });
+/* which model each animal of a species gets: taken in turn, counted from zero on every island build, so it is the same
+   animal every load. A species not listed uses the rig of its own name. */
+const VARIANTS = ANIMALSQ ? {horse:["horse","horse_c"], cow:["cow","bull"], iguana:["iguana_a","iguana_b","iguana_c"],
+  troupial:["macaw_b","macaw_c"], turtle:["turtle_a","turtle_b","turtle_c"], dolphin:["dolphin_b","dolphin_c"], fish:["tang"]} : {};
+let VCOUNT = {};
+function rigFor(type){ const v = VARIANTS[type]; if(!v) return RIGS[type] ? type : null;
+  const i = VCOUNT[type] = (VCOUNT[type] || 0) + 1; return v[(i - 1) % v.length]; }
 /* the extent of a skinned model as it is actually drawn (bones applied), not its bind-pose box: the raptor's bind box
    is 60 times its real size, which fitted it to a speck */
 function drawnBox(root){
@@ -3784,7 +3837,7 @@ function loadRig(name){
       if(c){ mx.clipAction(c).play(); mx.setTime(0); } box = drawnBox(gltf.scene); mx.stopAllAction(); mx.uncacheRoot(gltf.scene); }
     else box = new THREE.Box3().setFromObject(gltf.scene);
     const size = box.getSize(new THREE.Vector3());
-    const s = rig.height / Math.max(size.y, 1e-3);
+    const s = rig.height / Math.max(rig.fit === "length" ? Math.max(size.x, size.z) : size.y, 1e-3);
     gltf.scene.scale.setScalar(s);
     gltf.scene.position.set(-(box.min.x+box.max.x)/2*s, -box.min.y*s, -(box.min.z+box.max.z)/2*s);
     /* re-shade with the world's toon ramp (keeping the painted texture) so the character sits in
@@ -3841,6 +3894,8 @@ function loadRig(name){
     });
     if(rig.real){ rig.speeds = {};
       for(const k of ["walk", "jog", "run"]){ const c = gltf.animations.find(c => c.name.toLowerCase().includes(k)); if(c) rig.speeds[k === "jog" ? "run" : k] = clipGroundSpeed(gltf.scene, c); }
+      /* a few rigs have no bone the foot measure recognises (the horses' hooves): their natural walk and gallop pace is given in m/s instead */
+      if(rig.speedsM) rig.speeds = {walk:M(rig.speedsM.walk), run:M(rig.speedsM.run)};
       DBG("rig speeds", name, JSON.stringify(rig.speeds)); }
     rig.gltf = gltf;
     DBG("rig reshaded", name, "attaching", rig.waiting.length);
@@ -5855,6 +5910,7 @@ function shallowsUpdate(I, h, u, dt, t){
     else { u.tx = null; (u.legs||[]).forEach(l => l.rotation.x = 0); } }
   else if(I.water && Math.random() < dt*.4) I.water.ripple(h.position.x, h.position.z, .45);
   h.position.y = I.height(h.position.x, h.position.z);
+  if(u.R && u.R.mixer){ playClip(u.R, (u.tx != null && u.R.actions.walk) ? "walk" : "idle", .4); u.R.mixer.update(dt); }   /* a real flamingo preens where it stands */
 }
 function wadersUpdate(I, dt, t){
   const list = I.fx.waders; if(!list || !list.length) return;
@@ -6935,7 +6991,8 @@ function makeCreature(type){
       l.children.forEach(c => { c.position.y -= hh; }); l.position.copy(top); h.userData.legL = gp.height; }
     l.userData.trot = (Math.sign(l.position.x) * Math.sign(l.position.z) > 0) ? 0 : Math.PI;
     l.userData.rz0 = l.rotation.z; });
-  if(RIGS[type]){ const R = {group:h, primitive:[...h.children].filter(c => !c.isPoints)}; h.userData.R = R; wantRig(R, type); }
+  const rn = rigFor(type);
+  if(rn){ const R = {group:h, primitive:[...h.children].filter(c => !c.isPoints)}; h.userData.R = R; wantRig(R, rn); }
   return h;
 }
 
@@ -9067,7 +9124,7 @@ function buildIsland(cfg){
 }
 function buildIslandBody(cfg){ const g = buildIslandSteps(cfg); let r; while(!(r = g.next()).done){} return r.value; }
 function* buildIslandSteps(cfg){   /* the island build, one top-level step per yield: run straight through it is the old build exactly, stepped it can happen while the boat is at sea */
-  scaleCfg(cfg);
+  scaleCfg(cfg); VCOUNT = {};
   /* The quest anchors are derived, not authored, so they can never be hand-placed into the sea and
      so every island gets the same shape of journey: the pen sits across the island from the paper,
      the hidden note in a third quadrant, and the postman waits at the island's first landmark. */
@@ -10239,37 +10296,55 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       const flag = new THREE.Mesh(new THREE.PlaneGeometry(.5,.32), new THREE.MeshBasicMaterial({color:0x9B84DC, side:THREE.DoubleSide})); flag.position.set(cx+.25, by+3.1, cz); scene.add(flag);
       const fpole = new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,4), toon(0x5E4630)); fpole.position.set(cx, by+2.95, cz); scene.add(fpole);
       I.colliders.push({x:cx, z:cz, r:2.4}); }
-    /* promenade storefronts along the north edge */
-    for(let i=0;i<8;i++){ yield; const x = -34 + i*10, z = -36, w = 9.0, h = 12 + (i%3)*3.2, col = [0xF2A6C8,0xFFD37A,0x8ED8E8,0xB9A4F4,0xA8E6C8,0xFFB3A1,0xFFF1B8,0xC8E8FA][i];
-      if(!inside(x,z)) continue;
-      I.colliders.push({x, z, r:5.6});
-      if(LOOKS2) r2Store(scene, x, height(x,z), z, w, h, col, i%2 ? 0xFFFFFF : 0xF08A5D);
-      else { const bld = inked(new THREE.BoxGeometry(w,h,8), col, 1.6); bld.position.set(x, height(x,z)+h/2, z); scene.add(bld);
-      const roof = inked(new THREE.BoxGeometry(w+.9,.7,8.8), BONE, 1.3); roof.position.set(x, height(x,z)+h+.35, z); scene.add(roof);
-      const awn = inked(new THREE.BoxGeometry(w-1.0,.22,3.0), i%2 ? 0xFFFFFF : 0xF08A5D, 1.2); awn.position.set(x, height(x,z)+4.6, z+4.9); awn.rotation.x = .22; scene.add(awn);
-      const door = new THREE.Mesh(new THREE.PlaneGeometry(2.0,3.6), toon(0x5E4630)); door.position.set(x-2.0, height(x,z)+1.8, z+4.02); scene.add(door);   /* a 2.05 m doorway */
-      const step = inked(new THREE.BoxGeometry(2.8,.3,1.2), BONE, 1.0); step.position.set(x-2.0, height(x,z)+.15, z+4.6); scene.add(step); }
-      /* ===================  THE WINDOWS WERE HOLES  ===================
-         qa/vaudit.mjs, 2026-09-12: every window was one flat 0xBFE6F0 pane — the same cold blue on
-         every building on every island, at roughly sand albedo, so at night they read as holes punched
-         in the wall rather than the one thing in a townscape that should be alight.
-         Unlit is the RIGHT material here: a lit window is emissive, it does not take light, it gives it.
-         What was wrong is that there was only one of them. A street reads as lived-in because the
-         windows DISAGREE — most warm, a few cold, some dark because nobody is home — so each pane now
-         draws from the island's own sky palette with a deterministic per-window roll (seeded, so the
-         town looks the same every load). */
-      const paneOf = (seed) => {
-        const r = ((Math.sin(seed*127.1)*43758.5453) % 1 + 1) % 1;
-        if(r < .18) return 0x2A2F42;                       /* dark — nobody home */
-        if(r < .34) return P.skyBot || 0xBFE6F0;           /* cold, catching the sky */
-        return r < .74 ? 0xFFD9A0 : 0xFFC46B;              /* warm lamplight, two strengths */
-      };
-      const pane = (w, hh, px, py, pz, seed) => {
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, hh), new THREE.MeshBasicMaterial({color:paneOf(seed)}));
-        m.position.set(px, py, pz); scene.add(m); return m;
-      };
-      for(let k=0;k<2+(i%2);k++) pane(1.8, 2.0, x+.6+k*2.4, height(x,z)+2.6, z+4.02, i*31+k);
-      for(let f=1; f*4.2+2.4 < h; f++) for(let k=0;k<3;k++) pane(1.7, 1.9, x-3.0+k*3.0, height(x,z)+f*4.2+2.4, z+4.02, i*97+f*13+k); }
+    /* THE STOREFRONTS. Eight were meant to line the square, at x = -34..36 along z = -36 - island units from before the
+       islands were made four times bigger (WORLD). At this scale that line runs along the shore and out to sea, and seven
+       of the eight were skipped as not on land: one building was all Town had (Melvin, Oct 27). They now stand round the
+       landward side of the square, facing it, on dry ground with room around them - clear of the beach, the gate and the
+       road up from the harbour - so the square reads as a square. */
+    {
+      const sqF = cfg.features.find(f => f.name === "The Square"), cx = sqF ? sqF.x : 0, cz = sqF ? sqF.z : 0;
+      const beachP = cfg.places.find(p => p.name === "The Beach"), dockA = Math.atan2(cfg.dock[1] - cz, cfg.dock[0] - cx);
+      const dryS = (x, z) => inside(x, z) && coastDist(x, z) > 3;
+      const foot = (x, z) => [0,1,2,3,4,5,6,7].every(k => dryS(x + Math.cos(k*Math.PI/4)*7.5, z + Math.sin(k*Math.PI/4)*7.5)) && dryS(x, z);
+      const spots = [], RR = (sqF ? sqF.r : 64) + 20;
+      for(let deg = 0; deg < 360 && spots.length < 8; deg += 2.5){
+        const a = deg*Math.PI/180, x = cx + Math.cos(a)*RR, z = cz + Math.sin(a)*RR;
+        let da = Math.abs(a - dockA) % (Math.PI*2); if(da > Math.PI) da = Math.PI*2 - da;
+        if(da < .26) continue;                                                     /* the road up from the harbour stays open */
+        if(cfg.gate && Math.abs(x - cfg.gate.x) < 16) continue;
+        if(beachP && Math.hypot(x - beachP.x, z - beachP.z) < beachP.r + 6) continue;
+        if(!foot(x, z)) continue;
+        if(spots.some(q => Math.hypot(q[0] - x, q[1] - z) < 17)) continue;
+        if(I.colliders.some(c => !c.camOnly && Math.hypot(c.x - x, c.z - z) < (c.r || 1) + 6)) continue;
+        spots.push([x, z]); }
+      for(let i = 0; i < spots.length; i++){ const [x, z] = spots[i]; yield;
+        const w = 9.0, h = 12 + (i%3)*3.2, col = [0xF2A6C8,0xFFD37A,0x8ED8E8,0xB9A4F4,0xA8E6C8,0xFFB3A1,0xFFF1B8,0xC8E8FA][i], gy = height(x, z);
+        const rotY = Math.atan2(cx - x, cz - z);                                    /* its front (+z) faces the fountain */
+        I.colliders.push({x, z, r:5.6});
+        const g = LOOKS2 ? r2Store(scene, x, gy, z, w, h, col, i%2 ? 0xFFFFFF : 0xF08A5D) : new THREE.Group();
+        if(!LOOKS2){ g.position.set(x, gy, z); scene.add(g);
+          const bld = inked(new THREE.BoxGeometry(w,h,8), col, 1.6); bld.position.set(0, h/2, 0); g.add(bld);
+          const roof = inked(new THREE.BoxGeometry(w+.9,.7,8.8), BONE, 1.3); roof.position.set(0, h+.35, 0); g.add(roof);
+          const awn = inked(new THREE.BoxGeometry(w-1.0,.22,3.0), i%2 ? 0xFFFFFF : 0xF08A5D, 1.2); awn.position.set(0, 4.6, 4.9); awn.rotation.x = .22; g.add(awn);
+          const door = new THREE.Mesh(new THREE.PlaneGeometry(2.0,3.6), toon(0x5E4630)); door.position.set(-2.0, 1.8, 4.02); g.add(door);   /* a 2.05 m doorway */
+          const step = inked(new THREE.BoxGeometry(2.8,.3,1.2), BONE, 1.0); step.position.set(-2.0, .15, 4.6); g.add(step); }
+        g.rotation.y = rotY;
+        /* ===================  THE WINDOWS WERE HOLES  ===================
+           qa/vaudit.mjs, 2026-09-12: every window was one flat 0xBFE6F0 pane - the same cold blue on every building on
+           every island - so at night they read as holes punched in the wall. A lit window is emissive, so unlit is right;
+           what was wrong is that there was only one of them. Each pane now draws from the island's own sky palette with a
+           deterministic per-window roll, so the street looks lived-in and the same every load. */
+        const paneOf = (seed) => {
+          const r = ((Math.sin(seed*127.1)*43758.5453) % 1 + 1) % 1;
+          if(r < .18) return 0x2A2F42;                       /* dark — nobody home */
+          if(r < .34) return P.skyBot || 0xBFE6F0;           /* cold, catching the sky */
+          return r < .74 ? 0xFFD9A0 : 0xFFC46B;              /* warm lamplight, two strengths */
+        };
+        const panes = new THREE.Group(); panes.position.set(x, gy, z); panes.rotation.y = rotY; scene.add(panes);
+        const pane = (pw, ph, px, py, pz, seed) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), new THREE.MeshBasicMaterial({color:paneOf(seed)})); m.position.set(px, py, pz); panes.add(m); return m; };
+        for(let k=0;k<2+(i%2);k++) pane(1.8, 2.0, .6+k*2.4, 2.6, 4.02, i*31+k);
+        for(let f=1; f*4.2+2.4 < h; f++) for(let k=0;k<3;k++) pane(1.7, 1.9, -3.0+k*3.0, f*4.2+2.4, 4.02, i*97+f*13+k); }
+    }
     /* the LUNA-tic crowd on the beach and round the square — twelve different fans, each appearing twice,
        shuffled so the same face never stands next to itself */
     const order = []; for(let k=0;k<3;k++){ const ids = FANS.map((_,i) => i+1); for(let j=ids.length-1;j>0;j--){ const r = Math.floor(Math.random()*(j+1)); [ids[j],ids[r]] = [ids[r],ids[j]]; } order.push(...ids); }
@@ -10410,6 +10485,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     const pgy = height(a.at[0], a.at[1]);
     const py = (a.y != null ? (isFinite(pgy) ? Math.max(pgy, a.y) : a.y) : pgy) + 2.2;
     pk.position.set(a.at[0], py, a.at[1]); scene.add(pk); I.pickup = pk;
+    if(a.lantern) realItem(pk, "lantern", {flame:true});
   }
   yield;
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
@@ -10445,7 +10521,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   if(cfg.questSeeded){
     I.quest = {};
     const pen = penMesh(); pen.position.set(cfg.pen.at[0], height(cfg.pen.at[0], cfg.pen.at[1]) + 2.2, cfg.pen.at[1]);
-    scene.add(pen); I.quest.pen = pen;
+    scene.add(pen); I.quest.pen = pen; realItem(pen, "pen");
     const pbeam = new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,26,14,1,true), new THREE.MeshBasicMaterial({color:0xFFE08A, transparent:true, opacity:.09, side:THREE.DoubleSide}));
     pbeam.position.set(cfg.pen.at[0], height(cfg.pen.at[0], cfg.pen.at[1]) + 13, cfg.pen.at[1]); scene.add(pbeam); I.quest.penBeam = pbeam;
     /* The desk waits near the landing — but it has to stand in a CLEARING, or the chase camera ends
@@ -10472,7 +10548,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     scene.add(desk); I.quest.desk = desk; I.colliders.push({x:cfg.desk.at[0], z:cfg.desk.at[1], r:1.7});
     const sec = paperMesh(); sec.scale.setScalar(.8);
     sec.position.set(cfg.secret.at[0], height(cfg.secret.at[0], cfg.secret.at[1]) + 1.7, cfg.secret.at[1]);
-    scene.add(sec); I.quest.secret = sec;
+    scene.add(sec); I.quest.secret = sec; realItem(sec, "note");
     I.noGrass.push({x:cfg.desk.at[0], z:cfg.desk.at[1], r:2.6});
     /* the postman rides — his horse is a real rig that tracks him, and he sits it with the same
        seated pose Lala uses when she is mounted. */
@@ -10653,7 +10729,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       m.userData.taken = !!G.quest["green:carrotTaken:" + placed];
       m.userData.ci = placed;
       m.visible = !m.userData.taken;
-      scene.add(m); I.quest.carrots.push(m);
+      scene.add(m); I.quest.carrots.push(m); realItem(m, "carrot", {ground:true});
       placed++;
     }
     DBG("CARROTS", placed, "tamed", I.creatures.filter(c => c.userData.tame).length);
@@ -11193,10 +11269,46 @@ const easeOut3 = k => 1 - Math.pow(1 - k, 3), easeIn2 = k => k*k;
 /* a copy of a thing in the world made of the same geometry and the same materials (Object3D.clone would JSON-copy userData,
    which holds mesh references) */
 const _gI = new THREE.Matrix4();
+/* ===================  REAL ISLAND ITEMS  ===================
+   His picks of Oct 27 from the old-vs-new sheets (Sketchfab, CC BY 4.0, credited on the title card): the carrot, the
+   folded note, the pen (an ink bottle with its quill) and the lantern - in the hand and on Sanity's rock. Each one keeps
+   the place, size and motion of the piece it replaces: the new model is fitted to the old one's own box (the soft ground
+   ring is not part of it) and the old pieces are hidden, never removed, so ?items=old and every rule that looks at the
+   item still work. The files are fetched at boot, so an island built later gets them straight away. */
+/* ITEMSQ, ITEM_URL, ITEM_G, ITEM_WAIT are declared with the real animals, near the top: a character is built before this line runs */
+function itemLoad(key){ if(!ITEMSQ || ITEM_G[key] || ITEM_WAIT[key] || !THREE.GLTFLoader) return; ITEM_WAIT[key] = [];
+  new THREE.GLTFLoader().load(ITEM_URL[key], g => {
+    g.scene.traverse(o => { if(!o.isMesh) return; o.castShadow = true; o.frustumCulled = false;
+      const m = o.material; if(m){ m.envMapIntensity = .55; if(m.transparent && !/glass/i.test(m.name || "")){ m.transparent = false; m.alphaTest = .5; } } });
+    ITEM_G[key] = g.scene; const w = ITEM_WAIT[key]; ITEM_WAIT[key] = null; w.forEach(fn => fn()); },
+    undefined, e => { console.warn("Item " + key + " not loaded - keeping the old piece", e); ITEM_WAIT[key] = null; }); }
+function realItem(group, key, opts){ if(!ITEMSQ || !ITEM_URL[key] || !group) return;
+  const go = () => itemSwap(group, ITEM_G[key], opts || {});
+  if(ITEM_G[key]) go(); else { itemLoad(key); if(ITEM_WAIT[key]) ITEM_WAIT[key].push(go); } }
+function itemSwap(group, src, opts){
+  if(group.userData.realItem) return;
+  group.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(group.matrixWorld).invert(), B = new THREE.Box3(), bb = new THREE.Box3(), olds = [];
+  group.children.forEach(c => { if(c.isLight) return;
+    let ring = false; c.traverse(o => { if(o.geometry && o.geometry.type === "RingGeometry") ring = true; }); if(ring) return;   /* the find-me ring stays */
+    olds.push(c); c.traverse(o => { if(!o.isMesh || !o.geometry) return; if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld).applyMatrix4(inv); B.union(bb); }); });
+  if(B.isEmpty()) return;
+  const m = src.clone(true), oS = B.getSize(new THREE.Vector3()), oC = B.getCenter(new THREE.Vector3());
+  m.updateMatrixWorld(true); const nb = new THREE.Box3().setFromObject(m), nS = nb.getSize(new THREE.Vector3());
+  const k = Math.max(oS.x, oS.y, oS.z) / Math.max(nS.x, nS.y, nS.z, 1e-4) * (opts.scale || 1);
+  m.scale.multiplyScalar(k); m.updateMatrixWorld(true); nb.setFromObject(m); const nC = nb.getCenter(new THREE.Vector3());
+  m.position.add(oC.clone().sub(nC)); if(opts.ground) m.position.y += B.min.y - (nb.min.y + oC.y - nC.y);
+  group.add(m); olds.forEach(o => { o.visible = false; }); group.userData.realItem = m;
+  if(opts.flame){ const f = new THREE.Mesh(new THREE.SphereGeometry(Math.max(oS.x, oS.y, oS.z)*.045, 10, 8), new THREE.MeshBasicMaterial({color:0xFFE2A8}));
+    f.position.copy(oC); f.position.y -= oS.y*.08; group.add(f); }
+}
+if(ITEMSQ) Object.keys(ITEM_URL).forEach(itemLoad);
 function ghostOf(I, src){
   const g = new THREE.Group(); src.updateWorldMatrix(true, true);
   _gI.copy(src.matrixWorld).invert();
   src.traverse(o => { if(!o.isMesh) return;
+    for(let q = o; q && q !== src; q = q.parent) if(!q.visible) return;   /* a hidden old piece under a real item does not fly too */
     const m = new THREE.Mesh(o.geometry, o.material); m.matrixAutoUpdate = false; m.matrix.multiplyMatrices(_gI, o.matrixWorld); m.frustumCulled = false; m.renderOrder = o.renderOrder; g.add(m); });
   src.matrixWorld.decompose(g.position, g.quaternion, g.scale);
   g.userData.dyn = 1; I.scene.add(g); return g;
@@ -11574,7 +11686,15 @@ function walkerUpdate(I, dt, t){
       W.mount.rotation.z = W.ridePitch;
     }
     (W.mount.userData.legs||[]).forEach((l,i) => { if(l.userData.trot != null) l.rotation.z = (l.userData.rz0||0) + Math.sin(t*9 + l.userData.trot)*.55*rk; else l.rotation.x = Math.sin(t*9+i*Math.PI/2)*.55*rk; });
-    if(W.mount.userData.R && W.mount.userData.R.mixer) W.mount.userData.R.mixer.update(dt * (.35 + 1.15*rk));
+    if(W.mount.userData.R && W.mount.userData.R.mixer){ const MR = W.mount.userData.R;
+      /* a real horse under her: it stands, walks, or gallops by how fast she is really riding, at the rate its hooves cover
+         that ground (rig.speeds) - not one clip sped up and slowed down */
+      if(MR.speeds && MR.actions && (MR.actions.walk || MR.actions.run)){ const v = W.speedNow || 0;
+        const gal = MR.actions.run && MR.actions.run !== MR.actions.walk && MR.speeds.walk && v > MR.speeds.walk * 2.4;
+        playClip(MR, rk < .15 ? "idle" : gal ? "run" : "walk", .25);
+        const cv = gal ? MR.speeds.run : MR.speeds.walk;
+        MR.mixer.update(dt * (rk < .15 || !(cv > .05) ? 1 : Math.min(2.2, Math.max(.5, v / cv)))); }
+      else MR.mixer.update(dt * (.35 + 1.15*rk)); }
     const hk = hop ? hop.k*hop.k*(3 - 2*hop.k) : 1;
     const seat = hop ? (hop.kind === "on" ? SADDLE_Y*hk : SADDLE_Y*(1 - hk)) : SADDLE_Y;
     W.group.position.set(W.x, gy + seat + (hop ? 0 : bob) + hopLift, W.z);
@@ -12002,7 +12122,7 @@ function islandUpdate(I, dt, t){
       u.spK = (u.spK == null ? 1 : u.spK + (want - u.spK) * Math.min(1, dt * 1.6));   /* ease, never snap */
     }
     /* a real animal with no walking clip (the cow) grazes where it stands instead of gliding along on an idle */
-    const grazing = !!(u.R && u.R.model && u.R.actions && !u.R.actions.walk);
+    const grazing = !u.fly && !!(u.R && u.R.model && u.R.actions && !u.R.actions.walk);   /* a swimmer or a flier never stops to graze */
     if(!grazing) u.a += u.sp*dt*(u.spK == null ? 1 : u.spK);
     if((u.type === "horse" || u.type === "cow") && h.rotation.z) h.rotation.z *= 1 - Math.min(1, dt*5);   /* the pitch it had under her eases back to level */
     if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */

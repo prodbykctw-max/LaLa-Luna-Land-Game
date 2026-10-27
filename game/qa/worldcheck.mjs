@@ -101,7 +101,9 @@ for (const isl of argIslands(['hub', 'green', 'gr', 'sanity', 'town', 'moon'])) 
       const R = u.R; const clip = !!(R && R.model && R.mixer && R.current && R.actions && (R.current === R.actions.walk || R.current === R.actions.run || R.current === R.actions.swim || R.current === R.actions.fly));
       const anyClip = !!(R && R.model && R.mixer && R.current);
       /* legs count as a walk cycle only if they really swung while it moved */
-      const swing = (b[i].legs || []).reduce((m, v, k) => Math.max(m, Math.abs(v - ((fc.a[i].legs || [])[k] || 0))), 0);
+      /* three samples, so a stride that happens to be at the same phase twice is not read as legs standing still */
+      const dif = (P, Q) => (P.legs || []).reduce((m, v, k) => Math.max(m, Math.abs(v - ((Q.legs || [])[k] || 0))), 0);
+      const swing = Math.max(dif(b[i], fc.a[i]), dif(fc.a2[i], fc.a[i]), dif(b[i], fc.a2[i]));
       const legs = (u.legs || []).length > 0 && !(R && R.model) && swing > .05;
       if (u.water && !clip) { (swimOnly[u.type] = swimOnly[u.type] || 0); swimOnly[u.type]++; return; }   /* swimmers wiggle the body: noted, not a walk fault */
       if (!clip && !legs && !anyClip) (sliding[u.type] = sliding[u.type] || { n: 0, why: 'no walk cycle at all' }).n++;

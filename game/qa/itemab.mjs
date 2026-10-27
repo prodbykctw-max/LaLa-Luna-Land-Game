@@ -8,7 +8,7 @@ const [isl, item, ...cands] = process.argv.slice(2);
 const LABELS = process.env.LABELS ? JSON.parse(process.env.LABELS) : {};
 const H = await open({ island: isl, query: 'guide=off', viewport: { width: 520, height: 420 }, wait: 20000 });
 await H.page.waitForTimeout(3000);
-const shots = await H.page.evaluate(async ({ item, cands, pair }) => {
+const shots = await H.page.evaluate(async ({ item, cands, pair, fillI }) => {
   const T = window.__T, I = T.CUR, Q = I.quest || {}, W = I.W;
   const old = { ability: I.pickup, pen: Q.pen, paper: I.letterMesh, note: Q.secret, carrot: (Q.carrots || [])[0], desk: Q.desk }[item];
   old.visible = true; old.updateMatrixWorld(true);
@@ -16,7 +16,7 @@ const shots = await H.page.evaluate(async ({ item, cands, pair }) => {
   const B = new THREE.Box3(); old.traverse(o => { if (o.isMesh && o.geometry && o.geometry.type !== 'RingGeometry' && o.visible !== false) B.expandByObject(o); });
   const size = B.getSize(new THREE.Vector3()), c = B.getCenter(new THREE.Vector3());
   /* a soft light by the camera, so a night island (Sanity) still shows what each model looks like */
-  const fill = new THREE.PointLight(0xFFF2DD, process.env.FILL ? +process.env.FILL : 0, 0); I.scene.add(fill);
+  const fill = new THREE.PointLight(0xFFF2DD, fillI, 0); I.scene.add(fill);
   const L = Math.max(size.x, size.y, size.z);
   const cam = new THREE.PerspectiveCamera(38, 520/420, .02, 900);
   /* the desk is baked into the island's scenery and cannot be hidden: the candidate stands beside it instead */
@@ -42,7 +42,7 @@ const shots = await H.page.evaluate(async ({ item, cands, pair }) => {
   }
   old.visible = true; W.group.visible = true;
   return out;
-}, { item, cands, pair: process.env.PAIR === '1' });
+}, { item, cands, pair: process.env.PAIR === '1', fillI: process.env.FILL ? +process.env.FILL : 0 });
 const html = `<body style="margin:0;background:#111;display:flex;flex-wrap:wrap;gap:4px;font:15px sans-serif;color:#fff">` +
   shots.map((s, i) => `<div><img src="${s.url}" width=520 height=420><div style="padding:3px 6px">${i === 0 ? 'NOW: ' : (String.fromCharCode(64 + i)) + ': '}${LABELS[s.name] || s.name}</div></div>`).join('') + '</body>';
 await H.page.setViewportSize({ width: 524 * Math.min(4, shots.length), height: 450 * Math.ceil(shots.length / 4) });
