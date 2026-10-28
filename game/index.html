@@ -392,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-28b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-28c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3689,6 +3689,8 @@ const BLD_P = {};
    one texture for wall, window and roof, so the paint goes on in the shader: only on surfaces that stand upright, and only
    where the texture is a mid tone (the wall), so the white trim, the dark glass and the sloping roof keep their own colour.
    The texture's light and shade stays in the paint, so the plaster still shows its age. */
+/* Melvin, Oct 28 (build 28c): back to the models' own colours. The pastels stay available only as ?houses=pastel. */
+const PASTELQ = QS.get("houses") === "pastel";
 const PASTELS = [0xF4C95D, 0xF29B8F, 0x7DCBD6, 0xA3D9A5, 0xF5AE6B, 0xC9A7E6, 0xFFE08A, 0x92C7EE, 0xF7B8C8];
 function paintHouse(root, hex){
   const col = new THREE.Color(hex).convertSRGBToLinear();   /* the shader works in linear light */
@@ -10511,7 +10513,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
         I.noGrass.push({x, z, r:Math.hypot(w, d)/2 + .5});
         placed.push({x, z, rot, B, key});
         (I.buildings = I.buildings || []).push(g);
-        const paint = B.paint ? PASTELS[(_pastelI++) % PASTELS.length] : null;   /* chosen in placement order, so every load paints the same house the same colour */
+        const paint = PASTELQ && B.paint ? PASTELS[(_pastelI++) % PASTELS.length] : null;   /* chosen in placement order, so every load paints the same house the same colour */
         bldProto(key).then(p => { if(!p) return; const c = p.clone(); if(paint != null) paintHouse(c, paint); g.add(c); });
       };
       /* 1. THE WATERFRONT: the gable houses stand in one row along the harbour shore, fronts to the water, a quay's
