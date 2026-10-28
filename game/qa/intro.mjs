@@ -55,7 +55,7 @@ for (let guard = 0; guard < 40; guard++) {
     console.error('[intro] shot', st.prev, '->', st.i, 'cam', st.cam.join(','));
   }
   await new Promise(r => setTimeout(r, 400));
-  await H.page.screenshot({ path: `${OUT}/intro_shot${st.i}.jpg`, type: 'jpeg', quality: 88 });
+  await H.page.screenshot({ path: `${OUT}/intro_shot${st.i}.jpg`, type: 'jpeg', quality: 88, timeout: 240000 });
 }
 
 await new Promise(r => setTimeout(r, 1500));
