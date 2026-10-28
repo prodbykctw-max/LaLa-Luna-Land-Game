@@ -12384,7 +12384,8 @@ function islandUpdate(I, dt, t){
     /* NO FASTER THAN ITS FEET. A real animal is moved at its species' pace, but a clip only covers so much ground: the lizards'
        walk covers about 12 cm a second, and the island moved them three times that while the clip ran flat out - a lizard
        thrashing in place like a worm, sliding over the ground (Melvin, Oct 27). The pace is held to what the clip can carry. */
-    if(!grazing) u.a += u.sp*dt*(u.spK == null ? 1 : u.spK)*(u.paceK == null ? 1 : u.paceK);
+    if(u.turnT > 0) u.turnT -= dt;
+    else if(!grazing) u.a += u.sp*dt*(u.spK == null ? 1 : u.spK)*(u.paceK == null ? 1 : u.paceK);
     if((u.type === "horse" || u.type === "cow") && h.rotation.z) h.rotation.z *= 1 - Math.min(1, dt*5);   /* the pitch it had under her eases back to level */
     if(u.rOff == null){ u.rOff = ((hi * 2.399) % 1 - 0.5) * 9; }        /* golden-angle spread, deterministic */
     /* They orbit the island centre, but the islands are real coastline polygons now, so a fixed
@@ -12397,17 +12398,24 @@ function islandUpdate(I, dt, t){
     if(!u.fly && I.inside && !onLand(I, x, z)){
       const hit = landOnBearing(I, u.a, rr);
       if(hit){ x = hit[0]; z = hit[1]; }
-      else if(u.lx != null){ x = u.lx; z = u.lz; u.sp = -u.sp; }   /* nowhere to go: turn around */
+      else if(u.lx != null){ x = u.lx; z = u.lz; u.sp = -u.sp; u.turnT = .7; }   /* nowhere to go: turn around - standing while it turns, not walking backwards (qa/worldcheck facing, Oct 28) */
     }
     if(!u.fly){ if(onLand(I, x, z)){ u.lx = x; u.lz = z; } else if(u.lx != null){ x = u.lx; z = u.lz; } }
+    /* where the circuit runs off the land the spot is pulled back to the shore along its bearing, and when the shore under
+       that bearing changes the spot jumps a metre sideways: a monkey on Good Riddance side-stepped across its own path
+       (qa/worldcheck facing, Oct 28). It walks there instead, no faster than it walks anywhere. */
+    if(!u.fly && u.ox != null){ const mx = Math.abs(u.sp)*rr*(u.spK == null ? 1 : u.spK)*dt*1.6 + .015, jx = x - u.ox, jz = z - u.oz, jd = Math.hypot(jx, jz);
+      if(jd > mx && onLand(I, u.ox + jx/jd*mx, u.oz + jz/jd*mx)){ x = u.ox + jx/jd*mx; z = u.oz + jz/jd*mx; } }
     /* keep the herd out of each other: a soft push, not a hard collision, so they still amble */
     /* Separation is per-pair and applied as it is found. Capping the summed push against each
        animal's own stride was tried, to stop a crowd of small slow animals carrying each other
        sideways - it made things worse in both directions at once: they could no longer separate
        (a chicken and an iguana closed to a quarter of their gap) AND the facing got worse, because
        an animal stuck in a pile still has erratic motion. The residual is a town-square crowding
-       problem, not a separation-strength problem: see qa/animdir. */
-    if(!u.fly) for(const o of I.creatures){
+       problem, not a separation-strength problem: see qa/animdir.
+       A GRAZING animal stands its ground: it has no walking clip, so being shoved aside by a bull walking past made a cow
+       glide across the square with its feet still (qa/worldcheck "sliding", Town, Oct 28). The one that is walking steps round. */
+    if(!u.fly && !grazing) for(const o of I.creatures){
       if(o === h || o.userData.fly || o.userData.ridden) continue;
       const ddx = x - o.position.x, ddz = z - o.position.z, dd = Math.hypot(ddx, ddz);
       const sep = Math.max(SEP_MIN, (sizeOf(u.type) + sizeOf(o.userData.type)) * SEP_K);
@@ -12490,6 +12498,7 @@ function islandUpdate(I, dt, t){
     const sm = Math.min(1, dt * 4);
     u.vx = (u.vx || 0) * (1 - sm) + rvx * sm;
     u.vz = (u.vz || 0) * (1 - sm) + rvz * sm;
+    if(u.turnT > 0){ const sg = Math.sign(u.sp) || 1; u.vx = -Math.sin(u.a)*sg*.02; u.vz = Math.cos(u.a)*sg*.02; }   /* turning round where it stands: face the new way */
     const pvx = u.vx, pvz = u.vz;
     h.position.set(x, base, z);
     if(grazing && u.grazeYaw == null){ u.grazeYaw = ((hi * 2.399) % 1) * Math.PI * 2; h.rotation.y = u.grazeYaw; }

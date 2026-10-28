@@ -107,7 +107,7 @@ for (const isl of argIslands(['hub', 'green', 'gr', 'sanity', 'town', 'moon'])) 
       const legs = (u.legs || []).length > 0 && !(R && R.model) && swing > .05;
       if (u.water && !clip) { (swimOnly[u.type] = swimOnly[u.type] || 0); swimOnly[u.type]++; return; }   /* swimmers wiggle the body: noted, not a walk fault */
       if (!clip && !legs && !anyClip) (sliding[u.type] = sliding[u.type] || { n: 0, why: 'no walk cycle at all' }).n++;
-      else if (!clip && !legs && anyClip) (sliding[u.type] = sliding[u.type] || { n: 0, why: 'plays a clip, but not a walk' }).n++;
+      else if (!clip && !legs && anyClip){ const sl = (sliding[u.type] = sliding[u.type] || { n: 0, why: 'plays a clip, but not a walk', who: [] }); sl.n++; sl.who.push({ rig: R.rigName, clip: R.current.getClip().name, at: [+h.position.x.toFixed(1), +h.position.z.toFixed(1)], moved: +d.toFixed(2) }); }
     });
     /* Ollie on his horse: horse nose vs his forward, and vs where he is going */
     let mount = null;
