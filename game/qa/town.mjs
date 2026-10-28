@@ -4,7 +4,7 @@
 import { open, OUT } from './_harness.mjs';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 const mode = process.argv[2] || 'new';
-const H = await open({ island: 'town', query: 'guide=off' + (mode === 'new' ? '&town=new' : ''), viewport: { width: 960, height: 600 }, wait: 20000 });
+const H = await open({ island: 'town', query: 'guide=off' + (mode === 'new' ? '' : '&town=old'), viewport: { width: 960, height: 600 }, wait: 20000 });
 await H.page.waitForFunction(() => { const I = window.__T.CUR; return !I.buildings || I.buildings.every(g => g.children.length); }, null, { timeout: 90000 }).catch(() => console.log('NOT ALL LOADED'));
 await H.page.waitForTimeout(2500);
 const camsIn = mode === 'old' && existsSync(OUT + '/town_cams.json') ? JSON.parse(readFileSync(OUT + '/town_cams.json', 'utf8')) : null;

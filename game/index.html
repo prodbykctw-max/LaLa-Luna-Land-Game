@@ -392,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-28a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-28b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3666,7 +3666,7 @@ const ITEM_G = {}, ITEM_WAIT = {};
    (metres, after that turn; measured from the models). strip = the modeller's ground the house was stood on (a lawn
    and a road, a water slab, a concrete pad, an asphalt patch) - the island has its own ground. base = the parts whose
    bottom is the ground line, when other parts hang below it (the Dutch House's stairs run down into its water slab). */
-const TOWNQ = QS.get("town") === "new";
+const TOWNQ = QS.get("town") !== "old";   /* Melvin picked the real buildings (Oct 28); ?town=old brings back the box storefronts */
 const BLD = {
   b2:{h:15, yaw:0, w:6.2, d:5.1},
   b3:{h:14, yaw:2, w:8.9, d:8.4},
