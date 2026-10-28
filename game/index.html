@@ -392,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-28c";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-28d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -7710,11 +7710,43 @@ function tieDyeTurtle(s, hueBase){
   g.userData.tieDye = mat;
   return g;
 }
-function paperMesh(){
+/* Town's page (Melvin, Oct 28: "paper with turtle print"). Town's letter was a tie-dye turtle from the build plan; he
+   wants it to be the same sheet of paper as every other island's, with a tie-dye turtle printed on it. The print is
+   painted into an OPAQUE canvas (cream paper, two written lines, the turtle seen from above), never alpha, so
+   nothing about it can turn invisible on a phone. The swirl is the same idea as tieDyeMaterial: the hue follows
+   the angle round the shell, warped by the radius so the bands spiral out from the middle. */
+function turtlePrintTex(){
+  const W = 384, H = 512, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const c = cv.getContext("2d");
+  c.fillStyle = "#F7F1E6"; c.fillRect(0, 0, W, H);
+  c.fillStyle = "#9C93A8"; [[64, 236], [104, 196]].forEach(([y, w]) => c.fillRect((W - w)/2 - 20 + (y > 80 ? 0 : 20), y, w + (y > 80 ? 40 : 0), 9));
+  const cx = W/2, cy = 318, rx = 92, ry = 112, ink = "#3A2A44";
+  /* head, tail and flippers first, so the shell sits over their roots */
+  const blob = (x, y, ax, ay, rot, col) => { c.save(); c.translate(x, y); c.rotate(rot); c.beginPath(); c.ellipse(0, 0, ax, ay, 0, 0, Math.PI*2);
+    c.fillStyle = col; c.fill(); c.lineWidth = 6; c.strokeStyle = ink; c.stroke(); c.restore(); };
+  blob(cx, cy - ry - 26, 30, 38, 0, "#6E8F5E");
+  c.fillStyle = ink; [-11, 11].forEach(d => { c.beginPath(); c.arc(cx + d, cy - ry - 38, 5, 0, Math.PI*2); c.fill(); });
+  blob(cx, cy + ry + 14, 12, 24, 0, "#6E8F5E");
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => blob(cx + sx*(rx + 18), cy + sy*(sy < 0 ? 52 : 70), 52, 20, sx*sy*(sy < 0 ? -.55 : -.9), "#B565C9"));
+  /* the shell: tie-dye bands, a pixel at a time */
+  const img = c.getImageData(cx - rx, cy - ry, rx*2, ry*2), d = img.data, col = new THREE.Color();
+  for(let j = 0; j < ry*2; j++) for(let i = 0; i < rx*2; i++){
+    const u = (i - rx)/rx, v = (j - ry)/ry, r = Math.hypot(u, v); if(r > 1) continue;
+    const a = Math.atan2(v, u), band = Math.sin(a*2 + r*7.5)*.5 + .5;
+    const k = band > .62 ? 0 : band > .38 ? 1 : 2;
+    col.setHSL([.78, .88, .14][k], [.62, .66, .80][k], [.42, .62, .80][k]);
+    const o = (j*rx*2 + i)*4; d[o] = col.r*255; d[o + 1] = col.g*255; d[o + 2] = col.b*255; d[o + 3] = 255; }
+  c.putImageData(img, cx - rx, cy - ry);
+  c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); c.lineWidth = 8; c.strokeStyle = ink; c.stroke();
+  const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return t;
+}
+function paperMesh(print){
   const g = new THREE.Group();
   const pg = new THREE.PlaneGeometry(1.05, 1.4, 4, 4), pp = pg.attributes.position;
   for(let i=0;i<pp.count;i++) pp.setZ(i, Math.sin((pp.getX(i)/1.05+.5)*Math.PI*1.4)*.13);   /* a sheet with a curl in it */
   pg.computeVertexNormals();
+  if(print === "turtle"){ g.add(inked(pg, 0xFFFFFF, 1.4, {side:THREE.DoubleSide, map:turtlePrintTex()})); return g; }
   g.add(inked(pg, 0xF7F1E6, 1.4, {side:THREE.DoubleSide}));
   const line = new THREE.Mesh(new THREE.BoxGeometry(.62,.035,.01), new THREE.MeshBasicMaterial({color:0x9C93A8}));
   for(let i=0;i<4;i++){ const l = line.clone(); l.position.set(0,.36-i*.22,.09); g.add(l); }
@@ -10751,10 +10783,10 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
     const L = cfg.letter;
     if(L.reY || L.y == null) L.y = height(L.at[0], L.at[1]);
-    /* A Place for Me's letter is a tie-dye turtle, per the build plan - every other island's is the
-       same sheet of paper, and hers should not be. */
+    /* Town's page was a tie-dye turtle (build plan); since Oct 28 it is the same sheet as every island's, with a
+       tie-dye turtle printed on it (his pick). ?paper=turtle brings back the turtle. */
     const lm = cfg.key === "moon" ? inked(new THREE.OctahedronGeometry(.8,0), 0xF0A56D, 2.4)
-             : (cfg.key === "town" ? tieDyeTurtle(.62, .78) : paperMesh());
+             : (cfg.key === "town" ? (QS.get("paper") === "turtle" ? tieDyeTurtle(.62, .78) : paperMesh("turtle")) : paperMesh());
     /* ===============  THE LETTER WAS BURIED, ON EVERY ISLAND  ===============
        `L.y` is authored to match the FEATURE the letter sits on - Green's letter is y:8.5 and
        Green's High Rock is h:8.5 - but a mesa's h is its rise ABOVE the terrain under it, not its
@@ -10770,7 +10802,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     const ly = (isFinite(lgy) ? Math.max(lgy, L.y) : L.y) + 2.2;
     lm.position.set(L.at[0], ly, L.at[1]); scene.add(lm); I.letterMesh = lm;
     dissolvePrep(lm, cfg.key === "moon" ? 0xFFF0C0 : 0xFFE9A8);      /* same edge colours interact() asks for */
-    lm.userData.flat = (cfg.key !== "town");     /* the turtle is not a sheet of paper */
+    lm.userData.flat = !(cfg.key === "town" && QS.get("paper") === "turtle");     /* the old turtle is not a sheet of paper */
     lm.userData.y0 = lm.position.y;
     const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,26,16,1,true), new THREE.MeshBasicMaterial({color:MOON, transparent:true, opacity:.10, side:THREE.DoubleSide}));
     beam.position.set(L.at[0], ly + 10.8, L.at[1]); scene.add(beam); I.letterBeam = beam;
