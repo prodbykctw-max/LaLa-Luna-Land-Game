@@ -3668,11 +3668,11 @@ const ITEM_G = {}, ITEM_WAIT = {};
    bottom is the ground line, when other parts hang below it (the Dutch House's stairs run down into its water slab). */
 const TOWNQ = QS.get("town") !== "old";   /* Melvin picked the real buildings (Oct 28); ?town=old brings back the box storefronts */
 const BLD = {
-  b2:{h:15, yaw:0, w:6.2, d:5.1},
-  b3:{h:14, yaw:2, w:8.9, d:8.4},
-  b4:{h:13, yaw:3, w:5.1, d:6.1},
-  b5:{h:11, yaw:0, w:5.4, d:7.9, strip:/^SM_(Ground|Dirt|Road|Tiles|Grass|Curbstone|Fence|Garden|PlantsPlane|GrassPatch|FlowerPatch|Bicycle|Football|Bush|Lamppost)/},
-  b7:{h:10, yaw:3, w:7.7, d:4.9, strip:/^soloport_alpha/, base:/^soloport_house/},
+  b2:{h:15, yaw:0, w:6.2, d:5.1, paint:true},
+  b3:{h:14, yaw:2, w:8.9, d:8.4, paint:true},
+  b4:{h:13, yaw:3, w:5.1, d:6.1, paint:true},
+  b5:{h:11, yaw:0, w:5.4, d:7.9, paint:true, strip:/^SM_(Ground|Dirt|Road|Tiles|Grass|Curbstone|Fence|Garden|PlantsPlane|GrassPatch|FlowerPatch|Bicycle|Football|Bush|Lamppost)/},
+  b7:{h:10, yaw:3, w:7.7, d:4.9, paint:true, strip:/^soloport_alpha/, base:/^soloport_house/},
   b8:{h:8,  yaw:3, w:13.2, d:10},
   b9:{h:8,  yaw:1, w:9.2, d:8.9, strip:/^ch.{1,4}o_chao/},
   b10:{h:7, yaw:0, w:7.3, d:6.4, strip:/^Object_62$/},
@@ -3683,6 +3683,28 @@ const BLD = {
   b19:{h:5, yaw:2, w:5.9, d:8.0}
 };
 const BLD_P = {};
+/* ===================  WILLEMSTAD PASTELS  ===================
+   Melvin, Oct 28: the harbour houses in pastels. Willemstad's Handelskade is painted plaster - yellow, coral, turquoise,
+   mint, orange, lilac - with white trim, dark windows and orange tile roofs. These models were brick and grey and share
+   one texture for wall, window and roof, so the paint goes on in the shader: only on surfaces that stand upright, and only
+   where the texture is a mid tone (the wall), so the white trim, the dark glass and the sloping roof keep their own colour.
+   The texture's light and shade stays in the paint, so the plaster still shows its age. */
+const PASTELS = [0xF4C95D, 0xF29B8F, 0x7DCBD6, 0xA3D9A5, 0xF5AE6B, 0xC9A7E6, 0xFFE08A, 0x92C7EE, 0xF7B8C8];
+function paintHouse(root, hex){
+  const col = new THREE.Color(hex);
+  root.traverse(o => { if(!o.isMesh || !o.material) return;
+    const m = o.material = o.material.clone();
+    m.onBeforeCompile = sh => { sh.uniforms.uPaint = {value:col};
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vPaintN;")
+        .replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\nvPaintN = normalize(mat3(modelMatrix) * objectNormal);");
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uPaint; varying vec3 vPaintN;")
+        .replace("#include <map_fragment>", `#include <map_fragment>
+  { float L = dot(diffuseColor.rgb, vec3(.299, .587, .114));
+    float wall = (1.0 - smoothstep(.35, .6, abs(normalize(vPaintN).y))) * smoothstep(.06, .16, L) * (1.0 - smoothstep(.62, .82, L));
+    vec3 painted = uPaint * (.62 + .75*L);
+    diffuseColor.rgb = mix(diffuseColor.rgb, painted, wall*.92); }`); };
+    m.customProgramCacheKey = () => "paintHouse"; m.needsUpdate = true; }); }
+let _pastelI = 0;
 /* one load per model; every house that uses it is a clone (shared geometry and textures) */
 function bldProto(key){
   if(BLD_P[key]) return BLD_P[key];
@@ -10452,7 +10474,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
        of the eight were skipped as not on land: one building was all Town had (Melvin, Oct 27). They now stand round the
        landward side of the square, facing it, on dry ground with room around them - clear of the beach, the gate and the
        road up from the harbour - so the square reads as a square. */
-    if(TOWNQ){
+    if(TOWNQ){ _pastelI = 0;
       /* REAL BUILDINGS: see BLD. Every spot is chosen here, at build time, from the footprints in the table, and its
          collider goes in now; the model itself drops in when its file arrives. */
       const sqF = cfg.features.find(f => f.name === "The Square"), cx = sqF ? sqF.x : 0, cz = sqF ? sqF.z : 0, sqR = sqF ? sqF.r : 64;
@@ -10489,7 +10511,8 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
         I.noGrass.push({x, z, r:Math.hypot(w, d)/2 + .5});
         placed.push({x, z, rot, B, key});
         (I.buildings = I.buildings || []).push(g);
-        bldProto(key).then(p => { if(p) g.add(p.clone()); });
+        const paint = B.paint ? PASTELS[(_pastelI++) % PASTELS.length] : null;   /* chosen in placement order, so every load paints the same house the same colour */
+        bldProto(key).then(p => { if(!p) return; const c = p.clone(); if(paint != null) paintHouse(c, paint); g.add(c); });
       };
       /* 1. THE WATERFRONT: the gable houses stand in one row along the harbour shore, fronts to the water, a quay's
          width back from it - Willemstad's Handelskade, the first thing she sees from the boat. The row runs both ways
