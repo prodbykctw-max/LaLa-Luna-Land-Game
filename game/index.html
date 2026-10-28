@@ -392,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-28d";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-28e";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -11696,6 +11696,7 @@ function gateSet(I, open, snap){
 const RIDEABLE = {horse:1, cow:1};
 const RIDE_MUL = parseFloat(QS.get("ride")) || 3.2;
 const SADDLE_Y = parseFloat(QS.get("saddle")) || 1.30;
+const RIDEQ = QS.get("seat") !== "old";   /* Oct 28: she straddles each animal at its own measured back (?seat=old: one saddle height, bench pose) */
 function abilityOf(I){
   const a = I.cfg.ability; if(!a) return {glide:false, jumpMul:1, lantern:false, gateOpen:false};
   const has = !!G.abilities[a.key];
@@ -11771,7 +11772,7 @@ function canStand(I, x, z){
 function releaseMount(I){
   const W = I.W, h = W.mount; if(!h) return;
   const u = h.userData;
-  W.mount = null; W.hop = null; u.ridden = false; W.seated = false;
+  W.mount = null; W.hop = null; u.ridden = false; W.seated = false; W.straddle = null;
   if(W.seatBones && W.model) W.model.traverse(o => { if(o.isBone && o.userData.rest) o.quaternion.copy(o.userData.rest); });
   /* the orbit picks up from here: same bearing, same radius, no remembered velocity to swing the nose round */
   const x = h.position.x, z = h.position.z;
@@ -11968,10 +11969,14 @@ function walkerUpdate(I, dt, t){
   if(W.mixer){
     /* feet match the ground: clip speed is tied to distance covered per stride, and the jog takes over above a brisk walk */
     const jog = curSpeed > SPEED*.62;
-    playClip(W, !W.grounded ? "jump" : (moving ? (jog ? "run" : "walk") : "idle"));
-    if(moving && W.current){ W.current.timeScale = curSpeed / (jog ? STRIDE_JOG : STRIDE_WALK); } else if(W.current) W.current.timeScale = 1;
+    /* on an animal she sits still and the animal does the walking: her walk/run clip kept pumping her arms and torso
+       at riding speed (Oct 28) */
+    const riding = RIDEQ && W.mount;
+    playClip(W, riding ? "idle" : !W.grounded ? "jump" : (moving ? (jog ? "run" : "walk") : "idle"));
+    if(riding){ if(W.current) W.current.timeScale = 1; }
+    else if(moving && W.current){ W.current.timeScale = curSpeed / (jog ? STRIDE_JOG : STRIDE_WALK); } else if(W.current) W.current.timeScale = 1;
     W.mixer.update(dt); }
-  if(moving){ AU.stepT -= dt; if(AU.stepT <= 0){ if(W.wet) auWade(); else auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = W.wet ? .40 : .34; } } else AU.stepT = 0;
+  if(moving && !(RIDEQ && W.mount)){ AU.stepT -= dt; if(AU.stepT <= 0){ if(W.wet) auWade(); else auStep(I.cfg.key==="town"||I.cfg.key==="hub"); AU.stepT = W.wet ? .40 : .34; } } else AU.stepT = 0;
   /* her shadow stays on the ground and softens as she rises, instead of riding up with her */
   if(W.shadow){
     const gy = I.height(W.x, W.z), lift = Math.max(0, W.group.position.y - gy);
@@ -12009,12 +12014,16 @@ function walkerUpdate(I, dt, t){
         MR.mixer.update(dt * (rk < .15 || !(cv > .05) ? 1 : Math.min(2.2, Math.max(.5, v / cv)))); }
       else MR.mixer.update(dt * (.35 + 1.15*rk)); }
     const hk = hop ? hop.k*hop.k*(3 - 2*hop.k) : 1;
-    const seat = hop ? (hop.kind === "on" ? SADDLE_Y*hk : SADDLE_Y*(1 - hk)) : SADDLE_Y;
+    const fit = RIDEQ && W.model ? mountFit(W.mount) : null, fitOK = fit && fit.top != null;
+    const SY = fitOK ? Math.max(.2, fit.top + SEAT_PAD - (W.seatHipDY != null ? W.seatHipDY : M(.62))) : SADDLE_Y;
+    const seat = hop ? (hop.kind === "on" ? SY*hk : SY*(1 - hk)) : SY;
     W.group.position.set(W.x, gy + seat + (hop ? 0 : bob) + hopLift, W.z);
     W.group.rotation.z = 0;
     /* the seated pose comes in and goes out with the hop, not on the frame she presses the button */
     W.seatW = hop ? (hop.kind === "on" ? wdEase((hop.k - .3)/.7) : 1 - wdEase(hop.k/.6)) : 1;
+    W.straddle = fitOK ? fit : null;
     if(W.model) applySeated(W);
+    if(fitOK && !hop && W.model){ W.group.updateMatrixWorld(true); seatHipsOn(W, W.group, W.mount.position.y + fit.top); }
   } else {
   W.group.position.set(W.x, W.y + Math.abs(Math.sin(t*10))*.07*W.stepK, W.z);
   W.group.rotation.z = W.gliding ? Math.sin(t*2)*.06 : 0;
@@ -12387,8 +12396,10 @@ function islandUpdate(I, dt, t){
     const sw = Math.sin(t*1.1) * ((u.state === "walk") ? .42 : .16);
     m.mount.children.forEach((c,i) => { if(i >= 6 && i <= 9) c.rotation.z = sw * (i % 2 ? 1 : -1); });
     m.mount.rotation.z = Math.sin(t*1.1)*.045;
-    r.position.y += m.lift;
-    if(u.R && u.R.model) applySeated(u.R);
+    const mf = RIDEQ && u.R && u.R.model ? mountFit(m.mount) : null;
+    if(mf && mf.top != null){ u.R.straddle = mf; r.position.y += Math.max(.1, mf.top + SEAT_PAD - (u.R.seatHipDY != null ? u.R.seatHipDY : M(.62))); r.updateMatrixWorld(true);
+      applySeated(u.R); seatHipsOn(u.R, r, m.mount.position.y + mf.top); }
+    else { r.position.y += m.lift; if(u.R && u.R.model) applySeated(u.R); }
     if(r.userData.shadowDecal) r.userData.shadowDecal.visible = false;
   });
   if(I.quest && I.quest.horse){
@@ -12403,8 +12414,10 @@ function islandUpdate(I, dt, t){
       if(u.state === "walk" || u.delivering){ hz.userData.gait = (hz.userData.gait||0) + dt*7;
         legs.forEach(l => { if(l.rotation) l.rotation.z = (l.userData.rz0||0) + Math.sin(hz.userData.gait + (l.userData.trot != null ? l.userData.trot : (l.userData.phase||0)))*.4; }); }
       if(hz.userData.R && hz.userData.R.mixer){ playClip(hz.userData.R, (u.state === "walk" || u.delivering) ? "walk" : "idle"); hz.userData.R.mixer.update(dt); }
-      rider.position.y += SADDLE_Y;
-      if(u.R && u.R.model) applySeated(u.R);
+      const ofit = RIDEQ && u.R && u.R.model ? mountFit(hz) : null;
+      if(ofit && ofit.top != null){ u.R.straddle = ofit; rider.position.y += Math.max(.2, ofit.top + SEAT_PAD - (u.R.seatHipDY != null ? u.R.seatHipDY : M(.62))); rider.updateMatrixWorld(true);
+        applySeated(u.R); seatHipsOn(u.R, rider, hz.position.y + ofit.top); }
+      else { rider.position.y += SADDLE_Y; if(u.R && u.R.model) applySeated(u.R); }
       if(rider.userData.shadowDecal) rider.userData.shadowDecal.visible = false;
     }
   }
@@ -12958,6 +12971,46 @@ const sBoat = makeBoat(0x8D6141, MOON, 1.16); const sRider = makeLala();
 { sRider.group.scale.setScalar(.85); sRider.group.position.set(0, sBoat.userData.benchY - .72, sBoat.userData.benchZ + .15); sRider.group.rotation.y = 0;   /* origin is her feet: on the deck, hips on the thwart */
   sRider.seated = true; sRider.fans.visible = false; sRider.fanMeshes.forEach(f => f.visible = false); sRider.lantern.visible = false; sBoat.add(sRider.group); sail.add(sBoat); }
 /* seated pose: overrides the leg bones after the idle clip so she sits on the bench, knees forward, hands on the rail */
+/* ===================  SHE SAT ON THE ANIMAL LIKE A BENCH  ===================
+   Melvin, Oct 28 (his phone shot of her on a cow, "fix this and how she would appear riding other animals as well"):
+   every animal had one saddle height (SADDLE_Y 1.3 u) and one seated pose, the one she uses on the boat's bench:
+   thighs out in front, knees together, shins hanging. qa/ridepose.mjs measured it: on the cow her knees were 0.3 m in
+   FRONT of her hips and inside the body's width, her feet 0.4 m below its back; on the taller horse her hips were
+   0.29 m INSIDE its body. Now each animal is measured where she sits - the top of its back under her and how wide its
+   barrel is just below that - and she straddles it: her hips on the back, thighs round the barrel, lower legs down
+   its sides. The boat keeps the bench pose. */
+const SEAT_PAD = M(.11), SEAT_KNEE_OUT = M(.06);
+function mountFit(h){
+  const R = h.userData.R, key = R && R.model ? "real" : "prim";
+  if(h.userData.seatFit && h.userData.seatFit.key === key) return h.userData.seatFit;
+  h.updateMatrixWorld(true);
+  const ry = h.rotation.y, nx = Math.cos(ry), nz = -Math.sin(ry), sx = Math.sin(ry), sz = Math.cos(ry);   /* nose = local +x */
+  const pts = [], v = new THREE.Vector3();
+  h.traverse(o => { if(!o.isMesh || !o.geometry || !o.visible || (o.material && o.material.userData && o.material.userData.isInk)) return;
+    const p = o.geometry.attributes.position; if(!p) return; const step = Math.max(1, Math.floor(p.count/6000));
+    for(let i = 0; i < p.count; i += step){ v.fromBufferAttribute(p, i); if(o.isSkinnedMesh) o.boneTransform(i, v); v.applyMatrix4(o.matrixWorld);
+      const dx = v.x - h.position.x, dz = v.z - h.position.z; pts.push(dx*nx + dz*nz, v.y - h.position.y, dx*sx + dz*sz); } });
+  if(!pts.length) return h.userData.seatFit = {key, top:null};
+  let lo = 1e9, hi = -1e9; for(let i = 0; i < pts.length; i += 3){ lo = Math.min(lo, pts[i]); hi = Math.max(hi, pts[i]); }
+  const L = hi - lo; let top = -1e9;
+  for(let i = 0; i < pts.length; i += 3) if(Math.abs(pts[i]) < L*.06 && Math.abs(pts[i + 2]) < M(.12)) top = Math.max(top, pts[i + 1]);
+  if(top < -1e8) return h.userData.seatFit = {key, top:null};
+  /* the barrel's half-width at each depth below the back, in 5 cm steps: a knee is placed against the side at the
+     depth it actually reaches, not against the widest part of the belly */
+  const STEP = M(.05), prof = new Array(16).fill(0);
+  for(let i = 0; i < pts.length; i += 3){ if(Math.abs(pts[i]) > L*.10) continue; const k = Math.floor((top - pts[i + 1])/STEP); if(k >= 0 && k < 16) prof[k] = Math.max(prof[k], Math.abs(pts[i + 2])); }
+  for(let k = 1; k < 16; k++) if(!prof[k]) prof[k] = prof[k - 1];
+  const halfAt = d => prof[Math.max(0, Math.min(15, Math.floor(d/STEP)))];
+  return h.userData.seatFit = {key, top, halfW:Math.max(...prof.slice(0, 10)), halfAt, L};
+}
+/* after the pose is on: lift or lower the rider so the hips sit on the back (the hips joint is a hand's width above
+   the seat), whatever this rig's legs and this animal's back happen to measure */
+function seatHipsOn(R, group, backY){
+  const hb = R.seatBones && R.seatBones.hips; if(!hb) return;
+  const hp = hb.getWorldPosition(new THREE.Vector3()), dy = backY + SEAT_PAD - hp.y;
+  R.seatHipDY = hp.y - group.position.y;
+  group.position.y += dy; group.updateMatrixWorld(true);
+}
 function applySeated(R){
   if(!R.model) return;
   const wgt = R.seatW == null ? 1 : R.seatW;
@@ -12976,10 +13029,36 @@ function applySeated(R){
   const fwd = new THREE.Vector3(0,0,1).applyQuaternion(B.hips.getWorldQuaternion(qW)); fwd.y = 0; fwd.normalize();
   const side = new THREE.Vector3().crossVectors(up, fwd);
   const P = R.seatPose || {thighDown:.18, thighOut:.12, shinFwd:.12, lean:.06};
+  const wide = R.straddle && B.lu && B.ll && R.straddle.halfAt && (() => { const a = B.lu.getWorldPosition(new THREE.Vector3()), b = B.ll.getWorldPosition(new THREE.Vector3());
+    return R.straddle.halfAt(M(.12)) > a.distanceTo(b)*1.1; })();
+  if(wide){
+    /* a back far wider than her thighs (Neri's sea turtle): she sits on top of it, legs resting forward on the shell
+       and a little apart, knees softly bent - not perched in a chair over it */
+    aim(B.lu, fwd.clone().addScaledVector(side, .30).addScaledVector(up, .06)); aim(B.ru, fwd.clone().addScaledVector(side, -.30).addScaledVector(up, .06));
+    aim(B.ll, fwd.clone().addScaledVector(side, .10).addScaledVector(up, -.30)); aim(B.rl, fwd.clone().addScaledVector(side, -.10).addScaledVector(up, -.30));
+    if(B.lf) aim(B.lf, up.clone().addScaledVector(fwd, .55)); if(B.rf) aim(B.rf, up.clone().addScaledVector(fwd, .55));
+  } else if(R.straddle && B.lu && B.ru && B.ll && B.rl){
+    /* astride: each knee goes just outside the animal's barrel and a little forward, the lower leg hangs down its side */
+    const hp = B.hips.getWorldPosition(new THREE.Vector3()), wp = new THREE.Vector3(), kp = new THREE.Vector3();
+    [[B.lu, B.ll, B.lf, 1], [B.ru, B.rl, B.rf, -1]].forEach(([th, sh, ft, sg]) => {
+      th.getWorldPosition(wp); sh.getWorldPosition(kp); const Lt = wp.distanceTo(kp);
+      const lat0 = wp.clone().sub(hp).dot(side)*sg, below0 = SEAT_PAD + (hp.y - wp.y);   /* hip joint's depth under the back */
+      /* the deepest knee that still clears the barrel: walk the knee down from the hip joint until the side it would
+         rest against pushes it out further than the thigh can reach */
+      let dx = 0, dy = 0, dz = 0;
+      for(let f = .95; f >= .15; f -= .05){ const ty = Lt*f, tz = Lt*.28, need = (R.straddle.halfAt ? R.straddle.halfAt(below0 + ty) : R.straddle.halfW) + SEAT_KNEE_OUT - lat0;
+        if(need <= 0){ dx = 0; dy = ty; dz = Math.min(tz, Math.sqrt(Math.max(0, Lt*Lt - ty*ty))); break; }
+        if(need*need + ty*ty + tz*tz*.3 <= Lt*Lt){ dx = need; dy = ty; dz = Math.sqrt(Math.max(0, Lt*Lt - need*need - ty*ty)); break; }
+        dx = Math.min(Lt*.86, need); dy = Lt*.15; dz = Math.sqrt(Math.max(0, Lt*Lt - dx*dx - dy*dy)); }
+      aim(th, side.clone().multiplyScalar(sg*dx).addScaledVector(fwd, dz).addScaledVector(up, -dy));
+      aim(sh, up.clone().negate().addScaledVector(side, sg*.16).addScaledVector(fwd, -.06));
+      if(ft) aim(ft, fwd.clone().addScaledVector(up, -.45).addScaledVector(side, sg*.12)); });
+  } else {
   aim(B.lu, fwd.clone().addScaledVector(up, -P.thighDown).addScaledVector(side, P.thighOut));
   aim(B.ru, fwd.clone().addScaledVector(up, -P.thighDown).addScaledVector(side, -P.thighOut));
   aim(B.ll, up.clone().negate().addScaledVector(fwd, P.shinFwd)); aim(B.rl, up.clone().negate().addScaledVector(fwd, P.shinFwd));
   aim(B.lf, fwd.clone().addScaledVector(up, -.35)); aim(B.rf, fwd.clone().addScaledVector(up, -.35));
+  }
   /* hands come forward to rest on her lap */
   const Q = new THREE.Quaternion(), E = new THREE.Euler(); const turn = (b, x, y, z) => { if(!b) return; Q.setFromEuler(E.set(x, y, z)); b.quaternion.multiply(Q); };
   turn(B.sp, P.lean, 0, 0); turn(B.la, .55, 0, .25); turn(B.ra, .55, 0, -.25);
