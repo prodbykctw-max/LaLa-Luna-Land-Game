@@ -69,7 +69,8 @@ export async function open(opts = {}) {
     await page.waitForFunction(() => window.__T && window.__T.CUR, null, { timeout: 60000 }).catch(() => { });
     await page.waitForTimeout(opts.wait ?? 15000);
     if (opts.island === 'hub' || !opts.island) {
-      // title screen: click "Step outside"
+      // title screen: the button wakes once the hub is made ready behind the card (Oct 28), then click "Step outside"
+      await page.waitForFunction(() => { const b = document.getElementById('bBegin'); return !b || !b.disabled; }, null, { timeout: 600000 }).catch(() => { });
       await page.evaluate(() => { const b = document.getElementById('bBegin'); if (b) b.click(); });
       await page.waitForTimeout(500);
       /* That button now starts the opening cinematic, which owns the camera for eighteen seconds of
