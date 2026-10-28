@@ -13,8 +13,8 @@ for (const island of isl) {
     const GR = []; I.scene.traverse(o => { if(o.isMesh && o.userData.ground) GR.push(o); });
     const gy = (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 400, z), new THREE.Vector3(0, -1, 0)); const h = rc.intersectObjects(GR, false)[0]; return h ? h.point.y : null; };
     const items = [];
-    if(I.quest){ if(I.quest.pen) items.push(['pen', I.quest.pen, 'pen']); if(I.quest.secret) items.push(['note', I.quest.secret, 'note']); (I.quest.carrots || []).forEach((c, i) => items.push(['carrot' + i, c, 'carrot'])); }
-    if(I.pickup) items.push(['ability', I.pickup, I.cfg.ability && I.cfg.ability.lantern ? 'lantern' : null]);
+    if(I.quest){ if(I.quest.desk) items.push(['desk', I.quest.desk, 'desk']); if(I.quest.pen) items.push(['pen', I.quest.pen, 'pen']); if(I.quest.secret) items.push(['note', I.quest.secret, 'note']); (I.quest.carrots || []).forEach((c, i) => items.push(['carrot' + i, c, 'carrot'])); }
+    if(I.pickup){ const a = I.cfg.ability || {}; items.push(['ability', I.pickup, a.lantern ? 'lantern' : a.glide ? 'fans' : a.jumpMul ? 'boots' : 'crown']); }
     if(I.letterMesh) items.push(['paper', I.letterMesh, null]);
     const rd = T.renderer, prev = rd.getRenderTarget(); rd.setRenderTarget(null); I.W.group.visible = false;
     for(const [name, o, realKey] of items){

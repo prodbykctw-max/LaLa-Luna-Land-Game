@@ -258,7 +258,7 @@ body.sail #khint{display:block}
 <body class="walk">
 <!-- The model credits the CC BY licence asks for, shown once on a black screen while the game loads instead of on the
      title card (Melvin, Oct 27: they were crowding the title). It fades by itself; a tap skips it. -->
-<div id="creditSplash"><div class="cs-in"><div class="cs-t">Lala Luna Land</div><p id="animalCredits">Animals from Sketchfab, CC BY 4.0: "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries · "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D · "Horse" by MAXDESIGN-3D · "Horse Rigged(Game Ready)" by abhayexe · "Bull" by stealth86 · "Lizard" by Froggreen · "Lizard" by LostBoyz2078 · "low poly animated and rigged gecko model" by Msassasa · "Bored-monkey-h-bosch-v-van-gogh-mashup" by eyork4633 · "Flamingosf" by kenchoo · "Pteranodon (Animated)" by Chistodrako._. · "parrot rebuilt" by kenchoo · "Parrot" by NewGameDeveloper · "Hermit Crab" by kenchoo · "Sea Turtle Lowpoly Animated" by kenchoo · "Sea Turtle" by Eloi · "Model 53A - Flatback Sea Turtle" by DigitalLife3D · "Bottlenose Dolphin" by popcornbag · "Game-Ready dolphin (Swimming)" by Allie2k · "blue powder tang" by Major. Items: "Carrot (.c4d and .fbx)" by NeoT1 · "Low-Poly 3D Folded Letter Paper" by Produk Cerdas · "Ink Bottle with Quill" by Matthew Collings · "Vintage Hurricane Lantern" by Chris Torres.<span id="bldCredits"> Buildings: "Amsterdam Canal House by Jungle Jim" and "Amsterdam Canal House" by Jungle Jim · "Stylized Amsterdam House" by ChrisCLP · "DAE Rowhomes - Amsterdam" by Vladimir Prisacaru · "Dutch House" by Bjarne Stokhof · "Casario Colonial Centro Histórico de Paraty" by DanielGrps · "Colonial House" by luahart · "Mexican House 3" and "Mexican House 4" by Hollow_Soul_09 · "Low Poly Portuguese Village House 1" and "3" by AlexFerrart3D · "Bungalow game ready" by Maria So · "Rusty Old Tropical Shop" by Nodeaxis Interactive.</span> Optimised for the game.</p></div></div>
+<div id="creditSplash"><div class="cs-in"><div class="cs-t">Lala Luna Land</div><p id="animalCredits">Animals from Sketchfab, CC BY 4.0: "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries · "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D · "Horse" by MAXDESIGN-3D · "Horse Rigged(Game Ready)" by abhayexe · "Bull" by stealth86 · "Lizard" by Froggreen · "Lizard" by LostBoyz2078 · "low poly animated and rigged gecko model" by Msassasa · "Bored-monkey-h-bosch-v-van-gogh-mashup" by eyork4633 · "Flamingosf" by kenchoo · "Pteranodon (Animated)" by Chistodrako._. · "parrot rebuilt" by kenchoo · "Parrot" by NewGameDeveloper · "Hermit Crab" by kenchoo · "Sea Turtle Lowpoly Animated" by kenchoo · "Sea Turtle" by Eloi · "Model 53A - Flatback Sea Turtle" by DigitalLife3D · "Bottlenose Dolphin" by popcornbag · "Game-Ready dolphin (Swimming)" by Allie2k · "blue powder tang" by Major · "seagull" by teacherap123 · "Seagulls animated" by vicente betoret ferrero. Items: "Carrot (.c4d and .fbx)" by NeoT1 · "Low-Poly 3D Folded Letter Paper" by Produk Cerdas · "Ink Bottle with Quill" by Matthew Collings · "Vintage Hurricane Lantern" by Chris Torres · "Cowboy boots" by Joe Roechow · "Regency period fan" by Tees Valley Secret Heritage · "Diadem" by Akeyon · "old desk" by deea_jo.<span id="bldCredits"> Buildings: "Amsterdam Canal House by Jungle Jim" and "Amsterdam Canal House" by Jungle Jim · "Stylized Amsterdam House" by ChrisCLP · "DAE Rowhomes - Amsterdam" by Vladimir Prisacaru · "Dutch House" by Bjarne Stokhof · "Casario Colonial Centro Histórico de Paraty" by DanielGrps · "Colonial House" by luahart · "Mexican House 3" and "Mexican House 4" by Hollow_Soul_09 · "Low Poly Portuguese Village House 1" and "3" by AlexFerrart3D · "Bungalow game ready" by Maria So · "Rusty Old Tropical Shop" by Nodeaxis Interactive.</span> Optimised for the game.</p></div></div>
 
 <div id="vig"></div><div id="flash"></div><div id="grain"></div>
 
@@ -392,7 +392,7 @@ body.sail #khint{display:block}
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-27f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-28a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3533,7 +3533,7 @@ const OUTFITS = {
   /* Sanity is her bare-headed look: white dress, hair out and wild, no hat. `hat:null` is the
      signal for no headwear at all - a colour here would just paint one on. */
   sanity:{dress:0xF4F2ED, hat:null,     boots:0x1C1C2C, hatBand:0x8FB8E8, patches:false, crown:false, wild:true},
-  town:  {dress:0xF7F1E6, hat:0xF2A6C8, boots:0xF7F1E6, hatBand:0xFFD37A, patches:true,  crown:true},
+  town:  {dress:0xF7F1E6, hat:null,     boots:0xF7F1E6, hatBand:0xFFD37A, patches:true,  crown:true},   /* the hat comes off and she wears the crown (Melvin's pick B, Oct 27) */
   /* Build-plan item 7: A Place for Me is the only island with a SECOND stage. She starts in shorts
      and a tee and changes once the island's quest has moved - a dark crop top, shorts, and wet hair.
      Every other island swaps its outfit once, when its ability item is worn; this one swaps again on
@@ -3542,7 +3542,7 @@ const OUTFITS = {
      stand-in, and on the real model her clothes are baked into the atlas (see HANDOFF 4.5). The WET
      HAIR is real and works, because it runs the same hair morph the hat uses, forward instead of
      back - a positive influence packs her hair flat to her head, which is what wet hair is. */
-  town2: {dress:0x2A2A30, hat:0xF2A6C8, boots:0x3A3038, hatBand:0xFFD37A, patches:true,  crown:true, wet:true}
+  town2: {dress:0x2A2A30, hat:null,     boots:0x3A3038, hatBand:0xFFD37A, patches:true,  crown:true, wet:true}
 };
 function makeLala(){
   const p = new THREE.Group(), R = {group:p, legs:[], fans:new THREE.Group(), lantern:new THREE.Group(), crown:null, patches:[]};
@@ -3567,6 +3567,7 @@ function makeLala(){
     f.position.set(s*.72,1.95,.12); f.rotation.set(-Math.PI/2,0,s*.5); R.fans.add(f);
   });
   R.fans.visible = false; p.add(R.fans); R.fanMeshes = [...R.fans.children];
+  R.fanMeshes.forEach(f => realItem(f, "fans", {scale:1.5, origin:true}));   /* the lace fans she found are the ones in her hands */
   /* The lantern's BODY and its LIGHT are separate things. A light that sits inside a hidden group is not in the
      scene as far as the renderer is concerned, so switching the group on added a point light, and every lit
      material in the island was compiled again on that frame: 26 new programs the frame she picked it up, measured
@@ -3582,8 +3583,9 @@ function makeLala(){
   /* at night, before she has her lantern, her dark clothes sank into the dark ground: a soft cool fill from
      behind her shoulder (the side the camera sits on) keeps her readable without lighting up the night */
   const fill = new THREE.PointLight(0xC9D6FF, 0, 9); fill.position.set(0, 2.5, -1.9); p.add(fill); R.fill = fill;
-  const cr = new THREE.Mesh(new THREE.TorusGeometry(.3,.06,8,5), new THREE.MeshBasicMaterial({color:0xFFD37A}));
-  cr.rotation.x = Math.PI/2; cr.position.y = 3.12; cr.visible = false; p.add(cr); R.crown = cr;
+  const cr = new THREE.Group(), crT = new THREE.Mesh(new THREE.TorusGeometry(.3,.06,8,5), new THREE.MeshBasicMaterial({color:0xFFD37A}));
+  crT.rotation.x = Math.PI/2; cr.add(crT); cr.position.y = 3.12; cr.visible = false; p.add(cr); R.crown = cr;
+  realItem(cr, "crown");   /* the diadem she took from the fountain is the one she wears */
   R.primitive = [dress, torso, head, hair, brim, crown, band, ...R.legs, ...R.patches]; R.wearsHat = true;
   R.wd = wdNew();                       /* what she is wearing, as numbers that ease - see WARDROBE */
   wantRig(R, "lala");
@@ -3654,7 +3656,8 @@ const HORSE_B_SUB = {idle:[21.5, 23.6], walk:[9.267, 11.967], run:[0, 2.0]};
 const HORSE_C_SUB = {idle:[0.333, 13.4], walk:[26.5, 29.133], run:[33.667, 34.333]};
 const ANIMALSQ = QS.get("animals") !== "old";
 const ITEMSQ = QS.get("items") !== "old";
-const ITEM_URL = {carrot:"assets/items/carrot.glb", note:"assets/items/note.glb", pen:"assets/items/quill.glb", lantern:"assets/items/lantern.glb"};
+const ITEM_URL = {carrot:"assets/items/carrot.glb", note:"assets/items/note.glb", pen:"assets/items/quill.glb", lantern:"assets/items/lantern.glb",
+  boots:"assets/items/boots.glb", fans:"assets/items/fans.glb", crown:"assets/items/crown.glb", desk:"assets/items/desk.glb"};   /* Melvin's picks, Oct 27: boots B, fan D, diadem D, old desk B */
 const ITEM_G = {}, ITEM_WAIT = {};
 /* ===================  TOWN: REAL BUILDINGS (?town=new until Melvin picks)  ===================
    Willemstad, not a toy town: narrow Dutch gable houses shoulder to shoulder along the water (the Handelskade row),
@@ -4192,10 +4195,10 @@ function bindAttachments(R, model, s){
   if(R.fanMeshes && LH && RH){
     [LH, RH].forEach((b,i) => { const f = R.fanMeshes[i]; if(!f) return;
       const a = anchor(b, new THREE.Vector3(0, 0, 0), [0,0,0]); if(!a) return;
-      a.add(f); f.scale.setScalar(.62); f.userData.sc = null; f.position.set(0, .42, 0); f.rotation.set(-.4, i ? -1.0 : 1.0, i ? .5 : -.5); });
+      a.add(f); f.scale.setScalar(.62); f.userData.sc = null; f.position.set(0, ITEMSQ ? .2 : .42, 0);   /* the real fan is held, centred just past her fingers */ f.rotation.set(-.4, (i ? -1.0 : 1.0) + (ITEMSQ ? Math.PI : 0), i ? .5 : -.5); });
   }
   if(R.lantern && RH){ const a = anchor(RH, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.lantern); R.lantern.position.set(0, .4, 0); R.lantern.rotation.set(0, 0, 0); } }
-  if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, .3, 0); R.crown.rotation.set(Math.PI/2, 0, 0); R.crown.scale.setScalar(.7); R.crown.userData.s0 = R.crown.scale.clone(); } }
+  if(R.crown && HD){ const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){ a.add(R.crown); R.crown.position.set(0, +(QS.get("cy") || .235), +(QS.get("cz") || .01)); R.crown.rotation.set(+(QS.get("cx") || -.12), 0, 0); R.crown.scale.setScalar(+(QS.get("cs") || .37));   /* the diadem sits on her hair at the crown of her head, the size of her head (?cy ?cz ?cx ?cs tune it) */ R.crown.userData.s0 = R.crown.scale.clone(); } }
   /* her white cowgirl hat — the band takes the island's colour when she wears that island's outfit */
   if(R.wearsHat && HD){ hatHairSquash(model, s); const a = anchor(HD, new THREE.Vector3(0, 0, 0), [0,0,0]); if(a){
     /* Full-size brim (56 cm across in game units, 1 u = 0.576 m) seated lower on her head: y .25
@@ -6566,10 +6569,33 @@ function birdFlock(scene, n, col){
       const ow = new THREE.Mesh(og, stdMat({color:low ? 0xD9CFBE : col, gradientMap:GRAD, side:THREE.DoubleSide})); elbow.add(ow);
       piv.add(elbow); g.add(piv); });
     g.userData = {a:Math.random()*6.3, r: low ? 30+Math.random()*34 : 90+Math.random()*70, sp: low ? .12+Math.random()*.06 : .05+Math.random()*.04, y: low ? 7+Math.random()*9 : 44+Math.random()*26, ph:Math.random()*6.3};
-    scene.add(g); list.push(g);
+    scene.add(g); list.push(g); gullize(g);
   }
+  /* and one flock of gulls wheeling together, high over the island (pick E) */
+  if(n > 0 && ANIMALSQ){ const f = new THREE.Group(); f.userData = {a:Math.random()*6.3, r:70, sp:.025, y:58, ph:Math.random()*6.3}; scene.add(f); list.push(f); gullize(f, true); }
   return list;
 }
+/* ===================  REAL SEAGULLS  ===================
+   Melvin, Oct 27: "the bird is still fake". The gulls over every island were drawn from spheres and flat wings. They are a
+   real animated seagull now (pick B: "seagull" by teacherap123), each on its own wingbeat, and one real wheeling flock
+   per island (pick E: "Seagulls animated" by vicente betoret ferrero). They fly the same circuits the old birds did. */
+const GULL = {one:null, flock:null, wait:[], fwait:[], asked:false};
+function gullLoad(){ if(GULL.asked || !THREE.GLTFLoader || !THREE.SkeletonUtils) return; GULL.asked = true; const L = new THREE.GLTFLoader();
+  L.load("assets/animals/gull.glb", g => { GULL.one = g; GULL.wait.splice(0).forEach(f => f()); }, undefined, e => console.warn("gull not loaded", e));
+  L.load("assets/animals/gullflock.glb", g => { GULL.flock = g; GULL.fwait.splice(0).forEach(f => f()); }, undefined, e => console.warn("gull flock not loaded", e)); }
+function gullize(b, flock){ if(!ANIMALSQ) return; gullLoad();
+  const go = () => { const g = flock ? GULL.flock : GULL.one; if(!g) return;
+    const m = THREE.SkeletonUtils.clone(g.scene), box = new THREE.Box3().setFromObject(m), sz = box.getSize(new THREE.Vector3());
+    /* one gull: its wingspan is the model's width, a real 1.4 m. The flock model is four gulls about a tenth of its width each */
+    const k = M(1.4) / (flock ? sz.x*.1 : sz.x);
+    m.scale.setScalar(k); const c = box.getCenter(new THREE.Vector3()).multiplyScalar(k); m.position.set(-c.x, -c.y, -c.z);
+    const holder = new THREE.Group(); holder.add(m); holder.rotation.y = Math.PI/2;   /* the model flies toward +z; a bird here flies along +x */
+    m.traverse(o => { if(o.isMesh){ o.frustumCulled = false; o.castShadow = false; } });
+    b.children.forEach(c2 => { c2.visible = false; }); b.add(holder);
+    const mix = new THREE.AnimationMixer(m), clip = g.animations[0];
+    if(clip){ const act = mix.clipAction(clip); act.time = Math.random()*clip.duration; act.timeScale = .85 + Math.random()*.3; act.play(); }
+    b.userData.mix = mix; b.userData.real = true; };
+  if(flock ? GULL.flock : GULL.one) go(); else (flock ? GULL.fwait : GULL.wait).push(go); }
 /* a mote is a speck of dust or pollen catching the light: round and soft, never a square */
 let _moteTex = null;
 function moteSprite(){ if(_moteTex) return _moteTex;
@@ -6830,7 +6856,7 @@ function fxUpdate(fx, dt, t, camPos){
     b.children.forEach(w => { if(w.userData.s) w.rotation.z = -w.userData.s*(.25 + flap*.95); });   /* wings fold together over the back */
     b.rotation.y = -u.a + Math.PI/2 + Math.sin(t*.9+u.ph)*.3;   /* faces the way it is flying */
     b.rotation.x = Math.sin(t*1.6+u.ph)*.12; });
-  fx.birds.forEach(b => { const u = b.userData; u.a += u.sp*dt;
+  fx.birds.forEach(b => { const u = b.userData; u.a += u.sp*dt; if(u.mix) u.mix.update(dt);
     b.position.set(Math.cos(u.a)*u.r, u.y+Math.sin(t*.4+u.ph)*3, Math.sin(u.a)*u.r); b.rotation.y = -u.a - Math.PI/2; b.rotation.z = .12;
     const beat = Math.sin(t*(u.r < 70 ? 6.5 : 4.2)+u.ph);
     b.children.forEach(w => { if(!w.userData.s) return;
@@ -7421,7 +7447,7 @@ function mergeStatics(I, scene){
      the carrots and the Town litter were baked in here: taking them hid the object but not its baked copy, so the quill
      stayed floating where it had been (Melvin's GR shot, Oct 27) and the litter never cleared. Only the desk is
      furniture. */
-  if(I.quest) for(const [k, v] of Object.entries(I.quest)){ if(k === "desk") continue;
+  if(I.quest) for(const [k, v] of Object.entries(I.quest)){ if(k === "desk" && !ITEMSQ) continue;   /* the real desk arrives after the bake: the stand-in must still be there to hide */
     (Array.isArray(v) ? v : [v]).forEach(o => { if(o && o.isObject3D) skip.add(o); }); }
   (I.litter||[]).forEach(o => skip.add(o));
   (I.fleet||[]).forEach(b => skip.add(b));   /* boats bob: none of their parts may be baked into the static batch */   /* the postman's horse moves with him: baking it left him riding thin air */
@@ -10691,7 +10717,10 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     const pgy = height(a.at[0], a.at[1]);
     const py = (a.y != null ? (isFinite(pgy) ? Math.max(pgy, a.y) : a.y) : pgy) + 2.2;
     pk.position.set(a.at[0], py, a.at[1]); scene.add(pk); I.pickup = pk;
-    if(a.lantern){ itemGlint(pk, 3.0); realItem(pk, "lantern", {flame:true, scale:1.6}); }   /* the real lantern at the old one's size read as a speck on the hill */
+    if(a.lantern){ itemGlint(pk, 3.0); realItem(pk, "lantern", {flame:true, scale:1.6}); }
+    else if(a.glide){ itemGlint(pk, 3.0); realItem(pk, "fans", {pair:true, scale:1.2}); }
+    else if(a.jumpMul){ itemGlint(pk, 3.0); realItem(pk, "boots", {pair:true}); }
+    else { itemGlint(pk, 3.0); realItem(pk, "crown", {scale:.85}); }   /* the real lantern at the old one's size read as a speck on the hill */
   }
   yield;
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
@@ -10751,7 +10780,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     }
     const desk = deskMesh(P); desk.position.set(cfg.desk.at[0], height(cfg.desk.at[0], cfg.desk.at[1]), cfg.desk.at[1]);
     desk.rotation.y = Math.atan2(cfg.spawn[0]-cfg.desk.at[0], cfg.spawn[1]-cfg.desk.at[1]);
-    scene.add(desk); I.quest.desk = desk; I.colliders.push({x:cfg.desk.at[0], z:cfg.desk.at[1], r:1.7});
+    scene.add(desk); I.quest.desk = desk; I.colliders.push({x:cfg.desk.at[0], z:cfg.desk.at[1], r:1.7}); realItem(desk, "desk", {ground:true});   /* the old writing desk and its chair (Melvin's pick B) */
     const sec = paperMesh(); sec.scale.setScalar(.8);
     sec.position.set(cfg.secret.at[0], height(cfg.secret.at[0], cfg.secret.at[1]) + 1.7, cfg.secret.at[1]);
     scene.add(sec); I.quest.secret = sec; itemGlint(sec, 2.6); realItem(sec, "note");
@@ -11513,11 +11542,14 @@ function itemSwap(group, src, opts){
     olds.push(c); c.traverse(o => { if(!o.isMesh || !o.geometry) return; if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
       bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld).applyMatrix4(inv); B.union(bb); }); });
   if(B.isEmpty()) return;
-  const m = src.clone(true), oS = B.getSize(new THREE.Vector3()), oC = B.getCenter(new THREE.Vector3());
+  let m = src.clone(true); const oS = B.getSize(new THREE.Vector3()), oC = B.getCenter(new THREE.Vector3());
+  if(opts.pair){ /* boots and fans come as a pair: a mirrored twin beside the first (as in the pick sheet) */
+    const b0 = new THREE.Box3().setFromObject(m), d = Math.max(...b0.getSize(new THREE.Vector3()).toArray())*.32, tw = src.clone(true), pg = new THREE.Group();
+    m.position.x -= d; tw.position.x += d; tw.scale.x *= -1; pg.add(m, tw); m = pg; }
   m.updateMatrixWorld(true); const nb = new THREE.Box3().setFromObject(m), nS = nb.getSize(new THREE.Vector3());
   const k = Math.max(oS.x, oS.y, oS.z) / Math.max(nS.x, nS.y, nS.z, 1e-4) * (opts.scale || 1);
   m.scale.multiplyScalar(k); m.updateMatrixWorld(true); nb.setFromObject(m); const nC = nb.getCenter(new THREE.Vector3());
-  m.position.add(oC.clone().sub(nC)); if(opts.ground) m.position.y += B.min.y - (nb.min.y + oC.y - nC.y);
+  m.position.add((opts.origin ? new THREE.Vector3() : oC.clone()).sub(nC)); if(opts.ground) m.position.y += B.min.y - (nb.min.y + oC.y - nC.y);
   group.add(m); olds.forEach(o => { o.visible = false; }); group.userData.realItem = m;
   /* the flame: the old lantern was a glowing ball, readable from across Sanity's dark hill; the real one is dark iron and
      glass, so its flame is a proper light now - a bright core and a warm halo - or at night there is nothing to walk to */
