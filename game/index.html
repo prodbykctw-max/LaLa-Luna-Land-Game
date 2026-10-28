@@ -10718,9 +10718,9 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     const py = (a.y != null ? (isFinite(pgy) ? Math.max(pgy, a.y) : a.y) : pgy) + 2.2;
     pk.position.set(a.at[0], py, a.at[1]); scene.add(pk); I.pickup = pk;
     if(a.lantern){ itemGlint(pk, 3.0); realItem(pk, "lantern", {flame:true, scale:1.6}); }
-    else if(a.glide){ itemGlint(pk, 3.0); realItem(pk, "fans", {pair:true, scale:1.2}); }
+    else if(a.glide){ itemGlint(pk, 3.0); realItem(pk, "fans", {pair:true, scale:1.7}); }
     else if(a.jumpMul){ itemGlint(pk, 3.0); realItem(pk, "boots", {pair:true}); }
-    else { itemGlint(pk, 3.0); realItem(pk, "crown", {scale:.85}); }   /* the real lantern at the old one's size read as a speck on the hill */
+    else { itemGlint(pk, 3.4).position.y = 2.0; realItem(pk, "crown", {scale:1.1, dy:2.0}); }   /* the diadem is fine gold wire: it floats clear above the fountain's spout, where it reads against the sky */   /* the real lantern at the old one's size read as a speck on the hill */
   }
   yield;
   if(cfg.letter){                                    /* the letter exists on every island, with or without an outfit */
@@ -11550,6 +11550,7 @@ function itemSwap(group, src, opts){
   const k = Math.max(oS.x, oS.y, oS.z) / Math.max(nS.x, nS.y, nS.z, 1e-4) * (opts.scale || 1);
   m.scale.multiplyScalar(k); m.updateMatrixWorld(true); nb.setFromObject(m); const nC = nb.getCenter(new THREE.Vector3());
   m.position.add((opts.origin ? new THREE.Vector3() : oC.clone()).sub(nC)); if(opts.ground) m.position.y += B.min.y - (nb.min.y + oC.y - nC.y);
+  if(opts.dy) m.position.y += opts.dy;
   group.add(m); olds.forEach(o => { o.visible = false; }); group.userData.realItem = m;
   /* the flame: the old lantern was a glowing ball, readable from across Sanity's dark hill; the real one is dark iron and
      glass, so its flame is a proper light now - a bright core and a warm halo - or at night there is nothing to walk to */
