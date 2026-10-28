@@ -3691,7 +3691,7 @@ const BLD_P = {};
    The texture's light and shade stays in the paint, so the plaster still shows its age. */
 const PASTELS = [0xF4C95D, 0xF29B8F, 0x7DCBD6, 0xA3D9A5, 0xF5AE6B, 0xC9A7E6, 0xFFE08A, 0x92C7EE, 0xF7B8C8];
 function paintHouse(root, hex){
-  const col = new THREE.Color(hex);
+  const col = new THREE.Color(hex).convertSRGBToLinear();   /* the shader works in linear light */
   root.traverse(o => { if(!o.isMesh || !o.material) return;
     const m = o.material = o.material.clone();
     m.onBeforeCompile = sh => { sh.uniforms.uPaint = {value:col};
@@ -3699,9 +3699,9 @@ function paintHouse(root, hex){
         .replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\nvPaintN = normalize(mat3(modelMatrix) * objectNormal);");
       sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uPaint; varying vec3 vPaintN;")
         .replace("#include <map_fragment>", `#include <map_fragment>
-  { float L = dot(diffuseColor.rgb, vec3(.299, .587, .114));
-    float wall = (1.0 - smoothstep(.35, .6, abs(normalize(vPaintN).y))) * smoothstep(.06, .16, L) * (1.0 - smoothstep(.62, .82, L));
-    vec3 painted = uPaint * (.62 + .75*L);
+  { float L = sqrt(max(dot(diffuseColor.rgb, vec3(.299, .587, .114)), 0.0));   /* judged as the eye sees it, not in linear light */
+    float wall = (1.0 - smoothstep(.35, .6, abs(normalize(vPaintN).y))) * smoothstep(.12, .24, L) * (1.0 - smoothstep(.80, .93, L));
+    vec3 painted = uPaint * (.72 + .45*L);
     diffuseColor.rgb = mix(diffuseColor.rgb, painted, wall*.92); }`); };
     m.customProgramCacheKey = () => "paintHouse"; m.userData.camFade = 0; camFadeWrap(m); m.needsUpdate = true; }); }
 let _pastelI = 0;
