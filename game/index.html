@@ -3703,7 +3703,7 @@ function paintHouse(root, hex){
     float wall = (1.0 - smoothstep(.35, .6, abs(normalize(vPaintN).y))) * smoothstep(.06, .16, L) * (1.0 - smoothstep(.62, .82, L));
     vec3 painted = uPaint * (.62 + .75*L);
     diffuseColor.rgb = mix(diffuseColor.rgb, painted, wall*.92); }`); };
-    m.customProgramCacheKey = () => "paintHouse"; m.needsUpdate = true; }); }
+    m.customProgramCacheKey = () => "paintHouse"; m.userData.camFade = 0; camFadeWrap(m); m.needsUpdate = true; }); }
 let _pastelI = 0;
 /* one load per model; every house that uses it is a clone (shared geometry and textures) */
 function bldProto(key){
@@ -3726,7 +3726,7 @@ function bldProto(key){
       const s = M(B.h) / (box.max.y - box.min.y), inner = new THREE.Group(), turn = new THREE.Group();
       inner.add(root); inner.scale.setScalar(s); inner.position.set(-(box.min.x + box.max.x)/2*s, -box.min.y*s, -(box.min.z + box.max.z)/2*s);
       turn.add(inner); turn.rotation.y = B.yaw*Math.PI/2;
-      root.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; m.userData.dyn = true; } });
+      root.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; m.userData.dyn = true; camFadeWrap(m.material); } });   /* a house between the camera and her dissolves, like the stalls and trees */
       res(turn);
     }, undefined, () => res(null));
   });
