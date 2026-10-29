@@ -423,7 +423,7 @@ let ASSET_PENDING = 0;
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-28f";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-29a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -13456,9 +13456,26 @@ $("secretsBtn").onclick = () => {
   try{ renderSecrets(); }
   catch(e){ $("secretsList").innerHTML = '<div style="opacity:.75">Couldn\'t list your secrets, but Start over below still works.</div>'; }
 };
+/* where a trip to a named place sets her down: the place itself if she can stand there clear of anything solid and can
+   walk away from it, otherwise the nearest spot that is, preferring the side facing where she arrived on the island */
+function travelSpot(I, q){
+  const clear = (x, z) => canStand(I, x, z) && !I.colliders.some(c => !c.camOnly && Math.hypot(x - c.x, z - c.z) < (c.r || 1) + .8);
+  const free = (x, z) => clear(x, z) && [0, 1, 2, 3, 4, 5, 6, 7].filter(k => clear(x + Math.cos(k*Math.PI/4)*2.5, z + Math.sin(k*Math.PI/4)*2.5)).length >= 3;
+  if(free(q.x, q.z)) return [q.x, q.z];
+  const toward = Math.atan2(I.cfg.spawn[1] - q.z, I.cfg.spawn[0] - q.x);
+  for(let r = 2; r < 120; r += 1.5){ let best = null, bd = 9;
+    for(let k = 0; k < 36; k++){ const a = k/36*Math.PI*2, x = q.x + Math.cos(a)*r, z = q.z + Math.sin(a)*r;
+      if(!free(x, z)) continue; let d = Math.abs(a - toward) % (Math.PI*2); if(d > Math.PI) d = Math.PI*2 - d; if(d < bd){ bd = d; best = [x, z]; } }
+    if(best) return best; }
+  return [I.cfg.spawn[0], I.cfg.spawn[1]];
+}
 function renderTravel(){
   const I = CUR, list = $("travelList"); list.innerHTML = "";
-  const here = (I.cfg.places||[]).filter(q => G.visited[I.cfg.key+":"+q.name]);
+  /* Melvin, Oct 29: fast travel to Luna's Keep "locks you in the center with no way out". It set her down at the keep's
+     own centre, inside the ring canStand keeps shut until all four letters are lit, so every step out was refused.
+     The keep is not offered until the doors can open, and every trip now lands on open ground she can walk from. */
+  const keepShut = p => I.cfg.hub && Math.hypot(p.x, p.z) < 11 + 1 && !(G.finished || G.letters.every(Boolean));
+  const here = (I.cfg.places||[]).filter(q => G.visited[I.cfg.key+":"+q.name] && !keepShut(q));
   if(!here.length){
     const d = document.createElement("div"); d.className = "isle";
     d.innerHTML = "<b>Nowhere yet</b><span>Walk to a named place once and it opens up here.</span>";
@@ -13472,7 +13489,8 @@ function renderTravel(){
       ovNone(); await toBlack();
       const W = I.W;
       if(W.mount) releaseMount(I);
-      W.x = q.x; W.z = q.z; W.y = I.height(q.x, q.z); W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true;
+      const [tx, tz] = travelSpot(I, q);
+      W.x = tx; W.z = tz; W.y = I.height(tx, tz); W.vy = 0; W.vx = 0; W.vz = 0; W.grounded = true;
       camRig(I, true); placeCamera(I, 1);
       if(I.fx && I.fx.grass && I.fx.grass.follow) for(let k=0;k<10;k++) I.fx.grass.follow(W.x, W.z);
       await fromBlack(); W.active = true;
