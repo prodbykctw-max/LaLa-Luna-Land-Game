@@ -423,7 +423,7 @@ let ASSET_PENDING = 0;
 { const setHex = THREE.Color.prototype.setHex;
   THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-29a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-30a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -11853,7 +11853,7 @@ function walkerUpdate(I, dt, t){
      the walk/run blend, stride timeScale, W.speedNow for the shore birds, the grass push - keeps working
      untouched. ?momentum=0 restores the old instant model for comparison. */
   const MOM   = (() => { const v = parseFloat(QS.get("momentum")); return isNaN(v) ? 1 : Math.max(0, Math.min(1, v)); })();
-  const ACCEL = 34, DECEL = 46, AIR = 0.22, TURN = 7.4;
+  const ACCEL = 34, DECEL = 46, AIR = 0.22, TURN = 7.4, STOPQ = QS.get("stop") !== "glide";
   if(W.vx == null) W.vx = 0; if(W.vz == null) W.vz = 0;
   let curSpeed = 0;
   {
@@ -11878,6 +11878,11 @@ function walkerUpdate(I, dt, t){
       W.vx += (tvx - W.vx) * k;
       W.vz += (tvz - W.vz) * k;
       if(Math.abs(W.vx) < .02 && Math.abs(W.vz) < .02 && mag <= .08){ W.vx = 0; W.vz = 0; }
+      /* Melvin, Oct 30: "once I'm done moving she should stop immediately ... there's a little bit of movement
+         afterwards". On her own feet, on the ground, letting go of the stick stops her on that frame. She still
+         builds up to speed, a jump still carries its run, and a horse or cow still takes a moment to pull up.
+         ?stop=glide restores the slide to a halt. */
+      if(STOPQ && mag <= .08 && W.grounded && !W.mount){ W.vx = 0; W.vz = 0; }
       /* She turns at a rate rather than snapping - that is the momentum. But WHAT she turns toward
          must be the stick, not the velocity.
          ===================  WHY: THE COLLISION-SLIDE CAMERA WHIP  ===================
