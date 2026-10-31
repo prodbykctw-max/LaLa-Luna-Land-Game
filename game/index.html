@@ -421,6 +421,11 @@ THREE.ColorManagement.enabled = true;
    The game draws through an EffectComposer (bloom, then the grade), so it keeps the old behaviour: the patched engine
    (vendor/build-three187.sh) reads this switch. ?tonemap=screen leaves r187's own behaviour. */
 globalThis.__THREE_TONEMAP_RT = new URLSearchParams(location.search).get("tonemap") !== "screen";
+/* r163+ lights every material by the scene's environmentIntensity (1.0) whenever the scene supplies the environment,
+   ignoring the material's own envMapIntensity - the game tunes that per material (0.34 for most ground, its own value
+   for each rig), so on r187 every island took about three times the sky light. The patched engine reads this switch
+   and uses each material's own value again (and no scene environment on Lambert/Phong, as in r128). ?env=scene leaves r187's rule. */
+globalThis.__THREE_ENV_MAT = new URLSearchParams(location.search).get("env") !== "scene";
 /* ===================  THE LIGHTS KEEP THEIR r128 STRENGTH  ===================
    r155 made lights physical: the renderer stopped multiplying every light by PI, point and spot lights fall off with
    the inverse square and default to decay 2. Every light in the game was tuned by eye under the old model, so the old
