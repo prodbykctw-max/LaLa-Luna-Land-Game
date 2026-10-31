@@ -10,6 +10,7 @@ for (const isl of isls) {
     await H.page.evaluate(([yaw, pitch, dist]) => { const I = window.__T.CUR, W = I.W, c = I.cfg;
       W.x = c.spawn[0]; W.z = c.spawn[1] - 30; W.y = I.height(W.x, W.z); W.camYaw = yaw; W.heading = yaw; W.camPitch = pitch; W.camDist = dist; W.lookHold = 999; W.recenter = false; }, [yaw, pitch, dist]);
     await H.page.waitForTimeout(6000);
+    console.log(isl, k, JSON.stringify(await H.page.evaluate(() => { const T = window.__T, W = T.CUR.W; return { w: [W.x, W.z].map(v => +v.toFixed(1)), cam: T.camera.position.toArray().map(v => +v.toFixed(1)), cut: !!T.CUR.cut, active: W.active }; })));
     await H.page.screenshot({ path: `${OUT}/par_${tag}_${isl}_${k}.jpg`, type: 'jpeg', quality: 84, timeout: 240000 });
   }
   console.log(isl, 'errors', H.log.errors.filter(e => !/404/.test(e)).length);

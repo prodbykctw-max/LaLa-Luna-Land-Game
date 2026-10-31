@@ -417,15 +417,24 @@ let ASSET_PENDING = 0;
    and pale — the "sketched" look. Interpret every hex as sRGB (what the palettes were designed as). */
 /* Three.js r152+ converts hex colours from sRGB itself (ColorManagement), which is what this patch used to add to r128. */
 THREE.ColorManagement.enabled = true;
-/* r128 tone-mapped every material into whatever it was drawn into; r153+ only tone-maps the final draw to the screen.
-   The game draws through an EffectComposer (bloom, then the grade), so it keeps the old behaviour: the patched engine
-   (vendor/build-three187.sh) reads this switch. ?tonemap=screen leaves r187's own behaviour. */
-globalThis.__THREE_TONEMAP_RT = new URLSearchParams(location.search).get("tonemap") !== "screen";
+/* Melvin, Oct 31: "why would you hold back any improvement?" r153+ keeps the whole frame in high dynamic range until
+   the very last draw: the bloom now works on real light (a lamp ten times brighter than the grass glows ten times
+   more) and the tone curve is applied once, in the grade pass, at the end. ?tonemap=rt restores r128's per-material
+   tone mapping (the patched engine reads this switch). */
+globalThis.__THREE_TONEMAP_RT = new URLSearchParams(location.search).get("tonemap") === "rt";
+const HDR_POST = !globalThis.__THREE_TONEMAP_RT;
+/* the bloom thresholds were tuned on tone-mapped light (0..1); in HDR the same pixels sit higher, so each threshold is
+   moved to the HDR value the tone curve maps onto it - the same things start to glow, and the brightest glow more */
+function hdrThresh(t, exp){ if(!HDR_POST) return t; const aces = v => { const a = v*(v + .0245786) - .000090537, b = v*(.983729*v + .432951) + .238081; return a/b; };
+  let lo = 0, hi = 64; for(let i = 0; i < 40; i++){ const m = (lo + hi)/2; if(aces(m*exp/.6) < t) lo = m; else hi = m; } return lo; }
 /* r163+ lights every material by the scene's environmentIntensity (1.0) whenever the scene supplies the environment,
    ignoring the material's own envMapIntensity - the game tunes that per material (0.34 for most ground, its own value
    for each rig), so on r187 every island took about three times the sky light. The patched engine reads this switch
    and uses each material's own value again (and no scene environment on Lambert/Phong, as in r128). ?env=scene leaves r187's rule. */
 globalThis.__THREE_ENV_MAT = new URLSearchParams(location.search).get("env") !== "scene";
+/* r151+ culls instanced and skinned meshes by their own cached bounds; r128 used the geometry's bounds. The game's
+   scatter was built around r128's rule, so the patched engine keeps it (?cull=bounds for r187's rule). */
+globalThis.__THREE_LEGACY_CULL = new URLSearchParams(location.search).get("cull") === "geometry";   /* r187's instance-aware culling is on (it skips batches that are off screen); ?cull=geometry restores r128's */
 /* ===================  THE LIGHTS KEEP THEIR r128 STRENGTH  ===================
    r155 made lights physical: the renderer stopped multiplying every light by PI, point and spot lights fall off with
    the inverse square and default to decay 2. Every light in the game was tuned by eye under the old model, so the old
@@ -435,23 +444,27 @@ globalThis.__THREE_ENV_MAT = new URLSearchParams(location.search).get("env") !==
 const LEGACY_LIGHTS = new URLSearchParams(location.search).get("lights") !== "physical";
 if(LEGACY_LIGHTS){
   const C = THREE.ShaderChunk, before = C.lights_pars_begin;
+  /* lamps and lanterns fall off with the inverse square (r187's physical falloff, the realistic one), scaled so each
+     light is as bright as it was at a quarter of its reach: brighter close up, softer far away */
   let t = before
     .replace(/float getDistanceAttenuation\( const in float lightDistance, const in float cutoffDistance, const in float decayExponent \) \{[\s\S]*?\n\}/,
       `float getDistanceAttenuation( const in float lightDistance, const in float cutoffDistance, const in float decayExponent ) {
-	if ( cutoffDistance > 0.0 && decayExponent > 0.0 ) return pow( saturate( - lightDistance / cutoffDistance + 1.0 ), decayExponent );
-	return 1.0;
+	float distanceFalloff = 1.0 / max( pow( lightDistance, decayExponent ), 0.01 );
+	if ( cutoffDistance > 0.0 ) {
+		distanceFalloff *= pow2( saturate( 1.0 - pow4( lightDistance / cutoffDistance ) ) );
+		distanceFalloff *= pow( 0.25 * cutoffDistance, decayExponent ) / 0.75;
+	}
+	return distanceFalloff;
 }`)
     .replace("vec3 irradiance = ambientLightColor;\n\treturn irradiance;", "vec3 irradiance = ambientLightColor * PI;\n\treturn irradiance;")
     .replace("vec3 irradiance = mix( hemiLight.groundColor, hemiLight.skyColor, hemiDiffuseWeight );", "vec3 irradiance = mix( hemiLight.groundColor, hemiLight.skyColor, hemiDiffuseWeight ) * PI;")
     .replace("light.color = directionalLight.color;", "light.color = directionalLight.color * PI;")
     .replace("light.color = pointLight.color;", "light.color = pointLight.color * PI;")
     .replace("light.color = spotLight.color * spotAttenuation;", "light.color = spotLight.color * spotAttenuation * PI;");
-  const n = ["(1 - d", "ambientLightColor * PI", "hemiDiffuseWeight ) * PI", "directionalLight.color * PI", "pointLight.color * PI", "spotAttenuation * PI"]
-    .filter(k => t.includes(k === "(1 - d" ? "- lightDistance / cutoffDistance + 1.0" : k)).length;
+  const n = ["distanceFalloff *= pow( 0.25", "ambientLightColor * PI", "hemiDiffuseWeight ) * PI", "directionalLight.color * PI", "pointLight.color * PI", "spotAttenuation * PI"]
+    .filter(k => t.includes(k)).length;
   if(n !== 6) console.warn("legacy lights: only " + n + "/6 patches applied");
   C.lights_pars_begin = t;
-  for(const K of ["PointLight", "SpotLight"]){ const Base = THREE[K];
-    THREE[K] = class extends Base { constructor(){ super(...arguments); if(arguments.length < 4 || arguments[3] === undefined){ if(K === "PointLight") this.decay = 1; } if(K === "SpotLight" && (arguments.length < 6 || arguments[5] === undefined)) this.decay = 1; } }; }
 }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
 const BUILD = "2026-10-30a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
@@ -589,7 +602,7 @@ const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, i
 /* post: bloom for moons/lamps/lanterns, then vignette + gentle grade */
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
-const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .30, .75, .86); if(PROF.bloom) composer.addPass(bloomPass);
+const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .30, .75, hdrThresh(.86, renderer.toneMappingExposure)); if(PROF.bloom) composer.addPass(bloomPass);
 /* ===================  THE GRADE IS WHY THEIR FRAMES LOOK SHOT AND OURS LOOK RENDERED  ===================
    Nothing in the reference reels is "high detail". Pull a frame from the Askew forest and it is
    ninety percent near-black teal with ONE saturated orange on the character; Klein's Gate is
@@ -632,6 +645,9 @@ const gradePass = new THREE.ShaderPass({
   fragmentShader:`uniform sampler2D tDiffuse; uniform float vig, sat, amt, shadowTint, shadowDesat, contrast;
     uniform vec3 lift, airCol; varying vec2 vUv;
     void main(){ vec4 c=texture2D(tDiffuse,vUv);
+      #ifdef TONE_MAPPING
+      c.rgb = toneMapping(c.rgb);   /* r187: the frame stays HDR through the bloom; the tone curve goes on here, once */
+      #endif
       float l=dot(c.rgb,vec3(.299,.587,.114));
       c.rgb=mix(vec3(l),c.rgb,sat);
       if(amt > 0.001){
@@ -665,7 +681,7 @@ function applyLook(name){
   u.vig.value = L.vig; u.sat.value = L.sat; u.shadowTint.value = L.tint; u.shadowDesat.value = L.desat; u.contrast.value = L.contrast;
   u.lift.value.set(L.lift[0], L.lift[1], L.lift[2]);
   renderer.toneMappingExposure = L.exp === null ? LOOK_EXP0 : L.exp;
-  bloomPass.strength = L.bloom[0]; bloomPass.radius = L.bloom[1]; bloomPass.threshold = L.bloom[2];
+  bloomPass.strength = L.bloom[0]; bloomPass.radius = L.bloom[1]; bloomPass.threshold = hdrThresh(L.bloom[2], renderer.toneMappingExposure);
   document.body.classList.toggle("dark", name === "dark");
   LOOK_NOW = name;
 }
@@ -679,7 +695,7 @@ function applyLookMix(m){
   u.shadowDesat.value = l(A.desat, B.desat); u.contrast.value = l(A.contrast, B.contrast);
   u.lift.value.set(l(A.lift[0], B.lift[0]), l(A.lift[1], B.lift[1]), l(A.lift[2], B.lift[2]));
   renderer.toneMappingExposure = l(LOOK_EXP0, B.exp);
-  bloomPass.strength = l(A.bloom[0], B.bloom[0]); bloomPass.radius = l(A.bloom[1], B.bloom[1]); bloomPass.threshold = l(A.bloom[2], B.bloom[2]);
+  bloomPass.strength = l(A.bloom[0], B.bloom[0]); bloomPass.radius = l(A.bloom[1], B.bloom[1]); bloomPass.threshold = hdrThresh(l(A.bloom[2], B.bloom[2]), renderer.toneMappingExposure);
   document.body.classList.toggle("dark", m > .5);
   LOOK_MIX = m; LOOK_NOW = m > .5 ? "dark" : "day";
 }

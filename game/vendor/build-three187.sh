@@ -23,6 +23,12 @@ sed -i 's/m_uniforms.envMapIntensity.value = scene.environmentIntensity;/m_unifo
 C="$W/package/build/three.core.js"
 perl -0pi -e 's/(Object\.defineProperty\( this, .id., \{ value: _sourceId \+\+ \} \);(?:(?!this\.uuid)[\s\S])*?)this\.uuid = generateUUID\(\);/$1this.uuid = "5c0e0000-0000-4000-8000-" + ( "000000000000" + this.id.toString( 16 ) ).slice( -12 );/' "$C"
 grep -q '5c0e0000-0000-4000-8000-' "$C" || { echo "source uuid patch not applied"; exit 1; }
+# Fourth patch: r151+ culls an InstancedMesh / SkinnedMesh by its own cached bounding sphere (all instances, or the
+# posed skeleton); r128 used the geometry's sphere with the object matrix. With window.__THREE_LEGACY_CULL true the r128
+# test is used, so batches the game culls (or deliberately leaves uncullable) behave exactly as before.
+j=$(grep -c "		if ( object.boundingSphere !== undefined ) {" "$C" || true)
+[ "$j" -ge 1 ] || { echo "cull patch site not found"; exit 1; }
+sed -i 's/		if ( object.boundingSphere !== undefined ) {/		if ( object.boundingSphere !== undefined \&\& globalThis.__THREE_LEGACY_CULL !== true ) {/' "$C"
 sed "s#'./package/#'$W/package/#g" "$HERE/three187-entry.js" > "$W/entry.js"
 npx -y esbuild@0.24.0 "$W/entry.js" --bundle --minify --format=iife --target=es2019 --legal-comments=eof --outfile="$HERE/three187.min.js"
 rm -rf "$W"
