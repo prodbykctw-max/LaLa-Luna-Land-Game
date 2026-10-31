@@ -4,7 +4,7 @@
 import { open, OUT } from './_harness.mjs';
 const tag = process.argv[2] || 'now', isls = process.argv.slice(3).length ? process.argv.slice(3) : ['hub', 'green', 'gr', 'sanity', 'town'];
 for (const isl of isls) {
-  const H = await open({ island: isl, query: 'guide=off&weather=clear', wait: 20000, viewport: { width: 960, height: 600 } });
+  const H = await open({ island: isl, query: 'guide=off&weather=clear' + (process.env.PARQ ? '&' + process.env.PARQ : ''), wait: 20000, viewport: { width: 960, height: 600 } });
   await H.page.waitForFunction(() => { const T = window.__T; return T.CUR && T.CUR.W.model; }, null, { timeout: 120000 }).catch(() => {});
   for (const [k, yaw, pitch, dist] of [[0, Math.PI, .32, 12], [1, Math.PI*.5, .22, 14], [2, 0, .45, 18]]) {
     await H.page.evaluate(([yaw, pitch, dist]) => { const I = window.__T.CUR, W = I.W, c = I.cfg;

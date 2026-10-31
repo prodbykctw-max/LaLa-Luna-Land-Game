@@ -453,6 +453,7 @@ if(LEGACY_LIGHTS){
 	if ( cutoffDistance > 0.0 ) {
 		distanceFalloff *= pow2( saturate( 1.0 - pow4( lightDistance / cutoffDistance ) ) );
 		distanceFalloff *= pow( 0.25 * cutoffDistance, decayExponent ) / 0.75;
+		distanceFalloff = min( distanceFalloff, 1.6 );   /* a lamp brushing a surface glows, it does not flare white */
 	}
 	return distanceFalloff;
 }`)
@@ -603,6 +604,10 @@ const camera = new THREE.PerspectiveCamera(innerHeight > innerWidth ? 66 : 56, i
 const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(new THREE.Scene(), camera); composer.addPass(renderPass);
 const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .30, .75, hdrThresh(.86, renderer.toneMappingExposure)); if(PROF.bloom) composer.addPass(bloomPass);
+/* in HDR a pixel can be many times brighter than white; the bloom gathers light from a capped copy so one hot spot
+   glows instead of washing the screen out */
+if(HDR_POST && bloomPass.materialHighPassFilter){ const hm = bloomPass.materialHighPassFilter;
+  hm.fragmentShader = hm.fragmentShader.replace("vec4 texel = texture2D( tDiffuse, vUv );", "vec4 texel = texture2D( tDiffuse, vUv ); texel.rgb = min( texel.rgb, vec3( 4.0 ) );"); hm.needsUpdate = true; }
 /* ===================  THE GRADE IS WHY THEIR FRAMES LOOK SHOT AND OURS LOOK RENDERED  ===================
    Nothing in the reference reels is "high detail". Pull a frame from the Askew forest and it is
    ninety percent near-black teal with ONE saturated orange on the character; Klein's Gate is
