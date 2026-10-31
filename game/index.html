@@ -385,15 +385,10 @@ body.sail #khint{display:block}
 </div>
 <div id="fade"><div id="loadBox"><div class="eyebrow" id="loadEye">Setting sail</div><div id="loadName"></div><div class="lbar"><i id="loadBar"></i></div></div></div>
 
-<script src="vendor/three.min.js"></script>
-<script src="vendor/GLTFLoader.js"></script>
-<script src="vendor/SkeletonUtils.js"></script>
-<script src="vendor/CopyShader.js"></script>
-<script src="vendor/LuminosityHighPassShader.js"></script>
-<script src="vendor/EffectComposer.js"></script>
-<script src="vendor/RenderPass.js"></script>
-<script src="vendor/ShaderPass.js"></script>
-<script src="vendor/UnrealBloomPass.js"></script>
+<!-- Three.js r187 (Oct 2026) and the add-ons the game uses, bundled into one script by vendor/three187-entry.js
+     (npx esbuild vendor/three187-entry.js --bundle --minify --format=iife). It sets window.THREE in the shape the old
+     r128 global build had: THREE.GLTFLoader, THREE.SkeletonUtils.clone, THREE.EffectComposer, ... -->
+<script src="vendor/three187.min.js"></script>
 <script>
 (() => {
 "use strict";
@@ -420,8 +415,39 @@ let ASSET_PENDING = 0;
    ============================================================ */
 /* r128 treats hex colours as linear, so with sRGB output every palette colour came out washed
    and pale — the "sketched" look. Interpret every hex as sRGB (what the palettes were designed as). */
-{ const setHex = THREE.Color.prototype.setHex;
-  THREE.Color.prototype.setHex = function(h){ setHex.call(this, h); return this.convertSRGBToLinear(); }; }
+/* Three.js r152+ converts hex colours from sRGB itself (ColorManagement), which is what this patch used to add to r128. */
+THREE.ColorManagement.enabled = true;
+/* r128 tone-mapped every material into whatever it was drawn into; r153+ only tone-maps the final draw to the screen.
+   The game draws through an EffectComposer (bloom, then the grade), so it keeps the old behaviour: the patched engine
+   (vendor/build-three187.sh) reads this switch. ?tonemap=screen leaves r187's own behaviour. */
+globalThis.__THREE_TONEMAP_RT = new URLSearchParams(location.search).get("tonemap") !== "screen";
+/* ===================  THE LIGHTS KEEP THEIR r128 STRENGTH  ===================
+   r155 made lights physical: the renderer stopped multiplying every light by PI, point and spot lights fall off with
+   the inverse square and default to decay 2. Every light in the game was tuned by eye under the old model, so the old
+   model is put back here instead of retuning twenty lights: every light's colour (direct, hemisphere, ambient) is
+   scaled by PI where the shaders read it, the distance falloff is r128's (1 - d/cutoff)^decay, and point and spot
+   lights default to r128's decay of 1. ?lights=physical leaves r187's own model alone. */
+const LEGACY_LIGHTS = new URLSearchParams(location.search).get("lights") !== "physical";
+if(LEGACY_LIGHTS){
+  const C = THREE.ShaderChunk, before = C.lights_pars_begin;
+  let t = before
+    .replace(/float getDistanceAttenuation\( const in float lightDistance, const in float cutoffDistance, const in float decayExponent \) \{[\s\S]*?\n\}/,
+      `float getDistanceAttenuation( const in float lightDistance, const in float cutoffDistance, const in float decayExponent ) {
+	if ( cutoffDistance > 0.0 && decayExponent > 0.0 ) return pow( saturate( - lightDistance / cutoffDistance + 1.0 ), decayExponent );
+	return 1.0;
+}`)
+    .replace("vec3 irradiance = ambientLightColor;\n\treturn irradiance;", "vec3 irradiance = ambientLightColor * PI;\n\treturn irradiance;")
+    .replace("vec3 irradiance = mix( hemiLight.groundColor, hemiLight.skyColor, hemiDiffuseWeight );", "vec3 irradiance = mix( hemiLight.groundColor, hemiLight.skyColor, hemiDiffuseWeight ) * PI;")
+    .replace("light.color = directionalLight.color;", "light.color = directionalLight.color * PI;")
+    .replace("light.color = pointLight.color;", "light.color = pointLight.color * PI;")
+    .replace("light.color = spotLight.color * spotAttenuation;", "light.color = spotLight.color * spotAttenuation * PI;");
+  const n = ["(1 - d", "ambientLightColor * PI", "hemiDiffuseWeight ) * PI", "directionalLight.color * PI", "pointLight.color * PI", "spotAttenuation * PI"]
+    .filter(k => t.includes(k === "(1 - d" ? "- lightDistance / cutoffDistance + 1.0" : k)).length;
+  if(n !== 6) console.warn("legacy lights: only " + n + "/6 patches applied");
+  C.lights_pars_begin = t;
+  for(const K of ["PointLight", "SpotLight"]){ const Base = THREE[K];
+    THREE[K] = class extends Base { constructor(){ super(...arguments); if(arguments.length < 4 || arguments[3] === undefined){ if(K === "PointLight") this.decay = 1; } if(K === "SpotLight" && (arguments.length < 6 || arguments[5] === undefined)) this.decay = 1; } }; }
+}
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
 const BUILD = "2026-10-30a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
@@ -539,8 +565,8 @@ const shelfGround = d => d <= SHELF_FLAT ? -.12 : -.12 - Math.min(1.4, (d - SHEL
 const DECOR = 1 + (WORLD - 1) * 0.75;
 renderer.setPixelRatio(PROF.dpr);
 renderer.setSize(innerWidth, innerHeight);
-renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.shadowMap.enabled = PROF.shadow; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = PROF.shadow; renderer.shadowMap.type = THREE.PCFShadowMap;   /* PCFSoft was removed in r187; PCF is the soft one now */
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = (QS.get("look") || "toon3d") !== "real" ? 1.12 : (REAL ? 1.0 : 1.05);   /* the environment map adds real light, so pull the exposure back */
 document.body.appendChild(renderer.domElement);
@@ -684,8 +710,8 @@ const LIGHT = (() => {
   const L = {ok:false, phone: matchMedia("(pointer:coarse)").matches || innerWidth < 820};
   try{
     const caps = renderer.capabilities, ext = renderer.extensions;
-    const depthOK = caps.isWebGL2 || ext.has("WEBGL_depth_texture");
-    let halfOK = caps.isWebGL2 && (ext.has("EXT_color_buffer_float") || ext.has("EXT_color_buffer_half_float"));
+    const depthOK = true;   /* r163+ always runs WebGL2 */
+    let halfOK = (ext.has("EXT_color_buffer_float") || ext.has("EXT_color_buffer_half_float"));
     /* an 8-bit target clamped everything at 1.0 for free and the grade's S-curve relies on that (it
        turns negative above ~1.5); a half-float target does not clamp, so the grade clamps instead -
        exactly what the 8-bit store did. If the grade's text has moved, stay 8-bit. */
@@ -695,22 +721,15 @@ const LIGHT = (() => {
       else halfOK = false;
     }
     L.half = halfOK;
-    /* soft shadows: PCF branch replaced by a rotated Poisson disc, radius from light.shadow.radius */
-    const ch = THREE.ShaderChunk.shadowmap_pars_fragment, a = ch.indexOf("#if defined( SHADOWMAP_TYPE_PCF )"), b = ch.indexOf("#elif defined( SHADOWMAP_TYPE_PCF_SOFT )");
-    if(a >= 0 && b > a){
-      const P = [[-.94201624,-.39906216],[.94558609,-.76890725],[-.09418410,-.92938870],[.34495938,.29387760],[-.91588581,.45771432],[-.81544232,-.87912464],[-.38277543,.27676845],[.97484398,.75648379],[.44323325,-.97511554],[.53742981,-.47373420],[-.26496911,-.41893023],[.79197514,.19090188],[-.24188840,.99706507],[-.81409955,.91437590],[.19984126,.78641367],[.14383161,-.14100790]];
-      const taps = P.map(p => `shadow += texture2DCompare( shadowMap, shadowCoord.xy + R * vec2(${p[0].toFixed(6)}, ${p[1].toFixed(6)}), shadowCoord.z );`).join("\n");
-      THREE.ShaderChunk.shadowmap_pars_fragment = ch.slice(0, a) + `#if defined( SHADOWMAP_TYPE_PCF )
-        vec2 texelSize = vec2( 1.0 ) / shadowMapSize;
-        float lAng = 6.2831853 * fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) );
-        float lS = sin( lAng ), lC = cos( lAng );
-        mat2 R = mat2( lC, lS, -lS, lC ) * ( texelSize.x * shadowRadius );
-        shadow = 0.0;
-        ${taps}
-        shadow *= ( 1.0 / 16.0 );
-      ` + ch.slice(b);
-      renderer.shadowMap.type = THREE.PCFShadowMap;
-    }
+    /* soft shadows: 16 taps on a rotated disc, radius from light.shadow.radius. r187's own PCF filter is already a
+       noise-rotated disc on the hardware compare, with 5 taps; this widens it to the 16 the game's shadows were tuned on. */
+    { const ch = THREE.ShaderChunk.shadowmap_pars_fragment;
+      const five = /shadow = \(\s*texture\( shadowMap, vec3\( shadowCoord\.xy \+ vogelDiskSample\( 0, 5, phi \) \* radius, shadowCoord\.z \) \)[\s\S]*?\) \* 0\.2;/;
+      if(five.test(ch)){
+        const taps = Array.from({length:16}, (_, i) => `texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( ${i}, 16, phi ) * radius, shadowCoord.z ) )`).join(" +\n");
+        THREE.ShaderChunk.shadowmap_pars_fragment = ch.replace(five, `shadow = (\n${taps}\n) * ( 1.0 / 16.0 );`);
+      } else console.warn("shadow filter: r187 PCF block not found, keeping its 5 taps");
+      renderer.shadowMap.type = THREE.PCFShadowMap; }
     if(!depthOK) return L;
     for(const rt of [composer.renderTarget1, composer.renderTarget2]){
       if(halfOK) rt.texture.type = THREE.HalfFloatType;
@@ -777,7 +796,7 @@ const LIGHT = (() => {
           gl_FragColor = c; }`,
       depthTest:false, depthWrite:false});
     L.quad = new THREE.FullScreenQuad(null);
-    const pass = new THREE.Pass(); pass.needsSwap = true; pass.enabled = false;
+    const pass = new THREE.Pass();   /* exported by the bundle (r187 Pass.js) */ pass.needsSwap = true; pass.enabled = false;
     pass.render = (r, writeBuffer, readBuffer) => {
       const w = readBuffer.width, h = readBuffer.height, sw = Math.max(2, Math.round(w*L.scale)), sh = Math.max(2, Math.round(h*L.scale));
       if(L.rtM.width !== sw || L.rtM.height !== sh){ L.rtM.setSize(sw, sh); L.rtA.setSize(sw, sh); L.rtB.setSize(sw, sh); }
@@ -793,7 +812,7 @@ const LIGHT = (() => {
     L.pass = pass;
     composer.insertPass(pass, composer.passes.indexOf(gradePass));
     L.ok = true;
-  }catch(e){ DBG("light pass failed, shafts off", e); L.ok = false; }
+  }catch(e){ console.warn("light pass failed, shafts off", e && e.message, e && e.stack && e.stack.split("\n")[1]); L.ok = false; }   /* DBG is not defined yet this early */
   L.v = new THREE.Vector3(); L.f = new THREE.Vector3(); L.x = new THREE.Vector3(); L.y = new THREE.Vector3(); L.m = new THREE.Matrix4();
   /* the golden-hour sun: the old bearing (from -x,+z), 30 degrees up instead of 54 */
   const EL = 30*Math.PI/180, hx = -25, hz = 15, hl = Math.hypot(hx, hz);
@@ -930,7 +949,7 @@ function ramp(n){
   const d = new Uint8Array(n);
   const steps = [.40, .58, .74, .90, 1.0];
   for(let i=0;i<n;i++) d[i] = Math.round(255 * (steps[i] != null ? steps[i] : (i/(n-1))));
-  const t = new THREE.DataTexture(d, n, 1, THREE.LuminanceFormat);
+  const t = new THREE.DataTexture(d, n, 1, THREE.RedFormat);
   t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
   return t;
 }
@@ -1276,7 +1295,7 @@ const GSCALE = Math.max(.5, parseFloat(QS.get("gscale")) || 5);
 const PHOTO = !GROUNDQ ? null : (() => {
   const L = new THREE.TextureLoader();
   const mk = (url, srgb) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(1/GSCALE, 1/GSCALE); t.anisotropy = 8; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+    t.repeat.set(1/GSCALE, 1/GSCALE); t.anisotropy = 8; if(srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   return {diff: mk("assets/ground/meadow_diff.jpg", true), nor: mk("assets/ground/meadow_nor.jpg", false)};
 })();
 /* ===================  REAL TREES (?trees=real)  ===================
@@ -1297,7 +1316,7 @@ const LEAF_CARDS = (matchMedia("(pointer:coarse)").matches || innerWidth < 820) 
 const TREE_TEX = !TREESQ ? null : (() => {
   const L = new THREE.TextureLoader();
   const mk = (url, srgb, wrap) => { const t = L.load(url); t.wrapS = t.wrapT = wrap ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-    t.anisotropy = 4; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+    t.anisotropy = 4; if(srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   return {leaf: mk("assets/trees/foliage_diff.jpg", true, false), leafA: mk("assets/trees/foliage_alpha.jpg", false, false),
           bark: mk("assets/trees/bark_diff.jpg", true, true), barkN: mk("assets/trees/bark_nor.jpg", false, true),
           palm: mk("assets/trees/palm_diff.jpg", true, true), palmN: mk("assets/trees/palm_nor.jpg", false, true),
@@ -1466,7 +1485,7 @@ function forestBuilder(P, night){
         /* both faces of a card shade with the crown's outward normal - three would flip it on the back face,
            and half the leaves would go black */
         sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>",
-          "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;")
+          "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;")
           /* light through the leaves: the shadow side of a crown is never black, it glows faintly green */
           .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05) * " + (night ? ".25" : "1.0") + ";");
       };
@@ -1500,7 +1519,7 @@ const ROCKQ = QS.get("rocks") !== "old";
 const ROCK_TEX = !ROCKQ ? null : (() => {
   const L = new THREE.TextureLoader();
   const mk = (url, srgb, rep) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
-    if(srgb) t.encoding = THREE.sRGBEncoding; if(rep) t.repeat.set(rep, rep); return t; };
+    if(srgb) t.colorSpace = THREE.SRGBColorSpace; if(rep) t.repeat.set(rep, rep); return t; };
   return {boulder: mk("assets/rocks/boulder_diff.jpg", true), boulderN: mk("assets/rocks/boulder_nor.jpg", false),
           strata: mk("assets/rocks/strata_diff.jpg", true, 1.7), strataN: mk("assets/rocks/strata_nor.jpg", false, 1.7)};
 })();
@@ -1547,7 +1566,7 @@ function rockField(P, night){
         .replace("#include <map_fragment>", `{ vec3 bw = pow(abs(normalize(vObjN)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
             vec3 q = vObj * .42;
             vec4 tx = texture2D(map, q.zy)*bw.x + texture2D(map, q.xz)*bw.y + texture2D(map, q.xy)*bw.z;
-            tx = mapTexelToLinear(tx);
+            /* sRGB decoded by the sampler (r152+) */
             float cav = smoothstep(-.6, .4, vObjN.y);                 /* undersides sit in their own shadow */
             diffuseColor.rgb *= tx.rgb * mix(.62, 1.0, cav); }`);
     };
@@ -1583,7 +1602,7 @@ function weather(geo, amt, freq){
 const PROPSQ = QS.get("props") !== "old";
 const BUILD_TEX = !PROPSQ ? null : (() => {
   const L = new THREE.TextureLoader();
-  const mk = (url, srgb) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+  const mk = (url, srgb) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; if(srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   return {planks: mk("assets/build/planks_diff.jpg", true), planksN: mk("assets/build/planks_nor.jpg", false),
           wall: mk("assets/build/wall_diff.jpg", true), wallN: mk("assets/build/wall_nor.jpg", false),
           slate: mk("assets/build/slate_diff.jpg", true), slateN: mk("assets/build/slate_nor.jpg", false)};
@@ -1608,7 +1627,7 @@ function builtMesh(geo, tex, ntex, col, night, rough){
 const LOOKS2 = QS.get("looks") !== "old";   /* the real replacements are the default (picked 2026-10-18); ?looks=old brings back the earlier pieces */
 let _r2 = null;
 function R2(){ if(_r2) return _r2;
-  const L = new THREE.TextureLoader(), mk = (f, srgb) => { const t = L.load("assets/real2/" + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+  const L = new THREE.TextureLoader(), mk = (f, srgb) => { const t = L.load("assets/real2/" + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if(srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   const F = {paving:["paving_diff.jpg", 1], pavingN:["paving_nor.jpg", 0], plaster:["plaster_grey.jpg", 1], plasterN:["plaster_nor.jpg", 0],
     roof:["rooftiles_diff.jpg", 1], roofN:["rooftiles_nor.jpg", 0], white:["whitewall_diff.jpg", 1], whiteN:["whitewall_nor.jpg", 0]}, C = {};
   return (_r2 = new Proxy(C, {get:(o, k) => k in o ? o[k] : F[k] ? (o[k] = mk(F[k][0], !!F[k][1])) : undefined})); }
@@ -1630,7 +1649,7 @@ function r2Cloth(col, stripes, white){ const key = col + ":" + stripes + ":" + (
   const im = x.getImageData(0, 0, S, S), d = im.data;
   for(let j=0;j<S;j++) for(let i=0;i<S;i++){ const k = (j*S + i)*4, w = ((i ^ j) & 1) ? 1 : .955, n = .93 + r()*.09; d[k] *= w*n; d[k+1] *= w*n; d[k+2] *= w*n; }
   x.putImageData(im, 0, 0);
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; _r2cloth.set(key, t); return t; }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; _r2cloth.set(key, t); return t; }
 /* the Town Square fountain: a carved stone basin, a pedestal with an upper bowl, water falling from its lip */
 function r2Fountain(scene, fr, gy){
   const g = new THREE.Group(); g.position.set(0, 0, 0);
@@ -1803,15 +1822,15 @@ function bloomPatch(sh, amt){
   sh.fragmentShader = sh.fragmentShader
     .replace("#include <common>", "#include <common>\nuniform float uBloom, uGS;\n" + BLOOM_GLSL)
     .replace("#include <map_fragment>", `#include <map_fragment>
-#ifdef USE_UV
-{ vec2 w = vec2(vUv.x, -vUv.y) * uGS;
+#ifdef USE_MAP
+{ vec2 w = vec2(vMapUv.x, -vMapUv.y) * uGS;
   float bm = smoothstep(${BLOOM_T.toFixed(2)}, ${(BLOOM_T + .45).toFixed(2)}, bloomMask(w)) * uBloom;
   float lum = dot(diffuseColor.rgb, vec3(.3,.59,.11));
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0, .50, .09) * (lum*1.7 + .06), bm*.42); }
 #endif`);
 }
 const FLOWERS_TEX = !MEADOWQ ? null : (() => { const L = new THREE.TextureLoader();
-  const a = L.load("assets/trees/flowers_diff.jpg"), b = L.load("assets/trees/flowers_alpha.jpg"); a.encoding = THREE.sRGBEncoding; return {map:a, alpha:b}; })();
+  const a = L.load("assets/trees/flowers_diff.jpg"), b = L.load("assets/trees/flowers_alpha.jpg"); a.colorSpace = THREE.SRGBColorSpace; return {map:a, alpha:b}; })();
 function flowerMeadow(scene, n, origin, heightFn, blocked){
   const RING = 46;
   /* two crossed cards, rooted at y = 0 */
@@ -1834,7 +1853,7 @@ function flowerMeadow(scene, n, origin, heightFn, blocked){
           transformed.x += (0.05 + .16*gust) * uWind * w + sin(uTime*3.1 + io.x*1.9)*.03*w;
           transformed.z += (0.03 + .10*gust) * uWind * w;
           float camd = distance(io.xz, cameraPosition.xz); transformed *= 1.0 - smoothstep(34.0, 46.0, camd); }`);
-    sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;");
   };
   mat.customProgramCacheKey = () => "meadowflowers";
   const mesh = new THREE.InstancedMesh(g, mat, n);
@@ -1917,7 +1936,7 @@ function macroPatch(sh, div){
     .replace("#include <common>",
       "#include <common>\nuniform sampler2D uMacro; uniform float uMacroDiv, uMacroTiles, uMacroAmt;")
     .replace("#include <map_fragment>",
-      "#include <map_fragment>\n#ifdef USE_UV\n{ float mv = texture2D(uMacro, vUv / uMacroDiv * uMacroTiles).r;\n  diffuseColor.rgb *= mix(1.0, 0.56 + mv * 0.92, uMacroAmt); }\n#endif");
+      "#include <map_fragment>\n#ifdef USE_MAP\n{ float mv = texture2D(uMacro, vMapUv / uMacroDiv * uMacroTiles).r;\n  diffuseColor.rgb *= mix(1.0, 0.56 + mv * 0.92, uMacroAmt); }\n#endif");
 }
 /* add the wash to a material that already went through toonRim (which owns the patch list) */
 function withMacro(mat){
@@ -2125,7 +2144,7 @@ function canvasTex(){ if(_canvasTex) return _canvasTex;
     const n = .94 + r()*.08, v = 236*w*st*n;
     const k = (j*S + i)*4; d.data[k] = v; d.data[k+1] = v*.965; d.data[k+2] = v*.90; d.data[k+3] = 255; }
   x.putImageData(d, 0, 0);
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2.6); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2.6); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return (_canvasTex = t); }
 function realSloop(g){
   if(!BUILD_TEX) return;
@@ -2155,7 +2174,7 @@ const HERBOAT = !BOATSQ || QS.get("herboat") === "old" ? null : ["varnish", "wea
 const DINGHY_SEAMS = {varnish:[105,241,377,513,649,785,920], weathered:[40,118,197,276,355,434,512,590,669,747,827,906,986]};
 let _dinghyTex = null;
 function dinghyTex(){ if(_dinghyTex) return _dinghyTex;   /* each photo loads only when a boat first asks for it */
-  const L = new THREE.TextureLoader(), mk = (f, srgb) => { const t = L.load("assets/boats/" + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if(srgb) t.encoding = THREE.sRGBEncoding; return t; };
+  const L = new THREE.TextureLoader(), mk = (f, srgb) => { const t = L.load("assets/boats/" + f); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; if(srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
   const F = {varnish:["dinghy_varnish_diff.jpg", true], varnishN:["dinghy_varnish_nor.jpg", false], weathered:["dinghy_weathered_diff.jpg", true], weatheredN:["dinghy_weathered_nor.jpg", false], paint:["dinghy_paint_diff.jpg", true]}, C = {};
   return (_dinghyTex = new Proxy(C, {get:(o, k) => k in o ? o[k] : F[k] ? (o[k] = mk(...F[k])) : undefined})); }
 const DINGHY = (() => {
@@ -2362,7 +2381,7 @@ function sailCanvasTex(){ if(_sailCanvas) return _sailCanvas;
   const cx = Wd*.48, cy = Ht*.42, R = Wd*.2;
   x.beginPath(); x.arc(cx, cy, R, 0, Math.PI*2); x.arc(cx + R*.42, cy - R*.12, R*.84, 0, Math.PI*2, true); x.fill("evenodd"); x.restore();
   { const id = x.getImageData(0, 0, Wd, Ht), q = id.data; for(let k=0;k<q.length;k+=4){ if(q[k] < 200 && q[k+2] > q[k] + 20 && r() < .07){ q[k] += 30; q[k+1] += 30; q[k+2] += 18; } } x.putImageData(id, 0, 0); }
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return (_sailCanvas = t); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return (_sailCanvas = t); }
 /* a ship's lantern: brass base, glass chimney with a lit wick, guard wires, cap and carrying ring */
 function shipLantern(scale){
   const L = new THREE.Group(), brass = new THREE.MeshStandardMaterial({color:0xB48A44, metalness:.85, roughness:.32}),
@@ -2389,7 +2408,7 @@ function wingTex(){ if(_wingTex) return _wingTex;
     x.beginPath(); x.moveTo(ox, oy); x.quadraticCurveTo((ox + ex)/2 + 10, (oy + ey)/2 - 6, ex, ey); x.stroke(); }
   x.fillStyle = "rgba(255,255,255,.85)";
   for(let k=0;k<11;k++){ const a = -1.0 + k*.22, d = S*.84, px = ox + Math.cos(a)*d, py = oy - Math.sin(a)*d; x.beginPath(); x.arc(px, py, 3.2, 0, Math.PI*2); x.fill(); }
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.repeat.set(2, 1/.76); t.offset.set(0, .32/.76); t.anisotropy = 4; return (_wingTex = t); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(2, 1/.76); t.offset.set(0, .32/.76); t.anisotropy = 4; return (_wingTex = t); }
 function dinghyDress(g, D, mTrim, W, lights){
   const part = o => { o.userData.dinghyPart = true; o.traverse(q => { if(q.isMesh){ q.castShadow = true; q.receiveShadow = true; } }); g.add(o); return o; };
   const rope = new THREE.MeshStandardMaterial({color:0x7A6448, roughness:.92}), wood = mTrim;
@@ -3107,9 +3126,9 @@ if(HORIZONQ){
 	#ifdef FOG_EXP2
 		float fogFactor;
 		if(hzC.w > .5){ fogFactor = hzFactor(vHzW, fogDensity); hzFC = hzTint(normalize(vHzW - hzEye()), fogColor); }
-		else fogFactor = 1.0 - exp( - fogDensity * fogDensity * fogDepth * fogDepth );
+		else fogFactor = 1.0 - exp( - fogDensity * fogDensity * vFogDepth * vFogDepth );
 	#else
-		float fogFactor = smoothstep( fogNear, fogFar, fogDepth );
+		float fogFactor = smoothstep( fogNear, fogFar, vFogDepth );
 	#endif
 	gl_FragColor.rgb = mix( gl_FragColor.rgb, hzFC, fogFactor );
 #endif`;
@@ -3814,7 +3833,7 @@ function drawnBox(root){
   root.updateMatrixWorld(true);
   const b = new THREE.Box3(), v = new THREE.Vector3();
   root.traverse(m => { if(!m.isMesh) return; const pos = m.geometry.attributes.position, st = Math.max(1, Math.floor(pos.count/3000));
-    for(let i = 0; i < pos.count; i += st){ v.fromBufferAttribute(pos, i); if(m.isSkinnedMesh) m.boneTransform(i, v); v.applyMatrix4(m.matrixWorld); b.expandByPoint(v); } });
+    for(let i = 0; i < pos.count; i += st){ v.fromBufferAttribute(pos, i); if(m.isSkinnedMesh) m.applyBoneTransform(i, v); v.applyMatrix4(m.matrixWorld); b.expandByPoint(v); } });
   return b;
 }
 /* how fast a clip carries the animal over the ground: the feet are planted while the body passes over them, so a foot
@@ -3952,7 +3971,7 @@ function lightenSkin(tex){
     }
     cx.putImageData(d, 0, 0);
     const out = new THREE.CanvasTexture(cv);
-    out.flipY = tex.flipY; out.encoding = tex.encoding; out.wrapS = tex.wrapS; out.wrapT = tex.wrapT;
+    out.flipY = tex.flipY; out.colorSpace = tex.colorSpace; out.wrapS = tex.wrapS; out.wrapT = tex.wrapT;
     out.needsUpdate = true;
     DBG("skin lifted", (hit/(w*h)*100).toFixed(1) + "% of atlas by", SKIN_LIFT);
     return out;
@@ -4016,10 +4035,10 @@ function loadRig(name){
       const old = o.material;
       let srcMap = old && old.map || null;
       if(srcMap && (name === "lala" || rig.skin)) srcMap = lightenSkin(srcMap);
-      o.material = toonRim(stdMat({map: srcMap, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, skinning: !!o.isSkinnedMesh, side: THREE.FrontSide}));
+      o.material = toonRim(stdMat({map: srcMap, color: old && old.color ? old.color.clone() : 0xffffff, gradientMap: GRAD, side: THREE.FrontSide}));
       /* ink outline: an inflated back-face twin sharing the skeleton, so rigged models match the inked world */
       if(!PROF.ink || rig.ink === 0 || rig.pbr) return;
-      const om = new THREE.MeshBasicMaterial({color: INK, side: THREE.BackSide, skinning: !!o.isSkinnedMesh, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4});
+      const om = new THREE.MeshBasicMaterial({color: INK, side: THREE.BackSide, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4});
       om.onBeforeCompile = sh => { sh.uniforms.thick = {value: (rig.ink != null ? rig.ink : .045) / s}; sh.vertexShader = sh.vertexShader
         .replace("#include <common>", "#include <common>\nuniform float thick;")
         .replace("#include <begin_vertex>", "vec3 transformed = vec3(position) + normalize(normal) * thick;"); };
@@ -5370,7 +5389,7 @@ const SHORE_NOISE = !SHOREQ ? null : (() => {
 const SHORE_TEX = !SHOREQ ? null : (() => {
   const L = new THREE.TextureLoader();
   const mk = (url, srgb) => { const t = L.load(url); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
-    if(srgb) t.encoding = THREE.sRGBEncoding; t.repeat.set(1/SAND_TILE, 1/SAND_TILE); return t; };
+    if(srgb) t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(1/SAND_TILE, 1/SAND_TILE); return t; };
   return {sand: mk("assets/shore/sand_diff.jpg", true), sandN: mk("assets/shore/sand_nor.jpg", false)};
 })();
 /* integer-hash value noise for the CPU-only decisions (coast displacement, where the rocks go) */
@@ -5538,7 +5557,7 @@ function shoreField(POLY){
       const inn = ((xs.length - s) & 1) === 1;                 /* odd crossings to the right: inside */
       const k = tj*nx + ti, sd = inn ? -dist[k] : dist[k];
       data[k] = Math.round((sd + F)/(2*F)*255); } }
-  const tex = new THREE.DataTexture(data, nx, nz, THREE.LuminanceFormat);
+  const tex = new THREE.DataTexture(data, nx, nz, THREE.RedFormat);
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.magFilter = tex.minFilter = THREE.LinearFilter;
   tex.generateMipmaps = false; tex.unpackAlignment = 1; tex.needsUpdate = true;
   const W = nx*C, H = nz*C;
@@ -5592,18 +5611,19 @@ function shoreMeadowPatch(sh, F, sandCol){
       if(vShW.y < .03 && shoreSD(vShW.xz) > -16.0 && abs(dot(normalize(vNormal), normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz))) < .6) discard;   /* where the meadow dips to the sand slab's level it IS sand: no green seam where the two cross */
       if(shK > .001){
         vec2 suv = vec2(vShW.x, -vShW.z) / ${SAND_TILE.toFixed(1)};
-        vec3 sc = sRGBToLinear(texture2D(uShSand, suv)).rgb * uShCol;
+        vec3 sc = texture2D(uShSand, suv).rgb * uShCol;
         sc *= .88 + .24*texture2D(uShN, vShW.xz/52.0).g;
         diffuseColor.rgb = mix(diffuseColor.rgb, sc, shK);
         diffuseColor.rgb *= 1.0 - .26*uShWet*shK;
       }`)
     .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
-      #if defined( TANGENTSPACE_NORMALMAP ) && ! defined( USE_TANGENT )
+      #if defined( USE_NORMALMAP_TANGENTSPACE ) && ! defined( USE_TANGENT )
       if(shK > .001){ vec3 sN = texture2D(uShSandN, vec2(vShW.x, -vShW.z) / ${SAND_TILE.toFixed(1)}).xyz * 2.0 - 1.0;
-        normal = normalize(mix(normal, perturbNormal2Arb(-vViewPosition, geometryNormal, sN, faceDirection), shK)); }
+        mat3 tbS = getTangentFrame(-vViewPosition, nonPerturbedNormal, vNormalMapUv); tbS[0] *= faceDirection; tbS[1] *= faceDirection;   /* r151+: perturbNormal2Arb became getTangentFrame */
+        normal = normalize(mix(normal, normalize(tbS * sN), shK)); }
       #endif`)
     .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
-      material.specularRoughness = mix(material.specularRoughness, mix(.93, .26, uShWet), shK);`);
+      material.roughness = mix(material.roughness, mix(.93, .26, uShWet), shK);`);
 }
 /* the beach and the shelf: photo sand, a damp band along the water, a wrack line, and rain */
 function shoreSandPatch(sh, F){
@@ -5622,10 +5642,10 @@ function shoreSandPatch(sh, F){
         diffuseColor.rgb *= 1.0 - .13*wr*(1.0 - shD);                   /* the last high tide's line */
         diffuseColor.rgb *= 1.0 - .26*uShWet; }`)
     .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
-      normal = normalize(mix(normal, geometryNormal, shD*.55));          /* water smooths the ripples out */`)
+      normal = normalize(mix(normal, nonPerturbedNormal, shD*.55));          /* water smooths the ripples out */`)
     .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
-      material.specularRoughness = mix(material.specularRoughness, .40, shD*.75);
-      material.specularRoughness = mix(material.specularRoughness, .20, uShWet*.9);
+      material.roughness = mix(material.roughness, .40, shD*.75);
+      material.roughness = mix(material.roughness, .20, uShWet*.9);
       #ifdef USE_FOG
       { float fr = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 5.0);
         totalEmissiveRadiance += fogColor * fr * (.10*shD + .28*uShWet); }      /* wet sand mirrors the sky at a low angle */
@@ -5639,11 +5659,11 @@ function shoreSandMat(col, F, extra){
       /* one 7 u photo tile repeated down a whole beach shows as parallel stripes under a low moon: blend in a second
          copy turned 37 degrees and 2.3x larger, swapped in patches by noise, so no two ripples line up */
       sh.fragmentShader = sh.fragmentShader
-        .replace("#include <map_fragment>", `vec2 uvB = mat2(.799, -.602, .602, .799)*vUv*.43 + vec2(.31, .17);
+        .replace("#include <map_fragment>", `vec2 uvB = mat2(.799, -.602, .602, .799)*vMapUv*.43 + vec2(.31, .17);
           float wB = smoothstep(.38, .62, texture2D(uShN, vShW.xz/41.0 + .13).r);
-          vec4 texelColor = mix(texture2D(map, vUv), texture2D(map, uvB), wB); texelColor = mapTexelToLinear(texelColor); diffuseColor *= texelColor;`)
-        .replace("#include <normal_fragment_maps>", THREE.ShaderChunk.normal_fragment_maps.replace("vec3 mapN = texture2D( normalMap, vUv ).xyz * 2.0 - 1.0;",
-          "vec3 mapN = mix(texture2D(normalMap, vUv).xyz, texture2D(normalMap, uvB).xyz, wB) * 2.0 - 1.0;")); }]]);
+          vec4 texelColor = mix(texture2D(map, vMapUv), texture2D(map, uvB), wB); diffuseColor *= texelColor;`)
+        .replace("#include <normal_fragment_maps>", THREE.ShaderChunk.normal_fragment_maps.replace("vec3 mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;",
+          "vec3 mapN = mix(texture2D(normalMap, vNormalMapUv).xyz, texture2D(normalMap, uvB).xyz, wB) * 2.0 - 1.0;")); }]]);
     m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));
     m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join("_");
   }
@@ -5709,7 +5729,7 @@ function shoreRockBuilder(P, night){
         .replace("#include <map_fragment>", `{ vec3 bw = pow(abs(normalize(vObjN)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
             vec3 q = vObj * .42;
             vec4 tx = texture2D(map, q.zy)*bw.x + texture2D(map, q.xz)*bw.y + texture2D(map, q.xy)*bw.z;
-            tx = mapTexelToLinear(tx);
+            /* sRGB decoded by the sampler (r152+) */
             float cav = smoothstep(-.6, .4, vObjN.y);
             diffuseColor.rgb *= tx.rgb * mix(.62, 1.0, cav);
             /* below the tide line the rock is wet, darker, with a green-brown weed film right at the water */
@@ -5717,7 +5737,7 @@ function shoreRockBuilder(P, night){
             float weed = shWB * (1.0 - smoothstep(-1.25, -.55, vWY)) * smoothstep(-1.9, -1.2, vWY);
             diffuseColor.rgb *= mix(1.0, .52, shWB);
             diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(.62, .70, .42), weed*.65); }`)
-        .replace("#include <lights_physical_fragment>", "#include <lights_physical_fragment>\nmaterial.specularRoughness = mix(material.specularRoughness, .34, shWB*.85);");
+        .replace("#include <lights_physical_fragment>", "#include <lights_physical_fragment>\nmaterial.roughness = mix(material.roughness, .34, shWB*.85);");
     };
     mat.customProgramCacheKey = () => "shorerock";
     const mesh = new THREE.Mesh(g, mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh);
@@ -5891,7 +5911,7 @@ function* shoreDuneGrassSteps(scene, I, P, blocked){
           float g = sin(ph)*.5 + .5; g *= g;
           transformed.xz += vec2(.86, .51) * (.06 + .16*g + .03*sin(uDT*3.1 + io.x*1.3)) * w;
           transformed *= 1.0 - smoothstep(95.0, 135.0, distance(io.xz, cameraPosition.xz)); }`);
-    sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;"); }]]);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;"); }]]);
   mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));
   mat.customProgramCacheKey = () => mat.userData.patches.map(([nn]) => nn).join("_");
   mesh.count = k;
@@ -6219,7 +6239,7 @@ function clumpGeometry(){
 const FINEGRASS = QS.get("grass2") !== "old";
 const GRASS_TEX = !FINEGRASS ? null : (() => { const L = new THREE.TextureLoader();
   const a = L.load("assets/grass/grasscard_diff.jpg"), b = L.load("assets/grass/grasscard_alpha.jpg");
-  a.encoding = THREE.sRGBEncoding; a.anisotropy = b.anisotropy = 4; return {map:a, alpha:b}; })();
+  a.colorSpace = THREE.SRGBColorSpace; a.anisotropy = b.anisotropy = 4; return {map:a, alpha:b}; })();
 function cardClumpGeometry(){
   const P = [], N = [], U = [], C = [], I = [];
   for(let k=0;k<3;k++){
@@ -6378,7 +6398,7 @@ function* grassFieldSteps(scene, n, origin, heightFn, cols, blocked, edgeK){
   farC.multiplyScalar(1 / Math.max(1, (cols || [1]).length));
   mat.userData.patches = [["grass", sh => { grassPatch(sh, farC); mat.userData.uniforms = sh.uniforms;
     /* both faces of a card shade alike, or half the blades would go black */
-    if(FINEGRASS) sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "vec3 normal = normalize( vNormal ); vec3 geometryNormal = normal;"); }]];
+    if(FINEGRASS) sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;"); }]];
   const mesh = new THREE.InstancedMesh(CLUMP, mat, n);
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), c = new THREE.Color();
   const up = new THREE.Vector3(0,1,0), pos = new THREE.Vector3();
@@ -7772,7 +7792,7 @@ function turtlePrintTex(){
     const o = (j*rx*2 + i)*4; d[o] = col.r*255; d[o + 1] = col.g*255; d[o + 2] = col.b*255; d[o + 3] = 255; }
   c.putImageData(img, cx - rx, cy - ry);
   c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); c.lineWidth = 8; c.strokeStyle = ink; c.stroke();
-  const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
   return t;
 }
 function paperMesh(print){
@@ -8557,9 +8577,9 @@ rkMask = 0.0;
 #else
     vec4 tx = texture2D(uRkMap, rkQ.zy)*rkBw.x + texture2D(uRkMap, rkQ.xz)*rkBw.y + texture2D(uRkMap, rkQ.xy)*rkBw.z;
 #endif
-    vec3 rk = pow(sRGBToLinear(tx).rgb, vec3(1.18)) * 1.2 * uRkTint * mix(.66, 1.0, smoothstep(-.2, .6, n.y));
+    vec3 rk = pow(tx.rgb, vec3(1.18)) * 1.2 * uRkTint * mix(.66, 1.0, smoothstep(-.2, .6, n.y));
     if(vRk.y > .003){
-      vec3 pb = sRGBToLinear(texture2D(uRkMap, vRw.xz*.62 + .37)).rgb * uRkTint * vec3(.50, .48, .44);   /* a wet pebble bed */
+      vec3 pb = texture2D(uRkMap, vRw.xz*.62 + .37).rgb * uRkTint * vec3(.50, .48, .44);   /* a wet pebble bed */
       rk = mix(rk, pb, vRk.y);
     }
     diffuseColor.rgb = mix(diffuseColor.rgb, rk, rkMask);
@@ -8991,7 +9011,7 @@ function skyEnv(P){
     x.fillStyle = g; x.fillRect(0, 0, 256, 128);
     const tex = new THREE.CanvasTexture(c);
     tex.mapping = THREE.EquirectangularReflectionMapping;
-    tex.encoding = THREE.sRGBEncoding;
+    tex.colorSpace = THREE.SRGBColorSpace;
     const pm = new THREE.PMREMGenerator(renderer);
     pm.compileEquirectangularShader();
     const rt = pm.fromEquirectangular(tex);
@@ -9055,9 +9075,9 @@ function puddlePatch(sh, div){
         vec2 d = f - c; float r = length(d) + 1e-4; float x = (r - age*.36)*30.0;
         return d/r * sin(x) * exp(-x*x*.08) * (1.0-age)*(1.0-age); }`)
     .replace("#include <lights_physical_fragment>", `#include <lights_physical_fragment>
-      #ifdef USE_UV
+      #ifdef USE_MAP
       if(uWet > .02){
-        vec2 pw = vUv / uPudDiv * ${MACRO_TILES.toFixed(4)} * 28.0;
+        vec2 pw = vMapUv / uPudDiv * ${MACRO_TILES.toFixed(4)} * 28.0;
         float n = pdN(pw*.16)*.65 + pdN(pw*.47 + 3.7)*.35;
         float pud = smoothstep(.0, .05, n - (1.0 - .30*uWet)) ;
         if(pud > .001){
@@ -9068,7 +9088,7 @@ function puddlePatch(sh, div){
           vec3 rn = normalize(vec3(-rp.x*.35, 1.0, rp.y*.35));
           normal = normalize(mix(normal, normalize((viewMatrix*vec4(rn,0.)).xyz), pud));
           material.diffuseColor *= 1.0 - .40*pud;
-          material.specularRoughness = mix(material.specularRoughness, mix(.07, .30, smoothstep(18., 60., length(vViewPosition))), pud);
+          material.roughness = mix(material.roughness, mix(.07, .30, smoothstep(18., 60., length(vViewPosition))), pud);
           #ifdef USE_FOG
           float fr = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0., 1.), 4.0);
           totalEmissiveRadiance += fogColor * (.22 + .9*fr) * pud;
@@ -9880,7 +9900,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
           sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vCtN;").replace("#include <map_fragment>", `#ifdef USE_MAP
   { vec3 bw = pow(abs(normalize(vCtN)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z); vec3 q = vChW*vec3(.11, .16, .11);
     vec4 texelColor = texture2D(map, q.zy)*bw.x + texture2D(map, q.xz)*bw.y + texture2D(map, q.xy)*bw.z;
-    diffuseColor *= mapTexelToLinear(texelColor); }
+    diffuseColor *= texelColor; }
 #endif`); }]);
         m.material.needsUpdate = true; }
       yield;
@@ -13027,7 +13047,7 @@ function mountFit(h){
   const pts = [], v = new THREE.Vector3();
   h.traverse(o => { if(!o.isMesh || !o.geometry || !o.visible || (o.material && o.material.userData && o.material.userData.isInk)) return;
     const p = o.geometry.attributes.position; if(!p) return; const step = Math.max(1, Math.floor(p.count/6000));
-    for(let i = 0; i < p.count; i += step){ v.fromBufferAttribute(p, i); if(o.isSkinnedMesh) o.boneTransform(i, v); v.applyMatrix4(o.matrixWorld);
+    for(let i = 0; i < p.count; i += step){ v.fromBufferAttribute(p, i); if(o.isSkinnedMesh) o.applyBoneTransform(i, v); v.applyMatrix4(o.matrixWorld);
       const dx = v.x - h.position.x, dz = v.z - h.position.z; pts.push(dx*nx + dz*nz, v.y - h.position.y, dx*sx + dz*sz); } });
   if(!pts.length) return h.userData.seatFit = {key, top:null};
   let lo = 1e9, hi = -1e9; for(let i = 0; i < pts.length; i += 3){ lo = Math.min(lo, pts[i]); hi = Math.max(hi, pts[i]); }
@@ -13285,7 +13305,7 @@ function warmRange(I, a, b){
   kids.forEach((o, i) => { if(o.isLight) return;
     if(i >= a && i < b) o.traverse(k => { if(k.isLight) return; if(!k.visible && !P.lit.has(k)){ flips.push(k); k.visible = true; } if(k.frustumCulled){ fc.push(k); k.frustumCulled = false; } });
     else o.traverse(k => { if(drawn(k) && k.visible && !P.lit.has(k)){ flips.push(k); k.visible = false; } }); });
-  if(!WARM_RT){ const src = composer.renderTarget1.texture; WARM_RT = new THREE.WebGLRenderTarget(8, 8, {type: src.type, format: src.format}); WARM_RT.texture.encoding = src.encoding; }
+  if(!WARM_RT){ const src = composer.renderTarget1.texture; WARM_RT = new THREE.WebGLRenderTarget(8, 8, {type: src.type, format: src.format}); WARM_RT.texture.colorSpace = src.colorSpace; }
   const prev = renderer.getRenderTarget();
   try { renderer.setRenderTarget(WARM_RT); renderer.render(I.scene, camera); }
   finally { renderer.setRenderTarget(prev); flips.forEach(k => { k.visible = !k.visible; }); fc.forEach(k => { k.frustumCulled = true; }); }
@@ -13523,7 +13543,7 @@ $("bEnd").onclick = () => { ovNone(); goIsland(ISL.hub); };
 /* ============================================================
    LOOP
    ============================================================ */
-const clock = new THREE.Clock(); let T = 0;
+const clock = {t:performance.now(), getDelta(){ const n = performance.now(), d = (n - this.t)/1000; this.t = n; return d; }}; let T = 0;   /* THREE.Clock is deprecated in r187 */
 let FRAMES = 0, fpsAcc = 0, fpsN = 0, fpsT0 = 0;
 /* ?fps=1 shows a live performance readout (frame rate, triangles, draw calls) */
 const FPS_EL = new URLSearchParams(location.search).get("fps") ? (() => { const d = document.createElement("div"); d.style.cssText = "position:fixed;left:50%;top:52px;transform:translateX(-50%);z-index:20;font:11px/1.4 'DM Mono',monospace;letter-spacing:.1em;color:#FFF6D6;background:rgba(18,16,28,.55);padding:4px 10px;border-radius:999px;pointer-events:none"; document.body.appendChild(d); return d; })() : null;
