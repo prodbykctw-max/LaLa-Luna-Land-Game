@@ -17,6 +17,12 @@ sed -i 's/if ( currentRenderTarget === null || currentRenderTarget.isXRRenderTar
 k=$(grep -c "m_uniforms.envMapIntensity.value = scene.environmentIntensity;" "$F" || true)
 [ "$k" = 1 ] || { echo "env patch site not found ($k)"; exit 1; }
 sed -i 's/m_uniforms.envMapIntensity.value = scene.environmentIntensity;/m_uniforms.envMapIntensity.value = globalThis.__THREE_ENV_MAT === true ? ( material.isMeshStandardMaterial ? material.envMapIntensity : 0 ) : scene.environmentIntensity;/' "$F"
+# Third patch: r138+ gives every texture's inner Source object its own UUID, which draws four Math.random() values that
+# r128 never drew. The islands are scattered from a seeded Math.random stream, so those extra draws moved every tree,
+# umbrella and horse. The Source UUID is made from its own counter instead, so r187 draws exactly what r128 drew.
+C="$W/package/build/three.core.js"
+perl -0pi -e 's/(Object\.defineProperty\( this, .id., \{ value: _sourceId \+\+ \} \);(?:(?!this\.uuid)[\s\S])*?)this\.uuid = generateUUID\(\);/$1this.uuid = "5c0e0000-0000-4000-8000-" + ( "000000000000" + this.id.toString( 16 ) ).slice( -12 );/' "$C"
+grep -q '5c0e0000-0000-4000-8000-' "$C" || { echo "source uuid patch not applied"; exit 1; }
 sed "s#'./package/#'$W/package/#g" "$HERE/three187-entry.js" > "$W/entry.js"
 npx -y esbuild@0.24.0 "$W/entry.js" --bundle --minify --format=iife --target=es2019 --legal-comments=eof --outfile="$HERE/three187.min.js"
 rm -rf "$W"
