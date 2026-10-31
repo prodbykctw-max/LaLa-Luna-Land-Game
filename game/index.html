@@ -2377,7 +2377,7 @@ function dMergeParts(root, parts){ return runSteps(dMergePartsSteps(root, parts)
 function* dMergePartsSteps(root, parts){
   root.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), rel = new THREE.Matrix4(), buckets = new Map();
   parts.forEach(p => p.traverse(m => { if(!m.isMesh || !m.visible) return;
-    rel.multiplyMatrices(inv, m.matrixWorld); const geo = m.geometry.clone().applyMatrix4(rel); if(!geo.attributes.uv) return;
+    rel.multiplyMatrices(inv, m.matrixWorld); const geo = legacyClone(m.geometry).applyMatrix4(rel); if(!geo.attributes.uv) return;
     const k = m.material.uuid; if(!buckets.has(k)) buckets.set(k, {mat:m.material, geos:[], cast:m.castShadow}); buckets.get(k).geos.push(geo); }));
   parts.forEach(p => { if(p.parent) p.parent.remove(p); });
   for(const b of buckets.values()){ yield; const me = new THREE.Mesh(dMerge(b.geos), b.mat); me.castShadow = b.cast; me.receiveShadow = true; root.add(me); }
@@ -9023,7 +9023,23 @@ function* reliefBuildSteps(o){   /* pauses between rows so a background build ne
    that BackSide ShaderMaterial returned an environment that zeroed the shading on every
    MeshStandardMaterial in the scene — the entire world rendered black while unlit MeshBasic objects
    were unaffected. fromEquirectangular on a plain texture is predictable and costs nothing. */
+/* The engine makes its own objects in here (PMREM's render targets, cameras, blur materials), and every one of them takes
+   a uuid from Math.random. During an island build Math.random is the island's seeded generator, so a new engine that
+   makes a different number of those objects shifted every draw after it: on r187 Green lost a grove and 36 trees. So the
+   engine draws from the free generator, and the island's generator is advanced by the 112 draws r128 took here, which
+   keeps every island laid out exactly as it was. */
+const SKYENV_LEGACY_DRAWS = 112;
+/* the same for a geometry clone: r187's clone() runs the subclass constructor, which makes extra objects (and uuids) that
+   r128's did not; r128 drew exactly one uuid, four draws, per clone */
+function legacyClone(geo){
+  const r0 = Math.random; Math.random = FREE_RANDOM;
+  try { return geo.clone(); } finally { Math.random = r0; if(r0 !== FREE_RANDOM){ r0(); r0(); r0(); r0(); } }
+}
 function skyEnv(P){
+  const r0 = Math.random; Math.random = FREE_RANDOM;
+  try { return skyEnvBody(P); } finally { Math.random = r0; if(r0 !== FREE_RANDOM) for(let i=0;i<SKYENV_LEGACY_DRAWS;i++) r0(); }
+}
+function skyEnvBody(P){
   try{
     const c = document.createElement("canvas"); c.width = 256; c.height = 128;
     const x = c.getContext("2d");
