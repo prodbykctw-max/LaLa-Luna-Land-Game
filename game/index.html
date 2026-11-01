@@ -1680,7 +1680,7 @@ function r2Mesh(geo, mat){ const m = new THREE.Mesh(geo, mat); m.castShadow = tr
 const _r2cloth = new Map();
 function r2Cloth(col, stripes, white){ const key = col + ":" + stripes + ":" + (white || 0xF4EFE4); if(_r2cloth.has(key)) return _r2cloth.get(key);
   const S = 256, c = document.createElement("canvas"); c.width = c.height = S; const x = c.getContext("2d"), r = mulberry32(seedOf(key));
-  const cA = "#" + new THREE.Color(col).getHexString(), cB = "#" + new THREE.Color(white || 0xF4EFE4).getHexString();
+  const cA = "#" + new THREE.Color(col).getHexString(THREE.LinearSRGBColorSpace), cB = "#" + new THREE.Color(white || 0xF4EFE4).getHexString(THREE.LinearSRGBColorSpace);   /* r128 painted the linear values; the cloth was tuned on that */
   for(let i=0;i<stripes;i++){ x.fillStyle = i % 2 ? cB : cA; x.fillRect(i*S/stripes, 0, S/stripes + 1, S); }
   const im = x.getImageData(0, 0, S, S), d = im.data;
   for(let j=0;j<S;j++) for(let i=0;i<S;i++){ const k = (j*S + i)*4, w = ((i ^ j) & 1) ? 1 : .955, n = .93 + r()*.09; d[k] *= w*n; d[k+1] *= w*n; d[k+2] *= w*n; }
@@ -11144,7 +11144,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   I.fx = {   /* [(yield, "name")]: pauses the build before that piece; the key is still just "name" */
     foam:I.foam, wet:I.wetBand,
     [(yield, "waders")]: POLY ? shoreBirds(scene, POLY, cfg, height, shoreOut, cfg.key === "sanity" ? 4 : 7, cfg.key === "sanity" ? 0x9AA0B4 : 0xE2D8C6) : [],
-    [(yield, "grass")]: yield* grassFieldSteps(scene, GRASS_N, cfg.spawn, height, GROUNDQ ? cfg.grassCols.map(h => new THREE.Color(h).lerp(new THREE.Color(0x86C443), cfg.key === "sanity" ? .55 : .80).getHex()) : cfg.grassCols, noGrass, (x, z) => { let e = I.shoreF && I.shoreF.grassEdge ? I.shoreF.grassEdge(x, z) : 0;
+    [(yield, "grass")]: yield* grassFieldSteps(scene, GRASS_N, cfg.spawn, height, GROUNDQ ? cfg.grassCols.map(h => new THREE.Color(h).lerp(new THREE.Color(0x86C443), cfg.key === "sanity" ? .55 : .80).getHex(THREE.LinearSRGBColorSpace))   /* linear out, sRGB back in: the double conversion r128 did, which the grass colours were tuned on */ : cfg.grassCols, noGrass, (x, z) => { let e = I.shoreF && I.shoreF.grassEdge ? I.shoreF.grassEdge(x, z) : 0;
       if(cfg.beach){ const d = Math.hypot(x - cfg.beach.x, z - cfg.beach.z) - cfg.beach.r*1.12; if(d < 8) e = Math.max(e, 1 - Math.max(0, d)/8); }
       return e; }),
     canopies:I.canopies, bushes:I.bushes,
