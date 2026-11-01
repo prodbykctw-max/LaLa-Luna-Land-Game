@@ -386,7 +386,7 @@ body.sail #khint{display:block}
 <div id="fade"><div id="loadBox"><div class="eyebrow" id="loadEye">Setting sail</div><div id="loadName"></div><div class="lbar"><i id="loadBar"></i></div></div></div>
 
 <!-- Three.js r187 (Oct 2026) and the add-ons the game uses, bundled into one script by vendor/three187-entry.js
-     (npx esbuild vendor/three187-entry.js --bundle --minify --format=iife). It sets window.THREE in the shape the old
+     (rebuild only with vendor/build-three187.sh: it applies the four engine patches; a plain esbuild drops them). It sets window.THREE in the shape the old
      r128 global build had: THREE.GLTFLoader, THREE.SkeletonUtils.clone, THREE.EffectComposer, ... -->
 <script src="vendor/three187.min.js"></script>
 <script>
@@ -433,14 +433,14 @@ function hdrThresh(t, exp){ if(!HDR_POST) return t; const aces = v => { const a 
    and uses each material's own value again (and no scene environment on Lambert/Phong, as in r128). ?env=scene leaves r187's rule. */
 globalThis.__THREE_ENV_MAT = new URLSearchParams(location.search).get("env") !== "scene";
 /* r151+ culls instanced and skinned meshes by their own cached bounds; r128 used the geometry's bounds. The game's
-   scatter was built around r128's rule, so the patched engine keeps it (?cull=bounds for r187's rule). */
+   patched engine can bring r128's rule back with ?cull=geometry; by default r187's rule is on. */
 globalThis.__THREE_LEGACY_CULL = new URLSearchParams(location.search).get("cull") === "geometry";   /* r187's instance-aware culling is on (it skips batches that are off screen); ?cull=geometry restores r128's */
-/* ===================  THE LIGHTS KEEP THEIR r128 STRENGTH  ===================
+/* ===================  THE LIGHTS KEEP THEIR r128 BRIGHTNESS SCALE  ===================
    r155 made lights physical: the renderer stopped multiplying every light by PI, point and spot lights fall off with
    the inverse square and default to decay 2. Every light in the game was tuned by eye under the old model, so the old
-   model is put back here instead of retuning twenty lights: every light's colour (direct, hemisphere, ambient) is
-   scaled by PI where the shaders read it, the distance falloff is r128's (1 - d/cutoff)^decay, and point and spot
-   lights default to r128's decay of 1. ?lights=physical leaves r187's own model alone. */
+   unit is put back here instead of retuning twenty lights: every light's colour (direct, hemisphere, ambient) is
+   scaled by PI where the shaders read it. Lamps keep r187's physical inverse-square falloff (see below).
+   ?lights=physical leaves r187's own model alone. */
 const LEGACY_LIGHTS = new URLSearchParams(location.search).get("lights") !== "physical";
 if(LEGACY_LIGHTS){
   const C = THREE.ShaderChunk, before = C.lights_pars_begin;
@@ -468,7 +468,7 @@ if(LEGACY_LIGHTS){
   C.lights_pars_begin = t;
 }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-10-30a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-10-31a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -488,7 +488,13 @@ const REAL = ART !== "toon";
 const PROF = {bloom: !QS.get("nobloom"), shadow: !QS.get("noshadow"),
               ink: !QS.get("noink") && !REAL,          /* the outline shell is the loudest cel tell */
               dpr: parseFloat(QS.get("dpr")) || Math.min(devicePixelRatio,1.5)};
-const renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
+/* r163+ draws with WebGL2 only and throws without it (iOS 14 and older, blocklisted GPUs); say so on screen instead
+   of leaving "Setting sail" up forever */
+const renderer = (() => { try { return new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"}); }
+  catch(e){ const m = document.createElement("div");
+    m.style.cssText = "position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:#0d1020;color:#f3ead8;font:16px/1.5 Georgia,serif";
+    m.textContent = "Lala Luna Land needs a newer browser to run. Please update your browser (or iOS), or open the game on another device.";
+    document.body.appendChild(m); throw e; } })();
 /* Reading back every shader's error log makes the browser stop and finish compiling it on the spot - over a second
    of stalls per island. Players get the fast path; a local copy (and ?shadercheck) still checks, so the test suite
    keeps catching broken shaders. */
@@ -742,8 +748,12 @@ const LIGHT = (() => {
        turns negative above ~1.5); a half-float target does not clamp, so the grade clamps instead -
        exactly what the 8-bit store did. If the grade's text has moved, stay 8-bit. */
     if(halfOK){
-      const gm = gradePass.material, k0 = "vec4 c=texture2D(tDiffuse,vUv);";
-      if(gm && gm.fragmentShader.includes(k0)){ gm.fragmentShader = gm.fragmentShader.replace(k0, k0 + " c.rgb=min(c.rgb,vec3(1.0));"); gm.needsUpdate = true; }
+      /* the clamp goes AFTER the tone curve: clamping first cut the HDR frame at 1.0 before ACES saw it, so the
+         brightest the screen could reach was ~0.79 and daylight came out pale and flat (Oct 31) */
+      const gm = gradePass.material, k0 = "vec4 c=texture2D(tDiffuse,vUv);",
+            k1 = "c.rgb = toneMapping(c.rgb);   /* r187: the frame stays HDR through the bloom; the tone curve goes on here, once */\n      #endif";
+      if(gm && HDR_POST && gm.fragmentShader.includes(k1)){ gm.fragmentShader = gm.fragmentShader.replace(k1, k1 + "\n      c.rgb=min(c.rgb,vec3(1.0));"); gm.needsUpdate = true; }
+      else if(gm && gm.fragmentShader.includes(k0)){ gm.fragmentShader = gm.fragmentShader.replace(k0, k0 + " c.rgb=min(c.rgb,vec3(1.0));"); gm.needsUpdate = true; }
       else halfOK = false;
     }
     L.half = halfOK;
