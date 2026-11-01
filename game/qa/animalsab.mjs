@@ -15,7 +15,7 @@ for (const ty of types) {
     const speed = Math.hypot(h.position.x - p0[0], h.position.z - p0[1]) / ((performance.now() - p0[2])/1000);
     const b = new THREE.Box3(), v = new THREE.Vector3(); h.updateMatrixWorld(true);
     h.traverse(m => { if(!m.isMesh || !m.visible || (m.material && m.material.userData && m.material.userData.isInk)) return; const pos = m.geometry.attributes.position;
-      for(let i = 0; i < pos.count; i += 5){ v.fromBufferAttribute(pos, i); if(m.isSkinnedMesh) m.boneTransform(i, v); v.applyMatrix4(m.matrixWorld); b.expandByPoint(v); } });
+      for(let i = 0; i < pos.count; i += 5){ v.fromBufferAttribute(pos, i); if(m.isSkinnedMesh) m.applyBoneTransform(i, v); v.applyMatrix4(m.matrixWorld); b.expandByPoint(v); } });
     const c = b.getCenter(new THREE.Vector3()), sz = b.getSize(new THREE.Vector3()), L = Math.max(sz.x, sz.y, sz.z);
     const fwd = new THREE.Vector3(Math.cos(h.rotation.y), 0, -Math.sin(h.rotation.y)), side = new THREE.Vector3(-fwd.z, 0, fwd.x);
     const cam = new THREE.PerspectiveCamera(32, 640/400, .05, 600);

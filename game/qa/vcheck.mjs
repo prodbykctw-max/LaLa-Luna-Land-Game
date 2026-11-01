@@ -31,7 +31,7 @@ for (const island of argIslands()) {
           // vertices dominated by the Head bone
           let w = 0; for (let k = 0; k < 4; k++) if (ska[i * 4 + k] === hb) w += swa[i * 4 + k];
           if (w < 0.6) continue;
-          body.boneTransform(i, v); body.localToWorld(v);
+          body.applyBoneTransform(i, v); body.localToWorld(v);
           minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
           minZ = Math.min(minZ, v.z); maxZ = Math.max(maxZ, v.z);
           maxY = Math.max(maxY, v.y);

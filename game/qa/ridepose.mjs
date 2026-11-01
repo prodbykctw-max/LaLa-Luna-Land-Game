@@ -26,12 +26,12 @@ const r = await H.page.evaluate(() => { const T = window.__T, I = T.CUR, W = I.W
   /* the animal's back under her: highest point of the animal's skinned surface in a 0.3 u column under her hips */
   const top = (x, z) => { let best = -1e9; const v = new THREE.Vector3();
     h.traverse(o => { if(!o.isMesh || !o.geometry) return; const p = o.geometry.attributes.position; if(!p) return;
-      for(let i = 0; i < p.count; i += 1){ v.fromBufferAttribute(p, i); if(o.isSkinnedMesh) o.boneTransform(i, v); v.applyMatrix4(o.matrixWorld);
+      for(let i = 0; i < p.count; i += 1){ v.fromBufferAttribute(p, i); if(o.isSkinnedMesh) o.applyBoneTransform(i, v); v.applyMatrix4(o.matrixWorld);
         if(Math.hypot(v.x - x, v.z - z) < .3 && v.y > best) best = v.y; } }); return best; };
   const backY = top(hips.x, hips.z);
   /* along the body: where her hips are between the animal's nose and tail (0 = tail, 1 = nose) */
   const box = new THREE.Box3(), v = new THREE.Vector3(); let lo = 1e9, hi = -1e9;
-  h.traverse(o => { if(!o.isMesh) return; const p = o.geometry.attributes.position; for(let i = 0; i < p.count; i += 7){ v.fromBufferAttribute(p, i); if(o.isSkinnedMesh) o.boneTransform(i, v); v.applyMatrix4(o.matrixWorld); const s = v.x*fwd.x + v.z*fwd.z; lo = Math.min(lo, s); hi = Math.max(hi, s); } });
+  h.traverse(o => { if(!o.isMesh) return; const p = o.geometry.attributes.position; for(let i = 0; i < p.count; i += 7){ v.fromBufferAttribute(p, i); if(o.isSkinnedMesh) o.applyBoneTransform(i, v); v.applyMatrix4(o.matrixWorld); const s = v.x*fwd.x + v.z*fwd.z; lo = Math.min(lo, s); hi = Math.max(hi, s); } });
   const along = ((hips.x*fwd.x + hips.z*fwd.z) - lo)/(hi - lo);
   const rel = p => p && { up_m: +((p.y - backY)/U).toFixed(2), side_m: +((p.clone().sub(hips)).dot(side)/U).toFixed(2), fwd_m: +((p.clone().sub(hips)).dot(fwd)/U).toFixed(2) };
   const shots = {}, rd = T.renderer, cam = new THREE.PerspectiveCamera(40, 1, .1, 2000);

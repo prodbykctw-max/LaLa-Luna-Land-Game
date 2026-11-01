@@ -16,7 +16,7 @@ const r = await H.page.evaluate(() => {
     const vx = h.position.x - window.__p0[i][0], vz = h.position.z - window.__p0[i][1], sp = Math.hypot(vx, vz) / dt;
     const b = new THREE.Box3(), v = new THREE.Vector3(); h.updateMatrixWorld(true);
     h.traverse(m => { if (!m.isMesh || !m.visible || (m.material && m.material.userData && m.material.userData.isInk)) return; const pos = m.geometry.attributes.position;
-      for (let k = 0; k < pos.count; k += 7) { v.fromBufferAttribute(pos, k); if (m.isSkinnedMesh) m.boneTransform(k, v); v.applyMatrix4(m.matrixWorld); b.expandByPoint(v); } });
+      for (let k = 0; k < pos.count; k += 7) { v.fromBufferAttribute(pos, k); if (m.isSkinnedMesh) m.applyBoneTransform(k, v); v.applyMatrix4(m.matrixWorld); b.expandByPoint(v); } });
     const c = b.getCenter(new THREE.Vector3()), sz = b.getSize(new THREE.Vector3()), L = Math.max(sz.x, sz.y, sz.z, .3);
     /* travel direction: velocity if it moved, else its +x nose */
     let dir = sp > .05 ? new THREE.Vector3(vx, 0, vz).normalize() : new THREE.Vector3(1, 0, 0).applyQuaternion(h.quaternion).setY(0).normalize();
