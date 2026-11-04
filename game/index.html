@@ -260,6 +260,43 @@ body.sail #khint{display:block}
 #cutT.in,#cutS.in{opacity:1;transform:none}
 #cutSkip{position:absolute;right:4vw;bottom:13.5vh;font-size:11px;letter-spacing:.16em;
   text-transform:uppercase;color:rgba(255,255,255,.45)}
+/* ===================  TALK SCENES  ===================
+   The dialogue technique from Once Upon a Time, on Lala's own characters: when she talks to someone the camera
+   comes in on the two of them (a wide two-shot, then over her shoulder onto whoever is speaking), letterbox bars
+   close in, and the words type into a glass box with the speaker's name on a tag. Tap, E, Space or Enter
+   finishes the line, then moves on; SKIP or Escape ends it. ?talk=card brings back the old note card. */
+#talk{position:fixed;inset:0;z-index:31;display:none;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+#talk.on{display:block}
+#talk .tbar{position:absolute;left:0;right:0;height:0;background:#000;transition:height .55s cubic-bezier(.4,0,.2,1);pointer-events:none}
+#talk .tbar.t{top:0} #talk .tbar.b{bottom:0}
+#talk.in .tbar{height:9vh}
+#tkBox{position:absolute;left:50%;bottom:calc(9vh + 12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  width:min(92vw,820px);box-sizing:border-box;padding:24px 26px 18px;opacity:0;
+  background:linear-gradient(180deg,rgba(30,24,44,.78),rgba(12,10,20,.92));
+  -webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2);
+  border:1px solid rgba(255,246,214,.5);border-radius:6px 24px 6px 24px;
+  box-shadow:0 18px 50px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,246,214,.18),inset 0 0 0 4px rgba(0,0,0,.2),inset 0 0 0 5px rgba(255,246,214,.12);
+  transition:opacity .35s}
+#talk.in #tkBox{opacity:1}
+#tkBox::before{content:'';position:absolute;left:24px;right:24px;top:-1px;height:2px;background:linear-gradient(90deg,rgba(255,246,214,0),#FFF6D6,rgba(255,246,214,0))}
+#tkWho{position:absolute;top:-15px;left:24px;padding:6px 16px 5px;font:500 11px "DM Mono",monospace;letter-spacing:.22em;text-transform:uppercase;
+  color:#12101C;background:linear-gradient(180deg,#FFF6D6,#E9C98E);border-radius:3px 12px 3px 12px;box-shadow:0 5px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.55)}
+#tkBox.narr #tkWho{color:#FFF6D6;background:linear-gradient(180deg,#5A4E78,#2C2440)}
+#tkLine{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(19px,2.9vw,26px);line-height:1.38;color:#FFF7EA;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);min-height:2.76em}
+#tkBox.narr #tkLine{font-style:italic;color:#EADFCB}
+#tkMore{position:absolute;right:16px;bottom:10px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;
+  border-top:7px solid rgba(255,246,214,.85);opacity:0;transition:opacity .2s}
+#tkBox.done #tkMore{opacity:1;animation:tkBob 1.1s ease-in-out infinite}
+@keyframes tkBob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+#tkBox.pop{animation:tkPop .3s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes tkPop{0%{transform:translateX(-50%) translateY(10px) scale(.985);opacity:.35}100%{transform:translateX(-50%) translateY(0) scale(1);opacity:1}}
+#tkSkip{position:absolute;top:calc(9vh + 10px);right:14px;font:500 11px "DM Mono",monospace;letter-spacing:.16em;padding:9px 16px;border-radius:999px;
+  border:1px solid rgba(255,246,214,.55);background:rgba(18,16,28,.6);color:#FFF6D6;cursor:pointer;opacity:0;transition:opacity .4s}
+#talk.in #tkSkip{opacity:1}
+body.talking #stick,body.talking #cstick,body.talking #act,body.talking #jmp,body.talking #recenter,body.talking #khint,body.talking #prompt,
+body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;pointer-events:none!important;transition:opacity .4s}
+@media(prefers-reduced-motion:reduce){#talk .tbar,#tkBox,#tkSkip{transition:none}#tkBox.pop,#tkBox.done #tkMore{animation:none}}
 #toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:8;text-align:center;
  opacity:0;transition:opacity .6s;pointer-events:none;width:90%}
 #toast.on{opacity:1}
@@ -382,6 +419,11 @@ body.sail #khint{display:block}
   <div class="cbar ctop"></div><div class="cbar cbot"></div>
   <div class="ctxt"><div id="cutT"></div><div id="cutS"></div></div>
   <div id="cutSkip">tap to skip</div>
+</div>
+<div id="talk" aria-live="polite">
+  <div class="tbar t"></div><div class="tbar b"></div>
+  <div id="tkBox"><div id="tkWho"></div><div id="tkLine"></div><div id="tkMore"></div></div>
+  <button type="button" id="tkSkip">SKIP</button>
 </div>
 <div id="fade"><div id="loadBox"><div class="eyebrow" id="loadEye">Setting sail</div><div id="loadName"></div><div class="lbar"><i id="loadBar"></i></div></div></div>
 
@@ -11392,6 +11434,7 @@ function camBlendStep(I, dt){
   const B = I.camBlend; if(!B || I.cut) return;
   B.t += dt; const w = wdEase(B.t/CUT_BACK), q1 = camera.quaternion.clone();
   camera.position.lerpVectors(B.p, camera.position.clone(), w); camera.quaternion.slerpQuaternions(B.q, q1, w);
+  if(B.fov != null){ const base = innerHeight > innerWidth ? 66 : 56; camera.fov = B.fov + (base - B.fov)*w; camera.updateProjectionMatrix(); }   /* a talk scene's longer lens eases back too */
   if(B.t >= CUT_BACK) I.camBlend = null;
 }
 function cutText(sh){
@@ -11453,6 +11496,180 @@ function cutUpdate(I, dt){
     cutText(C.shots[C.i]);
   }
 }
+
+/* ===================  TALK SCENES  ===================
+   Melvin, Nov 3: talking to someone "doesn't just need to be something I read... they need to be on the screen
+   talking", using the dialogue technique from Once Upon a Time on Lala's own characters. So a conversation is a
+   scene: the camera leaves the chase rig and comes in on the two of them, bars close top and bottom, and each
+   sentence types into a glass box under the speaker's name. The shots follow the line between them (the camera
+   stays on the side it was already on, so nobody swaps places on screen):
+     two   both of them, swung round behind her a little so they overlap in depth on a tall phone screen
+     over  over her shoulder onto whoever is speaking
+     back  over the speaker's shoulder onto her, listening
+     near  a three-quarter close on the speaker
+   Every shot pushes in slowly while it holds, and shot changes glide rather than cut. Neither model has a face
+   rig or a talking clip (idle and walk only), so the speaker's head and neck move in time with the words as they
+   type, and she nods at the start of each new line. The words are the characters' own lines, split at sentence
+   ends; nothing is added. */
+const TALKQ = QS.get("talk") !== "card";
+const TALK_CPS = 52;                                     /* characters a second as a line types in */
+function talkSplit(s){ const m = String(s).match(/[^.!?…]+[.!?…]+["'”’)]*|[^.!?…]+$/g); return (m || [s]).map(x => x.trim()).filter(Boolean); }
+function talkBeats(name, text, narr){
+  const parts = talkSplit(text), seq = ["over", "back", "near"];
+  return parts.map((t, i) => ({narr: !!narr, name, text:t, shot: i === 0 ? "two" : seq[(i - 1) % seq.length]}));
+}
+function boneOf(model, want){
+  if(!model) return null; const c = model.userData._bones || (model.userData._bones = {});
+  if(c[want] !== undefined) return c[want];
+  let hit = null; model.traverse(o => { if(!hit && o.isBone && o.name.replace(/[^a-z]/gi, "").toLowerCase().endsWith(want)) hit = o; });
+  return (c[want] = hit);
+}
+/* where a head is in the world right now: the skinned head bone when the rig is in, otherwise a standing height */
+function talkHead(obj, isLala, out){
+  const model = isLala ? obj.model : (obj.userData.R && obj.userData.R.model), b = boneOf(model, "head");
+  if(b){ b.getWorldPosition(out); out.y += .12; return out; }
+  return isLala ? out.set(obj.x, obj.y + 2.75, obj.z) : out.set(obj.position.x, obj.position.y + 2.7, obj.position.z);
+}
+const _tkA = new THREE.Vector3(), _tkB = new THREE.Vector3(), _tkP = new THREE.Vector3(), _tkL = new THREE.Vector3(), _tkV = new THREE.Vector3();
+const _tkCam = new THREE.PerspectiveCamera(40, 1, .4, 900);
+/* a shot is a camera position, a look point and a lens, recomputed every frame from where the two heads are */
+function talkShot(I, kind, out){
+  const T = I.talk, A = talkHead(I.W, true, _tkA), B = talkHead(T.npc, false, _tkB);
+  const dx = B.x - A.x, dz = B.z - A.z, L = Math.max(1.4, Math.hypot(dx, dz)), ux = dx/L, uz = dz/L, nx = uz*T.side, nz = -ux*T.side;
+  const tall = innerHeight > innerWidth;
+  if(kind === "two"){
+    const sw = tall ? .9 : .55, cx = nx*Math.cos(sw) - ux*Math.sin(sw), cz = nz*Math.cos(sw) - uz*Math.sin(sw);
+    const mx = (A.x + B.x)/2, my = (A.y + B.y)/2, mz = (A.z + B.z)/2;
+    if(T.twoD == null){
+      /* back the camera off until both of them, heads to knees, sit inside the frame */
+      _tkCam.fov = tall ? 50 : 36; _tkCam.aspect = innerWidth/innerHeight; _tkCam.updateProjectionMatrix();
+      let d = 3;
+      for(; d < 40; d += .5){
+        _tkCam.position.set(mx + cx*d, my - .35, mz + cz*d); _tkCam.lookAt(mx, my - .85, mz); _tkCam.updateMatrixWorld();
+        /* heads to waists on a wide screen, heads to knees on a tall one */
+        const ok = [A, B].every(h => { const a = _tkV.copy(h).project(_tkCam), ax = a.x, ay = a.y, f = _tkV.set(h.x, h.y - (tall ? 2.1 : 1.45), h.z).project(_tkCam);
+          return Math.abs(ax) < .66 && ay < .74 && Math.abs(f.x) < .66 && f.y > -.72; });
+        if(ok) break;
+      }
+      T.twoD = d;
+    }
+    out.p.set(mx + cx*T.twoD, my - .35, mz + cz*T.twoD); out.l.set(mx, my - .85, mz); out.fov = tall ? 50 : 36;
+  } else if(kind === "over"){            /* her shoulder in the near edge of frame, the speaker's face beyond */
+    out.p.set(A.x - ux*1.7 + nx*.78, A.y + .02, A.z - uz*1.7 + nz*.78); out.l.set(B.x, B.y - .32, B.z); out.fov = tall ? 34 : 27;
+  } else if(kind === "back"){            /* the reverse: over the speaker's shoulder, onto her */
+    /* wider and a little higher than "over": a speaker's hair (Juno's curls, a fan's buns) is bigger than her shoulder */
+    out.p.set(B.x + ux*1.55 + nx*1.25, B.y + .22, B.z + uz*1.55 + nz*1.25); out.l.set(A.x, A.y - .36, A.z); out.fov = tall ? 34 : 27;
+  } else {                               /* near: a three-quarter close on the speaker, from between them */
+    out.p.set(B.x - ux*1.25 + nx*2.3, B.y - .05, B.z - uz*1.25 + nz*2.3); out.l.set(B.x, B.y - .28, B.z); out.fov = tall ? 32 : 25;
+  }
+  return out;
+}
+function talkPlay(I, npc, beats, onDone){
+  if(!beats || !beats.length){ if(onDone) onDone(); return; }
+  const W = I.W;
+  const T = I.talk = {npc, beats, i:-1, onDone, wasActive: !!W.active, T:0, shotT:0, beatT:0, shot:null, from:null, glide:1, glideDur:.9,
+    typed:0, full:"", done:false, eatUntil: performance.now() + 380, side:1, twoD:null, nod:0, sh:{p:new THREE.Vector3(), l:new THREE.Vector3(), fov:40}};
+  W.active = false; W.target = null;
+  /* the camera stays on the side of the line between them that it is already on */
+  const A = talkHead(W, true, _tkA), B = talkHead(npc, false, _tkB), dx = B.x - A.x, dz = B.z - A.z, L = Math.hypot(dx, dz) || 1;
+  T.side = ((camera.position.x - (A.x + B.x)/2)*(dz/L) + (camera.position.z - (A.z + B.z)/2)*(-dx/L)) >= 0 ? 1 : -1;
+  if(typeof musCine === "function") musCine(true);
+  document.body.classList.add("talking"); $("prompt").classList.remove("on");
+  const el = $("talk"); el.classList.add("on"); requestAnimationFrame(() => el.classList.add("in"));
+  talkNext(I);
+}
+function talkCut(I, kind){
+  const T = I.talk; if(!T || T.shot === kind) return;
+  T.from = {p: camera.position.clone(), q: camera.quaternion.clone(), fov: camera.fov};
+  T.glideDur = T.shot ? .65 : CUT_BLEND; T.shot = kind; T.shotT = 0; T.glide = 0;
+}
+function talkNext(I){
+  const T = I.talk; if(!T) return;
+  T.i++; if(T.i >= T.beats.length){ talkEnd(I); return; }
+  const b = T.beats[T.i], box = $("tkBox");
+  T.full = b.text; T.typed = 0; T.done = false; T.beatT = 0; T.nod = T.i > 0 ? 1 : 0;
+  $("tkWho").textContent = b.name; $("tkLine").textContent = "";
+  box.classList.toggle("narr", b.narr); box.classList.remove("done");
+  box.classList.remove("pop"); void box.offsetWidth; box.classList.add("pop");
+  talkCut(I, b.shot);
+  T.eatUntil = Math.max(T.eatUntil, performance.now() + 160);
+}
+function talkAdvance(I){
+  const T = I.talk; if(!T || performance.now() < T.eatUntil) return;
+  if(!T.done){ T.typed = T.full.length; return; }           /* the first tap finishes the line, the next one moves on */
+  talkNext(I);
+}
+function talkEnd(I){
+  const T = I.talk; if(!T) return;
+  I.talk = null;
+  if(typeof musCine === "function") musCine(false);
+  const el = $("talk"); el.classList.remove("in");
+  setTimeout(() => { if(!CUR || !CUR.talk) el.classList.remove("on"); }, 450);   /* the overlay's fade only; no game state here */
+  document.body.classList.remove("talking");
+  I.camBlend = {p: camera.position.clone(), q: camera.quaternion.clone(), t:0, fov: camera.fov};
+  camRig(I, true); placeCamera(I, 1);
+  I.W.active = T.wasActive; I.W.target = null;
+  if(T.onDone) try{ T.onDone(); }catch(e){ DBG("talk onDone", e); }
+}
+function talkUpdate(I, dt){
+  const T = I.talk; if(!T) return;
+  const W = I.W, g = T.npc, u = g.userData;
+  T.T += dt; T.shotT += dt; T.beatT += dt;
+  /* the words type in */
+  if(!T.done){
+    T.typed = Math.min(T.full.length, T.typed + dt*TALK_CPS);
+    $("tkLine").textContent = T.full.slice(0, Math.floor(T.typed));
+    if(T.typed >= T.full.length){ T.done = true; $("tkBox").classList.add("done"); }
+  }
+  /* a one-sentence line still gets a cut: the two-shot opens it, then the camera goes over her shoulder */
+  if(T.beats.length === 1 && T.shot === "two" && T.shotT > 1.7) talkCut(I, "over");
+  /* they face each other */
+  const A = talkHead(W, true, _tkA);
+  if(!W.mount){
+    W.heading = Math.atan2(g.position.x - W.x, g.position.z - W.z);
+    let da = W.heading - W.group.rotation.y; while(da > Math.PI) da -= Math.PI*2; while(da < -Math.PI) da += Math.PI*2;
+    W.group.rotation.y += da*Math.min(1, dt*8);
+  }
+  if(!u.delivering){ u.state = "greet"; u.timer = 1.2; u.heading = Math.atan2(W.x - g.position.x, W.z - g.position.z); }
+  /* the camera: this frame's shot, pushed in a little the longer it holds, glided into from the last one */
+  const sh = talkShot(I, T.shot || "two", T.sh), push = .09*wdEase(Math.min(1, T.shotT/7));
+  _tkP.copy(sh.p).lerp(sh.l, push);
+  camera.position.copy(_tkP); camera.lookAt(sh.l); let fov = sh.fov;
+  if(T.glide < 1){
+    T.glide = Math.min(1, T.glide + dt/T.glideDur); const k = T.glide, w = k*k*k*(k*(k*6 - 15) + 10), q1 = camera.quaternion.clone();
+    camera.position.lerpVectors(T.from.p, _tkP, w); camera.quaternion.slerpQuaternions(T.from.q, q1, w); fov = T.from.fov + (sh.fov - T.from.fov)*w;
+  }
+  if(Math.abs(camera.fov - fov) > .01){ camera.fov = fov; camera.updateProjectionMatrix(); }
+  /* the speaker talks: head and neck move with the words while they are typing, and settle when they stop */
+  const b = T.beats[T.i] || {}, talking = !T.done || T.beatT < .2;
+  T.amp = (T.amp || 0) + ((talking && !b.narr ? 1 : 0) - (T.amp || 0))*Math.min(1, dt*9);
+  const R = u.R, hd = R && boneOf(R.model, "head"), nk = R && boneOf(R.model, "neck");
+  if(hd && T.amp > .01){
+    const t = T.T, a = T.amp;
+    hd.rotateX(a*(Math.sin(t*9.3)*.045 + Math.sin(t*5.1 + 1.3)*.03 + .02));
+    hd.rotateY(a*Math.sin(t*2.2)*.06);
+    if(nk) nk.rotateZ(a*Math.sin(t*1.7 + .4)*.035);
+  }
+  /* she listens: a small nod at the start of each new line */
+  const lh = boneOf(W.model, "head");
+  if(lh && T.nod > 0 && !W.mount){ T.nod = Math.max(0, T.nod - dt/.7);   /* only on top of a clip that resets the bone each frame */ const k = 1 - T.nod; lh.rotateX(Math.sin(k*Math.PI)*.12); }
+}
+/* input while a conversation is up: tap / E / Space / Enter finish the line, then move on; Escape or SKIP ends it.
+   Capture phase, so nothing underneath (the camera drag, her jump, interact) also gets the press. A held key's
+   repeats never advance it. */
+addEventListener("pointerdown", e => {
+  const I = CUR; if(!I || !I.talk) return;
+  e.preventDefault(); e.stopPropagation();
+  if(e.target && e.target.id === "tkSkip"){ talkEnd(I); return; }
+  talkAdvance(I);
+}, true);
+addEventListener("keydown", e => {
+  const I = CUR; if(!I || !I.talk) return;
+  const k = e.key;
+  if(k === "Escape"){ e.preventDefault(); e.stopPropagation(); talkEnd(I); return; }
+  if(k === "e" || k === "E" || k === " " || k === "Enter" || k === "ArrowRight"){
+    e.preventDefault(); e.stopPropagation(); if(!e.repeat) talkAdvance(I); }
+}, true);
 
 /* ===================  THE OPENING  ===================
    The game opened on a static card over a static island: the title, three sentences of premise, and
@@ -12857,6 +13074,13 @@ function islandUpdate(I, dt, t){
     if(W.mixer){ playClip(W, "idle"); W.mixer.update(dt); }
     hatPhysics(W, dt);
     cutUpdate(I, dt);
+  } else if(I.talk){
+    /* in a conversation she stands and listens; talkUpdate turns her, moves the camera and the speaker's head */
+    /* on foot she stands and breathes; in the saddle her seated pose is left exactly as it was (the seat is
+       re-applied by walkerUpdate, which does not run while she is not in control, so the clip must not run either) */
+    if(W.mixer && !W.mount){ playClip(W, "idle"); W.mixer.update(dt); }
+    hatPhysics(W, dt);
+    talkUpdate(I, dt);
   }
 }
 /* Every interactable in range is scored; the letter and the outfit always win over a note that
@@ -12931,7 +13155,9 @@ function interact(){
   if(!CUR || !CUR.W.active || !CUR.W.target) return;
   const I = CUR, W = I.W, t = W.target, cfg = I.cfg;
   if(t.kind === "npc"){
-    const n = t.obj.userData.cfg; $("noteWho").textContent = n.name; $("noteBody").textContent = n.line; W.active = false; ov("ovNote");
+    const n = t.obj.userData.cfg;
+    if(TALKQ){ talkPlay(I, t.obj, talkBeats(n.name, n.line)); return; }
+    $("noteWho").textContent = n.name; $("noteBody").textContent = n.line; W.active = false; ov("ovNote");
   } else if(t.kind === "note"){
     const n = cfg.notes[t.obj.userData.i]; $("noteWho").textContent = n.who; $("noteBody").textContent = n.text;
     G.notes[cfg.key+":"+t.obj.userData.i] = true; save(); syncHUD(); W.active = false; ov("ovNote");
@@ -13020,16 +13246,23 @@ function interact(){
     qSet(cfg, "delivered", true); syncHUD();
     /* the beach clears the moment the letter is DELIVERED - the end of the pen/paper/desk/postman
        chain, not a walk-up on the letter itself - and she says her line over it */
-    if(I.litter && I.litter.some(m => m.visible)){
+    const litter = !!(I.litter && I.litter.some(m => m.visible)), beachLine = () => toast("The beach cleared up", "Cleaning up the earth is like cleaning up my heart \u{1F30D}\u{1F33F}\u{1F496}");
+    if(litter){
       I.litterClear = 0;
-      setTimeout(() => toast("The beach cleared up", "Cleaning up the earth is like cleaning up my heart \u{1F30D}\u{1F33F}\u{1F496}"), 900);
+      if(!TALKQ) setTimeout(beachLine, 900);
     }
     const g = t.obj, u = g.userData;
     /* he rides the island and hands it round — every fan out here gets a copy */
     u.deliverTo = (I.npcs||[]).filter(o => o !== g && o.userData.cfg && !o.userData.cfg.post)
                     .sort((a,b) => a.position.distanceTo(g.position) - b.position.distanceTo(g.position)).slice(0,6);
-    u.deliverI = 0; u.delivering = u.deliverTo.length > 0;
     auChime([392,523,659,784,1047]);
+    /* he sets off once the scene is over, so he is still there, facing her, while he takes it */
+    const startRun = () => { u.deliverI = 0; u.delivering = u.deliverTo.length > 0; if(litter && TALKQ) beachLine(); };
+    if(TALKQ){
+      talkPlay(I, g, talkBeats("Ollie takes it", "He folds it once, puts it inside his coat, and turns the horse toward the far end of the island. Letter " + cfg.glyph + " is out of your hands now.", true), startRun);
+      return;
+    }
+    startRun();
     $("noteWho").textContent = "Ollie takes it";
     $("noteBody").textContent = "He folds it once, puts it inside his coat, and turns the horse toward the far end of the island. Letter " + cfg.glyph + " is out of your hands now.";
     W.active = false; ov("ovNote");
