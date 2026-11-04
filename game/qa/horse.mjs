@@ -72,7 +72,7 @@ const during = await step(() => {
            overlayOn: document.getElementById('cutscene').classList.contains('on'),
            caption: document.getElementById('cutT').textContent };
 });
-await H.page.screenshot({ path: 'qa/out/horse_cutscene.jpg', type: 'jpeg', quality: 88 });
+await H.page.screenshot({ path: 'qa/out/horse_cutscene.jpg', type: 'jpeg', quality: 88 , timeout: 240000 });
 
 /* THE GAME CLAMPS dt TO 0.05, so under SwiftShader at a couple of frames a second the 10.8 s
    scene takes minutes of wall clock. Waiting it out is not the assertion that matters anyway -
