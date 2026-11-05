@@ -11779,10 +11779,29 @@ function talkPlay(I, npc, beats, onDone){
   const el = $("talk"); el.classList.add("on"); requestAnimationFrame(() => el.classList.add("in"));
   talkNext(I);
 }
+/* a camera move that would pass through someone's head, or swing round further than a glance, is a cut, not a glide:
+   "over her shoulder" and "over the speaker's shoulder" are reverse angles, and a straight glide between them ran along
+   the line between the two of them (through her hat) and looked sideways at empty grass halfway through */
+const _swF = new THREE.Vector3(), _swG = new THREE.Vector3(), _swD = new THREE.Vector3(), _swQ = new THREE.Quaternion(), _swM = new THREE.Matrix4();
+function camSwingCuts(p0, q0, p1, q1, heads, maxDeg){
+  _swF.set(0, 0, -1).applyQuaternion(q0); _swG.set(0, 0, -1).applyQuaternion(q1);
+  if(maxDeg != null && _swF.angleTo(_swG) > maxDeg*Math.PI/180) return true;
+  _swD.subVectors(p1, p0); const L2 = _swD.lengthSq();
+  for(const h of heads){ let t = L2 > 1e-6 ? _swF.subVectors(h, p0).dot(_swD)/L2 : 0; t = Math.max(0, Math.min(1, t));
+    if(_swG.copy(p0).addScaledVector(_swD, t).distanceTo(h) < .9) return true; }
+  return false;
+}
+const _tkTo = {p:new THREE.Vector3(), l:new THREE.Vector3(), fov:40};
 function talkCut(I, kind){
   const T = I.talk; if(!T || T.shot === kind) return;
+  const first = !T.shot;
   T.from = {p: camera.position.clone(), q: camera.quaternion.clone(), fov: camera.fov};
-  T.glideDur = T.shot ? .65 : CUT_BLEND; T.shot = kind; T.shotT = 0; T.glide = 0;
+  T.glideDur = first ? CUT_BLEND : .65; T.shot = kind; T.shotT = 0; T.glide = 0;
+  const to = talkShot(I, kind, _tkTo);
+  _swM.lookAt(to.p, to.l, camera.up); _swQ.setFromRotationMatrix(_swM);
+  const heads = [talkHead(I.W, true, new THREE.Vector3()), talkHead(T.npc, false, new THREE.Vector3())];
+  heads.push(heads[0].clone().setY(heads[0].y - .7), heads[1].clone().setY(heads[1].y - .7));   /* and their shoulders */
+  if(camSwingCuts(T.from.p, T.from.q, to.p, _swQ, heads, first ? null : 75)) T.glide = 1;
 }
 function talkNext(I){
   const T = I.talk; if(!T) return;
@@ -11807,8 +11826,12 @@ function talkEnd(I){
   const el = $("talk"); el.classList.remove("in");
   setTimeout(() => { if(!CUR || !CUR.talk) el.classList.remove("on"); }, 450);   /* the overlay's fade only; no game state here */
   document.body.classList.remove("talking");
-  I.camBlend = {p: camera.position.clone(), q: camera.quaternion.clone(), t:0, fov: camera.fov};
+  const p0 = camera.position.clone(), q0 = camera.quaternion.clone(), f0 = camera.fov;
+  const heads = [talkHead(I.W, true, new THREE.Vector3()), talkHead(T.npc, false, new THREE.Vector3())];
   camRig(I, true); placeCamera(I, 1);
+  /* back to the chase camera: a glide when it is a small move, a cut when it would swing through her or round behind her */
+  if(camSwingCuts(p0, q0, camera.position, camera.quaternion, heads, 75)){ I.camBlend = null; camera.fov = camFovBase(); camera.updateProjectionMatrix(); }
+  else I.camBlend = {p: p0, q: q0, t:0, fov: f0};
   I.W.active = T.wasActive; I.W.target = null;
   TALK_COOL = performance.now() + 450;
   if(T.onDone) try{ T.onDone(); }catch(e){ DBG("talk onDone", e); }
