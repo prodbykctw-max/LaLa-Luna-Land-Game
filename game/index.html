@@ -4665,12 +4665,19 @@ function cowgirlHat(brimOuter){
     for(let j=0;j<SEG;j++) idx.push(topRing+j+1, topRing+j, centre);
     const cg = new THREE.BufferGeometry();
     cg.setAttribute("position", new THREE.Float32BufferAttribute(pos,3)); cg.setIndex(idx); cg.computeVertexNormals();
-    const crown = inked(cg, HATC, 1.0); crown.position.y = .006; g.add(crown); }
-  /* ---- the band, sitting in the hollow just above the brim ---- */
-  { const br = R0*1.055;
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(br, br*1.02, R0*.26, SEG, 1, true),
+    /* the crown goes down INTO the brim rather than stopping 6 mm above it: that sliver was a see-through slot */
+    const crown = inked(cg, HATC, 1.0); crown.position.y = -.004; g.add(crown); }
+  /* ---- the band: wrapped tight round the base of the crown and sitting down on the brim ----
+     It used to be a straight ring 5.5-7.6% wider than the crown, starting 4% of the crown's radius above the brim, so
+     from eye level you looked up under it into a dark slot between band, crown and brim (Melvin, Nov 5: "gap between
+     green band and hat brim"). Now each ring of the band follows the crown's own taper and bow, 1.2% proud of it so
+     the two never flicker through each other, and its bottom edge sinks just under the brim's surface. */
+  { const BH = R0*.26, crownR = u => R0*((1 - (1 - HAT_TOP_R)*Math.pow(u, 1.15)) + .045*Math.sin(u*Math.PI*0.8));
+    const pts = []; for(let i = 0; i <= 6; i++){ const y = -.003 + (BH + .003)*i/6, u = Math.max(0, (y + .004)/HAT_CROWN_H);
+      pts.push(new THREE.Vector2(crownR(u)*1.012, y)); }
+    const band = new THREE.Mesh(new THREE.LatheGeometry(pts, SEG),
       stdMat({color:0x6FBF92, gradientMap:GRAD, side:THREE.DoubleSide}));
-    band.position.y = R0*.17; g.add(band); g.userData.band = band; }
+    g.add(band); g.userData.band = band; }
   /* Built round at the mean radius, then squeezed into the oval a real hat block has. Doing it here
      rather than in the vertex loops keeps the brim curl and the crease sitting where they should. */
   g.scale.set(HAT_RX/R0, 1, HAT_RZ/R0);

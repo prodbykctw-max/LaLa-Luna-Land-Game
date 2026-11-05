@@ -10,13 +10,13 @@ await p.addStyleTag({ content: '#hud,.topbtn,#toast,#khint,#build,#cueLine{displ
 await p.waitForFunction(() => { const T = window.__T; return T.CUR && T.CUR.W.model; }, null, { timeout: 180000 }).catch(() => {});
 await p.waitForTimeout(5000);
 const info = await p.evaluate(() => { const W = window.__T.CUR.W; let hat = null; W.group.traverse(o => { if(!hat && o.userData && o.userData.band) hat = o; });
-  if(!hat) return null; const b = hat.userData.band, v = b.getWorldPosition(new THREE.Vector3()); return { y: v.y, hatVisible: hat.visible }; });
+  if(!hat) return null; const v = hat.localToWorld(new THREE.Vector3(0, .035, 0)); return { y: v.y, hatVisible: hat.visible }; });
 console.log(JSON.stringify(info));
 const files = [];
 for (const [k, ang, up] of [['front', 0, .02], ['q3', .8, .02], ['side', 1.57, .02], ['back', 3.14, .02], ['front_hi', 0, .35], ['back_hi', 3.14, .35]]) {
   await p.evaluate(([ang, up]) => { const T = window.__T, I = T.CUR, W = I.W, c = T.camera; W.active = false;
     let hat = null; W.group.traverse(o => { if(!hat && o.userData && o.userData.band) hat = o; });
-    const h = hat.userData.band.getWorldPosition(new THREE.Vector3()), a = W.group.rotation.y + ang;
+    const h = hat.localToWorld(new THREE.Vector3(0, .035, 0)), a = W.group.rotation.y + ang;
     c.fov = 13; c.updateProjectionMatrix(); c.position.set(h.x + Math.sin(a)*2.4, h.y + up, h.z + Math.cos(a)*2.4); c.lookAt(h.x, h.y - .02, h.z); }, [ang, up]);
   await p.waitForTimeout(3500);
   const f = `${OUT}/band_${tag}_${k}.jpg`; await p.screenshot({ path: f, type: 'jpeg', quality: 92, timeout: 240000 }); files.push(f);
