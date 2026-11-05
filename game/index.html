@@ -4324,21 +4324,24 @@ function hatHairSquash(model, s){
        the band in front and at three-quarters, and a tuft showed through the pinched top of the crown from the side.
        Now the squash fades in from 3 cm under the brim (hidden by it), is full by 6 cm above the seat, and pulls a
        little harder toward the crown's narrow top. */
-    const lo = seatY - 0.03 / s, ramp = 0.09 / s;
-    const disp = new Float32Array(pos.count*3);
+    /* Two targets. Target 0 is the original ramp (from nothing at the seat to full at the top): Sanity's wild hair
+       (negative) and wet hair (past 1) keep exactly the look they had. Target 1 is for under the hat only: full by
+       3.5 cm above the seat, starting at the seat itself so no forehead or ear-top skin is moved (a ramp that began
+       under the brim dented the skin there, and run in reverse it flared Sanity's temples - review, Nov 5). */
+    const disp0 = new Float32Array(pos.count*3), disp1 = new Float32Array(pos.count*3), ramp = 0.06 / s;
     for(const i of idx){
-      const y = pos.getY(i); if(y < lo) continue;
-      let t = (y - lo)/ramp; t = Math.max(0, Math.min(1, t)); t = t*t*(3-2*t);   /* smooth into the hairline */
+      const y = pos.getY(i); if(y < seatY) continue;
+      let t = (y - seatY)/span; t = Math.max(0, Math.min(1, t)); t = t*t*(3-2*t);
+      let b = (y - seatY)/ramp; b = Math.max(0, Math.min(1, b)); b = b*(2 - b);               /* fast, then flat */
       const up = Math.max(0, Math.min(1, (y - seatY)/span));
-      const k = HAT_SQUASH * t * (1 + 0.35*up);
-      disp[i*3]     = -(pos.getX(i) - ax) * k;
-      disp[i*3 + 2] = -(pos.getZ(i) - az) * k;
-      disp[i*3 + 1] = -Math.max(0, y - seatY) * k * 0.5;      /* and settle it down under the crown */
+      const k0 = HAT_SQUASH * t, k1 = HAT_SQUASH * b * (1 + 0.35*up);
+      disp0[i*3] = -(pos.getX(i) - ax) * k0; disp0[i*3 + 2] = -(pos.getZ(i) - az) * k0; disp0[i*3 + 1] = -(y - seatY) * k0 * 0.35;
+      disp1[i*3] = -(pos.getX(i) - ax) * k1; disp1[i*3 + 2] = -(pos.getZ(i) - az) * k1; disp1[i*3 + 1] = -(y - seatY) * k1 * 0.5;
     }
-    g.morphAttributes.position = [new THREE.BufferAttribute(disp, 3)];
+    g.morphAttributes.position = [new THREE.BufferAttribute(disp0, 3), new THREE.BufferAttribute(disp1, 3)];
     g.morphTargetsRelative = true;
     o.updateMorphTargets();
-    o.morphTargetInfluences = [1];
+    o.morphTargetInfluences = [0, 1];
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     mats.forEach(m => { if(m){ m.morphTargets = true; m.needsUpdate = true; } });
     o.userData.hairSquashed = true;
@@ -4436,7 +4439,9 @@ function wdApply(ch, lights){
   if(ch.band) ch.band.visible = stand && c.hat > .5;
   /* the hair dial: 1 packs it under the hat, 0 is as built, negative is wild, and past 1 is WET -
      flat to the skull and a little heavier, which is the same displacement pushed further */
-  (ch.hairMorphs || []).forEach(o => { if(o.morphTargetInfluences) o.morphTargetInfluences[0] = c.hair; });
+  /* under a hat the band ramp packs her hair (up to 1); without one, or past 1 (wet), the original ramp does the rest */
+  const hatOn = c.hat > .5, h1 = hatOn ? Math.max(0, Math.min(1, c.hair)) : 0, h0 = c.hair - h1;
+  (ch.hairMorphs || []).forEach(o => { if(o.morphTargetInfluences){ o.morphTargetInfluences[0] = h0; o.morphTargetInfluences[1] = h1; } });
   if(ch.hatBandMesh) ch.hatBandMesh.material.color.copy(w.band);
   if(ch.band) ch.band.material.color.copy(w.band);
   const cv = c.crown > .004; ch.crown.visible = cv;
@@ -11535,14 +11540,16 @@ function fpSetWorldQuat(bone, wq){
 }
 /* Where the soles ARE. Her boots reach well below the ankle and toe joints, so no joint-based guess holds: measured,
    the toe joint sat 24 cm above the bottom of her boot, and a guess from the joints left one boot 4 cm up and the
-   other 12 cm into the ground. So once per character the actual sole is found in the mesh - the vertices weighted to
-   each foot that lie within a few centimetres of that foot's lowest point in the rest pose (heel and toe pads) - and
-   every frame those few dozen points are skinned exactly where the renderer will draw them. */
+   other 12 cm into the ground. So the actual sole is found in the mesh - the vertices weighted at least 90% to that
+   foot (the townsfolk's auto-rigged boots also carry weight from the OTHER leg) lying within a few centimetres of
+   its lowest point in the rest pose - and 12 of them, spread heel to toe, are skinned each frame exactly where the
+   renderer will draw them. Measured only for a rig that is ever asked to stand-plant. */
 function fpMeasureSoles(model, st){
+  st.soleTried = true;
   let mesh = null; model.traverse(o => { if(!mesh && o.isSkinnedMesh && o.skeleton) mesh = o; });
-  if(!mesh){ st.ok = false; return; }
-  st.mesh = mesh;
+  if(!mesh) return;
   const sk = mesh.skeleton, saved = sk.bones.map(b => [b.position.clone(), b.quaternion.clone(), b.scale.clone()]);
+  let ok = true;
   try{
     sk.pose(); model.updateMatrixWorld(true);
     const pos = mesh.geometry.attributes.position, si = mesh.geometry.attributes.skinIndex, sw = mesh.geometry.attributes.skinWeight, v = new THREE.Vector3();
@@ -11553,19 +11560,24 @@ function fpMeasureSoles(model, st){
         for(let c = 0; c < 4; c++){ const w = sw.getComponent(i, c), bi = si.getComponent(i, c); if(want.has(bi)) own += w; if(w > bw){ bw = w; best = bi; } }
         if(!want.has(best)) continue;
         v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
-        /* the auto-rigged townsfolk have boot vertices partly weighted to the OTHER leg (measured: bending Juno's right
-           leg moved her left sole 8 cm), so a sole point must belong at least 90% to its own foot */
-        (own >= .9 ? cand : loose).push([i, v.y]);
+        (own >= .9 ? cand : loose).push([i, v.y, v.x, v.z]);
       }
       if(cand.length < 12) cand.push(...loose);
-      if(!cand.length){ st.ok = false; return; }
-      const minY = Math.min(...cand.map(c => c[1])), band = cand.filter(c => c[1] < minY + .06).map(c => c[0]);
-      const step = Math.max(1, Math.floor(band.length / 48)); L.sole = band.filter((_, k) => k % step === 0);
+      if(!cand.length){ ok = false; break; }
+      const minY = Math.min(...cand.map(c => c[1])), band = cand.filter(c => c[1] < minY + .06);
+      /* spread along the foot's own length in the rest pose, heel and toe ends included */
+      const fx = band.reduce((a, c) => a + c[2], 0)/band.length, fz = band.reduce((a, c) => a + c[3], 0)/band.length;
+      let ax = 0, az = 0; for(const c of band){ const dx = c[2] - fx, dz = c[3] - fz; if(dx*ax + dz*az < 0){ ax -= dx; az -= dz; } else { ax += dx; az += dz; } }
+      const al = Math.hypot(ax, az) || 1; ax /= al; az /= al;
+      band.sort((p, q) => ((p[2] - fx)*ax + (p[3] - fz)*az) - ((q[2] - fx)*ax + (q[3] - fz)*az));
+      const n = Math.min(12, band.length); L.sole = [];
+      for(let k = 0; k < n; k++) L.sole.push(band[Math.round(k*(band.length - 1)/Math.max(1, n - 1))][0]);
     }
   } finally {
     sk.bones.forEach((b, i) => { b.position.copy(saved[i][0]); b.quaternion.copy(saved[i][1]); b.scale.copy(saved[i][2]); });
     model.updateMatrixWorld(true);
   }
+  if(ok){ st.mesh = mesh; st.soleOk = true; }
 }
 /* this frame's sole of one foot against the ground under each sole point: the lowest gap, and the gaps at its front
    and back end along the foot */
@@ -11573,7 +11585,7 @@ const _fsV = new THREE.Vector3(), _fsA = new THREE.Vector3(), _fsD = new THREE.V
 function fpSole(st, L, heightFn){
   const m = st.mesh; let lo = Infinity, fr = -Infinity, bk = Infinity, gF = 0, gB = 0;
   L.foot.getWorldPosition(_fsA);
-  if(L.toe) L.toe.getWorldPosition(_fsD).sub(_fsA); else _fsD.set(Math.sin(st.yaw || 0), 0, Math.cos(st.yaw || 0));
+  if(L.toe) L.toe.getWorldPosition(_fsD).sub(_fsA); else _fsD.copy(st.fwd);
   _fsD.y = 0; if(_fsD.lengthSq() < 1e-8) _fsD.set(0, 0, 1); _fsD.normalize();
   for(const i of L.sole){
     m.getVertexPosition(i, _fsV); _fsV.applyMatrix4(m.matrixWorld);
@@ -11584,86 +11596,99 @@ function fpSole(st, L, heightFn){
   }
   return {lo, front: gF, back: gB, len: Math.max(.05, fr - bk)};
 }
+/* footPlant(R, heightFn, dt, on, stand)
+   on    - placement wanted at all (on the ground, on foot, not in the water); eased in and out, never switched
+   stand - she is standing still: soles planted on their own ground; otherwise (walking) the clip's swing is kept and
+           only shifted by the slope. Eased between the two, so stopping and starting never snap a foot. */
+const _fpRef = new THREE.Vector3(), _fpTmp = new THREE.Vector3(), _fpTmp2 = new THREE.Vector3();
 function footPlant(R, heightFn, dt, on, stand){
   const model = R && R.model; if(!model || !FEETQ) return;
   let st = model.userData._fp;
   if(!st){
     const b = n => boneOf(model, n);
     const legs = [["leftupleg", "leftleg", "leftfoot", "lefttoebase"], ["rightupleg", "rightleg", "rightfoot", "righttoebase"]].map(([u, l, f, t]) => ({up: b(u), knee: b(l), foot: b(f), toe: b(t)}));
-    st = model.userData._fp = {ok: legs.every(L => L.up && L.knee && L.foot), legs, p:0, adj:0, base: model.position.y};
-    if(st.ok) fpMeasureSoles(model, st);
+    st = model.userData._fp = {ok: legs.every(L => L.up && L.knee && L.foot), legs, p:0, adj:0, w:0, sw:0, base: model.position.y, fwd: new THREE.Vector3(0, 0, 1)};
   }
   if(!st.ok) return;
+  if(stand && !st.soleTried) fpMeasureSoles(model, st);
+  if(!st.soleOk) stand = false;
   const k = Math.min(1, dt*12);
-  if(!on){ if(Math.abs(st.p) > 1e-4){ st.p += (0 - st.p)*k; model.position.y = st.base + st.p; } return; }
+  /* one weight for the whole effect, and one for walk <-> stand: both eased, so takeoff, landing, the swash at the
+     waterline and stopping all blend instead of switching */
+  st.w += ((on ? 1 : 0) - st.w)*Math.min(1, dt*8);
+  st.sw += ((on && stand ? 1 : 0) - st.sw)*Math.min(1, dt*7);
+  if(!on) st.adj *= 1 - k;
+  if(st.w < .01 && Math.abs(st.p) < 1e-3){ st.p = 0; model.position.y = st.base; return; }
   model.position.y = st.base; model.updateMatrixWorld(true);
+  R.group.getWorldDirection(st.fwd); st.fwd.y = 0; if(st.fwd.lengthSq() < 1e-8) st.fwd.set(0, 0, 1); st.fwd.normalize();
   const g0 = R.group.getWorldPosition(_fpV[0]), gC = heightFn(g0.x, g0.z);
-  /* 1. what each foot needs. Walking: the clip's swing is kept, shifted by how far this foot's ground is above or
-        below the ground under her centre. Standing: the sole's lowest point goes onto its own ground (her idle holds
-        one foot ~7 cm up, measured, which on a slope is the foot left hanging). */
+  /* 1. what each foot needs: walking, the clip's swing shifted by how far this foot's ground is above or below the
+        ground under her centre (kept small - a bigger difference is the dock or a stone step, an edge, not a slope);
+        standing, the sole's lowest point onto its own ground (her idle holds one foot ~7 cm up, measured) */
   let drop = 0;
   for(const L of st.legs){
     const c = L.foot.getWorldPosition(_fpV[1]);
-    let need = stand ? -fpSole(st, L, heightFn).lo : heightFn(c.x, c.z) - gC;
-    if(!Number.isFinite(need)) need = 0;
-    L.d = Math.max(-.7, Math.min(.7, need));
+    let dw = heightFn(c.x, c.z) - gC; if(!Number.isFinite(dw)) dw = 0; dw = Math.max(-.15, Math.min(.15, dw));
+    let ds = dw;
+    if(st.sw > .01){ L.S = fpSole(st, L, heightFn); ds = Number.isFinite(L.S.lo) ? Math.max(-.5, Math.min(.5, -L.S.lo)) : dw; }
+    L.d = (dw + (ds - dw)*st.sw)*st.w;
     /* a leg can straighten only so far; past that the hips have to come down */
     const a = L.up.getWorldPosition(_fpV[2]), kn = L.knee.getWorldPosition(_fpV[3]);
     const reach = (a.distanceTo(kn) + kn.distanceTo(c))*.995 - a.distanceTo(c);
     if(L.d < 0) drop = Math.min(drop, L.d + Math.max(0, reach));
   }
-  /* 2. the hips come down only for a foot its leg cannot reach (plus what last frame's check found still in the air) */
-  if(!stand) st.adj *= 1 - k;
-  st.p += (drop + st.adj - st.p)*k;
+  /* 2. the hips come down only for a foot its leg cannot reach (plus what the settle check found still in the air) */
+  st.p += (drop + st.adj*st.sw - st.p)*k;
   model.position.y = st.base + st.p; model.updateMatrixWorld(true);
+  _fpRef.crossVectors(st.fwd, _UP);                               /* the knee's hinge: across her, so it bends forward */
   for(const L of st.legs){
-    const lift = L.d - st.p;                                     /* what this leg has to take up, by bending or straightening */
+    const lift = L.d - st.p;
     const a = L.up.getWorldPosition(_fpV[1]), b = L.knee.getWorldPosition(_fpV[2]), c = L.foot.getWorldPosition(_fpV[3]);
-    const fq = L.foot.getWorldQuaternion(_fpQ[0]).clone();      /* the foot keeps the clip's angle through the bend */
+    const fq = L.foot.getWorldQuaternion(_fpQ[0]).clone();       /* the foot keeps the clip's angle through the bend */
     if(Math.abs(lift) > .004){
       const t = _fpV[4].copy(c); t.y += lift;
       const l1 = a.distanceTo(b), l2 = b.distanceTo(c), want = Math.max(.05, Math.min(l1 + l2 - .002, a.distanceTo(t)));
-      /* knee: open or close it until hip-to-ankle is the distance needed */
-      const ba = _fpV[5].copy(a).sub(b), bc = c.clone().sub(b), n = new THREE.Vector3().crossVectors(ba, bc);
-      if(n.lengthSq() > 1e-10){
-        n.normalize();
-        const th0 = ba.angleTo(bc), th1 = Math.acos(Math.max(-1, Math.min(1, (l1*l1 + l2*l2 - want*want)/(2*l1*l2))));
-        fpWorldRotate(L.knee, _fpQ[1].setFromAxisAngle(n, th1 - th0));
-      }
+      /* knee: signed angle about her own hinge axis, so a straight or over-straight clip leg still bends the right way */
+      const ba = _fpV[5].copy(a).sub(b), bc = _fpTmp.copy(c).sub(b);
+      const th0 = Math.atan2(_fpTmp2.crossVectors(ba, bc).dot(_fpRef), ba.dot(bc));
+      const th1 = Math.acos(Math.max(-1, Math.min(1, (l1*l1 + l2*l2 - want*want)/(2*l1*l2))));
+      const t0 = th0 < 0 ? th0 + Math.PI*2 : th0;                 /* 0..2pi; a normal knee sits a little under pi */
+      fpWorldRotate(L.knee, _fpQ[1].setFromAxisAngle(_fpRef, th1 - t0));
       /* thigh: swing the whole leg so the ankle lands on its target */
       L.foot.getWorldPosition(c); L.up.getWorldPosition(a);
-      const from = c.clone().sub(a).normalize(), to = t.clone().sub(a).normalize();
+      const from = _fpTmp.copy(c).sub(a).normalize(), to = _fpTmp2.copy(t).sub(a).normalize();
       if(from.lengthSq() > 0 && to.lengthSq() > 0) fpWorldRotate(L.up, _fpQ[1].setFromUnitVectors(from, to));
     }
-    fpSetWorldQuat(L.foot, fq);
-    if(stand){
-      /* 3. standing, heel and toe both rest on the ground: the foot pivots at the ankle until the front and back of
-            the sole are level with their own ground (which is also what lays it along a slope), up to ~30 degrees */
+    /* the sole: walking, tilted to the ground's slope under it; standing, pivoted at the ankle until heel and toe are
+       level with their own ground. A step (dock edge, stone) is not a slope: no tilt is taken from one. */
+    L.foot.getWorldPosition(c);
+    const e = .25, nx = heightFn(c.x - e, c.z) - heightFn(c.x + e, c.z), nz = heightFn(c.x, c.z - e) - heightFn(c.x, c.z + e);
+    const slope = Math.hypot(nx, nz)/(2*e);
+    const tilt = _fpQ[1].identity();
+    if(slope < .6){
+      const nrm = _fpV[5].set(nx, 2*e, nz).normalize(), ang = Math.acos(Math.max(-1, Math.min(1, nrm.y)));
+      tilt.setFromUnitVectors(_UP, nrm); if(ang > .42) tilt.slerp(_fpQ[3].identity(), 1 - .42/ang);
+    }
+    tilt.slerp(_fpQ[3].identity(), st.sw);                       /* standing uses the pivot below instead */
+    tilt.slerp(_fpQ[3].identity(), 1 - st.w);
+    fpSetWorldQuat(L.foot, fq.premultiply(tilt));
+    L.res = 0;
+    if(st.sw > .01){
       const S = fpSole(st, L, heightFn), dg = S.front - S.back;
-      if(Math.abs(dg) > .006){
-        L.foot.getWorldPosition(_fpV[1]); const f = _fpV[2].copy(_fsD), ang = Math.atan2(-Math.max(-.6*S.len, Math.min(.6*S.len, dg)), S.len);
-        const axis = _fpV[4].set(f.z, 0, -f.x).normalize();        /* horizontal, across the foot */
+      if(Math.abs(dg) > .006 && Math.abs(dg)/S.len < .6){
+        const ang = Math.atan2(-Math.max(-.6*S.len, Math.min(.6*S.len, dg)), S.len)*st.sw*st.w;
+        const axis = _fpV[4].set(_fsD.z, 0, -_fsD.x).normalize();  /* horizontal, across the foot */
         fpWorldRotate(L.foot, _fpQ[1].setFromAxisAngle(axis, -ang));
-        /* the pivot can lift the lowest point off the ground or press it in; settle the leg by what is left */
-        const S2 = fpSole(st, L, heightFn);
-        if(Math.abs(S2.lo) > .006){ const q = L.foot.getWorldQuaternion(_fpQ[0]).clone(); const a2 = L.up.getWorldPosition(_fpV[1]), c2 = L.foot.getWorldPosition(_fpV[3]);
-          const t2 = c2.clone(); t2.y -= S2.lo; fpWorldRotate(L.up, _fpQ[1].setFromUnitVectors(c2.clone().sub(a2).normalize(), t2.sub(a2).normalize())); fpSetWorldQuat(L.foot, q); }
       }
       L.res = fpSole(st, L, heightFn).lo;
-    } else {
-      /* walking: the sole follows the slope under it, the clip's own roll of the foot on top */
-      L.foot.getWorldPosition(c);
-      const e = .25, nx = heightFn(c.x - e, c.z) - heightFn(c.x + e, c.z), nz = heightFn(c.x, c.z - e) - heightFn(c.x, c.z + e);
-      const nrm = _fpV[5].set(nx, 2*e, nz).normalize(), ang = Math.acos(Math.max(-1, Math.min(1, nrm.y)));
-      const tilt = _fpQ[1].setFromUnitVectors(_UP, nrm);
-      if(ang > .42) tilt.slerp(new THREE.Quaternion(), 1 - .42/ang);
-      fpSetWorldQuat(L.foot, fq.premultiply(tilt));
     }
   }
   /* a straight-legged idle cannot reach the last centimetres by bending; if both soles are still up, settle the hips
-     (settling on the higher sole instead was tried: it measured worse, 0.026 -> 0.042 on Green) */
-  if(stand){ const r = Math.min(st.legs[0].res, st.legs[1].res);
-    if(Number.isFinite(r) && Math.abs(r) > .004) st.adj = Math.max(-.3, Math.min(0, st.adj - r*.5)); }
+     (on the lower of the two: settling on the higher one measured worse, 0.026 -> 0.042 on Green). Gain scaled by
+     time, so it settles the same at 30 and 120 fps and never rings the hat. */
+  if(st.sw > .5 && st.w > .5){ const r = Math.min(st.legs[0].res, st.legs[1].res);
+    if(Number.isFinite(r) && Math.abs(r) > .004) st.adj = Math.max(-.3, Math.min(0, st.adj - r*Math.min(1, dt*4))); }
+  else st.adj *= 1 - k;
 }
 /* ===================  TALK SCENES  ===================
    Melvin, Nov 3: talking to someone "doesn't just need to be something I read... they need to be on the screen
@@ -12889,7 +12914,7 @@ function islandUpdate(I, dt, t){
        applySeated folded her head-down over the shell. The mixer runs for everyone. */
     if(R.mixer){ playClip(R, u.state === "walk" ? "walk" : "idle"); R.mixer.update(dt);
       /* their feet too, when the camera is close enough to see them (and never on a seat or a mount) */
-      if(!u.cfg.mount && !u.cfg.post && camera.position.distanceTo(g.position) < 34) footPlant(R, I.height, dt, true, false); }
+      if(!u.cfg.mount && !u.cfg.post) footPlant(R, I.height, dt, camera.position.distanceTo(g.position) < 34, false); }
       /* slope only, never the standing plant: their auto-rigged boots have vertices weighted to BOTH legs, so bending one
          leg drags part of the other boot (measured: 8 cm) and planting soles on those models fights their own skin */   /* Ollie rides: his seat pass owns his legs */
     /* crowd LOD: ink outline only when close to the camera, shadow only at mid range — halves the skinned triangle load */
