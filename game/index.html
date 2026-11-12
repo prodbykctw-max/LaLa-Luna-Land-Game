@@ -309,7 +309,7 @@ body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;p
 <body class="walk">
 <!-- The model credits the CC BY licence asks for, shown once on a black screen while the game loads instead of on the
      title card (Melvin, Oct 27: they were crowding the title). It fades by itself; a tap skips it. -->
-<div id="creditSplash"><div class="cs-in"><div class="cs-t">Lala Luna Land</div><p id="animalCredits">Animals from Sketchfab, CC BY 4.0: "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries · "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D · "Horse" by MAXDESIGN-3D · "Horse Rigged(Game Ready)" by abhayexe · "Bull" by stealth86 · "Lizard" by Froggreen · "Lizard" by LostBoyz2078 · "low poly animated and rigged gecko model" by Msassasa · "Bored-monkey-h-bosch-v-van-gogh-mashup" by eyork4633 · "Flamingosf" by kenchoo · "Pteranodon (Animated)" by Chistodrako._. · "parrot rebuilt" by kenchoo · "Parrot" by NewGameDeveloper · "Hermit Crab" by kenchoo · "Sea Turtle Lowpoly Animated" by kenchoo · "Sea Turtle" by Eloi · "Model 53A - Flatback Sea Turtle" by DigitalLife3D · "Bottlenose Dolphin" by popcornbag · "Game-Ready dolphin (Swimming)" by Allie2k · "blue powder tang" by Major · "seagull" by teacherap123 · "Seagulls animated" by vicente betoret ferrero. Items: "Carrot (.c4d and .fbx)" by NeoT1 · "Low-Poly 3D Folded Letter Paper" by Produk Cerdas · "Ink Bottle with Quill" by Matthew Collings · "Vintage Hurricane Lantern" by Chris Torres · "Cowboy boots" by Joe Roechow · "Regency period fan" by Tees Valley Secret Heritage · "Diadem" by Akeyon · "old desk" by deea_jo.<span id="bldCredits"> Buildings: "Amsterdam Canal House by Jungle Jim" and "Amsterdam Canal House" by Jungle Jim · "Stylized Amsterdam House" by ChrisCLP · "DAE Rowhomes - Amsterdam" by Vladimir Prisacaru · "Dutch House" by Bjarne Stokhof · "Casario Colonial Centro Histórico de Paraty" by DanielGrps · "Colonial House" by luahart · "Mexican House 3" and "Mexican House 4" by Hollow_Soul_09 · "Low Poly Portuguese Village House 1" and "3" by AlexFerrart3D · "Bungalow game ready" by Maria So · "Rusty Old Tropical Shop" by Nodeaxis Interactive.</span> Optimised for the game.</p></div></div>
+<div id="creditSplash"><div class="cs-in"><div class="cs-t">Lala Luna Land</div><p id="animalCredits">Animals from Sketchfab, CC BY 4.0: "Farm Cow Animated Dairy cattle" by Rukh3D · "PBR Velociraptor (Animated)" by Ferocious Industries · "Animated Argentinosaurus (Free)" by Anees Animates · "Chicken" by MAXDESIGN-3D · "Horse" by MAXDESIGN-3D · "Horse Rigged(Game Ready)" by abhayexe · "Bull" by stealth86 · "Lizard" by Froggreen · "Lizard" by LostBoyz2078 · "low poly animated and rigged gecko model" by Msassasa · "Bored-monkey-h-bosch-v-van-gogh-mashup" by eyork4633 · "Flamingosf" by kenchoo · "Pteranodon (Animated)" by Chistodrako._. · "parrot rebuilt" by kenchoo · "Parrot" by NewGameDeveloper · "Hermit Crab" by kenchoo · "Sea Turtle Lowpoly Animated" by kenchoo · "Sea Turtle" by Eloi · "Model 53A - Flatback Sea Turtle" by DigitalLife3D · "Bottlenose Dolphin" by popcornbag · "Game-Ready dolphin (Swimming)" by Allie2k · "blue powder tang" by Major · "seagull" by teacherap123 · "Seagulls animated" by vicente betoret ferrero. Items: "Carrot (.c4d and .fbx)" by NeoT1 · "Low-Poly 3D Folded Letter Paper" by Produk Cerdas · "Ink Bottle with Quill" by Matthew Collings · "Vintage Hurricane Lantern" by Chris Torres · "Cowboy boots" by Joe Roechow · "Regency period fan" by Tees Valley Secret Heritage · "Diadem" by Akeyon · "old desk" by deea_jo.<span id="bldCredits"> Buildings: "Amsterdam Canal House by Jungle Jim" and "Amsterdam Canal House" by Jungle Jim · "Stylized Amsterdam House" by ChrisCLP · "DAE Rowhomes - Amsterdam" by Vladimir Prisacaru · "Dutch House" by Bjarne Stokhof · "Casario Colonial Centro Histórico de Paraty" by DanielGrps · "Colonial House" by luahart · "Mexican House 3" and "Mexican House 4" by Hollow_Soul_09 · "Low Poly Portuguese Village House 1" and "3" by AlexFerrart3D · "Bungalow game ready" by Maria So.</span> Optimised for the game.</p></div></div>
 
 <div id="vig"></div><div id="flash"></div><div id="grain"></div>
 
@@ -512,7 +512,7 @@ if(LEGACY_LIGHTS){
   C.lights_pars_begin = t;
 }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-11-05b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-11-12a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3809,7 +3809,6 @@ const BLD = {
   b11:{h:7, yaw:0, w:7.9, d:8.1},
   b15:{h:7, yaw:0, w:11.5, d:5.2},
   b16:{h:7, yaw:0, w:11.8, d:5.0},
-  b18:{h:4.5, yaw:2, w:7.4, d:7.5},
   b19:{h:5, yaw:2, w:5.9, d:8.0}
 };
 const BLD_P = {};
@@ -10752,8 +10751,8 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
           const x = cx + Math.cos(a)*R, z = cz + Math.sin(a)*R, rot = Math.atan2(cx - x, cz - z);
           if(fits(B, x, z, rot, 4)){ put(key, x, z, rot); prev = {a, w}; oi++; yield; }
           a += .025; } }
-      /* 3. THE BEACH: a tin-roofed shop and a thatched bungalow at the back of the sand, facing it */
-      if(beachP){ const order = ["b18","b19","b19"]; let oi = 0;
+      /* 3. THE BEACH: a plaster house and a thatched bungalow at the back of the sand, facing it */
+      if(beachP){ const order = ["b11","b19","b19"]; let oi = 0;
         const toIsl = Math.atan2(beachP.z - cz, beachP.x - cx);                          /* the far side of the sand, away from the square */
         for(let k = 0; k < 90 && oi < order.length; k++){ const a = toIsl + (k % 2 ? 1 : -1)*Math.ceil(k/2)*.04, key = order[oi], B = BLD[key], R = beachP.r + M(B.d)/2 + 4;
           const x = beachP.x + Math.cos(a)*R, z = beachP.z + Math.sin(a)*R, rot = Math.atan2(beachP.x - x, beachP.z - z);
