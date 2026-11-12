@@ -12,7 +12,7 @@ const res = await H.page.evaluate(camsIn => { const T = window.__T, I = T.CUR, c
   const B = (I.buildings || []).map(g => ({ key: g.userData.bld, x: +g.position.x.toFixed(1), y: +g.position.y.toFixed(1), z: +g.position.z.toFixed(1), rot: +g.rotation.y.toFixed(2), loaded: g.children.length > 0 }));
   const sq = cfg.features.find(f => f.name === 'The Square'), beach = cfg.places.find(p => p.name === 'The Beach');
   const cen = list => list.length ? [list.reduce((a, b) => a + b.x, 0)/list.length, list.reduce((a, b) => a + b.z, 0)/list.length] : [sq.x, sq.z];
-  const row = B.filter(b => ['b2','b3','b4','b5','b7'].includes(b.key)), ring = B.filter(b => ['b8','b9','b10','b11','b15','b16'].includes(b.key)), bch = B.filter(b => ['b18','b19'].includes(b.key));
+  const row = B.filter(b => ['b2','b3','b4','b5','b7'].includes(b.key)), atBeach = b => b.key === 'b19' || (b.key === 'b11' && Math.hypot(b.x - beach.x, b.z - beach.z) < beach.r + 30), ring = B.filter(b => ['b8','b9','b10','b11','b15','b16'].includes(b.key) && !atBeach(b)), bch = B.filter(atBeach);
   const h = (x, z) => { const r = new THREE.Raycaster(new THREE.Vector3(x, 300, z), new THREE.Vector3(0, -1, 0)); const hit = r.intersectObjects(I.scene.children, true)[0]; return hit ? hit.point.y : 0; };
   let cams = camsIn;
   if(!cams){ const [rx, rz] = cen(row), [gx, gz] = cen(ring);
