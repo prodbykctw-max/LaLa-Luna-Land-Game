@@ -315,6 +315,18 @@ Start over (confirm-gated) or `?reset=1` (wipes before the save is read, then dr
 `polyOf` scales by `WORLD`. `landify` walks hand-placed content back onto land — features, notes,
 NPCs, beach, grotto, stones, **and now places**.
 
+- **Overlay motion ("nothing just appears", build `2026-11-15a`).** `glideOv()` (next to `ov()` /
+  `ovNone()`) makes a card opened by a button (Secrets, Travel) grow out of that button, and a card
+  opened by interacting (note, castle door, dock) grow out of the thing Lala walked up to (its
+  projected screen point) or the Interact button if that was tapped; closing shrinks it back to the
+  same spot. The Start-over question in Secrets grows out of its button and shrinks back into it
+  (a painted copy shrinks; the real block hides at once). Motion only: the `.hide` class still flips
+  on the same line, nothing waits for an animation, and overlays nothing opened (title, island
+  intro, ending) keep the plain fade. Reduced motion: the plain fade. **VERIFIED** in headless
+  Chromium (SwiftShader) with animations slowed 20x through DevTools: Secrets/Travel origins land on
+  the button centres, a note card's origin lands on the note's screen point, no copy left behind,
+  rapid open/close ends in a clean state. Not yet looked at on a phone.
+
 ## 2.7 URL flags
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)

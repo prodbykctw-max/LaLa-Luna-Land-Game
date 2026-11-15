@@ -512,7 +512,7 @@ if(LEGACY_LIGHTS){
   C.lights_pars_begin = t;
 }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-11-12a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-11-15a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -5010,8 +5010,73 @@ async function save(){
 const $ = id => document.getElementById(id);
 const glyphs = [...document.querySelectorAll(".glyph")];
 const OVS = ["ovTitle","ovNote","ovCastle","ovDock","ovIntro","ovSecrets","ovEnd","ovTravel"];
-function ov(id){ OVS.forEach(k => $(k).classList.toggle("hide", k !== id)); }
-function ovNone(){ OVS.forEach(k => $(k).classList.add("hide")); }
+function ov(id){ glideOv(id); OVS.forEach(k => $(k).classList.toggle("hide", k !== id)); }
+function ovNone(){ glideOv(null); OVS.forEach(k => $(k).classList.add("hide")); }
+/* NOTHING JUST APPEARS. A card opened by a button (Secrets, Travel) grows out of that button, and one opened by
+   interacting (a note, the castle door, the dock) grows out of the thing Lala walked up to, or the Interact button
+   if that was what was tapped. Closing shrinks it back to the same spot. Motion only: the .hide class still flips
+   on the same line it always did, so nothing in the game waits for an animation, and an overlay nothing opened
+   (the title, an island intro, the ending) keeps its plain fade. Reduced motion: the plain fade, as before. */
+const GLIDE_REDUCE = matchMedia("(prefers-reduced-motion: reduce)");
+const GLIDE_OUT = "cubic-bezier(.2,.8,.2,1)", GLIDE_BACK = "cubic-bezier(.4,0,.2,1)";
+const GLIDE_INTERACT = {ovNote:1, ovCastle:1, ovDock:1};
+let glidePress = null;                 /* the last button pressed: the element and where it was */
+const glideFrom = {}, glideAnim = {};  /* overlay id -> where it grew from / its running animation */
+/* recorded on press, release and click (capture phase, before any handler runs), so a slow frame between the press
+   and the click never loses which button it was */
+const glideMark = e => { const b = e.target && e.target.closest && e.target.closest("button"); if(!b) return;
+  glidePress = {el: b, r: b.getBoundingClientRect(), t: performance.now()}; };
+addEventListener("pointerdown", glideMark, true); addEventListener("pointerup", glideMark, true); addEventListener("click", glideMark, true);
+addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " ") { const b = document.activeElement;
+  if(b && b.tagName === "BUTTON") glidePress = {el: b, r: b.getBoundingClientRect(), t: performance.now()}; } }, true);
+function glidePoint(r){ return r && r.width > 0 && r.height > 0 ? {x: r.left + r.width/2, y: r.top + r.height/2} : null; }
+function glideOrigin(id){
+  if(glidePress && performance.now() - glidePress.t < 1200){
+    const el = glidePress.el; return {el, p: glidePoint(el.isConnected ? el.getBoundingClientRect() : glidePress.r) || glidePoint(glidePress.r)};
+  }
+  if(GLIDE_INTERACT[id] && CUR && CUR.W && CUR.W.target && CUR.W.target.obj){   /* E key or a click on the world */
+    try{ const v = CUR.W.target.obj.getWorldPosition(new THREE.Vector3()).project(camera);
+      if(v.z < 1 && Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1) return {el: null, p: {x: (v.x + 1)/2*innerWidth, y: (1 - v.y)/2*innerHeight}}; }catch(e){}
+  }
+  return null;
+}
+function glideNow(o){   /* where the opener is now (the button may have moved); else where it was */
+  if(o.el && o.el.isConnected){ const p = glidePoint(o.el.getBoundingClientRect()); if(p) return p; }
+  return o.p;
+}
+function glideStop(id){ const a = glideAnim[id]; if(a){ glideAnim[id] = null; try{ a.cancel(); }catch(e){} } }
+function glideCard(card, p, open){
+  const r = card.getBoundingClientRect(); if(!(r.width > 0 && r.height > 0)) return null;
+  const org = (p.x - r.left) + "px " + (p.y - r.top) + "px", s = Math.min(.5, Math.max(.15, 64 / r.width));
+  const kf = [{transformOrigin: org, transform: "scale(" + s + ")", opacity: 0}, {transformOrigin: org, transform: "none", opacity: 1}];
+  return card.animate(open ? kf : kf.slice().reverse(), {duration: open ? 320 : 230, easing: open ? GLIDE_OUT : GLIDE_BACK, fill: open ? "none" : "forwards"});
+}
+function glideOv(id){
+  if(GLIDE_REDUCE.matches) return;
+  OVS.forEach(k => {
+    const el = $(k), shown = !el.classList.contains("hide"), card = el.querySelector(".card");
+    if(!card) return;
+    if(k === id && !shown){                                     /* opening */
+      glideStop(k); const o = glideOrigin(k); glideFrom[k] = o; if(!o || !o.p) return;
+      card.style.transition = "none";                            /* the WAAPI grow replaces the old 10px lift */
+      el.classList.remove("hide"); const a = glideCard(card, o.p, true); el.classList.add("hide");
+      if(!a){ card.style.transition = ""; return; }
+      glideAnim[k] = a;   /* a later open/close that cancels this one owns the card's transition from then on */
+      a.onfinish = () => { if(glideAnim[k] !== a) return; glideAnim[k] = null; card.style.transition = ""; };
+    } else if(k !== id && shown){                               /* closing */
+      glideStop(k); const o = glideFrom[k]; glideFrom[k] = null; const p = o && glideNow(o); if(!p) return;
+      card.style.transition = "none";
+      const a = glideCard(card, p, false); if(!a){ card.style.transition = ""; return; }
+      glideAnim[k] = a;
+      /* hold the shrunk frame until the overlay's own fade has finished, then let go (a timer backs it up in case the
+         fade never reports, e.g. a hidden tab) */
+      const end = () => { el.removeEventListener("transitionend", onEnd); if(glideAnim[k] !== a) return; glideAnim[k] = null;
+        try{ a.cancel(); }catch(e){} card.style.transition = ""; };
+      const onEnd = e => { if(e.target === el && e.propertyName === "opacity") end(); };
+      el.addEventListener("transitionend", onEnd); setTimeout(end, 900);
+    }
+  });
+}
 const wait = ms => new Promise(r => setTimeout(r, ms));
 async function toBlack(){ $("fade").classList.add("on"); await wait(850); }
 async function fromBlack(){ $("fade").classList.remove("on"); await wait(850); }
@@ -14063,6 +14128,35 @@ $("travelBtn").onclick = () => {
 $("bReset").onclick = () => { $("resetWrap").classList.remove("hide"); $("bReset").classList.add("hide"); };
 $("bResetNo").onclick = () => { $("resetWrap").classList.add("hide"); $("bReset").classList.remove("hide"); };
 $("bResetYes").onclick = async () => { await wipeSave(); location.href = location.pathname; };
+/* the "start over" question grows out of the Start over button, and "Keep my progress" shrinks it back into it */
+{ const wrap = $("resetWrap"), btn = $("bReset");
+  btn.addEventListener("click", () => {
+    if(GLIDE_REDUCE.matches || wrap.classList.contains("hide")) return;
+    const p = glidePress && glidePress.el === btn ? glidePoint(glidePress.r) : null, r = wrap.getBoundingClientRect();
+    if(!p || !(r.width > 0)) return;
+    const org = (p.x - r.left) + "px " + (p.y - r.top) + "px";
+    wrap.animate([{transformOrigin: org, transform: "scale(.3)", opacity: 0}, {transformOrigin: org, transform: "none", opacity: 1}],
+      {duration: 240, easing: GLIDE_OUT});
+  });
+  let ghostFrom = null;
+  $("bResetNo").addEventListener("click", () => {          /* capture phase: measure before the handler hides it */
+    ghostFrom = !GLIDE_REDUCE.matches && !wrap.classList.contains("hide") ? wrap.getBoundingClientRect() : null;
+  }, true);
+  $("bResetNo").addEventListener("click", () => {
+    const r = ghostFrom; ghostFrom = null; if(!r || !(r.width > 0)) return;
+    /* the card (backdrop-filter) is the ghost's containing block, so place it in the card's own coordinates */
+    const to = glidePoint(btn.getBoundingClientRect()), card = wrap.parentNode, c = card.getBoundingClientRect(); if(!to) return;
+    const g = wrap.cloneNode(true); g.removeAttribute("id"); g.querySelectorAll("[id]").forEach(n => n.removeAttribute("id"));
+    g.classList.remove("hide"); g.setAttribute("aria-hidden", "true"); g.inert = true;
+    Object.assign(g.style, {position: "absolute", margin: "0", pointerEvents: "none", zIndex: "1", boxSizing: "border-box",
+      left: (r.left - c.left - card.clientLeft) + "px", top: (r.top - c.top - card.clientTop) + "px", width: r.width + "px"});
+    card.appendChild(g);
+    const org = (to.x - r.left) + "px " + (to.y - r.top) + "px";
+    const a = g.animate([{transformOrigin: org, transform: "none", opacity: 1}, {transformOrigin: org, transform: "scale(.3)", opacity: 0}],
+      {duration: 200, easing: GLIDE_BACK, fill: "forwards"});
+    const end = () => g.remove(); a.onfinish = end; a.oncancel = end; setTimeout(end, 400);
+  });
+}
 /* the title card carries its own restart, so a save can never be trapped behind an in-game menu */
 $("bTitleReset").onclick = async () => {
   if($("bTitleReset").dataset.armed){ await wipeSave(); location.href = location.pathname; return; }
