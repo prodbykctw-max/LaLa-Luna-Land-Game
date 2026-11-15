@@ -2887,7 +2887,7 @@ const SKY_PHOTO_SUN = {belfast_sunset:.678, industrial_sunset_02:.601, kloofenda
 /* the owner's pick (Oct 17 2026): A, kloppenheim_06, on every island but Sanity, which keeps its own night sky.
    ?skyphoto=old brings back the drawn clouds; ?skyphoto=<name> tries another photo anywhere (Sanity included). */
 const SKY_PHOTO_Q = QS.get("skyphoto"), SKY_PHOTO_DEFAULT = "kloppenheim_06";
-const SKY_PHOTO_PICK = SKY_PHOTO_Q === "old" ? null : (SKY_PHOTO_Q && SKY_PHOTO_SUN[SKY_PHOTO_Q] != null ? SKY_PHOTO_Q : SKY_PHOTO_DEFAULT);
+const SKY_PHOTO_PICK = SKY_PHOTO_Q === "old" ? null : (SKY_PHOTO_Q && Object.prototype.hasOwnProperty.call(SKY_PHOTO_SUN, SKY_PHOTO_Q) ? SKY_PHOTO_Q : SKY_PHOTO_DEFAULT);
 let _skyTL = null;
 function skyPhotoTex(name){ _skyTL = _skyTL || new THREE.TextureLoader();
   const t = _skyTL.load("assets/sky/" + name + "_puresky_up.jpg"); t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping; t.anisotropy = 4; return t; }
@@ -4987,9 +4987,12 @@ async function load(){
   try{
     let raw = null;
     try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){}
-    if(raw){ Object.assign(G, JSON.parse(raw)); }
+    /* Security audit 2026-11-15: copy a save's own fields only, never "__proto__"/"constructor"/"prototype"
+       (Object.assign with a JSON "__proto__" key swaps G's prototype). */
+    const loadSave = (o) => { if(o && typeof o === "object") for(const k of Object.keys(o)) if(k !== "__proto__" && k !== "constructor" && k !== "prototype") G[k] = o[k]; };
+    if(raw){ loadSave(JSON.parse(raw)); }
     else if(window.storage && window.storage.get){
-      const r = await window.storage.get(SAVE_KEY); if(r && r.value) Object.assign(G, JSON.parse(r.value));
+      const r = await window.storage.get(SAVE_KEY); if(r && r.value) loadSave(JSON.parse(r.value));
     }
   }catch(e){}
   syncHUD();
@@ -13992,7 +13995,7 @@ function renderSecrets(){
     if(!c.hub){ parts.push(G.abilities[c.ability.key] ? c.ability.name.replace("Her ","") + " ✓" : "outfit —"); parts.push(G.letters[c.idx] ? c.glyph + " ✓" : "letter —"); }
     d.innerHTML = `<div class="n">${c.name}</div><div class="d">${parts.join(" · ")}</div>`; list.appendChild(d);
   });
-  const d = document.createElement("div"); d.className = "srow"; d.innerHTML = `<div class="n" style="color:var(--moon)">Moons</div><div class="d">${G.moons} gathered${G.finished ? " · fifth song heard" : ""}</div>`; list.appendChild(d);
+  const d = document.createElement("div"); d.className = "srow"; d.innerHTML = `<div class="n" style="color:var(--moon)">Moons</div><div class="d">${Number(G.moons) || 0} gathered${G.finished ? " · fifth song heard" : ""}</div>`; list.appendChild(d);
 }
 $("bBegin").onclick = () => { audioInit(); ovNone(); introPlay(); };
 $("bNote").onclick = () => { ovNone(); CUR.W.active = true; };
@@ -14185,7 +14188,7 @@ load().then(() => {
   }
   /* ?go=green|gr|sanity|town jumps straight onto an island — handy for playtesting one spot */
   const jump = new URLSearchParams(location.search).get("go");
-  if(jump && ISL[jump] && jump !== "hub"){ CUR = ISL[jump]; goIsland(ISL[jump], true); ovNone(); CUR.W.active = true; tick(); return; }
+  if(jump && Object.prototype.hasOwnProperty.call(ISL, jump) && jump !== "hub"){ CUR = ISL[jump]; goIsland(ISL[jump], true); ovNone(); CUR.W.active = true; tick(); return; }
   /* Preview shortcut: ?sail=moon opens the Luna-only boat approach without altering progression or saves. */
   const sailPreview = new URLSearchParams(location.search).get("sail");
   if(sailPreview){ const target = sailPreview === "moon" ? "moon" : "green"; CUR = ISL.hub; tick();
