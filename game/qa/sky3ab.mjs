@@ -98,7 +98,9 @@ for (const [variant, q] of (compose ? [] : [variants[2], variants[0], variants[1
     }
   }
   /* Lala in the hub's deepest pool (old vs stronger; the first version too, since it is free) */
-  if (!mobile && islands.includes('hub')) {
+  if (!mobile && lalaOnly) {
+    /* her close shot is the heaviest frame there is (a lens inside the grass): a smaller viewport, 960x600, keeps software rendering inside the screenshot timeout; she is still 430 px tall */
+    await H.page.setViewportSize({ width: 960, height: 600 }); await H.page.waitForTimeout(1500);
     await H.page.evaluate(`${READY}('hub')`);
     if (variant === 'new') { lalaSpot = await H.page.evaluate(POOL); out.lala = lalaSpot; writeFileSync(`${OUT}/_sky3_lalaspot.json`, JSON.stringify(lalaSpot)); }
     else lalaSpot = JSON.parse(readFileSync(`${OUT}/_sky3_lalaspot.json`, 'utf8'));
@@ -137,14 +139,14 @@ H=sum(i.height for i in ims)+4*(len(ims)-1); S=Image.new('RGB',(ims[0].width,H),
 for i in ims: S.paste(i,(0,y)); y+=i.height+4
 S.save(out,quality=88)`, `${OUT}/sky3_${isl}${mobile ? '_mobile' : ''}.jpg`, JSON.stringify(rows.map(([k, v]) => [k, v.old, v.v1, v.new])), String(mobile ? 390 : 640), JSON.stringify(variants.map(v => v[2]))]);
 }
-if (Object.keys(lalaShots).length === 3) execFileSync('python3', ['-c', `
+if (lalaShots.old && lalaShots.new) execFileSync('python3', ['-c', `
 import sys
 from PIL import Image, ImageDraw
-ps=sys.argv[2:5]; labs=['OLD','FIRST','STRONGER']; cs=[Image.open(p) for p in ps]; w,h=cs[0].size
-S=Image.new('RGB',(w*3+12,h),(255,0,255)); d=ImageDraw.Draw(S)
+ps=sys.argv[2:4]; labs=['OLD','STRONGER']; cs=[Image.open(p) for p in ps]; w,h=cs[0].size
+S=Image.new('RGB',(w*2+6,h),(255,0,255)); d=ImageDraw.Draw(S)
 for i,c in enumerate(cs):
     S.paste(c,(i*(w+6),0)); x=i*(w+6)+8; d.rectangle((x-4,6,x+120,26),fill=(0,0,0)); d.text((x,10),labs[i],fill=(255,255,255))
-S.save(sys.argv[1],quality=90)`, `${OUT}/sky3_lala.jpg`, lalaShots.old, lalaShots.v1, lalaShots.new]);
+S.save(sys.argv[1],quality=90)`, `${OUT}/sky3_lala.jpg`, lalaShots.old, lalaShots.new]);
 writeFileSync(`${OUT}/sky3_${mobile ? 'mobile' : 'run'}.json`, JSON.stringify(out, null, 1));
 console.log(JSON.stringify({ errors: out.errors, lights: out.lights, lala: out.lala, lalaPx: out.lalaPx }, null, 1));
 process.exit(0);
