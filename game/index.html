@@ -761,7 +761,9 @@ function applyLookMix(m){
    (the crossing, the keep, ?skylight=old) gets uSkyK = 0, which makes the patch cost one branch and change nothing.
    The bake itself, and the reasons for it, are in the SKY LIGHT block above buildIslandSteps. */
 const SLQ = REAL && QS.get("skylight") !== "old";
-const SLK = (() => { const v = parseFloat(QS.get("skylight")); return isNaN(v) ? .85 : Math.max(0, Math.min(1, v)); })();
+/* ?skylight=v1 is the FIRST version (the raw visibility, strength .85, indirect light only): kept so QA can photograph the old and new strengths from one build. */
+const SLV1 = QS.get("skylight") === "v1";
+const SLK = (() => { if(SLV1) return .85; const v = parseFloat(QS.get("skylight")); return isNaN(v) ? 1 : Math.max(0, Math.min(1, v)); })();
 const SL_U = {
   uSkyMap: {value: (() => { const t = new THREE.DataTexture(new Uint8Array([255, 0, 0, 0]), 1, 1); t.needsUpdate = true; return t; })()},
   uSkyBox: {value: new THREE.Vector4(0, 0, 1, 1)},     /* minX, minZ, 1/sizeX, 1/sizeZ */
@@ -9759,8 +9761,25 @@ float skyOcc(){
   float h = vSkyW.y - (uSkyH.x + t.g*uSkyH.y);
   return mix(t.r, 1.0, smoothstep(.4, 3.0, h));      /* the shade lies on the ground; a roof ten metres up sees the sky */
 }`;
-const SL_FRAG = `if(uSkyK > 0.0){ float so = mix(1.0, skyOcc(), uSkyK); reflectedLight.indirectDiffuse *= so; reflectedLight.indirectSpecular *= so;
-  if(uSkyDbg > .5){ reflectedLight.directDiffuse = vec3(0.0); reflectedLight.directSpecular = vec3(0.0); reflectedLight.indirectSpecular = vec3(0.0); reflectedLight.indirectDiffuse = vec3(so*.3); totalEmissiveRadiance = vec3(0.0); } }`;
+/* THE SHADE FACTOR, once per fragment, before the lights run (it is declared ahead of lights_fragment_begin so the fill lights can use it too).
+   The baked visibility is mild (an open meadow reads .98-1, the deepest pool under a crown .7-.9), so it is REMAPPED: anything at or above .97 is open
+   sky and stays exactly 1.0, and the rest is stretched over the .47 below it, to at most 85% darker. v1 keeps the first version's plain mix(1, vis, K). */
+const SL_SO_DECL = SLV1 ? `float skySo = 1.0; if(uSkyK > 0.0) skySo = mix(1.0, skyOcc(), uSkyK);`
+  : `float skySo = 1.0; if(uSkyK > 0.0) skySo = 1.0 - clamp((0.97 - skyOcc())/0.50, 0.0, 1.0)*0.85*uSkyK;`;
+const SL_FRAG = `if(uSkyK > 0.0){ reflectedLight.indirectDiffuse *= skySo; reflectedLight.indirectSpecular *= skySo;
+  if(uSkyDbg > .5){ reflectedLight.directDiffuse = vec3(0.0); reflectedLight.directSpecular = vec3(0.0); reflectedLight.indirectSpecular = vec3(0.0); reflectedLight.indirectDiffuse = vec3(skySo*.3); totalEmissiveRadiance = vec3(0.0); } }`;
+/* THE FILL LIGHTS.  The bounce and the rim are shadowless directional lights, so under a crown they lit the ground at full strength and the shade read weak.
+   Three sorts the shadow-casting lights FIRST (the key always has castShadow, so it is always index 0 of NUM_DIR_LIGHT_SHADOWS); every directional light past
+   that count is a fill, and only those are multiplied. Gated on the count alone, not on USE_SHADOWMAP: with the shadow map off (low quality) the key is
+   still counted as a caster and still never darkened. The chunk text is edited here, once, and checked for the shape we rely on; if a three update
+   changes it, SL_LIGHTS stays null and the fills are simply left alone (indirect only), and the bake says so in the console. */
+const SL_LIGHTS = (() => {
+  if(SLV1) return null;
+  const c = THREE.ShaderChunk.lights_fragment_begin || "", a = c.indexOf("getDirectionalLightInfo( directionalLight, directLight );");
+  const b = a < 0 ? -1 : c.indexOf("RE_Direct( directLight,", a), e = a < 0 ? -1 : c.indexOf("#pragma unroll_loop_end", a);
+  if(a < 0 || b < 0 || e < 0 || b > e){ console.warn("SKYLIGHT: lights_fragment_begin has a new shape, the fill lights are not dimmed"); return null; }
+  return c.slice(0, b) + "#if ( UNROLLED_LOOP_INDEX >= NUM_DIR_LIGHT_SHADOWS )\n\t\tdirectLight.color *= skySo;\n\t\t#endif\n\t\t" + c.slice(b);
+})();
 function skyPatch(m){
   if(SL_DONE.has(m)) return false; SL_DONE.add(m);
   /* wrap, never replace: the material keeps every patch it already has (wind, detail, camera fade, relief...) */
@@ -9772,8 +9791,11 @@ function skyPatch(m){
     for(const k in SL_U) sh.uniforms[k] = SL_U[k];
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vSkyW; varying vec3 vSkyN;")
       .replace("#include <project_vertex>", "#include <project_vertex>\n" + SL_VTX);
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + SL_FRAG_PARS)
-      .replace("#include <aomap_fragment>", SL_FRAG + "\n#include <aomap_fragment>");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + SL_FRAG_PARS);
+    /* skySo is declared right before the lights so the fills can use it; a material that lost that chunk gets it declared at the indirect step instead */
+    const hasLights = sh.fragmentShader.includes("#include <lights_fragment_begin>");
+    if(hasLights) sh.fragmentShader = sh.fragmentShader.replace("#include <lights_fragment_begin>", SL_SO_DECL + "\n" + (SL_LIGHTS || "#include <lights_fragment_begin>"));
+    sh.fragmentShader = sh.fragmentShader.replace("#include <aomap_fragment>", (hasLights ? "" : SL_SO_DECL + "\n") + SL_FRAG + "\n#include <aomap_fragment>");
   };
   /* the default key is the TEXT of onBeforeCompile, which is now the same wrapper for everybody: keep the old text as the key */
   m.customProgramCacheKey = () => (own ? own.call(m) : prevText) + "_sky";
