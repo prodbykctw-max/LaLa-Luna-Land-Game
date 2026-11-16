@@ -327,10 +327,25 @@ NPCs, beach, grotto, stones, **and now places**.
   the button centres, a note card's origin lands on the note's screen point, no copy left behind,
   rapid open/close ends in a clean state. Not yet looked at on a phone.
 
+- **Sky light (branch `skylight`; `?skylight=old` restores - `?sky=old` is the older gradient sky dome).** A baked open-sky map per island. At the end of
+  `buildIslandSteps` (`skyBakeSteps`, in the SKY LIGHT block above it) the island's solid, static things are drawn as depth
+  from N=64 cosine-weighted sky directions (layer 7; the ground alone on layer 6, straight down), and every cell of a
+  top-down map (~0.35 u, at most 1024 on the long side) tests its own point against each one. Result: one RGBA8 texture,
+  R = how much sky that spot sees, G = the ground's height there. Every standard material (stdMat and GLB, grass included,
+  skins excepted) is wrapped with the `sky` patch (`skyPatch`) and multiplies ONLY its indirect diffuse/specular (hemisphere +
+  environment) by it, fading to 1 above ~3 u of ground. The sun, the key light and the shadow map are untouched. The uniforms
+  are one shared object (`SL_U`) that `present()` points at the scene being drawn (`scene.userData.skyLight`); a scene with no
+  bake gets `uSkyK = 0`. The island's own record is `I.skyLight` (NOT `I.sky`: that is the sky dome). `?skylight=0..1` sets the
+  strength (default .85), `?skyn=` the direction count, `?skyres=` the depth picture size, `?skyacc=8` forces the 8-bit
+  accumulator (the half-float one is used where the GPU can render to it). The town's house models arrive after the build:
+  the bake waits for them (`I.bldPending`), `readyIsland` runs it once they are in (`I.skyDirty`), and a debounced
+  `skyLate` does the same for an island that is already being played. Log line: `SKYBAKE` (a bake that matches nothing says
+  `NOTHING TO BAKE`). Suite: `qa/skylightab.mjs`.
+
 ## 2.7 URL flags
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)
-`?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=`
+`?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=` `?skylight=old|0..1` `?skyn=` `?skyres=` `?skyacc=8`
 
 ## 2.8 Commit history this session (newest first)
 

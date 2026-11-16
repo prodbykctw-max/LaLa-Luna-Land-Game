@@ -12,6 +12,8 @@ Suites: `traversal` (stuck spots, burial, camera-in-geometry), `reach` (every in
 `codehealth` (TODOs, duplicated constants, dead code).
 `questpath` (every objective in quest order is physically reachable from the spawn with only the abilities held at that point - a lattice search over the walker's own rules, then replayed with `walkerUpdate` driven by the stick and jump button only; `--cues` audits the jump/glide cues instead), `keepwalk` (the keep played with the stick: book, 24 bubbles, orb, exit to the moon island).
 
+`skylightab` (the baked sky light, same camera pose with `?sky=old` and with the bake on, three spots per island - open meadow, under trees, by walls - written as `qa/out/sky_<island>.jpg`, plus the baked map itself as `qa/out/skymap_<island>.png`; `SKYN=32` bakes with fewer directions, `MOBILE=1` is the 390x844 run).
+
 Requirements: Node 18+, Playwright with a Chromium (`CHROMIUM_PATH`, default /opt/pw-browsers/chromium),
 `PW_PATH` if playwright isn't resolvable. The game must expose test hooks on `window.__T` — the harness makes
 `index_test.html` from `index.html` by appending that line; see `_harness.mjs`.
