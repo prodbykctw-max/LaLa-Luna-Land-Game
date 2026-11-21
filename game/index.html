@@ -4197,6 +4197,17 @@ function preloadRigs(I){
      with the rigs, when the island is about to be played. */
   (I.npcs||[]).forEach(g => { if(g.userData.crowd) loadProxy(g.userData.crowd); });
 }
+/* A rig is drawn (and shadowed, and its bones recomputed) every frame wherever it is, because its mesh was flagged frustumCulled=false: the bounds
+   three.js would use for a skinned mesh are measured from the CURRENT pose, which is expensive and used to pop her out at the screen edge. Her
+   own mesh stays that way. Everybody else gets a fixed sphere round the mesh's rest bounds, padded generously for the swing of a walk or a run
+   (?skincull=0 restores the old always-draw), so a villager behind the camera or outside the sun's shadow box costs nothing. */
+const SKINCULL = QS.get("skincull") !== "0";
+function skinCull(o){
+  if(!SKINCULL || !o.isSkinnedMesh) return false;
+  const g = o.geometry; if(!g.boundingSphere) g.computeBoundingSphere();
+  o.boundingSphere = new THREE.Sphere(g.boundingSphere.center.clone(), g.boundingSphere.radius*1.5 + .8);
+  o.frustumCulled = true; return true;
+}
 function attachRig(R, name){
   const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
   const model = THREE.SkeletonUtils.clone(gltf.scene);
@@ -4220,6 +4231,7 @@ function attachRig(R, name){
     if(o.material && o.material.userData && o.material.userData.isInk){ o.castShadow = false; o.receiveShadow = false; return; }
     o.castShadow = true; o.receiveShadow = true;
     o.frustumCulled = false;                    /* skinned bounds are the bind pose; culling pops her out */
+    if(name !== "lala" && name !== "lala-v2") skinCull(o);   /* everybody else is culled on a padded fixed sphere (see skinCull) */
   });
   R.inkTwins = []; R.skins = []; model.traverse(o => { if(!o.isMesh) return; if(o.material.userData && o.material.userData.isInk) R.inkTwins.push(o); else R.skins.push(o); });
   const live = !RIG_QUIET && MODE === "island" && CUR && CUR.scene && inScene(R.group, CUR.scene);
@@ -7684,6 +7696,56 @@ const sailPatch = width => mat => { mat.userData.patches.push(["sail", sh => {
         transformed.z += ripple * env * uWind; }`); }]);
   SAIL_MATS.push(mat); return mat; };
 
+/* ===================  CULLABLE STATIC GEOMETRY  (?chunk=0 restores the old one-mesh-per-material bake)  ===================
+   mergeStatics, the forest and the rock field each bake a whole island into ONE mesh. One mesh has one bounding sphere, and that
+   sphere always touches the camera frustum and the sun's shadow frustum, so every frame drew and shadowed the entire island
+   (Sanity at spawn: 784k triangles in the main pass and 381k more in the shadow pass) however little of it was in view.
+   This cuts such a mesh into square cells of the ground (by triangle centroid), one small mesh per cell sharing the same
+   material, so three.js frustum culling can drop what is behind her or outside the shadow box. Same vertices, same material,
+   same draw order within a cell: nothing on screen changes, the GPU just stops being handed what it cannot show.
+   `pad` widens each cell's bounds for what the vertex shader moves (wind sway, the ink outline's growth with distance). */
+const CHUNK_CELL = (() => { const v = parseFloat(QS.get("chunk")); return isNaN(v) ? 48 : Math.max(0, v); })();
+function chunkMesh(mesh, scene, pad, cell){
+  cell = cell == null ? CHUNK_CELL : cell;
+  if(!cell || !mesh || !mesh.isMesh || !mesh.geometry || mesh.isSkinnedMesh || mesh.isInstancedMesh || !mesh.parent) return [mesh];
+  mesh.updateMatrix();
+  if(!mesh.matrix.equals(new THREE.Matrix4())) return [mesh];                    /* only meshes whose vertices are already in world space */
+  const g = mesh.geometry, idx = g.index, P = g.attributes.position; if(!P) return [mesh];
+  const ntri = (idx ? idx.count : P.count)/3|0; if(ntri < 600) return [mesh];
+  const at = k => idx ? idx.array[k] : k;
+  const names = Object.keys(g.attributes), cells = new Map(), key = new Int32Array(ntri);
+  /* pass 1: which cell each triangle's centroid is in, and how many triangles each cell gets */
+  const pa = P.array, stride = P.itemSize;
+  for(let t=0;t<ntri;t++){
+    const a = at(t*3)*stride, b = at(t*3+1)*stride, c = at(t*3+2)*stride;
+    const cx = (pa[a] + pa[b] + pa[c])/3, cz = (pa[a+2] + pa[b+2] + pa[c+2])/3;
+    const k = (Math.floor(cx/cell) + 512)*1024 + (Math.floor(cz/cell) + 512);
+    let e = cells.get(k); if(!e){ e = {k, n:0, id:cells.size}; cells.set(k, e); }
+    e.n++; key[t] = e.id;
+  }
+  const list = [...cells.values()].sort((x, y) => x.k - y.k), byId = new Array(list.length); list.forEach(e => { byId[e.id] = e; e.tris = new Uint32Array(e.n); e.fill = 0; });
+  for(let t=0;t<ntri;t++){ const e = byId[key[t]]; e.tris[e.fill++] = t; }
+  const out = [], map = new Int32Array(P.count);
+  for(const e of list){
+    /* pass 2: gather this cell's vertices (re-indexed densely) and its index list */
+    map.fill(-1); let nv = 0; const ni = new Uint32Array(e.n*3), used = [];
+    for(let i=0;i<e.n;i++) for(let j=0;j<3;j++){ const v = at(e.tris[i]*3 + j); if(map[v] < 0){ map[v] = nv++; used.push(v); } ni[i*3 + j] = map[v]; }
+    const ng = new THREE.BufferGeometry();
+    for(const nm of names){ const A = g.attributes[nm], sz = A.itemSize, src = A.array, dst = new src.constructor(nv*sz);
+      for(let i=0;i<nv;i++){ const o = used[i]*sz, q = i*sz; for(let c=0;c<sz;c++) dst[q + c] = src[o + c]; }
+      ng.setAttribute(nm, new THREE.BufferAttribute(dst, sz, A.normalized)); }
+    if(idx) ng.setIndex(new THREE.BufferAttribute(nv > 65535 ? ni : new Uint16Array(ni), 1));
+    ng.computeBoundingSphere(); ng.boundingSphere.radius += pad;
+    const m = new THREE.Mesh(ng, mesh.material);
+    m.castShadow = mesh.castShadow; m.receiveShadow = mesh.receiveShadow; m.renderOrder = mesh.renderOrder; m.name = mesh.name;
+    if(mesh.customDepthMaterial) m.customDepthMaterial = mesh.customDepthMaterial;
+    if(mesh.customDistanceMaterial) m.customDistanceMaterial = mesh.customDistanceMaterial;
+    m.userData = Object.assign({}, mesh.userData, {chunked:1});
+    out.push(m);
+  }
+  const par = mesh.parent; par.remove(mesh); out.forEach(m => par.add(m)); g.dispose();
+  return out;
+}
 function mergeStatics(I, scene){
   const skip = new Set([I.pickup, I.letterMesh, I.boat, I.door, I.W && I.W.group, I.sea, I.moon, I.rain, I.bow, I.beam && I.beam.target,
                         I.quest && I.quest.horse].filter(Boolean));
@@ -7728,21 +7790,26 @@ function mergeStatics(I, scene){
   I.bakedAt = mains.map(m => { const g = m.geometry; if(!g.boundingSphere) g.computeBoundingSphere();
     const c = g.boundingSphere.center.clone().applyMatrix4(m.matrixWorld); return [+c.x.toFixed(2), +c.y.toFixed(2), +c.z.toFixed(2)]; });
   const bake = (list, withTh) => {
-    const pos = [], nor = [], col = [], th = [], sw = []; const v = new THREE.Vector3(), nm = new THREE.Matrix3();
+    /* typed arrays sized up front: this used to push ~10 million numbers one at a time into plain arrays (and expand every
+       indexed piece with toNonIndexed first), a multi-second block of garbage on the island's build */
+    let n = 0; for(const m of list){ const g = m.geometry; n += g.index ? g.index.count : g.attributes.position.count; }
+    const pos = new Float32Array(n*3), nor = new Float32Array(n*3), col = new Float32Array(n*3), th = withTh ? new Float32Array(n) : null, sw = new Float32Array(n);
+    let hasCol = false, o = 0; const v = new THREE.Vector3(), nm = new THREE.Matrix3();
     for(const m of list){
-      const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry; const P = g.attributes.position, N = g.attributes.normal;
+      const g = m.geometry, P = g.attributes.position, N = g.attributes.normal, ix = g.index, cnt = ix ? ix.count : P.count;
       nm.getNormalMatrix(m.matrixWorld); const c = m.material.color || null, t = withTh ? m.material.uniforms.thickness.value : 0, swv = m.userData.sway || (m.parent && m.parent.userData.sway) || 0;
-      for(let i=0;i<P.count;i++){
-        v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); pos.push(v.x, v.y, v.z);
-        v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor.push(v.x, v.y, v.z);
-        if(c) col.push(c.r, c.g, c.b); if(withTh) th.push(t); sw.push(swv);
+      if(c) hasCol = true;
+      for(let k=0;k<cnt;k++){
+        const i = ix ? ix.array[k] : k;
+        v.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); pos[o*3] = v.x; pos[o*3+1] = v.y; pos[o*3+2] = v.z;
+        v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[o*3] = v.x; nor[o*3+1] = v.y; nor[o*3+2] = v.z;
+        if(c){ col[o*3] = c.r; col[o*3+1] = c.g; col[o*3+2] = c.b; } if(withTh) th[o] = t; sw[o] = swv; o++;
       }
-      if(g !== m.geometry) g.dispose();
     }
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
-    if(col.length) geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); if(withTh) geo.setAttribute("th", new THREE.Float32BufferAttribute(th, 1)); geo.setAttribute("sway", new THREE.Float32BufferAttribute(sw, 1));
-    tris += pos.length/9; return geo;
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+    if(hasCol) geo.setAttribute("color", new THREE.BufferAttribute(col, 3)); if(withTh) geo.setAttribute("th", new THREE.BufferAttribute(th, 1)); geo.setAttribute("sway", new THREE.BufferAttribute(sw, 1));
+    tris += n/3; return geo;
   };
   const mainMesh = new THREE.Mesh(bake(mains, false), swayPatch(toonRim(stdMat({color:0xffffff, vertexColors:true, gradientMap:GRAD}))));
   mainMesh.castShadow = true; mainMesh.receiveShadow = true; scene.add(mainMesh); I.staticMesh = mainMesh; I.windMats = [mainMesh.material];
@@ -11330,9 +11397,9 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   /* bake every static inked prop into two big meshes (toon + ink) so hundreds of draw calls become two —
      shadow pass, ink pass and main pass all shrink. Anything that moves or changes stays a separate object. */
   yield;
-  if(DROCKS) DROCKS.finish(scene);
+  const rockMesh = DROCKS ? DROCKS.finish(scene) : null;
   yield;
-  if(DFOREST) DFOREST.finish(scene, I);
+  const forestMeshes = DFOREST ? DFOREST.finish(scene, I) : [];
   yield;
   mergeStatics(I, scene);
   yield;
@@ -11490,6 +11557,17 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   yield;
   SHORE_FIELD = null;
   yield;
+  /* cut each island-sized bake into ground cells so the camera and the sun's shadow box can cull it (see chunkMesh); last, so every
+     flag the build set on the whole (castShadow, receiveShadow, userData, customDepthMaterial) is copied to its cells */
+  if(CHUNK_CELL){
+    if(rockMesh){ chunkMesh(rockMesh, scene, .3); yield; }
+    for(const fm of forestMeshes){ chunkMesh(fm, scene, .8); yield; }
+    if(I.staticMesh){ I.staticMeshes = chunkMesh(I.staticMesh, scene, .6); I.staticMesh = I.staticMeshes[0]; yield; }
+    if(I.staticInk){ I.staticInks = chunkMesh(I.staticInk, scene, 2.0); I.staticInk = I.staticInks[0]; yield; }
+    if(I.terrainMesh && I.terrainMesh.isMesh){ I.terrainMeshes = chunkMesh(I.terrainMesh, scene, .5); I.terrainMesh = I.terrainMeshes[0]; yield; }
+    { const br = I.foam.find(f => f && f.isMesh && f.material && f.material.uniforms && f.material.uniforms.uAmp);
+      if(br){ const parts = chunkMesh(br, scene, 4.5); parts.forEach(m => { m.frustumCulled = true; }); I.foam[I.foam.indexOf(br)] = parts[0]; yield; } }   /* the breakers' ring: only the surf in view */
+  }
   return I;
 }
 
@@ -13863,7 +13941,7 @@ function islandStepper(cfg){
       if(S.done) return true;
       const t0 = performance.now(), real = Math.random, theirs = [SHORE_FIELD, MEADOW_KEEP, MEADOW_BLOOM];
       [SHORE_FIELD, MEADOW_KEEP, MEADOW_BLOOM] = own; if(rng) Math.random = rng;
-      try { do { const s0 = performance.now(), r = gen.next(), sd = performance.now() - s0; S.steps++; if(sd > S.longest){ S.longest = sd; S.longestAt = S.steps; } if(sd > 40) (S.slow || (S.slow = [])).push([S.steps, Math.round(sd), S.at, r.value]); S.at = r.value;
+      try { do { const s0 = performance.now(), r = gen.next(), sd = performance.now() - s0; S.steps++; if(window.__STEPLOG) window.__STEPLOG.push([cfg.key, "step", String(r.value), +sd.toFixed(1), +s0.toFixed(0)]); if(sd > S.longest){ S.longest = sd; S.longestAt = S.steps; } if(sd > 40) (S.slow || (S.slow = [])).push([S.steps, Math.round(sd), S.at, r.value]); S.at = r.value;
           if(r.done){ S.done = true; ISL_BUILT[cfg.key] = r.value; break; } } while(performance.now() - t0 < budget); }
       finally { own = [SHORE_FIELD, MEADOW_KEEP, MEADOW_BLOOM]; [SHORE_FIELD, MEADOW_KEEP, MEADOW_BLOOM] = theirs; Math.random = real; S.ms += performance.now() - t0; }
       if(S.done) DBG("stepped " + cfg.key + ": " + Math.round(S.ms) + " ms in " + S.steps + " steps, longest " + Math.round(S.longest) + " ms (step " + S.longestAt + ")");
@@ -13908,7 +13986,7 @@ function warmStep(I, budget){
   const P = PREP[I.cfg.key] || (PREP[I.cfg.key] = {i:0, done:false, ms:0});
   if(P.done) return true;
   const kids = I.scene.children, t0 = performance.now();
-  while(P.i < kids.length && performance.now() - t0 < budget){ const end = Math.min(kids.length, P.i + 10); warmRange(I, P.i, end); P.i = end; }
+  while(P.i < kids.length && performance.now() - t0 < budget){ const end = Math.min(kids.length, P.i + 10), w0 = performance.now(); warmRange(I, P.i, end); if(window.__STEPLOG) window.__STEPLOG.push([I.cfg.key, "warm", P.i + "-" + end, +(performance.now() - w0).toFixed(1), +w0.toFixed(0)]); P.i = end; }
   P.ms += performance.now() - t0;
   if(P.i >= kids.length){ P.done = true; DBG("warmed " + I.cfg.key + " in " + Math.round(P.ms) + " ms"); }
   return P.done;

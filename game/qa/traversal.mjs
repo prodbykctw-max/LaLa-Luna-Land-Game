@@ -40,7 +40,7 @@ for (const isl of argIslands()) {
       return new THREE.Vector3(tx + ux * clamped, y + camH, tz + uz * clamped);
     };
     const rc = new THREE.Raycaster();
-    const skip = new Set(); I.scene.traverse(o => { if (o === W.group || o === I.sky.mesh || o === I.sea || o === I.moon || o === I.staticInk) skip.add(o); });   // staticInk = inflated copy of staticMesh
+    const skip = new Set(); I.scene.traverse(o => { if (o === W.group || o === I.sky.mesh || o === I.sea || o === I.moon || (I.staticInks || [I.staticInk]).includes(o)) skip.add(o); });   // staticInk = inflated copy of staticMesh
     const solids = []; I.scene.traverse(o => { if (!o.isMesh) return; let p = o, bad = false; while (p) { if (skip.has(p)) bad = true; p = p.parent; } if (!bad && !o.isInstancedMesh && !o.isPoints && !o.material.transparent && !(o.material.uniforms && o.material.uniforms.thickness)) solids.push(o); });   // ink outlines duplicate their main mesh
     const camInside = (x, z, yaw) => {
       const y = I.height(x, z), look = new THREE.Vector3(x, y + 2.6, z), goal = camGoal(x, y, z, yaw);
@@ -52,7 +52,7 @@ for (const isl of argIslands()) {
       const P = cfg.pal, near = (a, b) => { const ca = new THREE.Color(a), cb = new THREE.Color(b); return Math.abs(ca.r - cb.r) + Math.abs(ca.g - cb.g) + Math.abs(ca.b - cb.b) < .12; };
       const kind = col == null ? 'unknown' : near('#' + col, P.leaf) || near('#' + col, P.leaf2) ? 'canopy' : near('#' + col, P.wood) ? 'trunk' : near('#' + col, P.stone) ? 'stone' : near('#' + col, P.grassDk) ? 'hill' : 'other';
       const o = h.object; let p = o.parent, chain = []; while (p && p !== I.scene) { chain.push(p.type + (p.name ? ':' + p.name : '') + '{' + Object.keys(p.userData || {}).join(',') + '}'); p = p.parent; }
-      return { d: +h.distance.toFixed(1), camD: +len.toFixed(1), hitY: +h.point.y.toFixed(1), kind, col, obj: o === I.staticMesh ? 'staticMesh' : (o.geometry.type + (o.name ? ':' + o.name : '')), mat: o.material.type, verts: o.geometry.attributes.position.count, objPos: [+o.position.x.toFixed(1), +o.position.y.toFixed(1), +o.position.z.toFixed(1)], parents: chain.slice(0, 3), colliderNear: I.colliders.some(c => Math.hypot(c.x - x, c.z - z) < c.r + 1) };
+      return { d: +h.distance.toFixed(1), camD: +len.toFixed(1), hitY: +h.point.y.toFixed(1), kind, col, obj: (I.staticMeshes || [I.staticMesh]).includes(o) ? 'staticMesh' : (o.geometry.type + (o.name ? ':' + o.name : '')), mat: o.material.type, verts: o.geometry.attributes.position.count, objPos: [+o.position.x.toFixed(1), +o.position.y.toFixed(1), +o.position.z.toFixed(1)], parents: chain.slice(0, 3), colliderNear: I.colliders.some(c => Math.hypot(c.x - x, c.z - z) < c.r + 1) };
     };
     // Phase A grid
     const traps = [], pockets = [], camHits = []; let cells = 0, standable = 0;
