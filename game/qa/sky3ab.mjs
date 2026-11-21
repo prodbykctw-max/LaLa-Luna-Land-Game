@@ -48,8 +48,9 @@ const POOL = `(() => {
   const cols = (I.colliders || []).filter(c => !c.camOnly), near = (x, z) => { let d = 1e9; for (const c of cols) d = Math.min(d, Math.hypot(c.x - x, c.z - z) - (c.r || 0)); return d; };
   let best = null, bv = 1e9;
   for (let j = 2; j < L.h - 2; j += 1) for (let i = 2; i < L.w - 2; i += 1) {
-    let s = 0, n = 0; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const o = ((j + dj) * L.w + (i + di)) * 4; if (px[o + 3] > 127) { s += px[o]; n++; } }
-    if (n < 9) continue; const v = s / n; if (v >= bv) continue;
+    let s = 0, n = 0, mn = 255; for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) { const o = ((j + dj) * L.w + (i + di)) * 4; if (px[o + 3] > 127) { s += px[o]; n++; mn = Math.min(mn, px[o]); } }
+    /* a cell of visibility ~0 is INSIDE a solid (a trunk, a rock): she would be standing in it. The pool she can stand in has no such cell within two cells of her. */
+    if (n < 25 || mn < 40) continue; const v = s / n; if (v >= bv) continue;
     const x = L.box[0] + (i + .5) / L.w * L.box[2], z = L.box[1] + (j + .5) / L.h * L.box[3];
     if (!I.inside(x, z) || I.height(x, z) < .2 || near(x, z) < 1.3) continue; bv = v; best = [x, z]; }
   if (!best) return null;
