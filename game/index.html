@@ -519,6 +519,7 @@ const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the b
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* ?dark=1 holds Sanity at the full dark look, ?dark=0 at the light one; by default it moves between them with the clock and the weather */
 const DARKMODE = QS.get("dark");
+const FARSHQ = QS.get("farshadow") !== "0";   /* a second, island-wide shadow map the cheap far crowns draw into, so a tree casts a shadow past the near map's box; ?farshadow=0 removes it */
 const LIGHTQ = QS.get("light") !== "old";   /* real light: god rays + sun glare, low golden-hour sun, soft shadows that follow the view, moon shadows on Sanity; ?light=old restores */
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -922,6 +923,7 @@ function lightInit(I){
     o.userData.lightCol0 = o.material.color.clone(); o.userData.lightOp0 = o.material.opacity; } });
   /* the flat halo ring is a hard-edged disc once the moon is bright; the glare pass draws the real halo */
   if(night && I.moon && I.moon.userData.halo) I.moon.userData.halo.visible = false;
+  farShadowInit(I);
   I.lightK = {hub:1, green:1, town:.9, gr:.55, sanity:.75}[I.cfg.key];
   if(I.lightK == null) I.lightK = .8;
 }
@@ -946,6 +948,152 @@ function lightKey(I){
   const da = Math.round(a/ws)*ws - a, db = Math.round(b/ws)*ws - b;
   s.target.position.set(cx + L.x.x*da + L.y.x*db, cy + L.x.y*da + L.y.y*db, cz + L.x.z*da + L.y.z*db);
   s.position.copy(s.target.position).addScaledVector(d, 170);
+  farShadowUpdate(I);
+}
+/* ===================  FAR SHADOWS  (?farshadow=0 removes)  ===================
+   The key light's shadow map follows her and is 124 u wide: past that, nothing - not a tree, not a house - throws a shadow, and the
+   far end of a long view is a flat, unshaded island. The reel's trick is that the shadow at distance does not need the tree, only
+   something cheap standing where the tree stands. So:
+     - a SECOND directional light (intensity 0, it lights nothing) carries a second, island-wide shadow map. Using the engine's own light
+       slot means every lit material already receives its map, matrix and filter settings: nothing is patched per material;
+     - only cheap casters are drawn into it: each tree's far crown (the ~32-card level, the same geometry the far display level uses), a
+       five-sided prism for the trunk, a few strips per palm, and the big static rocks and buildings;
+     - the receivers' direct sun is multiplied by it OUTSIDE the near map's box and by the near map inside it, blended across a band
+       (15% of the near half-extent) at the box's edge so the handover cannot be seen as a line (llKeyShadow, patched into the
+       engine's own directional-light loop; the second light's own lighting term is skipped, so it costs no extra BRDF);
+     - it is drawn a few objects per frame into a back buffer and swapped in when finished (no hitch, never a half-drawn map), and drawn
+       again only when the sun's direction has moved by more than a degree - once on the day islands, as she walks on Sanity's moon.
+   It never touches ambient or the sky fill: it multiplies the key's direct term only, exactly what the near map does. */
+const FAR_BAND = .075;      /* the band as a fraction of the near map's full width: 15% of the half-extent E over a map 2E wide */
+const FAR_ANGLE = 1*Math.PI/180;
+function farPatchChunks(){
+  const C = THREE.ShaderChunk;
+  try{
+    const pars = C.shadowmap_pars_fragment, beg = C.lights_fragment_begin;
+    const k1 = "directLight.color *= ( directLight.visible && receiveShadow ) ? getShadow( directionalShadowMap[ i ]";
+    const i1 = beg.indexOf(k1), e1 = i1 < 0 ? -1 : beg.indexOf("\n", i1);
+    const i2 = e1 < 0 ? -1 : beg.indexOf("RE_Direct( directLight, geometryPosition", e1), e2 = i2 < 0 ? -1 : beg.indexOf("\n", i2);
+    if(i1 < 0 || i2 < 0 || !pars.includes("float getShadow( sampler2DShadow")) throw new Error("r187 directional shadow block not found");
+    const L1 = beg.slice(i1, e1), L2 = beg.slice(i2, e2);
+    const d = k => `directionalLightShadows[ ${k} ]`;
+    const call = `llKeyShadow( directionalShadowMap[ 0 ], ${d(0)}.shadowMapSize, ${d(0)}.shadowIntensity, ${d(0)}.shadowBias, ${d(0)}.shadowRadius, vDirectionalShadowCoord[ 0 ],
+      directionalShadowMap[ 1 ], ${d(1)}.shadowMapSize, ${d(1)}.shadowIntensity, ${d(1)}.shadowBias, ${d(1)}.shadowRadius, vDirectionalShadowCoord[ 1 ] )`;
+    C.lights_fragment_begin = beg.slice(0, i1)
+      + `#if NUM_DIR_LIGHT_SHADOWS > 1 && UNROLLED_LOOP_INDEX == 0\ndirectLight.color *= ( directLight.visible && receiveShadow ) ? ${call} : 1.0;\n#else\n${L1}\n#endif`
+      + beg.slice(e1, i2)
+      + `#if !( NUM_DIR_LIGHT_SHADOWS > 1 && UNROLLED_LOOP_INDEX == 1 )\n${L2}\n#endif`      /* light 1 is the far map's carrier: it lights nothing */
+      + beg.slice(e2);
+    C.shadowmap_pars_fragment = pars + `
+#if defined( USE_SHADOWMAP ) && defined( SHADOWMAP_TYPE_PCF ) && NUM_DIR_LIGHT_SHADOWS > 1
+float llFarShadow( sampler2DShadow shadowMap, vec2 shadowMapSize, float shadowIntensity, float shadowBias, float shadowRadius, vec4 shadowCoord ){
+  if( shadowIntensity < 0.001 ) return 1.0;                               /* the far map is not made yet */
+  shadowCoord.xyz /= shadowCoord.w; shadowCoord.z += shadowBias;
+  if( shadowCoord.x < 0.0 || shadowCoord.x > 1.0 || shadowCoord.y < 0.0 || shadowCoord.y > 1.0 || shadowCoord.z > 1.0 ) return 1.0;
+  vec2 radius = shadowRadius / shadowMapSize;                             /* a few taps on a wide disc: far shadows are soft dapples, not blocks */
+  float phi = interleavedGradientNoise( gl_FragCoord.xy ) * PI2;
+  float s = ( texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( 0, 6, phi ) * radius, shadowCoord.z ) ) +
+              texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( 1, 6, phi ) * radius, shadowCoord.z ) ) +
+              texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( 2, 6, phi ) * radius, shadowCoord.z ) ) +
+              texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( 3, 6, phi ) * radius, shadowCoord.z ) ) +
+              texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( 4, 6, phi ) * radius, shadowCoord.z ) ) +
+              texture( shadowMap, vec3( shadowCoord.xy + vogelDiskSample( 5, 6, phi ) * radius, shadowCoord.z ) ) ) * ( 1.0 / 6.0 );
+  return mix( 1.0, s, shadowIntensity );
+}
+float llKeyShadow( sampler2DShadow m0, vec2 z0, float i0, float b0, float r0, vec4 c0, sampler2DShadow m1, vec2 z1, float i1, float b1, float r1, vec4 c1 ){
+  if( i1 < 0.001 ) return getShadow( m0, z0, i0, b0, r0, c0 );
+  vec3 nc = c0.xyz / c0.w;
+  float e = min( min( nc.x, 1.0 - nc.x ), min( nc.y, 1.0 - nc.y ) );     /* how far inside the near map's box this point is */
+  float wN = smoothstep( 0.0, ${FAR_BAND}, e ) * step( nc.z, 1.0 ) * step( 0.0, nc.z );
+  float sN = wN > 0.0 ? getShadow( m0, z0, i0, b0, r0, c0 ) : 1.0;
+  float sF = wN < 1.0 ? llFarShadow( m1, z1, i1, b1, r1, c1 ) : 1.0;
+  return mix( sF, sN, wN );
+}
+#endif
+`;
+    return true;
+  }catch(e){ console.warn("far shadow: engine patch failed, far shadows off", e && e.message); return false; }
+}
+const FAR_PATCHED = (FARSHQ && PROF.shadow && LIGHTQ) ? farPatchChunks() : false;
+/* the far light and its two render targets, made with the island; nothing is drawn until the first frame on it */
+function farShadowInit(I){
+  if(!FAR_PATCHED || !I.sun || !I.farCasters) return;
+  const N = LIGHT.phone ? 1024 : 2048;
+  const mkRT = () => { const rt = new THREE.WebGLRenderTarget(N, N, {format:THREE.RedFormat, type:THREE.UnsignedByteType, depthBuffer:true, stencilBuffer:false, generateMipmaps:false});
+    const dt = new THREE.DepthTexture(N, N, THREE.UnsignedIntType); dt.format = THREE.DepthFormat; dt.compareFunction = THREE.LessEqualCompare; dt.minFilter = dt.magFilter = THREE.LinearFilter;
+    rt.depthTexture = dt; return rt; };
+  const F = I.far = {N, scene:new THREE.Scene(), cam:new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 100), rt:[mkRT(), mkRT()], back:0, job:null, dir0:null, ready:false,
+    mat:new THREE.Matrix4(), items:null, stats:{jobs:0, frames:0, ms:0, lastJobMs:0, lastFrames:0, maxSliceMs:0, items:0, tris:0}};
+  const light = new THREE.DirectionalLight(0xFFFFFF, 0);
+  light.name = "farShadow"; light.castShadow = true;
+  const sh = light.shadow; sh.autoUpdate = false; sh.needsUpdate = false; sh.mapSize.set(N, N);
+  sh.intensity = 0; sh.radius = 2.6; sh.bias = -.0006; sh.normalBias = .8;
+  I.scene.add(light); F.light = light;
+}
+/* what goes in the map, gathered at the first frame on the island (everything has been built by then) */
+function farGather(I, F){
+  const mk = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.visible = false; F.scene.add(m); F.items.push(m); return m; };
+  const base = {colorWrite:false, side:THREE.DoubleSide, fog:false};
+  const mats = {leaf:new THREE.MeshBasicMaterial(Object.assign({alphaMap:TREE_TEX.leafA, alphaTest:.42}, base)), frond:new THREE.MeshBasicMaterial(Object.assign({alphaMap:TREE_TEX.frondA, alphaTest:.42}, base)), solid:new THREE.MeshBasicMaterial(base)};
+  F.items = [];
+  for(const c of I.farCasters) mk(c.geo, mats[c.kind]);
+  /* the big static rocks and buildings: whatever already casts into the near map, is not a tree, not alive, not a cut-out, and is big enough to throw a shadow
+     worth seeing from afar. They share the near map's geometry; only the camera that draws them differs. */
+  const trees = new Set(I.forest || []), bb = new THREE.Box3(), sz = new THREE.Vector3(); let tris = 0;
+  /* nothing that moves is frozen into the map: boats, her, the animals, the people, the kickable props */
+  const moving = new Set([I.boat, I.W && I.W.group, I.pickup, I.letterMesh, I.door, I.quest && I.quest.horse, ...(I.fleet || []), ...(I.creatures || []), ...(I.npcs || []), ...(I.props || []), ...(I.moons || [])].filter(Boolean));
+  I.scene.updateMatrixWorld(true);
+  I.scene.traverse(o => {
+    if(!o.isMesh || !o.castShadow || o.isSkinnedMesh || o.isInstancedMesh || !o.visible || trees.has(o) || o.layers.mask !== 1 || o === I.terrainMesh || o.userData.ground) return;
+    for(let q = o; q; q = q.parent) if(moving.has(q)) return;
+    const ms = Array.isArray(o.material) ? o.material : [o.material]; if(ms.some(m => !m || m.transparent || m.alphaTest > 0 || m.alphaMap || m.isShaderMaterial)) return;
+    let q = o; while(q && q !== I.scene){ if(!q.visible) return; q = q.parent; }
+    bb.setFromObject(o); bb.getSize(sz); const mx = Math.max(sz.x, sz.y, sz.z);
+    if(o !== I.staticMesh && (mx < 2.6 || mx > 90)) return;                        /* too small to read from afar / an island-sized shell, not a building */
+    const t = (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count)/3; if(t > 90000 || tris + t > 120000) return;   /* the far map is a cheap pass: 120k statics at most */
+    const m = mk(o.geometry, mats.solid); m.matrixAutoUpdate = false; m.matrix.copy(o.matrixWorld); tris += t;
+  });
+  let ft = 0; for(const c of I.farCasters) ft += c.geo.index.count/3;
+  F.stats.items = F.items.length; F.stats.tris = Math.round(tris + ft);
+  /* the island's box in world space: its ground, and room above it for the tallest thing */
+  const tb = new THREE.Box3().setFromObject(I.terrainMesh), pad = 6;
+  F.box = new THREE.Box3(new THREE.Vector3(tb.min.x - pad, tb.min.y - 6, tb.min.z - pad), new THREE.Vector3(tb.max.x + pad, tb.max.y + 32, tb.max.z + pad));
+  F.center = F.box.getCenter(new THREE.Vector3());
+  F.corners = []; for(let i = 0; i < 8; i++) F.corners.push(new THREE.Vector3(i & 1 ? F.box.max.x : F.box.min.x, i & 2 ? F.box.max.y : F.box.min.y, i & 4 ? F.box.max.z : F.box.min.z));
+}
+/* every frame, after lightKey aimed the near map: start a new far map when the sun has moved, and draw a few objects of the one in progress */
+function farShadowUpdate(I){
+  const F = I.far; if(!F || !I.sunDir) return;
+  if(!F.items){ farGather(I, F); if(!F.items.length){ I.far = null; return; } }
+  const d = I.sunDir;
+  if(!F.job && (!F.dir0 || F.dir0.angleTo(d) > FAR_ANGLE)){
+    /* fit the light's box round the island for this direction (square, so a texel is the same size both ways) */
+    const cam = F.cam, v = new THREE.Vector3();
+    cam.position.copy(F.center).addScaledVector(d, 500); cam.up.set(0, 1, 0); cam.lookAt(F.center); cam.updateMatrixWorld(true);
+    let l = 1e9, r = -1e9, b = 1e9, t = -1e9, nr = 1e9, fr = -1e9;
+    for(const c of F.corners){ v.copy(c).applyMatrix4(cam.matrixWorldInverse); l = Math.min(l, v.x); r = Math.max(r, v.x); b = Math.min(b, v.y); t = Math.max(t, v.y); nr = Math.min(nr, -v.z); fr = Math.max(fr, -v.z); }
+    const cx = (l + r)/2, cy = (b + t)/2, h = Math.max(r - l, t - b)/2;
+    cam.left = cx - h; cam.right = cx + h; cam.bottom = cy - h; cam.top = cy + h; cam.near = Math.max(1, nr - 4); cam.far = fr + 4; cam.updateProjectionMatrix();
+    const m = new THREE.Matrix4().set(.5, 0, 0, .5, 0, .5, 0, .5, 0, 0, .5, .5, 0, 0, 0, 1); m.multiply(cam.projectionMatrix).multiply(cam.matrixWorldInverse);
+    F.job = {i:0, frames:0, ms:0, dir:d.clone(), mat:m, texel:2*h/F.N}; F.dir0 = d.clone();
+  }
+  const J = F.job; if(!J) return;
+  const t0 = performance.now(), K = LIGHT.phone ? 2 : 4, back = F.rt[F.back];
+  const prevRT = renderer.getRenderTarget(), prevAC = renderer.autoClear;
+  renderer.setRenderTarget(back); renderer.autoClear = false;
+  if(J.i === 0) renderer.clear(true, true, false);
+  for(const m of F.items) m.visible = false;
+  const end = Math.min(F.items.length, J.i + K);
+  for(let k = J.i; k < end; k++) F.items[k].visible = true;
+  renderer.render(F.scene, F.cam);
+  renderer.setRenderTarget(prevRT); renderer.autoClear = prevAC;
+  J.i = end; J.frames++;
+  const ms = performance.now() - t0; J.ms += ms; F.stats.maxSliceMs = Math.max(F.stats.maxSliceMs, ms);
+  if(J.i >= F.items.length){
+    /* finished: swap it in, with the matrix it was drawn with, in one step */
+    F.light.shadow.map = back; F.light.shadow.matrix.copy(J.mat); F.light.shadow.intensity = 1; F.back = 1 - F.back; F.ready = true;
+    F.texel = J.texel; const S = F.stats; S.jobs++; S.lastJobMs = J.ms; S.lastFrames = J.frames; S.frames += J.frames; S.ms += J.ms; F.job = null;
+    DBG("FARSHADOW", I.cfg.key, F.N + "²", F.items.length, "objects,", J.frames, "frames,", J.ms.toFixed(1), "ms,", J.texel.toFixed(2), "u/texel");
+  }
 }
 /* every frame, before the composer: how strong the shafts and the glare are, and where the sun is */
 function lightFrame(scene){
@@ -1393,6 +1541,15 @@ const PHOTO = !GROUNDQ ? null : (() => {
    Palms get the same treatment with photo fronds and palm bark. */
 const TREESQ = QS.get("trees") !== "old";   /* default since 2026-10-15 (his pick); ?trees=old restores the sphere trees */
 const LEAF_CARDS = (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? 60 : 96;
+/* ?leafwind=old restores the old rigid sway (and the frozen leaf shadow); the default flutters every leaf card about its own pivot */
+const LEAFWINDQ = QS.get("leafwind") !== "old";
+/* ?leaves=old restores the single merged crowns (96 / 60 cards a tree, one mesh a island). The default builds three crowns per
+   tree - dense near, the old density in the middle, a few dozen cards far - chunked into a world grid, one mesh per cell per level. */
+const LEAVESQ = QS.get("leaves") !== "old";
+const LEAF_PHONE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
+const LEAF_LOD = {cell:40, d0:34, d1:80, hyst:6, fade:.25,
+  k0: LEAF_PHONE ? 2 : 3,            /* near: this many times the old card count, each card smaller by 1/sqrt(k) so the cover stays the same and the silhouette breaks up */
+  n2: LEAF_PHONE ? 20 : 32};         /* far: cards per crown (the reel's LOD2 is a few dozen) */
 const TREE_TEX = !TREESQ ? null : (() => {
   const L = new THREE.TextureLoader();
   const mk = (url, srgb, wrap) => { const t = L.load(url); t.wrapS = t.wrapT = wrap ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
@@ -1402,9 +1559,68 @@ const TREE_TEX = !TREESQ ? null : (() => {
           palm: mk("assets/trees/palm_diff.jpg", true, true), palmN: mk("assets/trees/palm_nor.jpg", false, true),
           frond: mk("assets/trees/frond_diff.jpg", true, false), frondA: mk("assets/trees/frond_alpha.jpg", false, false)};
 })();
+
+/* ---- LEAF WIND (?leafwind=old restores the rigid sway) ----
+   The old sway moved every vertex by a function of its world position, which is nearly the same number
+   across a crown: the whole ball slid ~0.1 u as one piece and read as "not moving". Three layers now,
+   each doing a different job:
+     - flutter: every card turns about ITS OWN centre (aPiv) by an angle from its own phase (aPh.x), so
+       neighbours are out of step - leaves, not a rigid ball. The same turn (half strength) goes to the
+       normal, so the light on the crown shimmers with it.
+     - crown sway: one low-frequency lean for the whole crown, growing with the card's height above the
+       trunk's foot (aPh.y), so the trunk stays planted and nothing drifts off the branches.
+     - gusts: a front that travels across the island (world x/z), not a clock every tree shares.
+   The leaf SHADOW runs the same function (the depth material below), so the shadow dances with the leaves
+   instead of standing frozen under a moving crown. Fronds (palms) use their aSway ramp (0 at the crown
+   .. 1.4 at the tip): the tip bobs on a pitch about the frond's base and ripples along its length. */
+const LEAF_WIND_COMMON = `attribute float aSway; attribute vec3 aPiv; attribute vec4 aPh;
+uniform float uTime; uniform vec3 uPlayer; uniform float uGust; uniform float uMove;
+float llGust(vec2 xz){ float s = dot(xz, vec2(.82, .57));
+  float a = sin(s*.030 - uTime*.62)*.5 + .5;            /* a front ~200 u apart, sweeping downwind */
+  float b = sin(s*.085 - uTime*1.35 + 1.7)*.5 + .5;     /* gusty lumps riding on it */
+  return clamp(.25 + 1.0*a*(.45 + .55*b), 0.0, 1.0); }
+mat3 llRot(vec3 k, float an){ float c = cos(an), s = sin(an), t = 1.0 - c;
+  return mat3(t*k.x*k.x + c, t*k.x*k.y + s*k.z, t*k.x*k.z - s*k.y,
+              t*k.x*k.y - s*k.z, t*k.y*k.y + c, t*k.y*k.z + s*k.x,
+              t*k.x*k.z + s*k.y, t*k.y*k.z - s*k.x, t*k.z*k.z + c); }`;
+const LEAF_WIND_CARD = `mat3 llCard(float kk){ float g = min(llGust(aPiv.xz)*uGust, 2.0);
+  float f = 2.3 + 1.7*fract(aPh.x*7.31);
+  float an = uMove * kk * (.17 + .20*g) * (sin(uTime*f + aPh.x*6.2831) + .35*sin(uTime*f*2.7 + aPh.x*17.0));
+  return llRot(normalize(vec3(cos(aPh.x*11.0), .45, sin(aPh.x*11.0))), an); }
+vec3 llLeaf(vec3 p){ vec3 piv = aPiv; float g = min(llGust(piv.xz)*uGust, 2.0);
+  p = piv + llCard(1.0)*(p - piv);
+  p.y += uMove * .06 * sin(uTime*3.1 + aPh.x*9.0) * (.4 + g);                 /* a lift in the gust */
+  float k = (.035 + .030*clamp(aPh.y, 0.0, 12.0)) * aPh.z * (.4 + .6*uMove);    /* world units at full lean; 0 at the foot */
+  vec2 wd = vec2(.82, .57);
+  float lean = sin(uTime*1.05 + dot(piv.xz, wd)*.06)*.55 + .45 + g*1.1;
+  p.xz += wd*lean*k + vec2(-wd.y, wd.x)*sin(uTime*.83 + piv.x*.11 + piv.z*.07)*k*.45;
+  p.y -= abs(lean)*k*.25;                                                        /* a pendulum, not a slide: it dips as it leans */
+  return p; }`;
+const LEAF_WIND_FROND = `vec3 llFrond(vec3 p){ float s = aSway; float g = min(llGust(aPiv.xz)*uGust, 2.0);
+  vec3 r = p - aPiv; vec2 rh = r.xz; float rl = max(length(rh), 1e-3);
+  vec3 ax = vec3(-rh.y/rl, 0.0, rh.x/rl);
+  float an = uMove * s * (.040 + .055*g) * sin(uTime*(1.5 + .6*fract(aPh.x*5.1)) + aPh.x*6.2831);
+  p = aPiv + llRot(ax, an)*r;
+  p.y += uMove * sin(uTime*3.4 - s*3.2 + aPh.x*6.2831) * .045 * s * (.5 + g);
+  p.xz += vec2(-rh.y, rh.x)/rl * uMove * sin(uTime*2.6 - s*4.0 + aPh.x*6.2831) * .04 * s * (.5 + g);
+  vec2 wd = vec2(.82, .57); float lean = sin(uTime*1.2 + dot(aPiv.xz, wd)*.06 + aPh.x)*.55 + .45 + g*1.1;
+  p.xz += wd*lean*.07*s*(.4 + .6*uMove);
+  return p; }`;
 function forestBuilder(P, night){
-  const mk = () => ({pos:[], nor:[], uv:[], sw:[], col:[], idx:[]});
+  const mk = () => ({pos:[], nor:[], uv:[], sw:[], col:[], idx:[], pv:[], ph:[]});
   const TR = mk(), LF = mk();
+  /* world-grid cells: every tree writes into the cell it stands in. Each cell holds a trunk buffer, three leaf crowns (L[0] near, L[1] the
+     old density, L[2] far), and F = the far-shadow proxy (only the far crown's cards, plus a plain trunk prism). With ?leaves=old the
+     old global buffers are used and the cells only carry the far-shadow proxy. */
+  const cells = new Map();
+  const cellAt = (x, z) => { const cx = Math.floor(x/LEAF_LOD.cell), cz = Math.floor(z/LEAF_LOD.cell), k = cx + "," + cz;
+    let c = cells.get(k); if(!c){ c = {k, cx, cz, TR:mk(), PT:mk(), FR:mk(), L:[mk(), mk(), mk()], F:mk(), Ffr:mk(), Fs:{pos:[], idx:[]}}; cells.set(k, c); } return c; };
+  let CT = [LF], curTR = TR;                   /* where the card / trunk being laid goes */
+  /* the near and far crowns are made from their own seeded stream (never Math.random: the islands are scattered from a seeded Math.random
+     and every extra draw would move every tree after it); the middle crown IS the old crown, so it draws exactly what the old one drew */
+  const mkRng = seed => { let a = seed|0; return () => { a = (a + 0x6D2B79F5)|0; let t = Math.imul(a ^ (a>>>15), 1|a); t = (t + Math.imul(t ^ (t>>>7), 61|t)) ^ t; return ((t ^ (t>>>14))>>>0)/4294967296; }; };
+  const seedAt = (x, z, salt) => (Math.round(x*64)*73856093 ^ Math.round(z*64)*19349663 ^ salt*83492791)|0;
+  const FARON = FARSHQ && PROF.shadow;
   const v = new THREE.Vector3(), n = new THREE.Vector3(), NM = new THREE.Matrix3();
   const barkTint = new THREE.Color(P.wood).lerp(new THREE.Color(0xFFFFFF), .62);
   const addGeo = (B, g, m4, sway, us, vs, tint) => {
@@ -1422,49 +1638,63 @@ function forestBuilder(P, night){
     const g = new THREE.CylinderGeometry(r1, r0, len, 6, 1, true); g.translate(0, len/2, 0);
     const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), d.normalize());
     const m = new THREE.Matrix4().compose(from, q, new THREE.Vector3(1,1,1)).premultiply(m4base);
-    addGeo(TR, g, m, 0, 1, Math.max(1, len/1.6), barkTint); g.dispose();
+    addGeo(curTR, g, m, 0, 1, Math.max(1, len/1.6), barkTint); g.dispose();
   };
   /* one leaf-cluster card. c: centre, out: the crown's outward direction here (also its shading normal),
      hang: leaves dangle (willow) instead of reaching up and out */
   const fwd = new THREE.Vector3(), rt = new THREE.Vector3(), upv = new THREE.Vector3(), tmp = new THREE.Vector3();
-  const card = (c, out, size, tint, hang, sway) => {
-    fwd.set(Math.random()-.5, Math.random()-.5, Math.random()-.5).multiplyScalar(2.4).add(out).normalize();
+  /* wind data for the cards being laid: the foot of the tree they belong to (so height-above-foot is a number the shader can
+     use) and a crown weight (willows hang and swing more, bushes hardly move). The phase comes from a counter hash, NEVER
+     Math.random: the islands are scattered from a seeded Math.random stream and one extra draw here would move every tree. */
+  const WC = {baseY:0, ks:1, n:0};
+  const hash01 = n => { const q = Math.sin(n*127.1 + 311.7)*43758.5453; return q - Math.floor(q); };
+  const card = (c, out, size, tint, hang, sway, rnd) => {
+    rnd = rnd || Math.random;
+    fwd.set(rnd()-.5, rnd()-.5, rnd()-.5).multiplyScalar(2.4).add(out).normalize();
     tmp.copy(hang ? new THREE.Vector3(0,-1,0) : out).addScaledVector(new THREE.Vector3(0,1,0), hang ? 0 : .6);
     upv.copy(tmp).addScaledVector(fwd, -tmp.dot(fwd)); if(upv.lengthSq() < 1e-4) upv.set(0,1,0); upv.normalize();
     rt.crossVectors(upv, fwd).normalize();
-    const a = (Math.random()-.5)*.7, ca = Math.cos(a), sa = Math.sin(a);
+    const a = (rnd()-.5)*.7, ca = Math.cos(a), sa = Math.sin(a);
     const R = rt.clone().multiplyScalar(ca).addScaledVector(upv, sa), U = upv.clone().multiplyScalar(ca).addScaledVector(rt, -sa);
-    const hw = size*.5, base = LF.pos.length/3;
+    const hw = size*.5, cph = hash01(++WC.n);
     const corners = [[-1,-1,0,0],[1,-1,1,0],[1,1,1,1],[-1,1,0,1]];
-    for(const [sx, sy, u, vv] of corners){
-      LF.pos.push(c.x + R.x*sx*hw + U.x*sy*hw, c.y + R.y*sx*hw + U.y*sy*hw, c.z + R.z*sx*hw + U.z*sy*hw);
-      LF.nor.push(out.x, out.y, out.z); LF.uv.push(u, vv); LF.sw.push(sway); LF.col.push(tint.r, tint.g, tint.b);
+    for(const B of CT){
+      const base = B.pos.length/3;
+      for(const [sx, sy, u, vv] of corners){
+        B.pos.push(c.x + R.x*sx*hw + U.x*sy*hw, c.y + R.y*sx*hw + U.y*sy*hw, c.z + R.z*sx*hw + U.z*sy*hw);
+        B.nor.push(out.x, out.y, out.z); B.uv.push(u, vv); B.sw.push(sway); B.col.push(tint.r, tint.g, tint.b);
+        B.pv.push(c.x, c.y, c.z); B.ph.push(cph, Math.max(0, c.y - WC.baseY), WC.ks, 0);
+      }
+      B.idx.push(base, base+1, base+2, base, base+2, base+3);
     }
-    LF.idx.push(base, base+1, base+2, base, base+2, base+3);
   };
-  const leafTint = (shade) => new THREE.Color(1,1,1).multiplyScalar(shade).offsetHSL((Math.random()-.5)*.03, (Math.random()-.5)*.08, 0);
-  const crownOf = (center, lobes, R, count, hang, m4) => {
+  const leafTint = (shade, rnd) => { rnd = rnd || Math.random; return new THREE.Color(1,1,1).multiplyScalar(shade).offsetHSL((rnd()-.5)*.03, (rnd()-.5)*.08, 0); };
+  /* rnd: the stream the crown draws from; sk: card size multiplier (the near crown has more, smaller cards; the far one fewer, larger) */
+  const crownOf = (center, lobes, R, count, hang, m4, rnd, sk) => {
+    rnd = rnd || Math.random; sk = sk || 1;
     const tot = lobes.reduce((a, l) => a + l[3]*l[3], 0);
     const lc = new THREE.Vector3(), cpos = new THREE.Vector3(), out = new THREE.Vector3();
     for(const [x, y, z, r] of lobes){
       lc.set(x*R, y*R, z*R).add(center);
       const k = Math.max(3, Math.round(count * r*r / tot));
       for(let i=0;i<k;i++){
-        const d = new THREE.Vector3(Math.random()*2-1, Math.random()*2-1, Math.random()*2-1); if(d.lengthSq() > 1 || d.lengthSq() < .01){ i--; continue; }
+        const d = new THREE.Vector3(rnd()*2-1, rnd()*2-1, rnd()*2-1); if(d.lengthSq() > 1 || d.lengthSq() < .01){ i--; continue; }
         d.normalize();
-        const shell = .30 + .70*Math.pow(Math.random(), .45);          /* most cards near the surface, some inside to block the view through */
+        const shell = .30 + .70*Math.pow(rnd(), .45);          /* most cards near the surface, some inside to block the view through */
         cpos.copy(lc).addScaledVector(d, r*R*shell); cpos.y -= (cpos.y - lc.y)*.14;
-        if(hang) cpos.y -= Math.random()*r*R*.9;
+        if(hang) cpos.y -= rnd()*r*R*.9;
         out.subVectors(cpos, center); out.y += R*.35; out.normalize();
-        const tint = leafTint(.58 + .40*shell + (d.y > 0 ? .06 : -.08));
+        const tint = leafTint(.58 + .40*shell + (d.y > 0 ? .06 : -.08), rnd);
         const wc = cpos.clone().applyMatrix4(m4), wo = out.clone().transformDirection(m4);
-        card(wc, wo, R*r*(1.0 + Math.random()*.45), tint, hang, 1);
+        card(wc, wo, R*r*(1.0 + rnd()*.45)*sk, tint, hang, 1, rnd);
       }
     }
   };
   const tree = (sc, kind, x, y, z, rotY) => {
     const m4 = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), rotY), new THREE.Vector3(1,1,1));
     const willow = kind === "willow", hs = willow ? sc*1.35 : sc;
+    WC.baseY = y; WC.ks = willow ? 1.7 : 1;
+    const cell = cellAt(x, z); curTR = LEAVESQ ? cell.TR : TR;
     const h = willow ? 5.4*hs : 3.6*sc, lean = (Math.random()-.5)*.14;
     /* trunk: the old bent, flared cylinder, now in photo bark; u wraps twice, v one tile per ~1.6 u */
     const tg = (() => { const g = new THREE.CylinderGeometry(.24*hs, .44*hs, h, 10, 7); const pa = g.attributes.position;
@@ -1473,7 +1703,7 @@ function forestBuilder(P, night){
         const flare = 1 + Math.pow(Math.max(0, 1 - t*4), 2)*.9; pa.setX(i, pa.getX(i)*flare); pa.setZ(i, pa.getZ(i)*flare); }
       g.computeVertexNormals(); g.translate(0, h/2, 0); return g; })();
     const trunkM = new THREE.Matrix4().makeRotationZ(lean).premultiply(m4);
-    addGeo(TR, tg, trunkM, 0, 2, h/1.6, barkTint); tg.dispose();
+    addGeo(curTR, tg, trunkM, 0, 2, h/1.6, barkTint); tg.dispose();
     const R = willow ? 2.9*hs : (2.3 + Math.random()*.5)*sc*1.06;
     const center = new THREE.Vector3(Math.sin(lean)*h*.9 + (willow ? .9*hs : 0), h - .3*sc + R*.15, 0);
     const lobes = willow ? [[0,0,0,1.1],[.75,-.18,.42,.8],[-.68,-.14,-.48,.78],[.2,.2,-.75,.68],[-.28,.14,.72,.7]]
@@ -1486,12 +1716,33 @@ function forestBuilder(P, night){
       const mid = top.clone().lerp(to, .55), off = new THREE.Vector3(Math.random()-.5, .4, Math.random()-.5).multiplyScalar(R*.5);
       branch(m4, mid, mid.clone().add(off), .05*hs, .02*hs); });
     branch(m4, top, center.clone().add(new THREE.Vector3(0, R*.5, 0)), .14*hs, .05*hs);
-    crownOf(center, lobes, R, willow ? LEAF_CARDS*1.3 : LEAF_CARDS, willow, m4);
+    const cnt = willow ? LEAF_CARDS*1.3 : LEAF_CARDS;
+    CT = LEAVESQ ? [cell.L[1]] : [LF];
+    crownOf(center, lobes, R, cnt, willow, m4);                       /* the old crown, draw for draw */
+    if(LEAVESQ){
+      CT = [cell.L[0]]; crownOf(center, lobes, R, Math.round(cnt*LEAF_LOD.k0), willow, m4, mkRng(seedAt(x, z, 1)), 1/Math.sqrt(LEAF_LOD.k0)*1.08);
+    }
+    if(LEAVESQ || FARON){
+      const far = willow ? Math.round(LEAF_LOD.n2*1.3) : LEAF_LOD.n2, sk2 = Math.sqrt(cnt/far)*.96;
+      CT = LEAVESQ ? [cell.L[2], cell.F] : [cell.F];
+      crownOf(center, lobes, R, far, willow, m4, mkRng(seedAt(x, z, 2)), sk2);
+    }
+    if(FARON){   /* the far shadow's trunk: a plain five-sided taper from the foot to the crown, not the 140-triangle bark */
+      const B = cell.Fs, base = B.pos.length/3, top = new THREE.Vector3(Math.sin(lean)*h*.9, h*.95, 0).applyMatrix4(m4), r0 = .42*hs, r1 = .2*hs;
+      for(let q=0;q<5;q++){ const a = q/5*Math.PI*2; B.pos.push(x + Math.cos(a)*r0, y - .2, z + Math.sin(a)*r0); }
+      for(let q=0;q<5;q++){ const a = q/5*Math.PI*2; B.pos.push(top.x + Math.cos(a)*r1, top.y, top.z + Math.sin(a)*r1); }
+      for(let q=0;q<5;q++){ const q2 = (q+1)%5; B.idx.push(base+q, base+q2, base+5+q, base+q2, base+5+q2, base+5+q); }
+    }
+    CT = [LF];
     return {r: 2.0*sc, h};
   };
   const bush = (sc, x, y, z) => {
     const m4 = new THREE.Matrix4().makeTranslation(x, y, z);
+    WC.baseY = y; WC.ks = .5;
+    const cell = cellAt(x, z);
+    CT = LEAVESQ ? [cell.L[0], cell.L[1], cell.L[2]] : [LF];       /* a bush is one crown at every distance: the same twelve cards in all three */
     crownOf(new THREE.Vector3(0, .25*sc, 0), [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]], sc*1.05, 12, false, m4);
+    CT = [LF];
   };
   /* ---- palms (Good Riddance, Town Square) ----
      A ringed, curving trunk in photo palm bark, and a crown of arching fronds: each frond is a strip
@@ -1508,9 +1759,11 @@ function forestBuilder(P, night){
     for(let i=0;i<pa.count;i++){ const t = Math.max(0, pa.getY(i)/h), fl = 1 + Math.pow(Math.max(0, 1 - t*6), 2)*.7;
       pa.setX(i, pa.getX(i)*fl + lean*h*Math.pow(t, 1.7)); pa.setZ(i, pa.getZ(i)*fl); }
     tg.computeVertexNormals();
-    addGeo(PT, tg, m4, 0, 1.5, h/1.3, palmTint); tg.dispose();
+    const cell = cellAt(x, z), PTB = LEAVESQ ? cell.PT : PT, FRB = LEAVESQ ? cell.FR : FR;
+    addGeo(PTB, tg, m4, 0, 1.5, h/1.3, palmTint); tg.dispose();
     const top = new THREE.Vector3(lean*h, h - .1*sc, 0);
     const NF = 11 + (Math.random()*4|0), v = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+    const topW = top.clone().applyMatrix4(m4);                                    /* every frond turns about the crown it grows from */
     const NM4 = new THREE.Matrix3().getNormalMatrix(m4);
     for(let k=0;k<NF;k++){
       const dead = k >= NF - 2;
@@ -1519,19 +1772,32 @@ function forestBuilder(P, night){
       const L = (dead ? 3.0 : 3.8 + Math.random()*1.0)*sc, Wd = (dead ? .9 : 1.55)*sc;
       const droop = (dead ? .02 : .10 + Math.random()*.08)/sc;
       const tint = dead ? new THREE.Color(.62, .48, .30) : new THREE.Color(1,1,1).multiplyScalar(.80 + Math.random()*.25).offsetHSL((Math.random()-.5)*.03, 0, 0);
-      const S = 7, base = FR.pos.length/3, sx = -dz, sz = dx;
+      const S = 7, base = FRB.pos.length/3, sx = -dz, sz = dx, fph = hash01(++WC.n);
       for(let s2=0;s2<=S;s2++){
         const tt = s2/S, al = L*tt;
         const hz = Math.cos(pitch)*al, vy = Math.sin(pitch)*al - droop*al*al;
         const cx = top.x + dx*hz, cy = top.y + vy, cz = top.z + dz*hz;
         const hw = Wd*.5*(1 - .25*tt), fold = -Wd*.14*(1 - tt*.5);
         for(const side of [-1, 1]){
-          v.set(cx + sx*hw*side, cy + fold, cz + sz*hw*side).applyMatrix4(m4); FR.pos.push(v.x, v.y, v.z);
-          v.set(dx*.35, 1, dz*.35).applyMatrix3(NM4).normalize(); FR.nor.push(v.x, v.y, v.z);
-          FR.uv.push(side < 0 ? 0 : 1, tt); FR.sw.push(tt*1.4); FR.col.push(tint.r, tint.g, tint.b);
+          v.set(cx + sx*hw*side, cy + fold, cz + sz*hw*side).applyMatrix4(m4); FRB.pos.push(v.x, v.y, v.z);
+          v.set(dx*.35, 1, dz*.35).applyMatrix3(NM4).normalize(); FRB.nor.push(v.x, v.y, v.z);
+          FRB.uv.push(side < 0 ? 0 : 1, tt); FRB.sw.push(tt*1.4); FRB.col.push(tint.r, tint.g, tint.b);
+          FRB.pv.push(topW.x, topW.y, topW.z); FRB.ph.push(fph, 0, 1, 0);
         }
       }
-      for(let s2=0;s2<S;s2++){ const q = base + s2*2; FR.idx.push(q, q+1, q+3, q, q+3, q+2); }
+      for(let s2=0;s2<S;s2++){ const q = base + s2*2; FRB.idx.push(q, q+1, q+3, q, q+3, q+2); }
+      if(FARON && !dead){   /* the far shadow's frond: three rows of the same strip, on the frond's own alpha */
+        const B = cell.Ffr, fb = B.pos.length/3;
+        for(const tt of [0, .5, 1]){ const al = L*tt, hz = Math.cos(pitch)*al, vy = Math.sin(pitch)*al - droop*al*al, hw = Wd*.5*(1 - .25*tt)*1.15;
+          for(const side of [-1, 1]){ v.set(top.x + dx*hz + sx*hw*side, top.y + vy, top.z + dz*hz + sz*hw*side).applyMatrix4(m4); B.pos.push(v.x, v.y, v.z); B.uv.push(side < 0 ? 0 : 1, tt); } }
+        B.idx.push(fb, fb+1, fb+3, fb, fb+3, fb+2, fb+2, fb+3, fb+5, fb+2, fb+5, fb+4);
+      }
+    }
+    if(FARON){   /* the far shadow's trunk */
+      const B = cell.Fs, base = B.pos.length/3, tw = top.clone().applyMatrix4(m4), r0 = .29*sc, r1 = .17*sc;
+      for(let q=0;q<5;q++){ const a = q/5*Math.PI*2; B.pos.push(x + Math.cos(a)*r0, y - .2, z + Math.sin(a)*r0); }
+      for(let q=0;q<5;q++){ const a = q/5*Math.PI*2; B.pos.push(tw.x + Math.cos(a)*r1, tw.y, tw.z + Math.sin(a)*r1); }
+      for(let q=0;q<5;q++){ const q2 = (q+1)%5; B.idx.push(base+q, base+q2, base+5+q, base+q2, base+5+q2, base+5+q); }
     }
     return {r: 1.3*sc, h};
   };
@@ -1540,28 +1806,55 @@ function forestBuilder(P, night){
     const geoOf = B => { const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(B.pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(B.nor, 3));
       g.setAttribute("uv", new THREE.Float32BufferAttribute(B.uv, 2)); g.setAttribute("color", new THREE.Float32BufferAttribute(B.col, 3));
-      g.setAttribute("aSway", new THREE.Float32BufferAttribute(B.sw, 1)); g.setIndex(B.idx); g.computeBoundingSphere(); return g; };
+      g.setAttribute("aSway", new THREE.Float32BufferAttribute(B.sw, 1));
+      if(B.pv.length){ g.setAttribute("aPiv", new THREE.Float32BufferAttribute(B.pv, 3)); g.setAttribute("aPh", new THREE.Float32BufferAttribute(B.ph, 4)); }
+      g.setIndex(B.idx); g.computeBoundingSphere();
+      g.boundingSphere.radius += 1.5;      /* the wind moves cards; a cell must not be culled while a leaf is still in view */
+      g.computeBoundingBox(); return g; };
+    const barkMats = new Map();
     const barkMesh = (B, map, nor) => {
-      const tm = new THREE.MeshStandardMaterial({map, normalMap:nor, vertexColors:true, roughness:.94, metalness:0, envMapIntensity:.30});
-      tm.color.multiplyScalar(night ? .45 : .92);
-      camFadeWrap(tm);
+      let tm = barkMats.get(map);
+      if(!tm){ tm = new THREE.MeshStandardMaterial({map, normalMap:nor, vertexColors:true, roughness:.94, metalness:0, envMapIntensity:.30});
+        tm.color.multiplyScalar(night ? .45 : .92);
+        camFadeWrap(tm); barkMats.set(map, tm); }
       const mesh = new THREE.Mesh(geoOf(B), tm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh); out.push(mesh);
     };
-    const uni = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}, uGust:{value:1}};
+    const uni = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}, uGust:{value:1}, uMove:{value:1}};
     const swayV = `#include <begin_vertex>
       { float ph = position.x*.21 + position.z*.17;
         float gust = sin(uTime*.9 + ph*.4)*.5 + .5;
         transformed.x += (sin(uTime*1.3 + ph) * .10 + sin(uTime*5.7 + ph*3.1) * .025) * aSway * (.5 + gust) * uGust;
         transformed.z += (cos(uTime*1.1 + ph*1.3) * .08 + cos(uTime*6.3 + ph*2.3) * .022) * aSway * (.5 + gust) * uGust;
         transformed.y += sin(uTime*4.9 + ph*2.7) * .02 * aSway; }`;
-    const leafMesh = (B, map, alphaMap, key) => {
+    /* one source for the sway + both materials that use it: the lit leaf and the shadow it throws must move together */
+    const windVert = frond => LEAF_WIND_COMMON + "\n" + (frond ? LEAF_WIND_FROND : LEAF_WIND_CARD);
+    /* ---- the timed dither crossfade between two levels of one cell ----
+       On a level change the cell records ONE start time; the incoming and outgoing meshes both read it. a runs 0..1 over LEAF_LOD.fade
+       seconds of game time; the outgoing crown discards where the screen-space noise is below a, the incoming one where it is at or above
+       it - the SAME noise (the camera see-through's), so every pixel belongs to exactly one of them and the pair never doubles up or
+       leaves a hole. Both are only drawn during the fade. */
+    const LOD_GLSL = `if(uLodF.y != 0.0){ float lfA = clamp((uTime - uLodF.x)/${LEAF_LOD.fade.toFixed(3)}, 0.0, 1.0);
+      float lfN = fract(52.9829189*fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
+      if(uLodF.y < 0.0){ if(lfN < lfA) discard; } else { if(lfN >= lfA) discard; } }`;
+    const mkLeafMat = (map, alphaMap, key, lod) => {
+      const frond = key === "realfrond", lodU = {value:new THREE.Vector2(0, 0)};
       const lm = new THREE.MeshStandardMaterial({map, alphaMap, alphaTest:.42, side:THREE.DoubleSide,
         vertexColors:true, roughness:.78, metalness:0, envMapIntensity:.38});
       lm.color.setRGB(.90, .96, .84);
       if(night) lm.color.setRGB(.34, .40, .46);     /* moonlit: the leaves sit in the island's dark palette instead of glowing */
-      lm.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uPlayer = uni.uPlayer; sh.uniforms.uGust = uni.uGust;
+      lm.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uPlayer = uni.uPlayer; sh.uniforms.uGust = uni.uGust; sh.uniforms.uMove = uni.uMove;
+        if(LEAFWINDQ){
+          sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + windVert(frond))
+            .replace("#include <begin_vertex>", "#include <begin_vertex>\n transformed = " + (frond ? "llFrond" : "llLeaf") + "(transformed);");
+          /* the card's turn tilts its shading normal too (half as far): the light on a crown shimmers with the leaves */
+          if(!frond) sh.vertexShader = sh.vertexShader.replace("#include <beginnormal_vertex>", "#include <beginnormal_vertex>\n objectNormal = llCard(.5)*objectNormal;");
+        } else {
         sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aSway; uniform float uTime; uniform vec3 uPlayer; uniform float uGust;")
           .replace("#include <begin_vertex>", swayV);
+        }
+        if(lod){ sh.uniforms.uLodF = lodU;
+          sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec2 uLodF; uniform float uTime;")
+            .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n" + LOD_GLSL); }
         /* both faces of a card shade with the crown's outward normal - three would flip it on the back face,
            and half the leaves would go black */
         sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>",
@@ -1569,21 +1862,91 @@ function forestBuilder(P, night){
           /* light through the leaves: the shadow side of a crown is never black, it glows faintly green */
           .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05) * " + (night ? ".25" : "1.0") + ";");
       };
-      lm.customProgramCacheKey = () => key;
+      lm.customProgramCacheKey = () => key + (LEAFWINDQ ? "|w2" : "") + (lod ? "|lod" : "");
       camFadeWrap(lm);
-      const mesh = new THREE.Mesh(geoOf(B), lm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1;
-      mesh.customDepthMaterial = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, alphaMap, alphaTest:.42});
-      scene.add(mesh); out.push(mesh);
+      return {lm, lodU};
     };
-    if(TR.pos.length) barkMesh(TR, TREE_TEX.bark, TREE_TEX.barkN);
-    if(PT.pos.length) barkMesh(PT, TREE_TEX.palm, TREE_TEX.palmN);
-    if(LF.pos.length) leafMesh(LF, TREE_TEX.leaf, TREE_TEX.leafA, "realleaf");
-    if(FR.pos.length) leafMesh(FR, TREE_TEX.frond, TREE_TEX.frondA, "realfrond");
+    const mkDepth = (alphaMap, key) => {
+      const frond = key === "realfrond", dm = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, alphaMap, alphaTest:.42});
+      if(LEAFWINDQ){
+        dm.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uPlayer = uni.uPlayer; sh.uniforms.uGust = uni.uGust; sh.uniforms.uMove = uni.uMove;
+          sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + windVert(frond))
+            .replace("#include <begin_vertex>", "#include <begin_vertex>\n transformed = " + (frond ? "llFrond" : "llLeaf") + "(transformed);"); };
+        dm.customProgramCacheKey = () => key + "|wd2";
+      }
+      return dm;
+    };
+    const shared = {};     /* one lit material + one shadow material for everything that does not change level (the fronds, the old merged crown) */
+    const leafMesh = (B, map, alphaMap, key) => {
+      const sh = shared[key] || (shared[key] = {m:mkLeafMat(map, alphaMap, key, false), d:mkDepth(alphaMap, key)});
+      const mesh = new THREE.Mesh(geoOf(B), sh.m.lm); mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.dyn = 1;
+      mesh.customDepthMaterial = sh.d;
+      scene.add(mesh); out.push(mesh); return mesh;
+    };
+    /* what the far-shadow map draws: plain geometry of the far crowns (shared with the far display level), a prism for each trunk */
+    const farCast = (geo, kind, c) => { if(!FARON || !geo.getIndex() || !geo.getIndex().count) return; (I.farCasters || (I.farCasters = [])).push({geo, kind, key:c.k, cx:c.cx, cz:c.cz}); };
+    const fgeo = (B, withUv) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(B.pos, 3));
+      if(withUv) g.setAttribute("uv", new THREE.Float32BufferAttribute(B.uv, 2)); g.setIndex(B.idx); g.computeBoundingSphere(); return g; };
+    let nCards = 0, nQuads = 0;
+    if(LEAVESQ){
+      const LS = I.leafStats || (I.leafStats = {twice:0, frame:0});
+      const dmLeaf = mkDepth(TREE_TEX.leafA, "realleaf");
+      const shMat = new THREE.MeshBasicMaterial({alphaMap:TREE_TEX.leafA, alphaTest:.42, side:THREE.DoubleSide});   /* never drawn by the camera: it carries the alpha the shadow pass reads */
+      for(const c of cells.values()){
+        if(c.TR.pos.length) barkMesh(c.TR, TREE_TEX.bark, TREE_TEX.barkN);
+        if(c.PT.pos.length) barkMesh(c.PT, TREE_TEX.palm, TREE_TEX.palmN);
+        if(c.FR.pos.length){ leafMesh(c.FR, TREE_TEX.frond, TREE_TEX.frondA, "realfrond"); nQuads += c.FR.idx.length/6; }
+        if(c.L[1].pos.length){
+          const lv = c.L.map((B, i) => { const g = geoOf(B), {lm, lodU} = mkLeafMat(TREE_TEX.leaf, TREE_TEX.leafA, "realleaf", true);
+            const m = new THREE.Mesh(g, lm); m.castShadow = false; m.receiveShadow = true; m.userData.dyn = 1; m.userData.noCast = 1; m.visible = (i === 1);
+            m.onBeforeRender = () => { if(lodU.value.y < 0) LS.twice++; };       /* a cell drawn twice this frame: counted for qa/leaves.mjs */
+            scene.add(m); out.push(m); nCards += B.idx.length/6; return {m, lodU}; });
+          /* the shadow is cast by the middle crown ALWAYS, from a mesh the camera never draws (layer 2, which the key's shadow camera is
+             told to include): the shadow cannot pop or flicker when a cell changes level, and it is exactly the old shadow, now moving */
+          const sm = new THREE.Mesh(lv[1].m.geometry, shMat); sm.castShadow = true; sm.receiveShadow = false; sm.layers.set(2); sm.userData.dyn = 1; sm.customDepthMaterial = dmLeaf;
+          scene.add(sm); out.push(sm);
+          (I.leafCells || (I.leafCells = [])).push({k:c.k, lv, box:lv[1].m.geometry.boundingBox, cur:-1, prev:-1, t0:0});
+        }
+        if(FARON){ if(c.F.pos.length) farCast(fgeo(c.F, true), "leaf", c); if(c.Ffr.pos.length) farCast(fgeo(c.Ffr, true), "frond", c); if(c.Fs.pos.length) farCast(fgeo(c.Fs, false), "solid", c); }
+      }
+    } else {
+      if(TR.pos.length) barkMesh(TR, TREE_TEX.bark, TREE_TEX.barkN);
+      if(PT.pos.length) barkMesh(PT, TREE_TEX.palm, TREE_TEX.palmN);
+      if(LF.pos.length){ leafMesh(LF, TREE_TEX.leaf, TREE_TEX.leafA, "realleaf"); nCards = LF.idx.length/6; }
+      if(FR.pos.length){ leafMesh(FR, TREE_TEX.frond, TREE_TEX.frondA, "realfrond"); nQuads = FR.idx.length/6; }
+      if(FARON) for(const c of cells.values()){ if(c.F.pos.length) farCast(fgeo(c.F, true), "leaf", c); if(c.Ffr.pos.length) farCast(fgeo(c.Ffr, true), "frond", c); if(c.Fs.pos.length) farCast(fgeo(c.Fs, false), "solid", c); }
+    }
     if(out.length) (I.treeWinds || (I.treeWinds = [])).push(uni);
-    DBG("real trees", TR.pos.length/3, "trunk verts", LF.pos.length/12, "leaf cards", FR.idx.length/6, "frond quads");
+    DBG("real trees", cells.size, "cells,", nCards, "leaf cards (all levels),", nQuads, "frond quads");
     return out;
   };
   return {tree, bush, palm, finish};
+}
+/* Which level each tree cell shows, from the camera's distance to the cell's box, with hysteresis so a camera resting on a boundary never
+   flips. A change starts a 0.25 s dither crossfade (the shader reads the one start time written here); until it ends BOTH levels draw.
+   The shadow never changes: it comes from the middle crown's own shadow-only mesh. */
+function leafLODUpdate(I, t){
+  const cs = I.leafCells; if(!cs) return;
+  const L = LEAF_LOD, cam = camera.position, LS = I.leafStats;
+  LS.frame = LS.twice; LS.twice = 0;
+  for(const c of cs){
+    const b = c.box, dx = Math.max(b.min.x - cam.x, 0, cam.x - b.max.x), dy = Math.max(b.min.y - cam.y, 0, cam.y - b.max.y), dz = Math.max(b.min.z - cam.z, 0, cam.z - b.max.z);
+    const d = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    let want = c.cur < 0 ? (d < L.d0 ? 0 : d < L.d1 ? 1 : 2) : c.cur;
+    if(c.cur === 0){ if(d > L.d0 + L.hyst) want = d > L.d1 + L.hyst ? 2 : 1; }
+    else if(c.cur === 1){ if(d < L.d0 - L.hyst) want = 0; else if(d > L.d1 + L.hyst) want = 2; }
+    else if(c.cur === 2){ if(d < L.d1 - L.hyst) want = d < L.d0 - L.hyst ? 0 : 1; }
+    if(c.cur < 0){ c.cur = want; c.lv.forEach((o, i) => { o.m.visible = i === want; o.lodU.value.set(0, 0); }); continue; }
+    if(c.prev >= 0){
+      if(t - c.t0 < L.fade && t >= c.t0) continue;                       /* mid-fade: finish it before looking at the distance again */
+      c.lv[c.prev].m.visible = false; c.lv[c.prev].lodU.value.set(0, 0); c.lv[c.cur].lodU.value.set(0, 0); c.prev = -1;
+    }
+    if(want !== c.cur){
+      c.prev = c.cur; c.cur = want; c.t0 = t;
+      const o = c.lv[c.prev], n = c.lv[c.cur];
+      n.m.visible = true; o.lodU.value.set(t, -1); n.lodU.value.set(t, 1);
+    }
+  }
 }
 /* ===================  REAL ROCK  ===================
    Boulders were dodecahedrons - twelve flat faces and an ink outline, a cartoon rock - and the
@@ -11375,6 +11738,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       const solid = mats.some(m => m && !m.transparent && (m.opacity === undefined || m.opacity >= 1) && m.depthWrite !== false);
       if(!solid) return;                                   /* glass, glow, foam, cloud: never a caster */
       o.receiveShadow = true; recv++;
+      if(o.userData.noCast) return;                        /* a tree crown's display levels: their shadow comes from the shadow-only mesh, so it never changes with the level on screen */
       if(skip.has(o) || air.has(o)) return;                /* sea, seabed, sky, moon, rain, bow, fx */
       if(o.userData.ground) return;                        /* the ground receives; it does not cast onto itself */
       if(o.isInstancedMesh){                               /* scatter: cast only if the blades are big enough to read */
@@ -11392,7 +11756,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     DBG("SHADOWS", cfg.key, "cast", cast, "receive", recv);
   }
   yield;
-  key.castShadow = true; yield; key.shadow.mapSize.set(2048, 2048);
+  key.castShadow = true; key.shadow.camera.layers.enable(2); yield; key.shadow.mapSize.set(2048, 2048);   /* layer 2: the tree crowns' shadow-only meshes, which the camera never draws */
   yield;
   key.shadow.camera.near = 5; yield; key.shadow.camera.far = 220;
   yield;
@@ -12869,7 +13233,8 @@ function islandUpdate(I, dt, t){
   if(RAINQ && (I.wetScanT = (I.wetScanT == null ? 1 : I.wetScanT) - dt) <= 0){ I.wetScanT = 3; wetAll(I.scene); }
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
   if(LIGHTQ) lightKey(I);   /* LIGHTQ hook */
-  if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); }
+  if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); if(u.uMove) u.uMove.value = GLIDE_REDUCE.matches ? 0 : 1; }   /* reduced motion: the leaves hold still, the crown only leans a little */
+  if(I.leafCells) leafLODUpdate(I, t);
   if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
   I.sea.userData.mat.uniforms.t.value = t;
