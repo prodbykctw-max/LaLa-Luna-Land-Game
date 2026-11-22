@@ -1,0 +1,31 @@
+[vcheck] hub: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] green: lights 9, lamps null (null bad), errors 0
+[vcheck] gr: lights 10, lamps null (null bad), errors 0
+[vcheck] sanity: lights 12, lamps null (null bad), errors 0
+[vcheck] town: lights 9, lamps null (null bad), errors 0
+    "i": 1,
+    "c": "#ffe2a8",
+    "y": 2.3
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff",
+    "y": 2.5
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8",
+    "y": 0.3
+   }
+  ],
+  "lampCount": null,
+  "lampsBadMat": null,
+  "lampTypes": null,
+  "lettersOK": true,
+  "consoleErrors": [],
+  "errorCount": 0
+ }
+}
+rc=0
