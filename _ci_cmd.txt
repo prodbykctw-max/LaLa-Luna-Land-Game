@@ -1,0 +1,1 @@
+node qa/sanityperf_load.mjs sanity --tag=warmnew1 > qa/out/load_warmnew1.txt 2>&1
