@@ -55,8 +55,10 @@ const POOL = `(() => {
     if (!I.inside(x, z) || I.height(x, z) < .2 || near(x, z) < 1.3) continue; bv = v; best = [x, z]; }
   if (!best) return null;
   const blobs = I.camBlobs || [], hgt = (x, z) => I.height(x, z);
-  const yawFor = (at, dist) => { let b = 0, bs = -1e9; for (let k = 0; k < 16; k++) { const y = k * Math.PI / 8, ex = at[0] + Math.sin(y) * dist, ez = at[1] + Math.cos(y) * dist, ey = hgt(ex, ez) + 1.4; let m = 1e9;
-      for (const q of blobs) m = Math.min(m, Math.hypot(q.x - ex, q.y - ey, q.z - ez) - q.r); for (const c of cols) m = Math.min(m, Math.hypot(c.x - ex, c.z - ez) - (c.r || 0) + 1.5);
+  /* the camera goes on the side with a CLEAR LINE to her: no collider or crown on the segment between the lens and her, and none under the lens */
+  const yawFor = (at, dist) => { let b = 0, bs = -1e9; for (let k = 0; k < 32; k++) { const y = k * Math.PI / 16, ex = at[0] + Math.sin(y) * dist, ez = at[1] + Math.cos(y) * dist, ey = hgt(ex, ez) + .9; let m = 1e9;
+      for (const q of blobs) m = Math.min(m, Math.hypot(q.x - ex, q.y - ey, q.z - ez) - q.r);
+      for (const c of cols) { const dx = ex - at[0], dz = ez - at[1], t = Math.max(0, Math.min(1, ((c.x - at[0]) * dx + (c.z - at[1]) * dz) / (dx * dx + dz * dz))); m = Math.min(m, Math.hypot(at[0] + dx * t - c.x, at[1] + dz * t - c.z) - (c.r || 0)); }
       if (!I.inside(ex, ez)) m -= 50; if (m > bs) { bs = m; b = y; } } return b; };
   /* close enough that she is at least 420 px tall: solve for the distance from the camera's own fov */
   const H = window.innerHeight, fov = T.camera.fov * Math.PI / 180, dist = 1.75 * H / (2 * Math.tan(fov / 2) * 430);
