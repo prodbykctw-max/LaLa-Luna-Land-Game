@@ -758,6 +758,8 @@ function present(scene){
   const want = scene.userData.lookMix != null ? scene.userData.lookMix : (scene.userData.darkLook ? 1 : 0);
   if(LOOK_MIX < 0 || Math.abs(want - LOOK_MIX) > .004) applyLookMix(want);
   if(LIGHTQ) lightFrame(scene);   /* LIGHTQ hook */
+  if(FAR_LIST.length) farSkinUpdate();
+  if(FARCULL && MODE === "island") farCullUpdate(scene);
   renderPass.scene = scene; composer.render();
 }
 /* ===================  REAL LIGHT  (?light=old restores)  ===================
@@ -4294,6 +4296,67 @@ function lalaShadowProxy(mesh){
     mesh.parent.add(p); mesh.userData.shadowProxy = p; mesh.castShadow = false; SHADOW_PROXIES.add(p);
   });
 }
+/* ===================  FAR SKINNED LOD  (?farskin=0 restores)  ===================
+   Every villager, animal and ink twin is a skinned mesh of 2-40k triangles drawn in full wherever it stands, including 200-500 u away where a
+   3 u figure is a handful of pixels (Town: 42 villagers = 511k triangles; Sanity: villagers + creatures = 358k of 1.6M). tools/skin_far_lod.mjs
+   simplifies each rig's index buffer offline with meshoptimizer (attribute-aware, no vertex moved or removed -> the same skeleton, skin weights
+   and uv buffers) into assets/lod-skin.bin. Past FARSKIN_D from the camera a mesh swaps its geometry for a copy that shares every attribute but uses
+   the shorter index list (hysteresis 15 u); nothing else about the mesh changes, so visibility, culling, tint, ink and dissolve code are untouched.
+   Looked up by (vertex count, index count): an ink twin shares its body's topology. Her own mesh is never swapped. */
+const FARSKIN = QS.get("farskin") !== "0", FARSKIN_D = parseFloat(QS.get("farskind")) || 120;
+const FAR_LIST = []; let _farIdx = null;
+function farSkinMap(){ if(!_farIdx) _farIdx = fetch("assets/lod-skin.bin").then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then(b => { const dv = new DataView(b), m = new Map(); let n = dv.getUint32(0, true), o = 4;
+    for(let i = 0; i < n; i++){ const v = dv.getUint32(o, true), oi = dv.getUint32(o + 4, true), ni = dv.getUint32(o + 8, true); o += 12; m.set(v + "_" + oi, new Uint16Array(b.slice(o, o + ni*2))); o += ni*2 + (ni % 2)*2; } return m; }).catch(() => null);
+  return _farIdx; }
+function farSkinRegister(mesh){
+  if(!FARSKIN || !mesh.isSkinnedMesh || mesh.userData.farLod) return;
+  mesh.userData.farLod = 1;
+  farSkinMap().then(map => { if(!map) return; const g0 = mesh.geometry, pos = g0.attributes.position; if(!pos || !g0.index) return;
+    const idx = map.get(pos.count + "_" + g0.index.count); if(!idx || idx.length > g0.index.count*.9) return;
+    for(let i = 0; i < idx.length; i++) if(idx[i] >= pos.count) return;
+    const g = new THREE.BufferGeometry(); for(const k in g0.attributes) g.setAttribute(k, g0.attributes[k]);
+    g.setIndex(new THREE.BufferAttribute(idx, 1)); g.boundingSphere = g0.boundingSphere; g.boundingBox = g0.boundingBox;
+    FAR_LIST.push({m: mesh, near: g0, far: g, isFar: false}); });
+}
+const _fp = new THREE.Vector3();
+function farSkinUpdate(){
+  if(!FAR_LIST.length) return;
+  const cp = camera.position, d1 = FARSKIN_D*FARSKIN_D, d0 = (FARSKIN_D - 15)*(FARSKIN_D - 15);
+  for(let i = 0; i < FAR_LIST.length; i++){ const e = FAR_LIST[i], m = e.m.matrixWorld.elements;
+    const dx = m[12] - cp.x, dy = m[13] - cp.y, dz = m[14] - cp.z, dd = dx*dx + dy*dy + dz*dz;
+    if(!e.isFar && dd > d1){ e.m.geometry = e.far; e.isFar = true; } else if(e.isFar && dd < d0){ e.m.geometry = e.near; e.isFar = false; } }
+}
+/* ===================  FAR PROP CULL  (?farcull=0 restores)  ===================
+   Hundreds of small props (flares, lamp posts, wader ripples, collectible moons, markers) are each their own draw call, and past a few hundred units
+   each is under two pixels. A mesh whose whole size is under 1.8 u stops being SUBMITTED beyond 450 x its diameter (never under 150 u) by swapping its
+   geometry for a stand-in that shares the same buffers with an empty draw range: three skips a draw whose count is zero, so it costs no call and no
+   triangles. visible, layers, fades and every piece of game logic that toggles them are untouched, so a collected moon stays collected and comes back
+   exactly when the camera does (hysteresis 10%). Skinned, instanced, points, sprites and the hero's own meshes are never touched. */
+const FARCULL = QS.get("farcull") !== "0";
+function farCullBuild(scene){
+  const list = scene.userData.farCull = [], sp = new THREE.Sphere(), sc = new THREE.Vector3();
+  scene.updateMatrixWorld(true);
+  scene.traverse(o => {
+    if(!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || !o.geometry || o.userData.farCullSkip) return;
+    const g = o.geometry; if(!g.attributes.position || (g.parameters && g.parameters.__farcull)) return;
+    if(!g.boundingSphere) g.computeBoundingSphere();
+    o.matrixWorld.decompose(_fp, new THREE.Quaternion(), sc); const k = Math.max(sc.x, sc.y, sc.z);
+    const diam = g.boundingSphere.radius*2*k; if(!(diam > 0) || diam > 1.8) return;
+    list.push({m: o, near: g, far: null, d: Math.max(150, diam*450), isFar: false});
+  });
+  return list;
+}
+function farCullUpdate(scene){
+  const list = scene.userData.farCull || farCullBuild(scene); if(!list.length) return;
+  const cp = camera.position;
+  for(let i = 0; i < list.length; i++){ const e = list[i], el = e.m.matrixWorld.elements;
+    const dx = el[12] - cp.x, dy = el[13] - cp.y, dz = el[14] - cp.z, dd = dx*dx + dy*dy + dz*dz, r = e.d;
+    if(!e.isFar && dd > r*r){
+      if(!e.far){ const g = new THREE.BufferGeometry(); for(const k in e.near.attributes) g.setAttribute(k, e.near.attributes[k]); if(e.near.index) g.setIndex(e.near.index);
+        g.setDrawRange(0, 0); g.boundingSphere = e.near.boundingSphere; g.boundingBox = e.near.boundingBox; g.parameters = e.near.parameters; g.type = e.near.type; e.far = g; }
+      e.m.geometry = e.far; e.isFar = true; }
+    else if(e.isFar && dd < r*r*.81){ e.m.geometry = e.near; e.isFar = false; } }
+}
 function attachRig(R, name){
   const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
   const model = THREE.SkeletonUtils.clone(gltf.scene);
@@ -4314,10 +4377,11 @@ function attachRig(R, name){
      as pasted onto the picture rather than standing in it. Flag them as they attach. */
   model.traverse(o => {
     if(!o.isMesh) return;
-    if(o.material && o.material.userData && o.material.userData.isInk){ o.castShadow = false; o.receiveShadow = false; return; }
+    if(o.material && o.material.userData && o.material.userData.isInk){ o.castShadow = false; o.receiveShadow = false; if(name !== "lala" && name !== "lala-v2" && o.isSkinnedMesh) farSkinRegister(o); return; }
     o.castShadow = true; o.receiveShadow = true;
     o.frustumCulled = false;                    /* skinned bounds are the bind pose; culling pops her out */
     if(name !== "lala" && name !== "lala-v2") skinCull(o);   /* everybody else is culled on a padded fixed sphere (see skinCull) */
+    if(name !== "lala" && name !== "lala-v2" && o.isSkinnedMesh) farSkinRegister(o);   /* ...and drawn from a shorter triangle list when far away (see farSkinRegister) */
     if(name === "lala" && o.isSkinnedMesh) lalaShadowProxy(o);   /* her shadow is drawn from a ~25k-tri copy once it has loaded */
   });
   R.inkTwins = []; R.skins = []; model.traverse(o => { if(!o.isMesh) return; if(o.material.userData && o.material.userData.isInk) R.inkTwins.push(o); else R.skins.push(o); });
