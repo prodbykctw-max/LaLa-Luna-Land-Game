@@ -1,0 +1,2 @@
+# smoke test: prove the runner, playwright and the base checkout work
+node -e "console.log(\"ok\", process.env.BASE, process.env.CHROMIUM_PATH)" && ls qa | head -5 && ls $BASE | head -3
