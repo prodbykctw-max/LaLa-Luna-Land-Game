@@ -2184,3 +2184,27 @@ Load finding (Sanity): the island BUILD is not the freeze (461 steps, max 79 ms,
 Pixel diffs (qa/sanityperf_ab.mjs, controlled clock 17/17/16 ms steps, seeded Math.random, game clock reset, title card dismissed): old vs new mean abs difference 0.60-0.69 on hub, green, gr, sanity, 1.50 on town, against 0.36-0.61 / 1.14 between two runs of the OLD build. That is run-to-run noise (rain, creature and NPC state). Do not compare captures made before the island title card was dismissed or before the game clock was reset: they measured a blurred card or a different wind phase.
 
 Pitfall found: `?go=<island>` stays on the hub for islands not built at startup; the harness helpers use __prep.readyIsland + goIsland.
+### 4.57 — Town crowd: far LOD swaps fade over 0.25 s instead of popping (build `2026-11-22a`)
+**Shipped 2026-11-22, approved by Melvin after the NOW|NEW clip ("Use NEW (blend)", then "Proceed with crowd fade").**
+- What: when a fan crosses the rig <-> proxy distance (far out > 46 u, back near < 44 u) or the ink-outline
+  distance (off > 26 u, on < 24 u; ink exists only under `?art=toon`), the two versions cross-fade over a fixed
+  0.25 s with complementary screen-space dither (same interleaved-gradient noise as CF_GLSL). No alpha blending.
+- Where: the "crowd LOD CROSS-FADE" block next to `CROWD_FAR` in index.html. Progress comes from one game-clock
+  uniform `uLodT` set once per tick; per-fan state is (t0, p0, dir), so a mid-fade reversal continues from p.
+  Proxy side: per-instance `iFade`; rig side: per-member cloned ink twin materials + patched `onBeforeRender`,
+  wired through `lodFadeWrap` (chained like `camFadeWrap`). Old swap kept as `crowdLODSwap`.
+- Flags: `?lodfade=0` = the exact old one-frame swap. Debug counter: `window.__LODFADE`.
+- Cost (Town walk, 150 frames): draw calls 1015.7 -> 1021.8 (+0.6%), triangles +10.9% but only during the 0.25 s
+  window; fans drawn twice max 18 / mean 5.53.
+- Proof: qa/crowdfade.mjs + crowdfade_report.py (strips + mp4). No holes at p=.5 (silhouette ratio .99-1.01),
+  outgoing version never drawn after the fade, opposite fades at once correct, nothing stuck half-faded.
+- Regression (QA farm job crowdreg-1, every suite on this branch AND on main): syntax, determinism, codehealth,
+  console_load (0 errors), assets, reach, camera, framebudget, mobile, float, overhead, scale, vgeo, vcheck, vmat
+  all match main within run-to-run noise. traversal and vaudit had not reported on either side when this shipped.
+  Pre-existing on main too: seeded runs differ (determinism), Ollie the postman floats while walking (float).
+- Not yet done: the real-GPU check on Melvin's laptop (it was not linked to the session). Do it next time it is.
+- Harness: `_harness.mjs` now enters non-hub islands itself (`enterIsland`). Before this, `?go=<island>` stayed on
+  the hub, so older non-hub QA numbers may have measured the hub.
+- The QA farm (GitHub runners, branch-triggered, never deploys) is how heavy runs are done now: push a
+  `qa-job/<name>` branch with `.github/workflows/qa-farm.yml` + `ci/jobs.txt`; results come back on
+  `qa-out/<name>/<line>`. The helper lives outside the repo (session box: /home/claude/scripts/qafarm.sh).

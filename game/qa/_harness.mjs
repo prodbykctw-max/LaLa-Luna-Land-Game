@@ -24,7 +24,7 @@ export function ensureTestBuild(){
   const selfPath = new URL(import.meta.url).pathname;
   const newest = Math.max(statSync(src).mtimeMs, statSync(selfPath).mtimeMs);
   if(existsSync(dst) && statSync(dst).mtimeMs >= newest) return;
-  const hook = "window.__T = {setTime: v => { T = v; }, getTime: () => T, tryJump, canStand, guideUpdate, objectiveOf, ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat, goSail, sSeaAt, sSea, nearest, interact, objectiveOf, qGet, PROXIES, RIGS, hatPhysics, cutPlay, cutEnd, cutUpdate, qNum, dissolveAway, dissolveUpdate, dissolveCount: () => DISSOLVING.length, walkerUpdate, stepOK, tooSteep, audioInit, introPlay, musSetIsland, ov, get AU(){return AU;}, get MUS(){return MUS;}, keys, setJoy: (x,y) => { joy.x = x; joy.y = y; }, setJump: v => { jumpHeld = !!v; }, K: {GRAV, JUMPV, SPEED, GLIDE_VY, WADE_MAX, SEA_Y, DOCK_LEN, ACCEL: 34, AIR: .22, TURN: 7.4}, abilityOf, npcStand, qSet, cueUpdate, cueGate, interactNow: interact, applyOutfit, save: () => {}};\nwindow.__prep = typeof islandStepper !== 'undefined' ? {islandStepper, ISL_STEPPER, ISL_BUILT, PREP, islandReady, warmStep, ISLANDS, readyIsland, preloadRigs} : null;\nwindow.__goKeep = goKeep; window.__presentKeep = () => present(keep); window.__MODE = () => MODE;\nwindow.__keepState = () => ({bookRead, bubblesVisible: bubbles.filter(b=>b.visible).length, fifthVisible: bookG.userData.fifth.visible, glow: bookG.userData.glow.material.opacity, popped});\nwindow.__KW = KW; window.__bub = () => bubbles.map(b => ({x: b.position.x, y: b.position.y, z: b.position.z, v: b.visible, p: b.userData.popped, s: b.userData.s})); window.__keepSt = () => ({popped, finaleDone, bookRead, fin: keep.userData.fin.visible, mode: MODE, cur: CUR && CUR.cfg.key, kwActive: KW.active}); window.__outfitFor = outfitFor; window.__sizeOf = ty => (CREATURE_SHADOW[ty] != null ? CREATURE_SHADOW[ty] : .8);";
+  const hook = "window.__T = {setTime: v => { T = v; }, getTime: () => T, tryJump, canStand, guideUpdate, objectiveOf, ISL, goIsland, nearest, get CUR(){return CUR;}, G, camera, toon, TEX, renderer, composer, present, GRAD, canStand, sRider, sBoat, goSail, sSeaAt, sSea, nearest, interact, objectiveOf, qGet, PROXIES, RIGS, hatPhysics, cutPlay, cutEnd, cutUpdate, qNum, dissolveAway, dissolveUpdate, dissolveCount: () => DISSOLVING.length, walkerUpdate, stepOK, tooSteep, audioInit, introPlay, musSetIsland, ov, get AU(){return AU;}, get MUS(){return MUS;}, keys, setJoy: (x,y) => { joy.x = x; joy.y = y; }, setJump: v => { jumpHeld = !!v; }, K: {GRAV, JUMPV, SPEED, GLIDE_VY, WADE_MAX, SEA_Y, DOCK_LEN, ACCEL: 34, AIR: .22, TURN: 7.4}, abilityOf, npcStand, qSet, cueUpdate, cueGate, interactNow: interact, applyOutfit, save: () => {}};\nwindow.__prep = typeof islandStepper !== 'undefined' ? {islandStepper, ISL_STEPPER, ISL_BUILT, PREP, islandReady, warmStep, ISLANDS, readyIsland, ovNone, preloadRigs} : null;\nwindow.__goKeep = goKeep; window.__presentKeep = () => present(keep); window.__MODE = () => MODE;\nwindow.__keepState = () => ({bookRead, bubblesVisible: bubbles.filter(b=>b.visible).length, fifthVisible: bookG.userData.fifth.visible, glow: bookG.userData.glow.material.opacity, popped});\nwindow.__KW = KW; window.__bub = () => bubbles.map(b => ({x: b.position.x, y: b.position.y, z: b.position.z, v: b.visible, p: b.userData.popped, s: b.userData.s})); window.__keepSt = () => ({popped, finaleDone, bookRead, fin: keep.userData.fin.visible, mode: MODE, cur: CUR && CUR.cfg.key, kwActive: KW.active}); window.__outfitFor = outfitFor; window.__sizeOf = ty => (CREATURE_SHADOW[ty] != null ? CREATURE_SHADOW[ty] : .8);";
   const txt = readFileSync(src, 'utf8'); if(txt.includes('window.__T = {')) { writeFileSync(dst, txt); return; }
   /* index.html has more than one top-level "})();" — the hook must go in the LAST one (the game's IIFE),
      not the first, or it lands in a scope where ISL/goIsland do not exist and __T never appears. */
@@ -37,6 +37,10 @@ ensureTestBuild();
 mkdirSync(OUT, { recursive: true });
 export const ISLANDS = ['hub', 'green', 'gr', 'sanity', 'town'];
 
+export async function enterIsland(page, key) {
+  await page.evaluate(async key => { const P = window.__prep, T = window.__T; if (!T.CUR || T.CUR.cfg.key === key) return;
+    await P.readyIsland(key); await T.goIsland(T.ISL[key], true); P.ovNone(); T.CUR.W.active = true; }, key);
+}
 export async function open(opts = {}) {
   const port = opts.port || (8100 + Math.floor(Math.random() * 800));
   const srv = spawn('python3', ['-m', 'http.server', String(port)], { cwd: ROOT, stdio: 'ignore' });
@@ -68,6 +72,15 @@ export async function open(opts = {}) {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForFunction(() => window.__T && window.__T.CUR, null, { timeout: 60000 }).catch(() => { });
     await page.waitForTimeout(opts.wait ?? 15000);
+    /* Islands other than the hub are no longer built at boot (readyIsland builds one behind a still screen), so
+       ?go=<island> finds nothing in ISL and the page just sits on the title card: every suite that asked for green,
+       gr, sanity or town was silently measuring the hub. Do what the sail card does: wait for the title to wake, make
+       the island ready, step onto it. */
+    if (opts.island && opts.island !== 'hub' && !opts.noEnter) {
+      await page.waitForFunction(() => { const b = document.getElementById('bBegin'); return !b || !b.disabled; }, null, { timeout: 600000 }).catch(() => { });
+      await enterIsland(page, opts.island);
+      await page.waitForTimeout(Math.min(opts.wait ?? 15000, 6000));
+    }
     if (opts.island === 'hub' || !opts.island) {
       // title screen: the button wakes once the hub is made ready behind the card (Oct 28), then click "Step outside"
       await page.waitForFunction(() => { const b = document.getElementById('bBegin'); return !b || !b.disabled; }, null, { timeout: 600000 }).catch(() => { });

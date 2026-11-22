@@ -512,7 +512,7 @@ if(LEGACY_LIGHTS){
   C.lights_pars_begin = t;
 }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-11-15a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-11-22a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -3953,6 +3953,59 @@ for(const k in RIGS) Object.assign(RIGS[k], {gltf:null, waiting:[], failed:false
    and strips the skin. Beyond CROWD_FAR the rig hides and one InstancedMesh per variant draws the
    rest: twelve draw calls instead of thirty-four, at a fifteenth of the triangles. */
 const CROWD_FAR = parseFloat(QS.get("crowdfar")) || 46;
+/* ---- crowd LOD CROSS-FADE (?lodfade=0 restores the instant swaps) ----
+   The game has exactly two hard distance swaps, both on the Town crowd: rig <-> proxy at CROWD_FAR,
+   and the ink outline on/off at 26 u. Both were instant, so a fan walking through either line
+   visibly popped - a person turning into a flat-coloured mannequin, an outline blinking out.
+
+   The fade is TIMED, not a distance band. A band (fade between 40 and 46 u) would keep every member
+   inside it drawn TWICE the whole time it stands there, and a crowd member loiters at a distance for
+   as long as the player does. Here distance only TRIGGERS the swap; the fade then runs a fixed
+   LODFADE_T seconds whatever the distance, so only a member that crossed the line in the last
+   quarter second is ever drawn twice.
+
+   It is a DITHER, not alpha: both versions stay opaque (no sorting, no blended edges, depth intact)
+   and discard complementary pixels against the SAME screen-space noise value, so at every pixel
+   exactly one of the two survives and the member reads as one model dissolving into the other.
+   JS records one trigger per member and the shader derives progress itself:
+       p = clamp(p0 + dir*(uLodT - t0)/LODFADE_T, 0, 1)      vec3 (t0, p0, dir)
+   p is the PROXY's (or the outline's) coverage: the proxy keeps pixels where noise < p, the rig where
+   noise >= p. p0/dir (rather than a bare start time) let a member that turns round MID-fade reverse
+   from where it is instead of snapping, and a settled member is just t0 = -1e4 (p pinned at 0 or 1).
+   JS never touches a fade value per frame; uLodT is one shared uniform fed from the game clock. */
+const LODFADE = QS.get("lodfade") !== "0";
+const LODFADE_T = .25, LODFADE_HYST = 2;
+const LODF = {t:{value:0}};
+const LODDBG = window.__LODFADE = {on:LODFADE, twice:0, fading:[], rows:0, get now(){ return LODF.t.value; }};   /* read by qa/crowdfade.mjs */
+const lodP = (S, now) => { const p = S.p0 + S.dir*(now - S.t0)/LODFADE_T; return p < 0 ? 0 : p > 1 ? 1 : p; };
+const LODF_GLSL = `uniform float uLodT;
+float lodIgn(){ return fract(52.9829189*fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715)))); }
+float lodP(vec3 f){ return clamp(f.y + f.z*(uLodT - f.x)/${LODFADE_T.toFixed(4)}, 0., 1.); }`;
+const LODU = new WeakMap(), LODWRAP = new WeakSet();
+/* Chains onto whatever the material already patches (rim, detail, see-through dissolve): wraps its
+   onBeforeCompile and extends its cache key, the way camFadeWrap does. kind: "rig" keeps noise >= p,
+   "ink" and "inst" (the proxy bank, p read from a per-instance attribute) keep noise < p. */
+function lodFadeWrap(m, kind){
+  if(!LODFADE || !m || LODWRAP.has(m)) return m; LODWRAP.add(m);
+  const prev = m.onBeforeCompile, own = Object.prototype.hasOwnProperty.call(m, "customProgramCacheKey") ? m.customProgramCacheKey : null;
+  m.onBeforeCompile = function(sh, r){ if(prev) prev.call(this, sh, r);
+    sh.uniforms.uLodT = LODF.t;
+    const inst = kind === "inst";
+    if(inst) sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 iFade; flat varying vec3 vLodF;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvLodF = iFade;");
+    else { const u = {value:new THREE.Vector3(-1e4, kind === "ink" ? 1 : 0, kind === "ink" ? 1 : -1)}; sh.uniforms.uLodF = u; LODU.set(this, u); }
+    const f = inst ? "vLodF" : "uLodF";
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + (inst ? "flat varying vec3 vLodF;\n" : "uniform vec3 uLodF;\n") + LODF_GLSL)
+      .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n{ if(lodIgn() " + (kind === "rig" ? "<" : ">=") + " lodP(" + f + ")) discard; }"); };
+  m.customProgramCacheKey = () => (own ? own.call(m) : String(prev)) + "|lf" + kind;
+  m.needsUpdate = true; return m;
+}
+/* A uniform on a material cannot hold a per-member value if members share the material, so every member has its own copy
+   (crowd skins are tint clones already; attachRig clones the ink twin's). onBeforeRender then writes this member's
+   (t0, p0, dir) just before its draw: three uploads a built-in material's uniforms when the material changes between
+   draws, which with one material per member is every draw. (uniformsNeedUpdate would not help: only ShaderMaterial honours it.)
+   The shadow pass draws with its own depth material, which is not in LODU, so shadows never see any of this. */
+function lodBR(r, sc, cam, geo, mat){ const u = LODU.get(mat), S = this.userData.lodS; if(!u || !S) return; u.value.set(S.t0, S.p0, S.dir); }
 const PROXIES = {};
 function loadProxy(name){
   if(name in PROXIES) return; PROXIES[name] = null;
@@ -4005,7 +4058,7 @@ function loadProxy(name){
         if(n2){ avg = (Math.round(r/n2)<<16) | (Math.round(g2/n2)<<8) | Math.round(b2/n2); }
       }
     }catch(e){}
-    const m = toonRim(stdMat({color: avg, gradientMap: GRAD, side: THREE.FrontSide, roughness: .92}));
+    const m = lodFadeWrap(toonRim(stdMat({color: avg, gradientMap: GRAD, side: THREE.FrontSide, roughness: .92})), "inst");
     PROXIES[name] = {geo, mat: m};
     DBG("proxy ready", name, geo.attributes.position.count/3, "tris");
   }, undefined, e => DBG("proxy failed", name, e));
@@ -4268,6 +4321,21 @@ function attachRig(R, name){
     if(name === "lala" && o.isSkinnedMesh) lalaShadowProxy(o);   /* her shadow is drawn from a ~25k-tri copy once it has loaded */
   });
   R.inkTwins = []; R.skins = []; model.traverse(o => { if(!o.isMesh) return; if(o.material.userData && o.material.userData.isInk) R.inkTwins.push(o); else R.skins.push(o); });
+  /* crowd LOD cross-fade: every ink twin fades its outline in and out (see CROWD LOD CROSS-FADE), and a
+     crowd member's own skin also dissolves into its proxy. Both read this member's state per draw. */
+  if(LODFADE){
+    R.lodInk = R.lodInk || {t0:-1e4, p0:1, dir:1};
+    for(const m of R.inkTwins){
+      /* the ink material is one per rig mesh, shared by every member cloned from it, and three only re-uploads a built-in
+         material's uniforms when the material CHANGES between draws - two members of a variant drawn back to back would
+         share one value. Each member gets its own copy (same program, so no extra shaders). */
+      const o = m.material, c = o.clone(); c.onBeforeCompile = o.onBeforeCompile; c.customProgramCacheKey = o.customProgramCacheKey; c.userData.isInk = true; m.material = c;
+      lodFadeWrap(c, "ink"); m.userData.lodS = R.lodInk; m.onBeforeRender = lodBR; }
+    if(R.group && R.group.userData && R.group.userData.crowd){
+      R.lodMain = R.lodMain || {t0:-1e4, p0:0, dir:-1};
+      for(const m of R.skins){ lodFadeWrap(m.material, "rig"); m.userData.lodS = R.lodMain; m.onBeforeRender = lodBR; }
+    }
+  }
   const live = !RIG_QUIET && MODE === "island" && CUR && CUR.scene && inScene(R.group, CUR.scene);
   if(!live) (R.primitive||[]).forEach(m => m.visible = false);
   if(!live && !RIG_QUIET){ for(const key in ISL_BUILT){ const J = ISL_BUILT[key];       /* a model landing on an island that has already been drawn in advance: draw it again */
@@ -8152,8 +8220,88 @@ function guideJelly(){
   g.renderOrder = 3;
   return g;
 }
+/* The outline half of the cross-fade: distance only decides on/off (on past 26 u -> off, back on inside 24, so a
+   fan standing on the line does not flap); the fade itself is timed, as for the rig. The twins stay visible
+   until the fade has run out, then drop out of the draw list. */
+function lodInkStep(R, dc){
+  const S = R.lodInk, now = LODF.t.value;
+  const want = S.on == null ? dc < 26 : S.on ? dc <= 26 : dc < 26 - LODFADE_HYST;
+  if(S.on !== want){
+    if(S.on == null){ S.t0 = -1e4; S.p0 = want ? 1 : 0; S.dir = want ? 1 : -1; }
+    else { S.p0 = lodP(S, now); S.t0 = now; S.dir = want ? 1 : -1; }
+    S.on = want;
+  }
+  const p = lodP(S, now); S.p = p;
+  for(const m of R.inkTwins) m.visible = p > 0;
+}
 const _lodM = new THREE.Matrix4(), _lodQ = new THREE.Quaternion(), _lodE = new THREE.Euler(), _lodS = new THREE.Vector3();
+/* The fading version (default). Same cadence as the old one while nothing is mid-fade, every frame while
+   anything is, so the outgoing version is dropped the frame its fade ends instead of up to .12 s late.
+   Rig and proxy are both drawn only while 0 < p < 1. */
 function crowdLOD(I, dt){
+  if(!LODFADE) return crowdLODSwap(I, dt);
+  const members = I.crowdMembers || (I.crowdMembers = (I.npcs||[]).filter(g => g.userData.crowd));
+  if(!members.length) return;
+  I.lodT = (I.lodT || 0) + dt;
+  if(I.lodT < (I.lodBusy ? 0 : 0.12)) return;
+  I.lodT = 0;
+  const now = LODF.t.value;
+  const snap = now - (I.lodLast == null ? -1e9 : I.lodLast) > 1;      /* first look, or back from another island: settle, do not fade */
+  I.lodLast = now;
+  const banks = I.crowdBanks || (I.crowdBanks = {});
+  const far = {}; let busy = false, twice = 0; const fading = [];
+  for(let mi=0; mi<members.length; mi++){
+    const g = members[mi], R = g.userData.R, name = g.userData.crowd, P = PROXIES[name];
+    const S = R.lodMain || (R.lodMain = {t0:-1e4, p0:0, dir:-1});
+    const d = camera.position.distanceTo(g.position);
+    const want = !!P && (S.far ? d > CROWD_FAR - LODFADE_HYST : d > CROWD_FAR);
+    if(S.far !== want){
+      if(S.far === undefined || snap){ S.t0 = -1e4; S.p0 = want ? 1 : 0; S.dir = want ? 1 : -1; }
+      else { S.p0 = lodP(S, now); S.t0 = now; S.dir = want ? 1 : -1; }
+      S.far = want;
+    }
+    const p = lodP(S, now);
+    /* "moving" includes the trigger frame itself (p is still exactly 0 or 1 then): without it the next look waited .12 s,
+       the rig stayed hidden / the proxy row missing for ~7 frames and the fade began with a jump */
+    if(S.dir > 0 ? p < 1 : p > 0) busy = true;
+    if(p > 0 && p < 1){ twice++; fading.push({i:mi, dir:S.dir, p:+p.toFixed(3)}); }
+    const rigOn = p < 1;
+    if(g.visible !== rigOn) g.visible = rigOn;
+    /* her contact shadow is a blended decal (it cannot dither) and the proxy has none, so it thins out with the rig */
+    { const dec = g.userData.shadowDecal; if(dec){ const o = p > 0 ? .85*(1-p) : .85; if(dec.material.opacity !== o) dec.material.opacity = o; } }
+    if(p > 0) (far[name] = far[name] || []).push({S, g});
+  }
+  I.lodBusy = busy; LODDBG.twice = twice; LODDBG.fading = fading;
+  let rows = 0;
+  for(const name in PROXIES){
+    const P = PROXIES[name]; if(!P) continue;
+    const list = far[name] || [];
+    let bank = banks[name];
+    if(!bank && list.length){
+      if(!P.geo.attributes.iFade){ const fa = new THREE.InstancedBufferAttribute(new Float32Array(40*3), 3); fa.setUsage(THREE.DynamicDrawUsage); P.geo.setAttribute("iFade", fa); }
+      bank = banks[name] = new THREE.InstancedMesh(P.geo, P.mat, 40);
+      bank.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      bank.frustumCulled = false; bank.castShadow = false; bank.receiveShadow = false;
+      bank.userData.dyn = 1; I.scene.add(bank);
+    }
+    if(!bank) continue;
+    const fa = P.geo.attributes.iFade, n = Math.min(list.length, 40);
+    /* the bank is rebuilt from the list every tick, so the rows carry each member's own fade state with them */
+    for(let i=0;i<n;i++){
+      const S = list[i].S, g = list[i].g;
+      _lodQ.setFromEuler(_lodE.set(0, g.rotation.y, 0));
+      _lodS.copy(g.scale);
+      _lodM.compose(g.position, _lodQ, _lodS);
+      bank.setMatrixAt(i, _lodM);
+      fa.setXYZ(i, S.t0, S.p0, S.dir);
+    }
+    bank.count = n; rows += n;
+    bank.instanceMatrix.needsUpdate = true; fa.needsUpdate = true;
+    bank.visible = n > 0;
+  }
+  LODDBG.rows = rows;
+}
+function crowdLODSwap(I, dt){
   const members = I.crowdMembers || (I.crowdMembers = (I.npcs||[]).filter(g => g.userData.crowd));
   if(!members.length) return;
   I.lodT = (I.lodT || 0) + dt;
@@ -13157,7 +13305,8 @@ function islandUpdate(I, dt, t){
          leg drags part of the other boot (measured: 8 cm) and planting soles on those models fights their own skin */   /* Ollie rides: his seat pass owns his legs */
     /* crowd LOD: ink outline only when close to the camera, shadow only at mid range — halves the skinned triangle load */
     if(R.inkTwins){ const dc = camera.position.distanceTo(g.position), nearInk = dc < 26, midShadow = dc < 42;
-      for(const m of R.inkTwins) m.visible = nearInk; for(const m of R.skins) m.castShadow = midShadow; } });
+      if(LODFADE && R.lodInk) lodInkStep(R, dc); else for(const m of R.inkTwins) m.visible = nearInk;
+      for(const m of R.skins) m.castShadow = midShadow; } });
   /* crowd LOD: anything past CROWD_FAR hides its rig and is drawn by its variant's InstancedMesh */
   crowdLOD(I, dt);
   /* Ollie sits his horse: the horse takes his ground position and heading, he rides at saddle height,
@@ -14317,7 +14466,7 @@ const FPS_EL = new URLSearchParams(location.search).get("fps") ? (() => { const 
 if(FPS_EL) renderer.info.autoReset = false;
 function tick(){
   requestAnimationFrame(tick);
-  const dt = Math.min(clock.getDelta(), .05); T += dt;
+  const dt = Math.min(clock.getDelta(), .05); T += dt; LODF.t.value = T;   /* the crowd cross-fade reads the game clock, so a fade pauses with the game */
   { const wnd = (CUR && CUR.fx && CUR.fx.windMul) || 1;
     SAIL_MATS.forEach(m => { const u = m.userData.uniforms; if(u){ u.uTime.value = T; u.uWind.value = wnd; } }); }
   FRAMES++; if(FRAMES < 4 || FRAMES % 300 === 0) DBG("frame", FRAMES, "dt", dt.toFixed(3));
