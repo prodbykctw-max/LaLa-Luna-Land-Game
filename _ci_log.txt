@@ -1,0 +1,31 @@
+[assets] hub: 102 requests, 24.38 MB, firstFrame 38219 ms
+[assets] green: 112 requests, 30.61 MB, firstFrame 37462 ms
+[assets] gr: 130 requests, 40.09 MB, firstFrame 44857 ms
+[assets] sanity: 144 requests, 34.98 MB, firstFrame 56497 ms
+[assets] town: 266 requests, 62.45 MB, firstFrame 46037 ms
+    },
+    {
+     "url": "blob:http://localhost:8171/b89968ea-0077-4d8c-9bf7-8ca4dccfab2e",
+     "status": 200,
+     "bytes": 39444,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8171/e56c1113-07d5-42a6-a5b5-aab43e1cec01",
+     "status": 200,
+     "bytes": 35312,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8171/cebfd069-3867-460a-8088-6236351aa4ff",
+     "status": 200,
+     "bytes": 65532,
+     "type": "image/webp"
+    }
+   ],
+   "totalBytes": 65481437,
+   "totalMB": 62.45
+  }
+ }
+}
+rc=0
