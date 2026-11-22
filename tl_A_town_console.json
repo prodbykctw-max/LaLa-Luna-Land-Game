@@ -1,0 +1,57 @@
+{
+ "opt": "A",
+ "island": "town",
+ "curKey": "town",
+ "errors": [],
+ "failed": [],
+ "bad": [],
+ "warnings": [
+  "[.WebGL-0x1574001a7400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+ ],
+ "requests": 266,
+ "bytes": 65490001,
+ "treeAssets": [
+  {
+   "url": "trees/bark_diff.jpg",
+   "len": 95505
+  },
+  {
+   "url": "trees/bark_nor.jpg",
+   "len": 117595
+  },
+  {
+   "url": "trees/foliage_alpha.jpg",
+   "len": 41679
+  },
+  {
+   "url": "trees/foliage_diff.jpg",
+   "len": 72108
+  },
+  {
+   "url": "trees/frond_diff.jpg",
+   "len": 94178
+  },
+  {
+   "url": "trees/palm_diff.jpg",
+   "len": 46817
+  },
+  {
+   "url": "trees/palm_nor.jpg",
+   "len": 105133
+  },
+  {
+   "url": "trees/frond_alpha.jpg",
+   "len": 114203
+  },
+  {
+   "url": "trees/flowers_alpha.jpg",
+   "len": 49414
+  },
+  {
+   "url": "trees/flowers_diff.jpg",
+   "len": 54250
+  }
+ ],
+ "trees": 10,
+ "instanced": 1
+}
