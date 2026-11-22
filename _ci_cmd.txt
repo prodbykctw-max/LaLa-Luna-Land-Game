@@ -1,0 +1,1 @@
+node qa/sanityperf_load.mjs town --tag=warmold --flags=warm=old > qa/out/load_town_old.txt 2>&1
