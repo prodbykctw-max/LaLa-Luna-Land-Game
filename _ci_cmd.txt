@@ -1,0 +1,1 @@
+env MOBILE=1 EXTRA=farshadow=0 DPR=0.5 node qa/leaves.mjs stats new
