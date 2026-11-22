@@ -1,0 +1,58 @@
+{
+ "opt": "C",
+ "island": "hub",
+ "rows": [
+  {
+   "view": "desktop",
+   "shadowPass": false,
+   "calls": 378,
+   "tris": 1379417,
+   "samples": 2,
+   "curKey": "hub",
+   "treeLods": true,
+   "instMeshes": 33,
+   "trees": 160,
+   "mobileFlag": false,
+   "errors": []
+  },
+  {
+   "view": "desktop",
+   "shadowPass": true,
+   "calls": 378,
+   "tris": 1379417,
+   "samples": 2,
+   "curKey": "hub",
+   "treeLods": true,
+   "instMeshes": 33,
+   "trees": 160,
+   "mobileFlag": false,
+   "errors": []
+  },
+  {
+   "view": "phone",
+   "shadowPass": false,
+   "calls": 361,
+   "tris": 1050391,
+   "samples": 5,
+   "curKey": "hub",
+   "treeLods": true,
+   "instMeshes": 29,
+   "trees": 167,
+   "mobileFlag": true,
+   "errors": []
+  },
+  {
+   "view": "phone",
+   "shadowPass": true,
+   "calls": 361,
+   "tris": 1050391,
+   "samples": 5,
+   "curKey": "hub",
+   "treeLods": true,
+   "instMeshes": 29,
+   "trees": 167,
+   "mobileFlag": true,
+   "errors": []
+  }
+ ]
+}
