@@ -1,0 +1,4073 @@
+{
+ "inventory": [
+  {
+   "path": "assets/lala.glb",
+   "bytes": 6974652
+  },
+  {
+   "path": "assets/animals/raptor.glb",
+   "bytes": 3160456
+  },
+  {
+   "path": "assets/lala-v2-original.glb",
+   "bytes": 2898776
+  },
+  {
+   "path": "assets/animals/sauropod.glb",
+   "bytes": 2336028
+  },
+  {
+   "path": "assets/animals/horse_b.glb",
+   "bytes": 1781064
+  },
+  {
+   "path": "assets/animals/iguana_c.glb",
+   "bytes": 1636256
+  },
+  {
+   "path": "assets/npc-fan.glb",
+   "bytes": 1631524
+  },
+  {
+   "path": "assets/npc-crowd.glb",
+   "bytes": 1581736
+  },
+  {
+   "path": "assets/animals/chicken.glb",
+   "bytes": 1526976
+  },
+  {
+   "path": "assets/buildings/b5.glb",
+   "bytes": 1510348
+  },
+  {
+   "path": "assets/animals/ptero.glb",
+   "bytes": 1439908
+  },
+  {
+   "path": "assets/boats/dutch_ship.glb",
+   "bytes": 1438988
+  },
+  {
+   "path": "assets/buildings/b9.glb",
+   "bytes": 1433280
+  },
+  {
+   "path": "assets/npc-green.glb",
+   "bytes": 1405704
+  },
+  {
+   "path": "assets/items/desk.glb",
+   "bytes": 1270216
+  },
+  {
+   "path": "assets/npc-dock.glb",
+   "bytes": 1167504
+  },
+  {
+   "path": "assets/buildings/b2.glb",
+   "bytes": 1166036
+  },
+  {
+   "path": "index.html",
+   "bytes": 1163185,
+   "gzip": 386965
+  },
+  {
+   "path": "assets/animals/dolphin_b.glb",
+   "bytes": 1044516
+  },
+  {
+   "path": "assets/animals/bull.glb",
+   "bytes": 918276
+  },
+  {
+   "path": "assets/fans/fan04.glb",
+   "bytes": 903928
+  },
+  {
+   "path": "assets/buildings/b10.glb",
+   "bytes": 901852
+  },
+  {
+   "path": "assets/buildings/b7.glb",
+   "bytes": 853900
+  },
+  {
+   "path": "assets/buildings/b15.glb",
+   "bytes": 852644
+  },
+  {
+   "path": "assets/fans/fan07.glb",
+   "bytes": 846708
+  },
+  {
+   "path": "assets/buildings/b16.glb",
+   "bytes": 840808
+  },
+  {
+   "path": "vendor/three187.min.js",
+   "bytes": 831567,
+   "gzip": 215043
+  },
+  {
+   "path": "assets/fans/fan11.glb",
+   "bytes": 826652
+  },
+  {
+   "path": "assets/fans/fan10.glb",
+   "bytes": 813980
+  },
+  {
+   "path": "assets/animals/iguana_a.glb",
+   "bytes": 810756
+  },
+  {
+   "path": "assets/animals/monkey.glb",
+   "bytes": 807308
+  },
+  {
+   "path": "assets/fans/fan06.glb",
+   "bytes": 804316
+  },
+  {
+   "path": "assets/fans/fan05.glb",
+   "bytes": 800904
+  },
+  {
+   "path": "assets/items/lantern.glb",
+   "bytes": 792280
+  },
+  {
+   "path": "assets/animals/macaw_c.glb",
+   "bytes": 775860
+  },
+  {
+   "path": "assets/fans/fan01.glb",
+   "bytes": 772088
+  },
+  {
+   "path": "assets/animals/flamingo.glb",
+   "bytes": 767404
+  },
+  {
+   "path": "assets/animals/horse_c.glb",
+   "bytes": 766260
+  },
+  {
+   "path": "assets/fans/fan02.glb",
+   "bytes": 753544
+  },
+  {
+   "path": "assets/animals/iguana_b.glb",
+   "bytes": 737852
+  },
+  {
+   "path": "assets/fans/fan09.glb",
+   "bytes": 720988
+  },
+  {
+   "path": "assets/fans/fan12.glb",
+   "bytes": 716280
+  },
+  {
+   "path": "assets/animals/macaw_b.glb",
+   "bytes": 713152
+  },
+  {
+   "path": "assets/fans/fan03.glb",
+   "bytes": 705764
+  },
+  {
+   "path": "assets/fans/fan08.glb",
+   "bytes": 704892
+  },
+  {
+   "path": "assets/animals/turtle_b.glb",
+   "bytes": 681760
+  },
+  {
+   "path": "assets/animals/turtle_c.glb",
+   "bytes": 665896
+  },
+  {
+   "path": "assets/buildings/b3.glb",
+   "bytes": 614352
+  },
+  {
+   "path": "assets/animals/cow.glb",
+   "bytes": 611324
+  },
+  {
+   "path": "assets/animals/tang.glb",
+   "bytes": 544060
+  },
+  {
+   "path": "assets/animals/turtle_a.glb",
+   "bytes": 542816
+  },
+  {
+   "path": "assets/animals/crab.glb",
+   "bytes": 512708
+  },
+  {
+   "path": "assets/buildings/b8.glb",
+   "bytes": 469784
+  },
+  {
+   "path": "assets/buildings/b4.glb",
+   "bytes": 469496
+  },
+  {
+   "path": "assets/animals/gull.glb",
+   "bytes": 398336
+  },
+  {
+   "path": "assets/ground/meadow_diff.jpg",
+   "bytes": 386046
+  },
+  {
+   "path": "assets/buildings/b11.glb",
+   "bytes": 304244
+  },
+  {
+   "path": "assets/shore/sand_nor.jpg",
+   "bytes": 303773
+  },
+  {
+   "path": "assets/lala-shadow.idx",
+   "bytes": 299904
+  },
+  {
+   "path": "assets/real2/paving_nor.jpg",
+   "bytes": 260893
+  },
+  {
+   "path": "assets/items/fans.glb",
+   "bytes": 238248
+  },
+  {
+   "path": "assets/real2/paving_diff.jpg",
+   "bytes": 237499
+  },
+  {
+   "path": "assets/items/carrot.glb",
+   "bytes": 236748
+  },
+  {
+   "path": "assets/real2/rooftiles_nor.jpg",
+   "bytes": 232506
+  },
+  {
+   "path": "assets/buildings/b19.glb",
+   "bytes": 226500
+  },
+  {
+   "path": "assets/boats/dinghy_weathered_diff.jpg",
+   "bytes": 213233
+  },
+  {
+   "path": "assets/real2/rooftiles_diff.jpg",
+   "bytes": 211475
+  },
+  {
+   "path": "assets/items/crown.glb",
+   "bytes": 198996
+  },
+  {
+   "path": "assets/boats/dinghy_weathered_nor.jpg",
+   "bytes": 197475
+  },
+  {
+   "path": "assets/cow.glb",
+   "bytes": 195212
+  },
+  {
+   "path": "assets/animals/dolphin_c.glb",
+   "bytes": 189136
+  },
+  {
+   "path": "assets/fans/proxy/fan10.glb",
+   "bytes": 188944
+  },
+  {
+   "path": "assets/horse.glb",
+   "bytes": 188256
+  },
+  {
+   "path": "assets/fans/proxy/fan06.glb",
+   "bytes": 178532
+  },
+  {
+   "path": "assets/dino.glb",
+   "bytes": 176892
+  },
+  {
+   "path": "assets/fans/proxy/fan04.glb",
+   "bytes": 175772
+  },
+  {
+   "path": "assets/items/boots.glb",
+   "bytes": 175252
+  },
+  {
+   "path": "assets/fans/proxy/fan11.glb",
+   "bytes": 174720
+  },
+  {
+   "path": "assets/fans/proxy/fan01.glb",
+   "bytes": 171872
+  },
+  {
+   "path": "assets/fans/proxy/fan07.glb",
+   "bytes": 171496
+  },
+  {
+   "path": "assets/grass/grasscard_diff.jpg",
+   "bytes": 170109
+  },
+  {
+   "path": "assets/real2/whitewall_nor.jpg",
+   "bytes": 167224
+  },
+  {
+   "path": "assets/fans/proxy/fan05.glb",
+   "bytes": 166996
+  },
+  {
+   "path": "assets/fans/proxy/fan02.glb",
+   "bytes": 159868
+  },
+  {
+   "path": "assets/grass/grasscard_alpha.jpg",
+   "bytes": 154621
+  },
+  {
+   "path": "assets/fans/proxy/fan09.glb",
+   "bytes": 148680
+  },
+  {
+   "path": "assets/fans/proxy/fan03.glb",
+   "bytes": 143768
+  },
+  {
+   "path": "assets/fans/proxy/fan12.glb",
+   "bytes": 140096
+  },
+  {
+   "path": "assets/shore/sand_diff.jpg",
+   "bytes": 138982
+  },
+  {
+   "path": "assets/real2/plaster_nor.jpg",
+   "bytes": 137246
+  },
+  {
+   "path": "assets/boats/dinghy_varnish_diff.jpg",
+   "bytes": 134904
+  },
+  {
+   "path": "assets/fans/proxy/fan08.glb",
+   "bytes": 134880
+  },
+  {
+   "path": "assets/ground/meadow_nor.jpg",
+   "bytes": 125003
+  },
+  {
+   "path": "assets/trees/bark_nor.jpg",
+   "bytes": 117595
+  },
+  {
+   "path": "assets/trees/frond_alpha.jpg",
+   "bytes": 114203
+  },
+  {
+   "path": "assets/build/wall_nor.jpg",
+   "bytes": 106083
+  },
+  {
+   "path": "assets/trees/palm_nor.jpg",
+   "bytes": 105133
+  },
+  {
+   "path": "assets/animals/gullflock.glb",
+   "bytes": 103488
+  },
+  {
+   "path": "assets/flora.glb",
+   "bytes": 101656
+  },
+  {
+   "path": "assets/sky/kloppenheim_06_puresky_up.jpg",
+   "bytes": 101597
+  },
+  {
+   "path": "assets/items/quill.glb",
+   "bytes": 97888
+  },
+  {
+   "path": "assets/trees/bark_diff.jpg",
+   "bytes": 95505
+  },
+  {
+   "path": "assets/trees/frond_diff.jpg",
+   "bytes": 94178
+  },
+  {
+   "path": "assets/rocks/strata_diff.jpg",
+   "bytes": 91766
+  },
+  {
+   "path": "assets/sky/kloppenheim_07_puresky_up.jpg",
+   "bytes": 88883
+  },
+  {
+   "path": "assets/rocks/strata_nor.jpg",
+   "bytes": 88250
+  },
+  {
+   "path": "assets/build/wall_diff.jpg",
+   "bytes": 87026
+  },
+  {
+   "path": "assets/sky/table_mountain_1_puresky_up.jpg",
+   "bytes": 86607
+  },
+  {
+   "path": "assets/sky/belfast_sunset_puresky_up.jpg",
+   "bytes": 79527
+  },
+  {
+   "path": "assets/real2/whitewall_diff.jpg",
+   "bytes": 76793
+  },
+  {
+   "path": "assets/boats/dinghy_paint_diff.jpg",
+   "bytes": 76142
+  },
+  {
+   "path": "assets/rocks/boulder_diff.jpg",
+   "bytes": 72274
+  },
+  {
+   "path": "assets/trees/foliage_diff.jpg",
+   "bytes": 72108
+  },
+  {
+   "path": "assets/build/planks_diff.jpg",
+   "bytes": 71189
+  },
+  {
+   "path": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+   "bytes": 70186
+  },
+  {
+   "path": "assets/sky/industrial_sunset_02_puresky_up.jpg",
+   "bytes": 59894
+  },
+  {
+   "path": "assets/build/slate_nor.jpg",
+   "bytes": 55659
+  },
+  {
+   "path": "assets/rocks/boulder_nor.jpg",
+   "bytes": 55064
+  },
+  {
+   "path": "assets/build/slate_diff.jpg",
+   "bytes": 54409
+  },
+  {
+   "path": "assets/trees/flowers_diff.jpg",
+   "bytes": 54250
+  },
+  {
+   "path": "assets/boats/dinghy_varnish_nor.jpg",
+   "bytes": 51756
+  },
+  {
+   "path": "assets/real2/plaster_grey.jpg",
+   "bytes": 49490
+  },
+  {
+   "path": "assets/trees/flowers_alpha.jpg",
+   "bytes": 49414
+  },
+  {
+   "path": "assets/trees/palm_diff.jpg",
+   "bytes": 46817
+  },
+  {
+   "path": "assets/trees/foliage_alpha.jpg",
+   "bytes": 41679
+  },
+  {
+   "path": "assets/build/planks_nor.jpg",
+   "bytes": 29240
+  },
+  {
+   "path": "assets/items/note.glb",
+   "bytes": 11056
+  },
+  {
+   "path": "vendor/build-three187.sh",
+   "bytes": 3680
+  },
+  {
+   "path": "vendor/three187-entry.js",
+   "bytes": 1344,
+   "gzip": 406
+  }
+ ],
+ "referencedInHtml": [
+  "vendor/three187.min.js",
+  "assets/ground/meadow_diff.jpg",
+  "assets/ground/meadow_nor.jpg",
+  "assets/trees/foliage_diff.jpg",
+  "assets/trees/foliage_alpha.jpg",
+  "assets/trees/bark_diff.jpg",
+  "assets/trees/bark_nor.jpg",
+  "assets/trees/palm_diff.jpg",
+  "assets/trees/palm_nor.jpg",
+  "assets/trees/frond_diff.jpg",
+  "assets/trees/frond_alpha.jpg",
+  "assets/rocks/boulder_diff.jpg",
+  "assets/rocks/boulder_nor.jpg",
+  "assets/rocks/strata_diff.jpg",
+  "assets/rocks/strata_nor.jpg",
+  "assets/build/planks_diff.jpg",
+  "assets/build/planks_nor.jpg",
+  "assets/build/wall_diff.jpg",
+  "assets/build/wall_nor.jpg",
+  "assets/build/slate_diff.jpg",
+  "assets/build/slate_nor.jpg",
+  "assets/real2/",
+  "assets/trees/flowers_diff.jpg",
+  "assets/trees/flowers_alpha.jpg",
+  "assets/boats/dutch_ship.glb",
+  "assets/boats/",
+  "assets/sky/",
+  "assets/lala-v2-original.glb",
+  "assets/lala.glb",
+  "assets/horse.glb",
+  "assets/cow.glb",
+  "assets/dino.glb",
+  "assets/npc-fan.glb",
+  "assets/npc-dock.glb",
+  "assets/npc-green.glb",
+  "assets/npc-crowd.glb",
+  "assets/items/carrot.glb",
+  "assets/items/note.glb",
+  "assets/items/quill.glb",
+  "assets/items/lantern.glb",
+  "assets/items/boots.glb",
+  "assets/items/fans.glb",
+  "assets/items/crown.glb",
+  "assets/items/desk.glb",
+  "assets/buildings/${key}.glb",
+  "assets/animals/cow.glb",
+  "assets/animals/sauropod.glb",
+  "assets/animals/raptor.glb",
+  "assets/animals/chicken.glb",
+  "assets/animals/horse_b.glb",
+  "assets/animals/horse_c.glb",
+  "assets/animals/bull.glb",
+  "assets/animals/iguana_a.glb",
+  "assets/animals/iguana_b.glb",
+  "assets/animals/iguana_c.glb",
+  "assets/animals/monkey.glb",
+  "assets/animals/flamingo.glb",
+  "assets/animals/ptero.glb",
+  "assets/animals/macaw_b.glb",
+  "assets/animals/macaw_c.glb",
+  "assets/animals/crab.glb",
+  "assets/animals/turtle_a.glb",
+  "assets/animals/turtle_b.glb",
+  "assets/animals/turtle_c.glb",
+  "assets/animals/dolphin_b.glb",
+  "assets/animals/dolphin_c.glb",
+  "assets/animals/tang.glb",
+  "assets/fans/fan${String(i+1).padStart(2,",
+  "assets/fans/proxy/fan${String(n).padStart(2,",
+  "assets/lala-shadow.idx",
+  "assets/shore/sand_diff.jpg",
+  "assets/shore/sand_nor.jpg",
+  "assets/grass/grasscard_diff.jpg",
+  "assets/grass/grasscard_alpha.jpg",
+  "assets/flora.glb",
+  "assets/animals/gull.glb",
+  "assets/animals/gullflock.glb"
+ ],
+ "templatedRefs": [],
+ "bigFiles": [
+  {
+   "path": "assets/animals/chicken.glb",
+   "MB": 1.46,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/animals/horse_b.glb",
+   "MB": 1.7,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/animals/iguana_c.glb",
+   "MB": 1.56,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/animals/ptero.glb",
+   "MB": 1.37,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/animals/raptor.glb",
+   "MB": 3.01,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/animals/sauropod.glb",
+   "MB": 2.23,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/boats/dutch_ship.glb",
+   "MB": 1.37,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/buildings/b2.glb",
+   "MB": 1.11,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/buildings/b5.glb",
+   "MB": 1.44,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/buildings/b9.glb",
+   "MB": 1.37,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/items/desk.glb",
+   "MB": 1.21,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/lala-v2-original.glb",
+   "MB": 2.76,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/lala.glb",
+   "MB": 6.65,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/npc-crowd.glb",
+   "MB": 1.51,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/npc-dock.glb",
+   "MB": 1.11,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/npc-fan.glb",
+   "MB": 1.56,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/npc-green.glb",
+   "MB": 1.34,
+   "loadedOn": []
+  },
+  {
+   "path": "index.html",
+   "MB": 1.11,
+   "loadedOn": []
+  }
+ ],
+ "unreferencedOnDisk": [
+  {
+   "path": "assets/boats/dinghy_paint_diff.jpg",
+   "bytes": 76142
+  },
+  {
+   "path": "assets/boats/dinghy_weathered_diff.jpg",
+   "bytes": 213233
+  },
+  {
+   "path": "assets/boats/dinghy_weathered_nor.jpg",
+   "bytes": 197475
+  },
+  {
+   "path": "assets/buildings/b10.glb",
+   "bytes": 901852
+  },
+  {
+   "path": "assets/buildings/b11.glb",
+   "bytes": 304244
+  },
+  {
+   "path": "assets/buildings/b15.glb",
+   "bytes": 852644
+  },
+  {
+   "path": "assets/buildings/b16.glb",
+   "bytes": 840808
+  },
+  {
+   "path": "assets/buildings/b19.glb",
+   "bytes": 226500
+  },
+  {
+   "path": "assets/buildings/b2.glb",
+   "bytes": 1166036
+  },
+  {
+   "path": "assets/buildings/b3.glb",
+   "bytes": 614352
+  },
+  {
+   "path": "assets/buildings/b4.glb",
+   "bytes": 469496
+  },
+  {
+   "path": "assets/buildings/b5.glb",
+   "bytes": 1510348
+  },
+  {
+   "path": "assets/buildings/b7.glb",
+   "bytes": 853900
+  },
+  {
+   "path": "assets/buildings/b8.glb",
+   "bytes": 469784
+  },
+  {
+   "path": "assets/buildings/b9.glb",
+   "bytes": 1433280
+  },
+  {
+   "path": "assets/fans/fan01.glb",
+   "bytes": 772088
+  },
+  {
+   "path": "assets/fans/fan02.glb",
+   "bytes": 753544
+  },
+  {
+   "path": "assets/fans/fan03.glb",
+   "bytes": 705764
+  },
+  {
+   "path": "assets/fans/fan04.glb",
+   "bytes": 903928
+  },
+  {
+   "path": "assets/fans/fan05.glb",
+   "bytes": 800904
+  },
+  {
+   "path": "assets/fans/fan06.glb",
+   "bytes": 804316
+  },
+  {
+   "path": "assets/fans/fan07.glb",
+   "bytes": 846708
+  },
+  {
+   "path": "assets/fans/fan08.glb",
+   "bytes": 704892
+  },
+  {
+   "path": "assets/fans/fan09.glb",
+   "bytes": 720988
+  },
+  {
+   "path": "assets/fans/fan10.glb",
+   "bytes": 813980
+  },
+  {
+   "path": "assets/fans/fan11.glb",
+   "bytes": 826652
+  },
+  {
+   "path": "assets/fans/fan12.glb",
+   "bytes": 716280
+  },
+  {
+   "path": "assets/fans/proxy/fan01.glb",
+   "bytes": 171872
+  },
+  {
+   "path": "assets/fans/proxy/fan02.glb",
+   "bytes": 159868
+  },
+  {
+   "path": "assets/fans/proxy/fan03.glb",
+   "bytes": 143768
+  },
+  {
+   "path": "assets/fans/proxy/fan04.glb",
+   "bytes": 175772
+  },
+  {
+   "path": "assets/fans/proxy/fan05.glb",
+   "bytes": 166996
+  },
+  {
+   "path": "assets/fans/proxy/fan06.glb",
+   "bytes": 178532
+  },
+  {
+   "path": "assets/fans/proxy/fan07.glb",
+   "bytes": 171496
+  },
+  {
+   "path": "assets/fans/proxy/fan08.glb",
+   "bytes": 134880
+  },
+  {
+   "path": "assets/fans/proxy/fan09.glb",
+   "bytes": 148680
+  },
+  {
+   "path": "assets/fans/proxy/fan10.glb",
+   "bytes": 188944
+  },
+  {
+   "path": "assets/fans/proxy/fan11.glb",
+   "bytes": 174720
+  },
+  {
+   "path": "assets/fans/proxy/fan12.glb",
+   "bytes": 140096
+  },
+  {
+   "path": "assets/real2/paving_diff.jpg",
+   "bytes": 237499
+  },
+  {
+   "path": "assets/real2/paving_nor.jpg",
+   "bytes": 260893
+  },
+  {
+   "path": "assets/real2/plaster_grey.jpg",
+   "bytes": 49490
+  },
+  {
+   "path": "assets/real2/plaster_nor.jpg",
+   "bytes": 137246
+  },
+  {
+   "path": "assets/real2/rooftiles_diff.jpg",
+   "bytes": 211475
+  },
+  {
+   "path": "assets/real2/rooftiles_nor.jpg",
+   "bytes": 232506
+  },
+  {
+   "path": "assets/real2/whitewall_diff.jpg",
+   "bytes": 76793
+  },
+  {
+   "path": "assets/real2/whitewall_nor.jpg",
+   "bytes": 167224
+  },
+  {
+   "path": "assets/sky/belfast_sunset_puresky_up.jpg",
+   "bytes": 79527
+  },
+  {
+   "path": "assets/sky/industrial_sunset_02_puresky_up.jpg",
+   "bytes": 59894
+  },
+  {
+   "path": "assets/sky/kloppenheim_07_puresky_up.jpg",
+   "bytes": 88883
+  },
+  {
+   "path": "assets/sky/table_mountain_1_puresky_up.jpg",
+   "bytes": 86607
+  },
+  {
+   "path": "vendor/build-three187.sh",
+   "bytes": 3680
+  },
+  {
+   "path": "vendor/three187-entry.js",
+   "bytes": 1344,
+   "gzip": 406
+  }
+ ],
+ "live": {
+  "hub": {
+   "msToFirstFrame": 43339,
+   "requests": [
+    {
+     "url": "index_test.html",
+     "status": 200,
+     "bytes": 1164888,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8728/eedade84-b552-4eb3-8d3e-414fe9982d5e",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/263ffa58-1a05-48ef-8963-8cdcd7f7eb59",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/8cadc232-d851-4aee-a1ae-334aaf194c6b",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/8dd0857f-c97b-4255-831a-1da926777930",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/d76933e1-1607-4e42-9b9e-06938d78a012",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/5bcce7cb-12d7-4028-8556-15b8f9c854e0",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/b8100a30-e6d2-4a6f-aae6-38ae6165125b",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/1032b1b2-2283-4ed7-9283-b640f4065a1a",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/aaa0bfcb-f5c2-49ac-b67f-52a3562e4634",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/10f7155d-9005-40a4-8cbe-bb4622460e1c",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/8ae6e3a9-14bb-437f-ad39-7be7410e358d",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/246ac9a7-f487-4f86-8043-80e05e373c77",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/05ac6033-a83d-4ce0-82f8-414de68e0502",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/efe3dfb9-9c10-46b4-bd40-10d5c4535f70",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/b5221429-56cd-442a-b365-bd26ab430a58",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/e6589ccf-95be-43a0-9038-ad4479e034e6",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/79167d91-278f-4217-b684-7ad21ded7f18",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/4b4c9fa8-fc7b-4d0a-82e4-b5d69488637a",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/5baaedd9-92d6-4346-8cc3-3d3cf313faac",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/fe78a79c-5ed5-475d-8723-311e5a766737",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/e2493e1f-e461-4780-8798-06465cd42db9",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/0a529ce9-2162-4d5e-b457-714b8da1b08a",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/90b35a69-9865-4a08-bfc5-81a4230fdad1",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/f6366e50-f9e2-429d-8b37-f734a06deb8a",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/10d8c8ff-56ac-4fe7-a001-1858af26851b",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/1555a479-8cf8-47fe-b629-6b579ea93b04",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/8d75f04c-754a-46cf-8b7b-ab6559462a0f",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/57c9391e-f3d0-4ae1-8870-9f02023cd0ed",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/c90af9b9-2ec4-41d2-a0d7-477b2adc25f3",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/16e12002-8b75-4cc6-8346-a1ba1f4a7f44",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/50b72197-218e-400e-9e13-e0867ae50250",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/8420bf0a-2a89-4d36-9b39-e86df22323be",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/925bf653-7edc-4686-a61f-4d9bcff85abb",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/56065b66-7137-4180-9cb3-0a3290893ad9",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/811ac9f0-3050-4b25-82d9-e689b9a016a3",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8728/419a4225-ad1e-46e9-8417-9868c77c2420",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8728/b486f237-7d4b-4069-8bb2-664b287d401a",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/8b07b8ae-37c6-41a2-82cf-d13161a6ef6f",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8728/4a12601c-0795-4122-bcc7-7258a8982dd5",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8728/a93a7ec5-9472-4214-81bb-01ab2f0af810",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/ab7c84b3-d619-4dc5-a889-fb9183510291",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/c0433ab2-d12c-4e6d-9840-4521607f09fa",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/4a32b004-55df-4310-8f05-3c99380c2469",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/08f05726-8373-48dc-bb69-5a2cc7ceb2e5",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/304afbc0-4a57-4dfb-93f6-be72f1dc68f5",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8728/035387c1-d961-41bb-b40a-f4bfe7447b14",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8728/c35ec8e9-ee76-49f5-b05c-8674c73e98c7",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/lala-shadow.idx",
+     "status": 200,
+     "bytes": 299904,
+     "type": "application/octet-stream"
+    }
+   ],
+   "totalBytes": 25866757,
+   "totalMB": 24.67
+  },
+  "green": {
+   "msToFirstFrame": 11002,
+   "requests": [
+    {
+     "url": "index_test.html?go=green",
+     "status": 200,
+     "bytes": 1164888,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8863/4da445f4-0225-4831-9986-5cd0b1f33a01",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/61ad6594-db2e-42ef-8561-c9b75b7bf650",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/1b205fec-5996-432b-bf23-eba6f38179e8",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/d6855f04-bd74-4171-9703-363abab87c1c",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/0f9f00a4-f35a-4019-b885-037d41e8d86d",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/e0226bc7-5be2-43d8-8007-b6a5387dbe81",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/5e27e63c-54be-4add-8df5-a47c5f7ea240",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/84c73606-e644-462f-ac9a-cd771657a5f8",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/3c1ea854-8be0-46fb-9ce4-62bca237ee18",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/71394755-d314-4c72-ac61-48625148bb34",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/31537dee-2235-47e4-b3c9-aa531ac9c6d2",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/061584c1-88b2-451b-8a5d-20128b59cf6a",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/406b8bd4-41ff-4b1b-be85-793131130185",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/75d44d6a-918d-454e-bff7-6e81db159e21",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/c59255ba-5e40-4305-af68-a76480007d3d",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/5ba04d92-04f5-4644-8344-9b1c3f182ad8",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/ab7925d6-17b0-40d5-9541-f18a53973d32",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/395915b0-bfcd-419d-8826-13beaf9d58b3",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/f85948dd-2ce8-4807-80ae-557fc53c561e",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/1eddedc0-141f-4ae5-8d61-cac9d695be59",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/b56ba791-90f8-4375-98e7-db8e8c5b9b98",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/71847d1f-7db8-4a10-ad33-b2bc4266bce9",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/dca1b089-b264-4385-a6d9-a8f9a9d4d899",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/7f5c1eba-90f3-406a-8778-31f86ed65e34",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/299e95b1-d744-426e-a7c0-a3444f4f0eb4",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/631278ca-49a8-4834-a6b1-59cda6ce9c63",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/26505af7-2a3a-4c26-b784-a59cb6e503bf",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/8430f523-b151-45a7-93e8-548c3c89536e",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/19433d27-7654-47b7-93e6-921642e626ba",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/081f8f44-c8cd-4651-bee3-bcbe5b9acddc",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/0bf2f813-56bf-4d11-afee-15e36b3a5594",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/9f2d77ba-69ec-4e15-9155-52aafc1100bb",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/e1fb8e54-290f-493f-9920-eeb4529077bf",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/fdc755bd-ac60-4199-a504-9804a4f61845",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/dde2a4da-5a27-4232-b26d-2b4721dd5dea",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8863/82407bb0-64e6-40d6-8718-78b57d4b9f99",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/122081c9-ffbc-45c6-9f8b-5dcb0170c354",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/99d80877-0bc2-4bc7-99be-0e52492c60b1",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8863/9376ce08-580e-4361-92af-630ae863914e",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/16524907-aba0-41f8-abb9-20e22421856b",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/805c32a9-cedb-4161-b4f7-1f15ff7cac59",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/ef30a39b-2397-4a20-b424-686c0a1d560f",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8863/3c99e884-8885-459b-9bdd-b761ee16bbf2",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/8bab5aa8-df03-4bb1-a2a4-62cc5161a0eb",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/99a76e3f-a364-4bbb-873b-f12d6f2ef7f7",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8863/ea9e9269-d7ca-4523-a072-32c069251734",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8863/d0c25a2e-3bb8-41c7-a8d5-fddce497ce6b",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/lala-shadow.idx",
+     "status": 200,
+     "bytes": 299904,
+     "type": "application/octet-stream"
+    }
+   ],
+   "totalBytes": 25866757,
+   "totalMB": 24.67
+  },
+  "gr": {
+   "msToFirstFrame": 11007,
+   "requests": [
+    {
+     "url": "index_test.html?go=gr",
+     "status": 200,
+     "bytes": 1164888,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8490/1b85eb84-2c2d-400e-9656-f1a6937931b4",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/c90ada12-5d92-4fd0-9781-2fde7cbf3d53",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/ab676b03-0391-4960-a558-92fd8ec51810",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/6ac9cc9a-4268-4a20-886b-ea06440bee2a",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/160c4c9d-84e4-4edf-b4dd-051f4b4c41fe",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/13c1a743-b522-4c40-b77a-2309836930fa",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/23b12753-4ff1-475b-b976-ecdc77a55b5c",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/ff3e0ccb-450b-411a-82ad-fff310e1f2b4",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/5724ec08-073c-42ef-9fb9-f2e2957efa79",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/5fba98bb-a46e-44dd-99c3-0b4d662790a8",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/4730b736-557a-4439-b867-e072ef386532",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/34f18ebc-4448-4144-af80-7d1be9c76028",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/57cc282f-620e-4e28-8dce-f0af24c7156e",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/9095304a-f9fa-4b06-a3a4-85c35cd24f8d",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/7f50728f-99d4-4cf9-ae28-02ac7b180a17",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/7898a27f-5f8d-449c-bab8-8063797330fd",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/221738ba-780d-4d9a-905f-0a0d768a2837",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/18456936-d8a4-4933-9c7b-b9cf252de6d3",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/1d3dc8e4-8f64-4399-bfd7-41f723bacc0d",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/1e6f10c7-4c5a-4754-b093-77afa59c573b",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/eda01c20-5c54-4640-ad2d-fa44a0aea801",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/aa6eca64-1e47-48f2-b979-9468cb670637",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/9b59f345-a8a1-4f4e-9135-840640531aef",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/e95d88fa-5a42-4ce8-9793-8117a8ac0342",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/d6371d23-762f-41c1-b63e-2e8489408184",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/c1105412-9dbc-4a32-bcc7-e5bb4c9a7430",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/5d5602ad-5737-4098-91b9-2bbe60ba4d49",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/0f590e98-f431-4449-bb65-038bb0c0d631",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/df832368-c063-4908-ac0f-7b8ebb492d01",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/64972a9d-e482-4492-be9b-7b75aca6f533",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/d29a5386-4a5d-4d0b-a965-bb69751aae62",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/5912f07b-cd66-46ed-9536-1c2bdcb1f8bb",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/92a286e4-a791-4d69-8281-a7b20d1b98b5",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/71d428ff-02ba-43c4-b04c-160c12e7e79a",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/918f000d-5787-40aa-b554-8c5f18185fa1",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8490/cd572d90-3956-4e00-a47a-3600266f6cc8",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/80551085-16be-4ddb-90f2-3987aca07206",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/e9249b97-6b0f-4886-be04-f6eaf2a3954a",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8490/f05416c3-b498-4169-9527-84b5308973b1",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/e44f23a4-835d-4594-8ffc-7b055d6fccc1",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/98c4b5c3-dc39-4631-af83-ccb66a86a12b",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/c253252b-a89f-47c6-a3c4-882ae7f67801",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/b8c025aa-2ce1-4962-bfc3-e0dc46114c34",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/63c5574b-4075-4223-ab5a-5eb8def6d14a",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8490/23bc0fe8-21bc-4ab3-8672-b63cd2b832b4",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8490/aeeee999-6530-40ba-a0d6-46fb7cca1975",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8490/cc9070ce-f3d7-45f5-b81e-cf3f3251afed",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/lala-shadow.idx",
+     "status": 200,
+     "bytes": 299904,
+     "type": "application/octet-stream"
+    }
+   ],
+   "totalBytes": 25866757,
+   "totalMB": 24.67
+  },
+  "sanity": {
+   "msToFirstFrame": 11024,
+   "requests": [
+    {
+     "url": "index_test.html?go=sanity",
+     "status": 200,
+     "bytes": 1164888,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8632/c455d9df-8a6d-449c-a5d5-fcdf3b62bb70",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/dce612ec-f2d6-4b49-8048-e6249e487d0c",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/f92cd474-6dfc-4ac8-8d64-a5d2f335e63d",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/dfac3e62-4a78-4b90-ab43-dadebee5e7bf",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/13f6ab83-5f06-4179-86c5-b38cee9c9ed8",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/bc566431-f7d2-449a-8634-c215b4d502bb",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/31b4c05c-c150-47b3-b6f9-b6d7b4f0772f",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/2dd9aa54-7331-41ab-ac46-f3a025ef895c",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/e44dd2e6-af45-4884-b938-fe988ea7e99a",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/f12a5ea4-7bc7-4c8f-bb86-dd53ce10792c",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/926b67f8-97e6-4aa7-8baa-58d95e747366",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/e29b9628-599a-479c-be8c-e89690f26150",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/ac2b55c4-a90d-448f-9672-62c3d8cff282",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/a6f671be-a884-444a-b3c4-362e8dfe65da",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/22e60922-8244-4150-b4cb-4f7389928603",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/ec560592-b6c9-4d70-987f-329c5077ad3d",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/bcf9ef98-4f79-4c4d-be7d-98aba94c7dbd",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/3464103c-e97b-4c7e-8842-3403df21c1d1",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/b31bf35d-b794-4e42-a53a-c26ea96540d9",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/bc8f16f5-b36b-480a-b992-57a3118c154d",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/237c8c03-822a-446f-b899-558a57293e5f",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/376a33cb-ce74-4e63-b2ea-7a4a6514b336",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/0c1f799f-eaf9-4460-a1e5-9f04ed083279",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/bb3bc83f-ea95-4b08-8979-7512713719b5",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/2dee5e1e-f4ec-4129-987f-be5da96e8cf5",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/d3e26071-3d7c-4485-b0b5-3d9ff8dbad1a",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/c3445b24-0eaf-45ac-bebc-09efd19c74bf",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/60c58531-591c-4a37-8bdd-7a19a7c84454",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/f017d0a9-d3ff-4d7c-a95c-c74e78f831ba",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/618a64eb-33c3-445c-8f2d-dca927e1fc25",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/1b9ac707-adbc-4496-b277-7296d21ead3c",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/5acd58a3-4cf5-4b79-a6dc-031a301f4710",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/6bf98ddb-71b4-4e1c-b49a-d8091e5bed1c",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/fc7ac88c-ab8b-40f7-befc-77a865a1948d",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/8e2a21b6-89c8-43e8-8def-319fe0429b4c",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8632/bba1229b-8a6a-4017-86b2-4a3a726a5079",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/776a68a7-1c32-4145-b2c6-dd88455a9f28",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/c918d427-bae5-4715-8d43-7e33ad9342c6",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8632/2dac0dda-dc4a-44b7-9fed-2e384ed2f353",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/2de2f850-a1bf-4007-ba57-f5796b5e70df",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/1c3ac06f-8524-47f2-a1ab-dc1ff1cdd793",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/22a9e0ff-861c-492d-a19f-868719f427c3",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/242e485d-13ae-49da-9921-6e16eac87bcc",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/5ebacb8f-34b3-4d4e-8ec4-8487c6c98003",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8632/fe7afe75-6892-488a-b4ee-53432dbfc3e7",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8632/bbc8c229-09b9-49cc-8505-1e66304c66a3",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8632/4955f586-1326-4b1f-8c68-43172eb63d05",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/lala-shadow.idx",
+     "status": 200,
+     "bytes": 299904,
+     "type": "application/octet-stream"
+    }
+   ],
+   "totalBytes": 25866757,
+   "totalMB": 24.67
+  },
+  "town": {
+   "msToFirstFrame": 11116,
+   "requests": [
+    {
+     "url": "index_test.html?go=town",
+     "status": 200,
+     "bytes": 1164888,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8294/41549168-41e1-4f32-ad24-d79c2a025619",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/e591dd22-53f5-46ba-b3a2-9f9cb73c5e4a",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/74053f5e-a2d7-4bd9-a63e-11e69e94f6c8",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/41e41a73-c816-4809-9034-e33c6fa56fab",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/75e251f8-b187-4f1f-ab28-31634c85322c",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/62f1d8d4-70c4-424f-a1a6-1cd9e7b8bb4b",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/17898d6e-2398-4455-a4d0-8afd06ea80f8",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/76385b4e-18ed-4200-b076-d4db42612e86",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/9918e2cb-989e-4905-86fc-22b6bbca314c",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/71c33fdd-301c-48db-8cce-bdfc15caa91f",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/a9fa2c36-5a6e-4d98-9460-06fc72ca64dc",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/636516b6-8079-46d3-99dc-031837f4e256",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/4108c071-dd8b-4fff-b41f-4cc519250c6a",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/9dcd780e-b59b-405f-a689-4151943e4a69",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/4aa95de2-5d0a-4669-a67c-93b45e1e5a84",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/4614809c-2b22-4166-b246-5120399b46e3",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/7e8721a2-8a57-4517-bbeb-29473d939709",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/525e2d1d-f574-4c32-898f-0b16970010d8",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/e8240612-eb3a-4e5f-8142-58d5f72f05a6",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/cb99ad50-d36c-4b3b-b6f7-cbc8824cc7ff",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/8a2dc63c-7535-49d2-9e75-76ec17426dc5",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/c61c262d-f560-4a9b-a075-5a2dea6bed39",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/418d6fa5-3d78-480e-8e47-41c348cc4550",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/c0c160d5-f6f1-47f1-bb77-5626e2db9a2b",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/1bd73491-6c9d-4639-827a-3ee32775750d",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/71f05dc7-c8b7-4e43-a92d-93f3db924b5c",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/6b3995bf-bfb4-4607-8b14-4aa298092c47",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/95ec6f0d-76c5-4229-bf2a-d51e1355a045",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/8a05ff6e-ed94-405d-bcc3-99f01c9a0797",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/2b6fdc3b-e5b7-469f-b105-e164720be72d",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/88e25f74-7855-4c28-9fb4-99e020681ebc",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/63894756-1ade-4d83-845e-23b45e9399a9",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/af0125c4-416a-4be6-9062-cbb3488076b0",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/711980f4-74f5-420a-bbaf-56fc89e746a8",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/7c11e40c-333d-4d23-974d-e5c42950740b",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8294/69ddce24-4243-44a0-9844-d92532d61189",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/c54803d7-a879-4edb-9ce5-f12061bb6326",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/80078d8a-1207-4ee3-be6b-6f74d7986dd9",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8294/de3774de-6062-482e-8c3b-a1cf07d52318",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/0e52047c-7f8a-4663-af40-07ff1e00564b",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/ed1e765c-d579-4c16-a57e-0fce7a6886f5",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/4a7a0db3-0da0-4593-bc3e-f3f301b519e8",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/1ba204a3-6395-4e72-ba39-7dae3851563d",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/953511c7-6a68-4790-b2d3-dae250335a29",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8294/ddf2a6d6-5c7f-483e-9b01-144aabb4f459",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8294/f283166d-ace0-46c9-ba80-da4ddb3a1ceb",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8294/cc061033-9d55-487b-989e-967c1128a74f",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/lala-shadow.idx",
+     "status": 200,
+     "bytes": 299904,
+     "type": "application/octet-stream"
+    }
+   ],
+   "totalBytes": 25866757,
+   "totalMB": 24.67
+  }
+ }
+}

@@ -1,0 +1,1 @@
+[ -f qa/assets.mjs ] && timeout 3000 node qa/assets.mjs > qa/out/assets.out 2> qa/out/assets.log; echo rc=$? >> qa/out/assets.log
