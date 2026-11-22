@@ -1,8 +1,8 @@
-/* TREE LINEUP (A current | B volume shading | C ez-tree | D scanned model), same seed, same frames, controlled clock.
-     node qa/treelineup.mjs stills  <A|B|C|D> <hub|green>     close / follow / wide (hub), follow / wide (green) + a crown-edge crop -> qa/out/tl_<opt>_<island>_<shot>.jpg
-     node qa/treelineup.mjs wind    <A|B|C|D> hub              4 s of wind on the hub tree at ?dpr=0.5, draw stride 2 -> qa/out/tw_<opt>/NNNN.jpg
-     node qa/treelineup.mjs budget  <A|B|C|D> hub              main-pass draw calls + triangles at the hub spawn, desktop and phone, with and without the shadow pass -> qa/out/tl_<opt>_budget.json
-     node qa/treelineup.mjs console <A|B|C|D> <island>         console errors / failed requests while the island loads -> qa/out/tl_<opt>_<island>_console.json
+/* TREE LINEUP (A current trees | C ez-tree broadleaves; B and D were dropped), same seed, same frames, controlled clock.
+     node qa/treelineup.mjs stills  <A|C> <hub|green>     close / follow / wide (hub), follow / wide (green) + a crown-edge crop -> qa/out/tl_<opt>_<island>_<shot>.jpg
+     node qa/treelineup.mjs wind    <A|C> hub              4 s of wind on the hub tree at ?dpr=0.5, draw stride 2 -> qa/out/tw_<opt>/NNNN.jpg
+     node qa/treelineup.mjs budget  <A|C> hub              main-pass draw calls + triangles at the hub spawn, desktop and phone, with and without the shadow pass -> qa/out/tl_<opt>_budget.json
+     node qa/treelineup.mjs console <A|C> <island>         console errors / failed requests while the island loads -> qa/out/tl_<opt>_<island>_console.json
      node qa/treelineup.mjs compose                            stitch panels (needs the farm's per-option folders; see HANDOFF "Tree realism lineup")
    Every look is ?trees=<letter>; the page is the same otherwise (guide off, clear weather, 14:00). The clock is page.clock (see _treeqa.mjs). */
 import { openCtl, gotoIsland, clockCheck, POSE_SRC, OUT } from './_treeqa.mjs';
@@ -23,6 +23,7 @@ const PICK = `(() => {
   best.g = hgt(best.x, best.z); best.spawn = sp; best.n = ts.length; return best;
 })()`;
 /* poses: all are derived from the picked tree + the spawn side, identical for every look */
+let BL = [0, 1];   /* horizontal direction toward the sun, set from the page */
 const poses = p => {
   const dx = p.spawn[0] - p.x, dz = p.spawn[1] - p.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, px = -uz, pz = ux;
   const lx = p.x + ux * 2.3 * p.sc, lz = p.z + uz * 2.3 * p.sc;          /* Lala stands beside the trunk, on the spawn side */
@@ -30,6 +31,7 @@ const poses = p => {
     close: { at: [lx, lz], e: [(p.x + lx) / 2 + px * 15.5, p.g + 3.4, (p.z + lz) / 2 + pz * 15.5], t: [(p.x + lx) / 2, p.g + 3.9, (p.z + lz) / 2] },
     wide:  { at: [lx, lz], e: [p.x + ux * 30 + px * 12, p.g + 13, p.z + uz * 30 + pz * 12], t: [p.x - ux * 3, p.g + 3.4, p.z - uz * 3] },
     follow: { x: p.x + ux * 9.5, z: p.z + uz * 9.5, yaw: Math.atan2(p.x - (p.x + ux * 9.5), p.z - (p.z + uz * 9.5)) },
+    back: { at: [lx, lz], e: [p.x - (BL[0]) * 15, p.g + 2.6, p.z - (BL[1]) * 15], t: [p.x + BL[0] * 2, p.g + 6.2 * p.sc, p.z + BL[1] * 2] },
     crop: [p.x + px * 2.4 * p.sc, p.g + 6.1 * p.sc, p.z + pz * 2.4 * p.sc]
   };
 };
@@ -47,23 +49,46 @@ if (mode === 'stills') {
   if (island !== 'hub') await gotoIsland(H, island);
   const p = await H.page.evaluate(PICK); if (!p) throw new Error('no clear tree on ' + island);
   console.error('[pick]', JSON.stringify(p));
-  const P = poses(p), res = { opt, island, curKey: await H.page.evaluate(() => window.__T.CUR.cfg.key), pick: p, trees: await H.page.evaluate(() => window.__T.CUR.colliders.filter(c => c.camR > 1).length) };
+  const sun = await H.page.evaluate(() => { const d = window.__T.CUR.sunDir; const l = Math.hypot(d.x, d.z) || 1; return [d.x / l, d.z / l, d.y]; });
+  BL = [sun[0], sun[1]];
+  const P = poses(p), res = { opt, island, curKey: await H.page.evaluate(() => window.__T.CUR.cfg.key), pick: p, sun, trees: await H.page.evaluate(() => window.__T.CUR.colliders.filter(c => c.camR > 1).length) };
   const base = `${OUT}/tl_${opt}_${island}`; mkdirSync(OUT, { recursive: true });
+  /* the screen rectangle the picked tree should fill, and a frame of the same view with every tree hidden: their difference is the tree's screen area */
+  const rect = () => H.page.evaluate(({ x, y, z, sc }) => { const T = window.__T, c = T.camera; c.updateMatrixWorld(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const [dx, dy, dz] of [[-5, 0, -5], [5, 0, -5], [-5, 0, 5], [5, 0, 5], [-5, 10, -5], [5, 10, -5], [-5, 10, 5], [5, 10, 5]]) { const v = new THREE.Vector3(x + dx * sc, y + dy * sc, z + dz * sc).project(c);
+      const X = (v.x + 1) / 2 * innerWidth, Y = (1 - v.y) / 2 * innerHeight; x0 = Math.min(x0, X); x1 = Math.max(x1, X); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y); }
+    return [Math.max(0, Math.round(x0)), Math.max(0, Math.round(y0)), Math.min(innerWidth, Math.round(x1)), Math.min(innerHeight, Math.round(y1))]; }, { x: p.x, y: p.g, z: p.z, sc: p.sc });
+  res.rect = {};
+  const bare = async (name) => { res.rect[name] = await rect(); await H.page.evaluate(() => { window.__NOTREES = true; const I = window.__T.CUR; (I.forest || []).forEach(m => { m.visible = false; }); });
+    await H.tick(); await H.tick(); await shot(H, `${base}_${name}_bare.jpg`);
+    await H.page.evaluate(() => { window.__NOTREES = false; const I = window.__T.CUR; (I.forest || []).forEach(m => { m.visible = true; }); }); await H.tick(); await H.tick(); };
   /* 1. follow: the game's own chase camera, Lala walked to 9.5 u from the tree and facing it */
   await H.page.evaluate(({ x, z, yaw }) => { const I = window.__T.CUR, W = I.W; W.x = x; W.z = z; W.y = I.height(x, z); W.camYaw = yaw; W.heading = yaw; W.vx = W.vz = 0; }, P.follow);
-  await settle(H, 150); await shot(H, `${base}_follow.jpg`);
+  await settle(H, 150); await shot(H, `${base}_follow.jpg`); await bare('follow');
   if (island === 'hub') {
     /* 2. close: pinned camera, Lala beside the trunk (her normal idle: no pose is forced here) */
     await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(P.close)})`);
-    await settle(H, 120); await shot(H, `${base}_close.jpg`);
+    await settle(H, 120); await shot(H, `${base}_close.jpg`); await bare('close');
     /* 2b. a crown edge at native pixels, 520 x 390, around a point on the crown's right-hand rim */
     const q = await H.page.evaluate(c => { const T = window.__T, v = new THREE.Vector3(c[0], c[1], c[2]).project(T.camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; }, P.crop);
     const cw = 520, ch = 390, cx = Math.max(0, Math.min(1280 - cw, Math.round(q.x - cw / 2))), cy = Math.max(0, Math.min(720 - ch, Math.round(q.y - ch / 2)));
     await shot(H, `${base}_crop.jpg`, { x: cx, y: cy, width: cw, height: ch }); res.crop = { q, cx, cy };
+    /* 2c. backlit: the camera behind the tree, looking toward the sun */
+    await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(P.back)})`);
+    await settle(H, 90); await shot(H, `${base}_backlit.jpg`);
   }
   /* 3. wide */
   await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(P.wide)})`);
   await settle(H, 60); await shot(H, `${base}_wide.jpg`);
+  if (island === 'green') {
+    /* 4. grove: the spot with the most trees within 15 u, seen from the spawn side: the repetition check */
+    const gv = await H.page.evaluate(() => { const I = window.__T.CUR, ts = I.colliders.filter(c => c.camR > 1 && c.r > .4), sp = I.cfg.spawn; let best = null, bn = -1;
+      for (const c of ts) { let n = 0; for (const o of ts) if (Math.hypot(o.x - c.x, o.z - c.z) < 15) n++; if (n > bn) { bn = n; best = c; } }
+      const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, n: bn, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z) }; });
+    res.grove = gv;
+    await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [gv.x, gv.z], e: [gv.x + gv.ux * 27, gv.g + 9, gv.z + gv.uz * 27], t: [gv.x, gv.g + 3.2, gv.z] })})`);
+    await settle(H, 60); await shot(H, `${base}_grove.jpg`);
+  }
   res.errors = [...new Set(H.log.errors)].slice(0, 10); writeFileSync(`${base}_stills.json`, JSON.stringify(res, null, 1));
   console.error('[done]', opt, island, 'errors', H.log.errors.length); await H.close(); process.exit(0);
 }
@@ -90,19 +115,24 @@ if (mode === 'wind') {
 }
 
 if (mode === 'budget') {
+  /* Per viewport: boot the hub, hook renderer.render, then measure the MAIN camera's render with the shadow pass on, and again with
+     renderer.shadowMap.enabled = false (a pure main pass). shadow = difference. Renders from any other camera are counted apart. */
   const out = { opt, island, rows: [] };
-  for (const [label, vp, mobile] of [['desktop', { width: 1280, height: 720 }, false], ['phone', { width: 390, height: 844 }, true]]) for (const shadow of [false, true]) {
-    const H = await open({ island, query: `guide=off&weather=clear&hour=14&trees=${opt}${shadow ? '' : '&noshadow'}`, viewport: vp, mobile, wait: 15000 });
+  for (const [label, vp, mobile] of [['desktop', { width: 1280, height: 720 }, false], ['phone', { width: 390, height: 844 }, true]]) {
+    const H = await open({ island, query: `guide=off&weather=clear&hour=14&trees=${opt}`, viewport: vp, mobile, wait: 15000 });
     await H.page.evaluate(() => { const T = window.__T, r = T.renderer, o = r.render.bind(r); window.__RS = [];
-      r.render = function (sc, cam) { const x = o(sc, cam); if (sc === T.CUR.scene) window.__RS.push({ calls: r.info.render.calls, tris: r.info.render.triangles }); return x; }; });
-    await H.page.waitForTimeout(9000);
-    const rs = await H.page.evaluate(() => window.__RS.slice(-6));
-    const info = await H.page.evaluate(() => { const I = window.__T.CUR; let inst = 0, leafInst = 0; const meshes = []; I.scene.traverse(o => { if (o.isInstancedMesh && o.visible) { inst++; } });
-      return { curKey: I.cfg.key, treeLods: !!I.treeLods, instMeshes: inst, trees: I.colliders.filter(c => c.camR > 1).length, mobileFlag: matchMedia('(pointer:coarse)').matches || innerWidth < 820 }; });
-    const avg = k => Math.round(rs.reduce((a, r) => a + r[k], 0) / Math.max(1, rs.length));
-    out.rows.push({ view: label, shadowPass: shadow, calls: avg('calls'), tris: avg('tris'), samples: rs.length, ...info, errors: [...new Set(H.log.errors)].slice(0, 5) });
-    console.error('[budget]', opt, label, shadow ? 'shadow' : 'main', JSON.stringify(out.rows[out.rows.length - 1]));
-    await H.close();
+      r.render = function (sc, cam) { const x = o(sc, cam); window.__RS.push({ main: cam === T.camera && sc === T.CUR.scene, scene: sc === T.CUR.scene, calls: r.info.render.calls, tris: r.info.render.triangles }); return x; }; });
+    const take = async () => { await H.page.evaluate(() => { window.__RS.length = 0; }); await H.page.waitForTimeout(6000);
+      return H.page.evaluate(() => { const m = window.__RS.filter(r => r.main).slice(-8), x = window.__RS.filter(r => !r.main && r.scene), a = k => Math.round(m.reduce((s, r) => s + r[k], 0) / Math.max(1, m.length));
+        return { calls: a('calls'), tris: a('tris'), samples: m.length, otherSceneRenders: x.length, otherTris: Math.round(x.reduce((s, r) => s + r.tris, 0) / Math.max(1, m.length)) }; }); };
+    await H.page.waitForTimeout(5000);
+    const on = await take();
+    await H.page.evaluate(() => { window.__T.renderer.shadowMap.enabled = false; });
+    const off = await take();
+    const info = await H.page.evaluate(() => { const I = window.__T.CUR; let inst = 0; I.scene.traverse(o => { if (o.isInstancedMesh && o.visible && o.userData.dyn) inst++; });
+      return { curKey: I.cfg.key, instMeshesVisible: inst, mobileFlag: matchMedia('(pointer:coarse)').matches || innerWidth < 820 }; });
+    const row = { view: label, mainPass: off, withShadowPass: on, shadowOnly: { calls: on.calls - off.calls, tris: on.tris - off.tris }, ...info, errors: [...new Set(H.log.errors)].slice(0, 5) };
+    out.rows.push(row); console.error('[budget]', opt, JSON.stringify(row)); await H.close();
   }
   writeFileSync(`${OUT}/tl_${opt}_budget.json`, JSON.stringify(out, null, 1)); console.log(JSON.stringify(out)); process.exit(0);
 }
@@ -120,4 +150,4 @@ if (mode === 'console') {
   }
   process.exit(0);
 }
-throw new Error('usage: treelineup.mjs stills|wind|budget|console <A|B|C|D> [island]');
+throw new Error('usage: treelineup.mjs stills|wind|budget|console <A|C> [island]');
