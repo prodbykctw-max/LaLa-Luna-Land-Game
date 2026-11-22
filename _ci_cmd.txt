@@ -1,0 +1,1 @@
+node qa/vaudit.mjs > qa/out/vaudit.out 2> qa/out/vaudit.log; r=$?; tail -25 qa/out/vaudit.log; tail -25 qa/out/vaudit.out; exit $r
