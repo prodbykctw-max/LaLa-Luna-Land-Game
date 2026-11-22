@@ -12630,11 +12630,12 @@ function walkerUpdate(I, dt, t){
     }
   }
   let ground = I.height(W.x,W.z); const wasGrounded = W.grounded;
+  const vy0 = W.vy;   /* exact constant-g step (trapezoid): apex/airtime no longer shrink as dt grows - qa/sanityperf README */
   W.vy += GRAV*dt;
   if(!W.grounded && jumpHeld && ab.glide && W.vy < GLIDE_VY){ W.vy = GLIDE_VY; W.gliding = true; }
   else if(W.grounded || !jumpHeld) W.gliding = false;
   if(!Number.isFinite(W.vy)) W.vy = 0;
-  W.y += W.vy*dt;
+  W.y += (Number.isFinite(vy0) ? .5*(vy0+W.vy) : W.vy)*dt;
   if(!Number.isFinite(W.y)) W.y = ground;
   /* ===================  WALKING DOWNHILL  ===================
      She "jumped" down every slope and jerked all the way. Order of operations: her x,z move first,

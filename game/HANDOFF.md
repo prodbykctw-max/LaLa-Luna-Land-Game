@@ -2156,3 +2156,19 @@ genuinely-should-be-lit count is in the teens per island, not the hundreds.
 confirmed something he had been saying, and it went out without the one extra look that would have
 killed it. That is C8 - good news and satisfying news both get the HIGHER evidence bar, not the
 lower one - applied to a diagnosis instead of to a status.
+
+
+## Performance pass: sanity-perf branch (not merged, no BUILD bump)
+
+Default-ON, intended to be invisible:
+- `skinCull` (`?skincull=0` restores old): non-Lala skinned meshes (NPCs, creatures) get a fixed padded boundingSphere and frustum culling. Sanity shadow pass 108 -> 68 calls, 496k -> 389k tris (qa/sanityperf_census, before/after).
+- MeshBasic static merge in `mergeStatics` (`?basicmerge=0` off, `=N` cell size): opaque, map-less MeshBasic meshes the island code holds no handle on are baked per material and 64-unit cell. Small effect in view (26 -> 24 main calls on Sanity).
+- `mergeStatics.bake()` uses pre-sized typed arrays (no toNonIndexed / giant number pushes): less load-time memory churn and GC.
+- Jump: `walkerUpdate` used semi-implicit Euler, so apex shrank with frame time. Simulated at JUMPV 13.2 / GRAV -26: apex 3.24 u at 60 fps, 3.13 at 30, 3.03 at 20, 3.10 with mixed dts; analytic 3.35 (the value documented at the GRAV constant). Now trapezoid (exact for constant g): 3.35 at every dt. At 60 fps the jump is 3% higher, matching the documented design value. Not re-run in a browser, see below.
+
+Default-OFF (changes the look or made things worse):
+- `?chunk=N` splits island-sized bakes into ground cells. Measured WORSE on Sanity (total calls 762 -> 1022), so it stays off.
+
+Measured structure on Sanity (main pass ~655 calls / 1.61M tris, Lala 150k tris drawn in both passes) says the lag is draw-call and skinned-triangle bound, not JS-bound; remaining wins are Lala LOD in the shadow pass and the 12-ship fleet.
+
+NOT DONE (be explicit): the per-island before/after table, JS ms p50/p95/max, 20 s hitch counts, allocation profile, load-step/sync-block timings, pixel diffs, the controlled-clock A/B MP4 and the console-error run on all five islands. The machine was shared with other sessions (load average ~12, Chromium GPU process starved) and `sanityperf_play` produced no output in 36 minutes. Harness for all of them is in qa/sanityperf_*.mjs and ready to run on an idle machine.
