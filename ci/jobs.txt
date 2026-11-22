@@ -1,0 +1,17 @@
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=hub
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=hub
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=green
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=green
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=gr
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=gr
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=sanity
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=sanity
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=town
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=town
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old2 --islands=sanity --frames=85
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old2 --islands=hub --frames=85
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=newLS0 --islands=sanity --query=lalashadow=0 --frames=85
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=vold --islands=sanity --video=1
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=vnew --islands=sanity --video=1
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=newSC0 --islands=sanity --query=skincull=0 --frames=85
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=newBM0 --islands=sanity --query=basicmerge=0 --frames=85
