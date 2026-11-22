@@ -1,0 +1,1 @@
+node qa/framebudget.mjs > qa/out/framebudget.out 2> qa/out/framebudget.log; r=$?; tail -25 qa/out/framebudget.log; tail -25 qa/out/framebudget.out; exit $r
