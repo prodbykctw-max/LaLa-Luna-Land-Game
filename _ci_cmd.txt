@@ -1,0 +1,1 @@
+timeout 3300 node qa/determinism.mjs > qa/out/new_determinism.out 2> qa/out/new_determinism.log; echo rc=$? >> qa/out/new_determinism.log
