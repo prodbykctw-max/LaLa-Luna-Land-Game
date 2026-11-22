@@ -1,0 +1,20 @@
+node qa/treelineup.mjs stills A hub
+node qa/treelineup.mjs stills B hub
+node qa/treelineup.mjs stills C hub
+node qa/treelineup.mjs stills D hub
+node qa/treelineup.mjs stills A green
+node qa/treelineup.mjs stills B green
+node qa/treelineup.mjs stills C green
+node qa/treelineup.mjs stills D green
+DPR=0.5 node qa/treelineup.mjs wind A hub
+DPR=0.5 node qa/treelineup.mjs wind B hub
+DPR=0.5 node qa/treelineup.mjs wind C hub
+DPR=0.5 node qa/treelineup.mjs wind D hub
+node qa/treelineup.mjs budget A hub
+node qa/treelineup.mjs budget B hub
+node qa/treelineup.mjs budget C hub
+node qa/treelineup.mjs budget D hub
+node qa/treelineup.mjs console A all
+node qa/treelineup.mjs console B all
+node qa/treelineup.mjs console C all
+node qa/treelineup.mjs console D all
