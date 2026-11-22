@@ -1,0 +1,1 @@
+[ -f qa/camera.mjs ] && timeout 3000 node qa/camera.mjs > qa/out/camera.out 2> qa/out/camera.log; echo rc=$? >> qa/out/camera.log
