@@ -1,0 +1,1 @@
+node qa/sanityperf_load.mjs sanity --tag=warmold1 --flags=warm=old > qa/out/load_warmold1.txt 2>&1
