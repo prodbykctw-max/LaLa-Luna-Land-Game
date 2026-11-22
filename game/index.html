@@ -1425,8 +1425,7 @@ const TREE_B_FRAG_TRANS = `
   vec3 tr = vec3(0.);
   #pragma unroll_loop_start
   for ( int i = 0; i < NUM_DIR_LIGHTS; i ++ ) {
-    float back = pow(clamp(dot(directionalLights[ i ].direction, -vdir), 0., 1.), 2.2);
-    tr += directionalLights[ i ].color * back;
+    tr += directionalLights[ i ].color * pow(clamp(dot(directionalLights[ i ].direction, -vdir), 0., 1.), 2.2);
   }
   #pragma unroll_loop_end
   outgoingLight += tr * diffuseColor.rgb * vec3(.95, 1.0, .38) * vAO * vAO * .55; }
@@ -1718,6 +1717,8 @@ function bakeTreesC(night){
     const specs = [["Oak Medium", 1, "oakLeaf"], ["Oak Medium", 7, "oakLeaf"], ["Oak Small", 3, "oakLeaf"], ["Ash Medium", 5, "ashLeaf"], ["Ash Small", 2, "ashLeaf"]];
     return specs.map(([name, seed, leaf]) => {
       const t = new EZ.Tree(); t.options.copy(EZ.TreePreset[name]); t.options.seed = seed;
+      /* the presets grow a slim, airy tree: thicker limbs and a fuller sprig count read as a broadleaf at the game's scale */
+      const o = t.options; for(const k in o.branch.radius) o.branch.radius[k] *= 1.7; o.leaves.size *= 1.25; o.leaves.count = Math.round(o.leaves.count * 1.35);
       const lods = [NEAR, FARD].map(d => t.createGeometry(d));
       lods[0].leaves.computeBoundingBox(); const top = lods[0].leaves.boundingBox.max.y, k = H / top;
       const parts = [{mat:mats[leaf === "oakLeaf" ? "oakBark" : "ashBark"], geos:lods.map(l => l.branches)}, {mat:mats[leaf], leaf:true, geos:lods.map(l => l.leaves)}];

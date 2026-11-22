@@ -1,7 +1,7 @@
 /* Bake the "D" tree lineup model: Poly Haven island_tree_01 / island_tree_02 (CC0, scanned by Rob Tuytel, cleaned by Rico Cilliers)
    into assets/trees/d/trees_d.glb + textures. The 1k source glTFs are 3.7 M / 1.8 M triangles (44 k / 30 k individual scanned
    leaves, each a 24-triangle outline mesh). Per variant, three levels of detail:
-     L0 desktop near   ~4200 leaf cards + simplified bark       L1 far (and phone near)   ~1500 cards     L2 phone far   ~450 cards
+     L0 desktop near   ~6500 leaf cards + simplified bark       L1 far (and phone near)   ~2200 cards     L2 phone far   ~650 cards
    A "leaf card" is one real scanned leaf, kept at its real position and orientation, flattened to a quad that shows that same leaf
    from the shared leaf atlas (the outline comes from the atlas alpha), enlarged by 1/sqrt(kept fraction) so the canopy keeps its cover.
    Bark (trunk + branches) is meshopt-simplified. Usage (needs @gltf-transform/core+functions+extensions, meshoptimizer, sharp installed in the cwd):
@@ -13,7 +13,7 @@ import { MeshoptSimplifier } from 'meshoptimizer';
 const [d1, d2, out] = process.argv.slice(2);
 const io = new NodeIO().registerExtensions([KHRMaterialsSpecular, KHRMaterialsIOR, KHRTextureTransform]);
 await MeshoptSimplifier.ready;
-const LEAF_N = [4200, 1500, 450], LEAF_GROW = [.92, .86, .84], BARK_RATIO = [[.10, .06], [.035, .025], [.012, .01]], TWIG_N = [1800, 600, 170];   /* [trunk, branches] */
+const LEAF_N = [6500, 2200, 650], LEAF_GROW = [1.2, 1.15, 1.1], BARK_RATIO = [[.10, .06], [.035, .025], [.012, .01]], TWIG_N = [1100, 380, 110];   /* [trunk, branches] */
 let seed = 12345; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
 
 function leavesOf(prim) {
@@ -57,7 +57,7 @@ function twigs(prim, N) {
     const rad = [0, 0, 0, 0]; const cnt = [0, 0];   /* mean radius in the first and last third */
     for (const i of vs) { const p = [pos[3 * i] - m[0], pos[3 * i + 1] - m[1], pos[3 * i + 2] - m[2]], t = p[0] * ax[0] + p[1] * ax[1] + p[2] * ax[2], q = [p[0] - ax[0] * t, p[1] - ax[1] * t, p[2] - ax[2] * t], r = Math.hypot(...q), f = (t - t0) / len; if (f < .34) { rad[0] += r; cnt[0]++; } else if (f > .66) { rad[1] += r; cnt[1]++; } }
     const r0 = rad[0] / Math.max(1, cnt[0]), r1 = rad[1] / Math.max(1, cnt[1]);
-    tubes.push({ a: m.map((x, d) => x + ax[d] * t0), b: m.map((x, d) => x + ax[d] * t1), r0: Math.max(r0, 1e-3), r1: Math.max(r1, 5e-4), len, score: len * (r0 + r1) });
+    tubes.push({ a: m.map((x, d) => x + ax[d] * t0), b: m.map((x, d) => x + ax[d] * t1), r0: Math.max(r0 * .75, 1e-3), r1: Math.max(r1 * .75, 5e-4), len, score: len * (r0 + r1) });
   }
   tubes.sort((x, y) => y.score - x.score);
   const P = [], Nn = [], U = [], I = []; let q = 0;

@@ -25,7 +25,7 @@ const PICK = `(() => {
 /* poses: all are derived from the picked tree + the spawn side, identical for every look */
 const poses = p => {
   const dx = p.spawn[0] - p.x, dz = p.spawn[1] - p.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, px = -uz, pz = ux;
-  const lx = p.x + ux * 2.9 * p.sc, lz = p.z + uz * 2.9 * p.sc;          /* Lala stands beside the trunk, on the spawn side */
+  const lx = p.x + ux * 2.3 * p.sc, lz = p.z + uz * 2.3 * p.sc;          /* Lala stands beside the trunk, on the spawn side */
   return {
     close: { at: [lx, lz], e: [(p.x + lx) / 2 + px * 15.5, p.g + 3.4, (p.z + lz) / 2 + pz * 15.5], t: [(p.x + lx) / 2, p.g + 3.9, (p.z + lz) / 2] },
     wide:  { at: [lx, lz], e: [p.x + ux * 30 + px * 12, p.g + 13, p.z + uz * 30 + pz * 12], t: [p.x - ux * 3, p.g + 3.4, p.z - uz * 3] },
@@ -108,12 +108,16 @@ if (mode === 'budget') {
 }
 
 if (mode === 'console') {
-  const H = await open({ island, query: `guide=off&weather=clear&hour=14&trees=${opt}`, wait: 22000 });
-  await H.page.waitForTimeout(6000);
-  const bytes = H.log.requests.reduce((a, r) => a + (r.len || 0), 0);
-  const res = { opt, island, curKey: await H.page.evaluate(() => window.__T.CUR.cfg.key), errors: [...new Set(H.log.errors)], failed: H.log.failed, bad: H.log.requests.filter(r => r.status >= 400), warnings: [...new Set(H.log.warnings)].slice(0, 8), requests: H.log.requests.length, bytes,
-    treeAssets: H.log.requests.filter(r => /assets\/trees|vendor\/eztree/.test(r.url)).map(r => ({ url: r.url.split('/').slice(-2).join('/'), len: r.len })) };
-  mkdirSync(OUT, { recursive: true }); writeFileSync(`${OUT}/tl_${opt}_${island}_console.json`, JSON.stringify(res, null, 1));
-  console.log(JSON.stringify({ opt, island, errors: res.errors.length, failed: res.failed.length, bad: res.bad.length })); await H.close(); process.exit(0);
+  const all = [];
+  for (const isl of (island === 'all' ? ['hub', 'green', 'gr', 'sanity', 'town'] : [island])) {
+    const H = await open({ island: isl, query: `guide=off&weather=clear&hour=14&trees=${opt}`, wait: 22000 });
+    await H.page.waitForTimeout(6000);
+    const res = { opt, island: isl, curKey: await H.page.evaluate(() => window.__T.CUR.cfg.key), errors: [...new Set(H.log.errors)], failed: H.log.failed, bad: H.log.requests.filter(r => r.status >= 400), warnings: [...new Set(H.log.warnings)].slice(0, 8), requests: H.log.requests.length, bytes: H.log.requests.reduce((a, r) => a + (r.len || 0), 0),
+      treeAssets: H.log.requests.filter(r => /assets\/trees|vendor\/eztree/.test(r.url)).map(r => ({ url: r.url.split('/').slice(-2).join('/'), len: r.len })),
+      trees: await H.page.evaluate(() => window.__T.CUR.colliders.filter(c => c.camR > 1).length), instanced: await H.page.evaluate(() => { let n = 0; window.__T.CUR.scene.traverse(o => { if (o.isInstancedMesh && o.userData.dyn) n++; }); return n; }) };
+    mkdirSync(OUT, { recursive: true }); writeFileSync(`${OUT}/tl_${opt}_${isl}_console.json`, JSON.stringify(res, null, 1));
+    console.log(JSON.stringify({ opt, island: isl, curKey: res.curKey, errors: res.errors.length, failed: res.failed.length, bad: res.bad.length, trees: res.trees, instMeshes: res.instanced })); all.push(res); await H.close();
+  }
+  process.exit(0);
 }
 throw new Error('usage: treelineup.mjs stills|wind|budget|console <A|B|C|D> [island]');
