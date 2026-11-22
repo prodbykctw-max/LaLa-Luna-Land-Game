@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/determinism.mjs > qa/out/determinism.base.out 2> qa/out/determinism.base.log; r=$?; tail -25 qa/out/determinism.base.log; tail -25 qa/out/determinism.base.out; exit $r
