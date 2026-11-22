@@ -1,0 +1,1 @@
+env MOBILE=1 DPR=0.5 node qa/farflora.mjs shoot old
