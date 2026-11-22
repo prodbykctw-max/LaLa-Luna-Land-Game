@@ -1,0 +1,1 @@
+CF_INK=1 node qa/crowdfade.mjs new
