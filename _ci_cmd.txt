@@ -1,0 +1,1 @@
+[ -f qa/vmat.mjs ] && timeout 3000 node qa/vmat.mjs > qa/out/vmat.out 2> qa/out/vmat.log; echo rc=$? >> qa/out/vmat.log
