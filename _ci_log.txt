@@ -1,0 +1,31 @@
+[vmat] hub: basicBig 13, noShadow 5, transp 61, lights 9
+[vmat] green: basicBig 27, noShadow 11, transp 112, lights 9
+[vmat] gr: basicBig 13, noShadow 5, transp 58, lights 10
+[vmat] sanity: basicBig 10, noShadow 6, transp 172, lights 12
+[vmat] town: basicBig 9, noShadow 5, transp 74, lights 9
+   ],
+   [
+    "PlaneGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ]
+  ],
+  "transpCount": 74,
+  "nan": [],
+  "degen": [],
+  "tone": {
+   "exposure": 1.12,
+   "toneMapping": 4,
+   "outputCS": "srgb"
+  },
+  "fog": {
+   "type": "FogExp2",
+   "color": "#fbd3a6",
+   "density": 0.003399999999999999
+  }
+ }
+}
+rc=0
