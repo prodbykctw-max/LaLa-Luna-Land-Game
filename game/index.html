@@ -4208,6 +4208,39 @@ function skinCull(o){
   o.boundingSphere = new THREE.Sphere(g.boundingSphere.center.clone(), g.boundingSphere.radius*1.5 + .8);
   o.frustumCulled = true; return true;
 }
+/* ===================  HER SHADOW IS A LOWER-POLY COPY  ===================
+   Her skinned mesh is 149,752 triangles and it was drawn twice per frame: once into the camera, once into the sun's shadow map, where only
+   its silhouette matters. That second draw was ~40% of every shadow-pass triangle on every island. tools/lala_shadow_lod.mjs welds her
+   vertices by position and simplifies the index buffer with meshoptimizer to ~25k triangles WITHOUT moving or removing a vertex, so the copy
+   reuses her own position / skinIndex / skinWeight buffers and her own Skeleton: same bones, same weights, one pose per frame, zero extra vertex
+   memory (assets/lala-shadow.idx, 100 KB gzipped). The copy is visible ONLY while the shadow map renders (shadowMap.render is wrapped below),
+   so it costs no camera-pass draw call, and her full mesh stops casting only once the copy exists. ?lalashadow=0 restores the old behaviour. */
+const LALASHADOW = QS.get("lalashadow") !== "0";
+const SHADOW_PROXIES = new Set();
+let _lalaIdx = null;
+if(LALASHADOW && renderer.shadowMap){
+  const sm = renderer.shadowMap, r0 = sm.render;
+  sm.render = function(){ if(!SHADOW_PROXIES.size) return r0.apply(this, arguments);
+    SHADOW_PROXIES.forEach(m => m.visible = true);
+    try { return r0.apply(this, arguments); } finally { SHADOW_PROXIES.forEach(m => m.visible = false); } };
+}
+function lalaShadowProxy(mesh){
+  if(!LALASHADOW || !mesh.isSkinnedMesh || mesh.userData.shadowProxy) return;
+  if(!_lalaIdx) _lalaIdx = fetch("assets/lala-shadow.idx").then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status)).then(b => new Uint32Array(b)).catch(() => null);
+  _lalaIdx.then(idx => {
+    if(!idx || !mesh.parent || mesh.userData.shadowProxy) return;
+    const g0 = mesh.geometry, n = g0.attributes.position.count;
+    for(let i = 0; i < idx.length; i++) if(idx[i] >= n) return;          /* an index list for a different mesh: leave everything as it was */
+    const g = new THREE.BufferGeometry();
+    for(const k in g0.attributes) g.setAttribute(k, g0.attributes[k]);
+    g.setIndex(new THREE.BufferAttribute(idx, 1)); g.boundingSphere = g0.boundingSphere; g.boundingBox = g0.boundingBox;
+    const p = new THREE.SkinnedMesh(g, mesh.material);
+    p.name = (mesh.name || "lala") + "-shadow"; p.position.copy(mesh.position); p.quaternion.copy(mesh.quaternion); p.scale.copy(mesh.scale);
+    p.bind(mesh.skeleton, mesh.bindMatrix);                                /* the SAME skeleton object: it is updated once per frame by the full mesh */
+    p.frustumCulled = false; p.castShadow = true; p.receiveShadow = false; p.visible = false; p.userData.shadowProxy = true;
+    mesh.parent.add(p); mesh.userData.shadowProxy = p; mesh.castShadow = false; SHADOW_PROXIES.add(p);
+  });
+}
 function attachRig(R, name){
   const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
   const model = THREE.SkeletonUtils.clone(gltf.scene);
@@ -4232,6 +4265,7 @@ function attachRig(R, name){
     o.castShadow = true; o.receiveShadow = true;
     o.frustumCulled = false;                    /* skinned bounds are the bind pose; culling pops her out */
     if(name !== "lala" && name !== "lala-v2") skinCull(o);   /* everybody else is culled on a padded fixed sphere (see skinCull) */
+    if(name === "lala" && o.isSkinnedMesh) lalaShadowProxy(o);   /* her shadow is drawn from a ~25k-tri copy once it has loaded */
   });
   R.inkTwins = []; R.skins = []; model.traverse(o => { if(!o.isMesh) return; if(o.material.userData && o.material.userData.isInk) R.inkTwins.push(o); else R.skins.push(o); });
   const live = !RIG_QUIET && MODE === "island" && CUR && CUR.scene && inScene(R.group, CUR.scene);
@@ -11469,6 +11503,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       const solid = mats.some(m => m && !m.transparent && (m.opacity === undefined || m.opacity >= 1) && m.depthWrite !== false);
       if(!solid) return;                                   /* glass, glow, foam, cloud: never a caster */
       o.receiveShadow = true; recv++;
+      if(o.isSkinnedMesh && o.userData.shadowProxy && o.userData.shadowProxy !== true){ o.castShadow = false; return; }   /* her shadow is cast by the lower-poly copy (lalaShadowProxy) */
       if(skip.has(o) || air.has(o)) return;                /* sea, seabed, sky, moon, rain, bow, fx */
       if(o.userData.ground) return;                        /* the ground receives; it does not cast onto itself */
       if(o.isInstancedMesh){                               /* scatter: cast only if the blades are big enough to read */
@@ -11601,10 +11636,10 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
 /* ============================================================
    WALKER PHYSICS
    ============================================================ */
-/* jump apex = JUMPV^2/(2*GRAV) = 3.35 u = 1.90 m — clears a stall counter, the dock deck, the storefront step */
+/* jump apex = JUMPV^2/(2*GRAV) = 3.24 u = 1.87 m (JUMPV retuned 13.2 -> 12.9833 with the exact vertical step so the 60 fps arc the client knows is unchanged and low frame rates now match it) — clears a stall counter, the dock deck, the storefront step */
 /* GLIDE_VY: the fans have to carry her from the Green cap to the paper. At -2.0 she fell short on every approach
    (closest ~36 u, measured with the real walker); -1.2 reaches it from the whole width of the cap (qa/questpath.mjs). */
-const GRAV = -26, JUMPV = 13.2, GLIDE_VY = -1.2, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
+const GRAV = -26, JUMPV = 12.9833, GLIDE_VY = -1.2, STRIDE_WALK = 3.0, STRIDE_JOG = 5.2;
 /* on foot: 12.4 u/s = 7.1 m/s. 1 game unit = 0.576 m (Lala 3.00 u = 1.727 m = 5 ft 8). ?speed= overrides. */
 const SPEED = parseFloat(QS.get("speed")) || 12.4;
 /* riding: the horses are the reason a 4x island is walkable. ?ride= and ?saddle= tune it. */
