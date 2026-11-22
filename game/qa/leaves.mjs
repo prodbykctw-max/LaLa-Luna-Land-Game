@@ -10,6 +10,8 @@
 import { openCtl, gotoIsland, clockCheck, STEP, OUT, ISLANDS } from './_leafqa.mjs';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'fs'; import { execFileSync } from 'child_process';
 
+/* the json files name their images by absolute path; a farm run wrote them under the runner's checkout, so re-root them on this OUT */
+const rj = f => JSON.parse(readFileSync(f, 'utf8').replace(/\/home\/runner\/work\/[^"]*?\/game\/qa\/out/g, OUT));
 const [cmd, variant] = process.argv.slice(2);
 const mobile = !!process.env.MOBILE, tag = mobile ? '_m' : '';
 const VIEW = mobile ? { width: 390, height: 844 } : { width: 1280, height: 720 };
@@ -73,7 +75,7 @@ if (cmd === 'stats') {
       if (!info[v]) continue;
       await H.page.evaluate(`${POSE}(${JSON.stringify(info[v])})`);
       /* run the game on without drawing it (fast), long enough for the fades to finish, then draw three frames */
-      await H.page.evaluate(() => { window.__NORENDER = true; }); await H.step(STEP * 40);
+      await H.page.evaluate(() => { window.__NORENDER = true; }); await H.step(STEP * 240);
       await H.page.evaluate(() => { window.__NORENDER = false; }); await H.step(STEP * 4);
       const f = `${OUT}/_lv_${isl}_${v}_${variant}${tag}.jpg`;
       await H.page.screenshot({ path: f, type: 'jpeg', quality: 90, timeout: 240000 });
@@ -91,7 +93,7 @@ if (cmd === 'make') {
   const budget = {};
   for (const t of ['', '_m']) {
     if (!existsSync(`${OUT}/leaves_old${t}.json`) || !existsSync(`${OUT}/leaves_new${t}.json`)) continue;
-    const o = JSON.parse(readFileSync(`${OUT}/leaves_old${t}.json`)), n = JSON.parse(readFileSync(`${OUT}/leaves_new${t}.json`));
+    const o = rj(`${OUT}/leaves_old${t}.json`), n = rj(`${OUT}/leaves_new${t}.json`);
     budget[t ? 'mobile' : 'desktop'] = {};
     for (const isl of Object.keys(n.islands)) {
       budget[t ? 'mobile' : 'desktop'][isl] = { sameLayout: o.islands[isl] && o.islands[isl].layoutHash === n.islands[isl].layoutHash, views: {} };
@@ -153,7 +155,7 @@ if (cmd === 'fly') {
 }
 
 if (cmd === 'flymake') {
-  const d = `${OUT}/lv_fly_new`, nf = readdirSync(d).filter(f => f.endsWith('.jpg')).length, log = JSON.parse(readFileSync(`${OUT}/leaves_fly_new.json`)).log;
+  const d = `${OUT}/lv_fly_new`, nf = readdirSync(d).filter(f => f.endsWith('.jpg')).length, log = rj(`${OUT}/leaves_fly_new.json`).log;
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '60', '-i', `${d}/%04d.jpg`, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', `${OUT}/leaves_fly.mp4`], { stdio: 'inherit' });
   /* the fade strip: the first frame where a cell is drawn twice, and the frames around it, at full size */
   const k = log.findIndex(l => l.twice > 0), ids = k < 0 ? [] : [k - 1, k, k + 2, k + 5, k + 9, k + 13, k + 17].filter(i => i >= 0 && i < nf);

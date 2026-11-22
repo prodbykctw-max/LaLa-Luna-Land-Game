@@ -8,6 +8,8 @@
 import { openCtl, gotoIsland, clockCheck, STEP, OUT } from './_leafqa.mjs';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs'; import { execFileSync } from 'child_process';
 
+/* the json files name their images by absolute path; a farm run wrote them under the runner's checkout, so re-root them on this OUT */
+const rj = f => JSON.parse(readFileSync(f, 'utf8').replace(/\/home\/runner\/work\/[^"]*?\/game\/qa\/out/g, OUT));
 const [cmd, variant] = process.argv.slice(2);
 const mobile = !!process.env.MOBILE, tag = mobile ? '_m' : '';
 const VIEW = mobile ? { width: 390, height: 844 } : { width: 1280, height: 720 };
@@ -70,15 +72,15 @@ if (cmd === 'shoot') {
     await gotoIsland(H, isl);
     const info = await H.page.evaluate(PICK), R = (res.islands[isl] = { yaw: info.yaw, crowns: info.crowns, E: info.E });
     await H.page.evaluate(`${POSE}(${JSON.stringify(info.long)})`);
-    await settle(H, 30);
+    await settle(H, 200);
     if (variant === 'new') { await H.until(() => { const F = window.__T.CUR.far; return !F || (F.ready && !F.job); }, 'far map', 400); }
-    await settle(H, 20);
+    await settle(H, 200);
     await H.step(STEP * 4);
     const f = `${OUT}/_fs_${isl}_long_${variant}${tag}.jpg`; await H.page.screenshot({ path: f, type: 'jpeg', quality: 90, timeout: 240000 }); R.long = f;
     R.far = await H.page.evaluate(FARSTATS); if (variant === 'new' && R.far) R.far.timing = await timeFar(H);
     const seam = await H.page.evaluate(`${SEAM}(${info.sx}, ${info.sz})`);
     if (seam) {
-      await H.page.evaluate(`${POSE}(${JSON.stringify(seam)})`); await settle(H, 20); await H.step(STEP * 4);
+      await H.page.evaluate(`${POSE}(${JSON.stringify(seam)})`); await settle(H, 200); await H.step(STEP * 4);
       const f2 = `${OUT}/_fs_${isl}_seam_${variant}${tag}.jpg`; await H.page.screenshot({ path: f2, type: 'jpeg', quality: 92, timeout: 240000 }); R.seam = f2;
       R.seamAt = await H.page.evaluate(() => { const c = window.__T.camera, T = window.__T, I = T.CUR, p = window.__POSE.t, v = new THREE.Vector3(p[0], p[1], p[2]).project(c); return { screen: [v.x, v.y], d: 0 }; });
       R.seamInfo = { d: seam.d, crowns: seam.crowns };
@@ -91,7 +93,7 @@ if (cmd === 'shoot') {
 }
 
 if (cmd === 'make') {
-  const o = JSON.parse(readFileSync(`${OUT}/farshadow_old${tag}.json`)), n = JSON.parse(readFileSync(`${OUT}/farshadow_new${tag}.json`));
+  const o = rj(`${OUT}/farshadow_old${tag}.json`), n = rj(`${OUT}/farshadow_new${tag}.json`);
   for (const isl of Object.keys(n.islands)) {
     const a = o.islands[isl], b = n.islands[isl]; if (!a || !b) continue;
     execFileSync('python3', ['-c', `
@@ -121,7 +123,7 @@ if (cmd === 'move') {
   await clockCheck(H, 'move');
   await gotoIsland(H, 'sanity');
   const info = await H.page.evaluate(PICK);
-  await H.page.evaluate(`${POSE}(${JSON.stringify(info.long)})`); await settle(H, 30);
+  await H.page.evaluate(`${POSE}(${JSON.stringify(info.long)})`); await settle(H, 200);
   await H.until(() => { const F = window.__T.CUR.far; return !F || (F.ready && !F.job); }, 'far map', 400);
   const rows = [];
   const s0 = await H.page.evaluate(FARSTATS); rows.push({ step: 0, ...s0 });

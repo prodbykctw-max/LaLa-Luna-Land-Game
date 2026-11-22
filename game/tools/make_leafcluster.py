@@ -4,7 +4,7 @@
 Each crown card carries ONE whole bush cluster (about 80 leaves, assets/trees/foliage_*.jpg, 512 px), so on the hub a single leaf is ~0.4 m against
 Lala's 1.7 m - about 4x a real leaf. This makes a 1024 px card out of that SAME art: the cluster is cut out with its own alpha, shrunk to ~1/3, and
 12 copies are scattered (random rotation, flips, slight hue/value jitter) into one rounded silhouette. Leaves come out ~1/3 the size on a card of the
-same world size, so card count, draw cost and the crown's shape are unchanged. A darker interior and a lighter rim keep the depth the old cards had.
+same world size, so card count, draw cost and the crown's shape are unchanged. A slightly darker interior and a lighter rim keep the depth the old cards had.
 The colour under alpha 0 is bled from the nearest opaque texel (as tools/bleed_cards.py does), so a looser far alpha cutoff / mip bias shows no dark fringe.
 No new art is made: every pixel comes from foliage_diff.jpg through foliage_alpha.jpg. Seeded; the output is reproducible.
 usage: python3 tools/make_leafcluster.py            (from game/)"""
@@ -74,7 +74,7 @@ rad = np.hypot(xx - C, (yy - C) / .94) / (SIZE * 0.5)
 alpha *= np.clip((1.0 - rad) / 0.10, 0, 1)
 # depth: darker interior, lighter rim
 t = np.clip(rad / .95, 0, 1)[..., None]
-canvas *= (0.72 + 0.40 * t ** 1.6)
+canvas *= (0.84 + 0.28 * t ** 1.6)
 canvas = np.clip(canvas, 0, 255)
 
 solid = alpha >= 150 / 255

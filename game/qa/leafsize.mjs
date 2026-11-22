@@ -6,7 +6,7 @@
    Both variants are the SAME build (only the query differs), the tree layout is seeded and does not depend on the texture, so the pose is identical; the clock is
    controlled (see _leafqa.mjs) so frame N is the same instant. Poses: the broadleaf nearest the spawn that has a clear approach; Lala stands on that approach
    ~3.5 u from the crown's edge (close) or ~14 u out (follow, camera 6 u behind her and 3.3 u up - the chase camera's own framing, pinned so both variants match). */
-import { openCtl, gotoIsland, clockCheck, POSE_SRC, STEP, OUT } from './_leafqa.mjs';
+import { openCtl, gotoIsland, clockCheck, STEP, OUT } from './_leafqa.mjs';
 import { mkdirSync, writeFileSync, readdirSync, existsSync } from 'fs'; import { execFileSync } from 'child_process';
 
 const [cmd, variant, island] = process.argv.slice(2);
@@ -34,11 +34,18 @@ const PICK = `(() => {
   const close = at(c.r + 3.5), fol = at(c.r + 14);
   const gy = (p) => hgt(p[0], p[1]);
   return { key: I.cfg.key, tree: [c.x, c.z], r: +c.r.toFixed(2), clear: +best.clear.toFixed(1),
-    close: { at: close, e: [close[0] + bd.dx * 3.2, gy(close) + 2.0, close[1] + bd.dz * 3.2], t: [c.x, c.y + c.r * .1, c.z] },
+    close: { at: close, e: [close[0] + bd.dx * 4.4, gy(close) + 2.1, close[1] + bd.dz * 4.4], t: [c.x, g + (c.y - g) * .78, c.z] },
     follow: { at: fol, e: [fol[0] + bd.dx * 6, gy(fol) + 3.3, fol[1] + bd.dz * 6], t: [fol[0] - bd.dx * 8, gy(fol) + 1.8, fol[1] - bd.dz * 8] } };
 })()`;
-/* face her toward the tree, so she is not shown from an odd angle */
-const FACE = `((p, tx, tz) => { const W = window.__T.CUR.W; W.heading = Math.atan2(tx - p[0], tz - p[1]); })`;
+/* pin the camera AND Lala: her model only follows W when the game moves her, so the pose sets her group directly (facing the tree, back to the camera) every frame */
+const POSE_SRC = `((p, tx, tz) => {
+  const T = window.__T, I = T.CUR, W = I.W, c = T.camera, gy = I.height(p.at[0], p.at[1]);
+  W.x = p.at[0]; W.z = p.at[1]; W.y = gy; W.active = false; W.heading = Math.atan2(tx - p.at[0], tz - p.at[1]);
+  window.__POSE = p; window.__LALA = [p.at[0], gy, p.at[1], W.heading];
+  if (!window.__HOOKED) { window.__HOOKED = true; const o = T.composer.render.bind(T.composer);
+    T.composer.render = function () { if (window.__NORENDER) return; const q = window.__POSE, L = window.__LALA; if (L) { const g = I.W.group; g.position.set(L[0], L[1], L[2]); g.rotation.y = L[3]; g.updateMatrixWorld(true); }
+      if (q) { c.position.set(q.e[0], q.e[1], q.e[2]); c.lookAt(q.t[0], q.t[1], q.t[2]); c.updateMatrixWorld(); } return o.apply(null, arguments); }; }
+})`;
 
 const open = async (v, dpr) => { process.env.DPR = process.env.DPR || String(dpr); const H = await openCtl({ viewport: { width: 1280, height: 720 }, query }); await clockCheck(H, v); return H; };
 const settle = async (H, n = 40) => { await H.page.evaluate(() => { window.__NORENDER = true; }); for (let i = 0; i < n; i++) await H.tick(); await H.page.evaluate(() => { window.__NORENDER = false; }); };
@@ -51,9 +58,8 @@ if (cmd === 'shoot') {
   console.error('[pick]', JSON.stringify(pick));
   const meta = { variant, island, pick, errors: [] };
   for (const v of ['close', 'follow']) {
-    await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(pick[v])})`);
-    await H.page.evaluate(`(${FACE})(${JSON.stringify(pick[v].at)}, ${pick.tree[0]}, ${pick.tree[1]})`);
-    await settle(H, 40); for (let i = 0; i < 4; i++) await H.tick();
+    await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(pick[v])}, ${pick.tree[0]}, ${pick.tree[1]})`);
+    await settle(H, 200); for (let i = 0; i < 4; i++) await H.tick();
     await H.page.screenshot({ path: `${OUT}/_ls_${island}_${v}_${variant}.jpg`, type: 'jpeg', quality: 93, timeout: 600000 });
     console.error('[shot]', island, v);
   }
@@ -66,9 +72,8 @@ if (cmd === 'clip') {
   const dir = `${OUT}/ls_clip_${variant}`; mkdirSync(dir, { recursive: true });
   const H = await open(variant, 0.5);
   const pick = await H.page.evaluate(PICK); if (!pick) throw new Error('no clear broadleaf on hub');
-  await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(pick.close)})`);
-  await H.page.evaluate(`(${FACE})(${JSON.stringify(pick.close.at)}, ${pick.tree[0]}, ${pick.tree[1]})`);
-  await settle(H, 90);
+  await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(pick.close)}, ${pick.tree[0]}, ${pick.tree[1]})`);
+  await settle(H, 200);
   for (let i = 0; i < FR; i++) {
     const draw = i % STRIDE === STRIDE - 1;
     if (!draw) { await H.page.evaluate(() => { window.__NORENDER = true; }); await H.tick(); await H.page.evaluate(() => { window.__NORENDER = false; }); continue; }

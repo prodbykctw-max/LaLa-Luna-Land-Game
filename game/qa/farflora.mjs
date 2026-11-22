@@ -9,6 +9,8 @@
 import { openCtl, gotoIsland, clockCheck, STEP, OUT } from './_leafqa.mjs';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs'; import { execFileSync } from 'child_process';
 
+/* the json files name their images by absolute path; a farm run wrote them under the runner's checkout, so re-root them on this OUT */
+const rj = f => JSON.parse(readFileSync(f, 'utf8').replace(/\/home\/runner\/work\/[^"]*?\/game\/qa\/out/g, OUT));
 const [cmd, variant] = process.argv.slice(2);
 const mobile = !!process.env.MOBILE, tag = mobile ? '_m' : '';
 const VIEW = mobile ? { width: 390, height: 844 } : { width: 1280, height: 720 };
@@ -50,7 +52,7 @@ if (cmd === 'shoot') {
     await gotoIsland(H, isl);
     const info = await H.page.evaluate(PICK); res.islands[isl] = { meadow: info.meadow, flowers: info.flowers, grass: info.grass, score: info.score };
     await H.page.evaluate(`${POSE}(${JSON.stringify(info.long)})`);
-    await H.page.evaluate(() => { window.__NORENDER = true; }); for (let i = 0; i < 40; i++) await H.tick();
+    await H.page.evaluate(() => { window.__NORENDER = true; }); for (let i = 0; i < 200; i++) await H.tick();
     await H.page.evaluate(() => { window.__NORENDER = false; }); for (let i = 0; i < 4; i++) await H.tick();
     const f = `${OUT}/_ff_${isl}_${variant}${tag}.jpg`; await H.page.screenshot({ path: f, type: 'jpeg', quality: 92, timeout: 600000 });
     const m = await measure(H); res.islands[isl].long = { ...m, file: f };
@@ -77,7 +79,7 @@ if (cmd === 'shoot') {
 }
 
 if (cmd === 'make') {
-  const o = JSON.parse(readFileSync(`${OUT}/farflora_old${tag}.json`)), n = JSON.parse(readFileSync(`${OUT}/farflora_new${tag}.json`));
+  const o = rj(`${OUT}/farflora_old${tag}.json`), n = rj(`${OUT}/farflora_new${tag}.json`);
   const table = {};
   for (const isl of Object.keys(n.islands)) {
     const a = o.islands[isl], b = n.islands[isl]; if (!a || !b) continue;
