@@ -1,0 +1,9 @@
+[old] performance.now() steps 17, 16, 17, 17, 16, 17 asked 17, 16, 17, 17, 16, 17 | bare runFor(16.667) moved it by 17
+[old] fan under test {"idx":23,"name":"fan3","ang":5.410520681182422,"clear":24.661969450789456,"x":-46.41541810414804,"z":37.09430580431704}
+[old] step 60/212  22 s elapsed
+[old] ink_in at step 62: D=25.74 T=6.394
+[old] step 120/212  56 s elapsed
+[old] ink_out at step 152: D=26.14 T=7.898
+[old] step 180/212  90 s elapsed
+[old] done in 98s, console errors: 0
+rc=0
