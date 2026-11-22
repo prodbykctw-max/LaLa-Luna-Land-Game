@@ -331,7 +331,7 @@ NPCs, beach, grotto, stones, **and now places**.
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)
 `?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=`
-`?leafwind=old` (rigid crown sway, frozen leaf shadow) `?leaves=old` (single merged crowns) `?farshadow=0` (no island-wide far shadow) `?leafsize=old` (original giant-leaf card; the default is the small-leaf atlas) `?farflora=1` (OFF by default: far flowers/grass scale-up + thinning, distance alpha cutoff + mip bias)
+`?leafwind=old` (rigid crown sway, frozen leaf shadow) `?leaves=old` (single merged crowns) `?farshadow=0` (no island-wide far shadow) `?farflora=1` (OFF by default: far flowers/grass scale-up + thinning, distance alpha cutoff + mip bias)
 
 ## 2.8 Commit history this session (newest first)
 
@@ -2209,18 +2209,13 @@ Colour bleed: MEASURED - map and alpha are separate files and the map is NOT ble
 frond 15%; the grass edge texels average RGB 31,41,10 against 114,135,62 opaque), so `tools/bleed_cards.py` writes `*_bleed.jpg` (nearest-opaque colour via a
 distance transform, softened) beside the originals, which are untouched; the flag loads them, the default loads the originals.
 
-### Status at hand-off (2026-11-22) - read this before trusting 4.53-4.55
-Part 1 is verified (hub clip). Everything else booted with 0 console errors (hub, farflora=1, phone viewport, far map built in 66 slices) but the OLD|NEW
-stills/budgets for Parts 2-4 were NOT produced: the shared QA lock was held by other chains for hours. Not yet looked at: LOD0 fullness/size, far-shadow
-bias (`sh.bias -0.0006`, `normalBias .8` are guesses), the near/far seam, palm far proxies, the 1.5x mobile triangle rule, framebudget, console_load on all five
-islands, the regression suite. Scripts are ready: `qa/leaves.mjs`, `qa/farshadow.mjs`, `qa/farflora.mjs` (see qa/README).
+### Status at hand-off (2026-11-22, updated)
+Part 1 (leaf wind) verified with a hub clip. Parts 2-4 (`?leaves=old`, `?farshadow=0`, `?farflora=1`) are code-complete and were measured on the QA farm: console_load 0 errors
+OLD and NEW on every island; Part 2 triangles 0.88-0.97 of OLD at all 30 views (draw calls +17-30%); fly-in cells drawn twice max 2, mean 0.44. Their OLD|NEW stills and clips were
+not all looked at yet, the far-shadow bias values (`sh.bias -0.0006`, `normalBias .8`) are still guesses, and Melvin has NOT decided on the wind (do not tune it).
+Part 5 (leaf scale) was removed - see 4.56.
 
-### 4.56 — Leaf SCALE: the card was a whole bush, so one leaf read 4x a real one (`?leafsize=old` restores)
-
-Client: "the leaves on the trees would have to be reworked to look more realistic instead of just large giant leaves." Each card (foliage_diff/alpha.jpg, 512 px) is ONE bush
-cluster of ~80 leaves, so at the hub a single leaf read ~0.4 m against Lala's 1.7 m. `tools/make_leafcluster.py` builds `assets/trees/foliage_small_{diff,alpha}.jpg` (1024 px) from
-the SAME art: the cluster is cut out with its own alpha, shrunk to 1/3, and 12 copies (random rotation, flips, hue/value jitter) are scattered into one rounded puff (opaque
-49% vs 50% for the original, so coverage matches), darker inside, lighter at the rim; colour is bled into alpha-0 texels as tools/bleed_cards.py does. Card size, card count, LOD
-counts and draw cost are unchanged; the shadow follows because it reads the same alpha (`TREE_TEX.leafA`). Bushes use the same card, so they changed with it. Palm fronds were
-checked and NOT changed: a frond card is one whole frond, and its leaflets already read at a plausible size. Proof: qa/leafsize.mjs (see qa/README).
-
+### 4.56 — Leaf scale: REMOVED (rejected by Melvin, 2026-11-22)
+An atlas built from 12 jittered copies of the existing leaf cluster (`?leafsize`, `tools/make_leafcluster.py`, `assets/trees/foliage_small_*.jpg`) was tried and reverted. Melvin: "The before
+actually looks better... what you're doing looks more like blobs, I'm seeing more patterns. It doesn't look natural and real." The composited cluster repeats visibly, and that repetition
+is the "patterns". The default leaf texture is again the original (`foliage_diff/alpha.jpg`), exactly as on main. A flat-strip (edge-on card) fix was started and discarded unfinished.
