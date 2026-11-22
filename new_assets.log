@@ -1,0 +1,6 @@
+[assets] hub: 103 requests, 24.68 MB, firstFrame 51985 ms
+[assets] green: 113 requests, 30.91 MB, firstFrame 58271 ms
+[assets] gr: 131 requests, 40.39 MB, firstFrame 64688 ms
+[assets] sanity: 145 requests, 35.28 MB, firstFrame 80673 ms
+[assets] town: 267 requests, 62.75 MB, firstFrame 66985 ms
+rc=0
