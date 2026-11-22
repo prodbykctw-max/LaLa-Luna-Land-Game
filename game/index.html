@@ -1651,14 +1651,14 @@ function bakeTreesC(night){
   return TREE_C_CACHE = withFreeRandom(() => {
     /* TARGET: A's own crown at the same spot, per unit of tree scale sc: top at 8.0 sc, crown ~7.6 sc across, clear trunk to ~1.8 sc.
        (A's crown: lobes out to +-4.2 sc, top lobe at ~8 sc.) Each variant is scaled in y to the height and in x/z to the width. */
-    const HT = 8.0, HALFW = 3.8;
+    const HT = 8.0, HALFW = 4.5;
     const tex = {
       oakLeaf: treeTexLoad("assets/trees/ez/oak_leaf.webp", true, false), ashLeaf: treeTexLoad("assets/trees/ez/ash_leaf.webp", true, false),
       b1: treeTexLoad("assets/trees/ez/bark001_diff.jpg", true, true, [1, .1]), b1n: treeTexLoad("assets/trees/ez/bark001_nor.jpg", false, true, [1, .1])
     };
     /* the presets scale the bark's v differently (oak 10, ash 5): one material each, the texture cloned for its own repeat; tinted dark brown */
     const bark = (rep) => { const c = tex.b1.clone(), n = tex.b1n.clone(); c.repeat.set(1, rep); n.repeat.set(1, rep); c.needsUpdate = n.needsUpdate = true; return treeBarkMat(c, n, night, new THREE.Color(.50, .42, .35)); };
-    const mats = { oakLeaf: treeLeafMat(tex.oakLeaf, night, new THREE.Color(.92, .98, .86)), ashLeaf: treeLeafMat(tex.ashLeaf, night, new THREE.Color(.92, .98, .86)), oakBark: bark(.1), ashBark: bark(.2) };
+    const mats = { oakLeaf: treeLeafMat(tex.oakLeaf, night, new THREE.Color(.92, .98, .86)), ashLeaf: treeLeafMat(tex.ashLeaf, night, new THREE.Color(1, .98, .74)), oakBark: bark(.1), ashBark: bark(.2) };
     /* detail per level: the desktop near level is the full ez-tree mesh, the phone's is thinned (every 2nd sprig, 1.35x) */
     const NEAR = TREE_MOBILE ? {sectionStride:2, segmentFactor:.75, leafStride:2, leafScale:1.35} : {};
     const FARD = TREE_MOBILE ? {sectionStride:4, segmentFactor:.4, leafStride:4, leafScale:2.0, billboard:"single"} : {sectionStride:3, segmentFactor:.55, leafStride:3, leafScale:1.7, billboard:"single"};
@@ -1683,8 +1683,10 @@ function bakeTreesC(night){
     return specs.map(([name, seed, leaf, w]) => {
       const t = new EZ.Tree(); t.options.copy(EZ.TreePreset[name]); t.options.seed = seed;
       /* a mature broadleaf: heavy trunk and limbs, a full crown of sprigs */
-      const o = t.options; for(const k in o.branch.radius) o.branch.radius[k] *= (+k <= 1 ? 2.3 : 1.5); o.leaves.size *= 1.35; o.leaves.count = Math.min(Math.round(o.leaves.count * 1.9), 120);
-      const lods = [NEAR, FARD].map(d => t.createGeometry(d));
+      const o = t.options; for(const k in o.branch.radius) o.branch.radius[k] *= (+k <= 1 ? 2.0 : 1.5); o.leaves.size *= 1.35; o.leaves.count = Math.min(Math.round(o.leaves.count * 2.2), 130);
+      let lods = [NEAR, FARD].map(d => t.createGeometry(d));
+      /* ez-tree indexes with 16 bits: if the fuller crown overflows that, thin the sprig count and grow the tree again */
+      for(let tries = 0; lods[0].leaves.attributes.position.count > 62000 && tries < 6; tries++){ const t2 = new EZ.Tree(); t2.options.copy(t.options); t2.options.leaves.count = Math.floor(t.options.leaves.count * .85); t2.options.seed = seed; t.options.leaves.count = t2.options.leaves.count; lods = [NEAR, FARD].map(d => t2.createGeometry(d)); }
       lods[1].leaves.computeBoundingBox(); lods[0].leaves.computeBoundingBox(); const bb = lods[0].leaves.boundingBox;
       const top = bb.max.y, hw = Math.max(bb.max.x, -bb.min.x, bb.max.z, -bb.min.z) * .86, ky = HT / top, kxz = HALFW / hw;
       const parts = [{mat:mats[leaf === "oakLeaf" ? "oakBark" : "ashBark"], geos:lods.map(l => l.branches)}, {mat:mats[leaf], leaf:true, vcol:true, geos:lods.map(l => l.leaves)}];
