@@ -1,0 +1,303 @@
+[
+ {
+  "step": 0,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.43842329589222884,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 1,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0
+ },
+ {
+  "step": 1,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.43842329589222884,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 1,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.055,
+   0.309,
+   -0.949
+  ]
+ },
+ {
+  "step": 2,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.43842329589222884,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 1,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.055,
+   0.309,
+   -0.949
+  ]
+ },
+ {
+  "step": 3,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.43842329589222884,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 1,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.055,
+   0.309,
+   -0.949
+  ]
+ },
+ {
+  "step": 4,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.43842329589222884,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 1,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.055,
+   0.309,
+   -0.949
+  ]
+ },
+ {
+  "step": 5,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.43842329589222884,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 1,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.055,
+   0.309,
+   -0.949
+  ]
+ },
+ {
+  "step": 6,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.43842329589222884,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 1,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.055,
+   0.309,
+   -0.949
+  ]
+ },
+ {
+  "step": 7,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.43842329589222884,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 1,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.055,
+   0.309,
+   -0.949
+  ]
+ },
+ {
+  "step": 8,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.5302457873535917,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 2,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.15,
+   0.309,
+   -0.939
+  ]
+ },
+ {
+  "step": 9,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.5486205114690768,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 3,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.169,
+   0.309,
+   -0.936
+  ]
+ },
+ {
+  "step": 10,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.5486205114690768,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 3,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.155,
+   0.309,
+   -0.938
+  ]
+ },
+ {
+  "step": 11,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.4808519625009953,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 4,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.098,
+   0.309,
+   -0.946
+  ]
+ },
+ {
+  "step": 12,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.4808519625009953,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 4,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.098,
+   0.309,
+   -0.946
+  ]
+ },
+ {
+  "step": 13,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.4808519625009953,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 4,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.098,
+   0.309,
+   -0.946
+  ]
+ },
+ {
+  "step": 14,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.4808519625009953,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 4,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.098,
+   0.309,
+   -0.946
+  ]
+ },
+ {
+  "step": 15,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.4808519625009953,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 4,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.098,
+   0.309,
+   -0.946
+  ]
+ },
+ {
+  "step": 16,
+  "N": 1024,
+  "ready": true,
+  "job": false,
+  "texel": 0.4808519625009953,
+  "items": 111,
+  "tris": 25539,
+  "jobs": 4,
+  "lastJobMs": 0,
+  "lastFrames": 56,
+  "maxSliceMs": 0,
+  "sun": [
+   0.098,
+   0.309,
+   -0.946
+  ]
+ }
+]
