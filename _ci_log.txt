@@ -1,0 +1,2 @@
+{"video":false,"tag":"old2","clockSteps":{"hub":[17,17,17,17,17]},"errors":{"hub":[]},"shots":{"hub":[19,79],"hub_finalPose":{"x":0,"y":1.877,"z":279.175}}}
+rc=0
