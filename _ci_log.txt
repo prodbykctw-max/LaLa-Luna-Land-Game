@@ -1,0 +1,31 @@
+[vgeo] hub: floating 0, buried 1, globes 4 (4 unlit), grass max 0.91
+[vgeo] green: floating 0, buried 0, globes 1 (1 unlit), grass max 0.92
+[vgeo] gr: floating 0, buried 2, globes 13 (13 unlit), grass max 0.92
+[vgeo] sanity: floating 2, buried 0, globes 8 (7 unlit), grass max 1.1
+[vgeo] town: floating 0, buried 1, globes 15 (15 unlit), grass max 0.94
+    "z": 189.7,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 15,
+   "unlit": 15,
+   "mats": [
+    "MeshStandardMaterial",
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.94,
+   "minWorld": 0.44,
+   "mean": 0.67,
+   "live": 69,
+   "count": 69
+  },
+  "landmarks": {}
+ }
+}
+rc=0
