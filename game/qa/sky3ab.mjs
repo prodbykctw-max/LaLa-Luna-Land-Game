@@ -61,12 +61,14 @@ const POOL = `(() => {
   const blobs = I.camBlobs || [], hgt = (x, z) => I.height(x, z);
   /* the camera goes on the side with a CLEAR LINE to her: no collider or crown on the segment between the lens and her, and none under the lens */
   const yawFor = (at, dist) => { let b = 0, bs = -1e9; for (let k = 0; k < 32; k++) { const y = k * Math.PI / 16, ex = at[0] + Math.sin(y) * dist, ez = at[1] + Math.cos(y) * dist, ey = hgt(ex, ez) + .9; let m = 1e9;
-      for (const q of blobs) m = Math.min(m, Math.hypot(q.x - ex, q.y - ey, q.z - ez) - q.r);
+      /* the lens AND the whole line from it to her chest must clear every tree crown (blobs are spheres): she is photographed through air, not through leaves */
+      const g0 = hgt(at[0], at[1]);
+      for (const q of blobs) for (let u = 0; u <= 8; u++) { const f = u / 8, px = ex + (at[0] - ex) * f, py = ey + (g0 + 1.5 - ey) * f, pz = ez + (at[1] - ez) * f; m = Math.min(m, Math.hypot(q.x - px, q.y - py, q.z - pz) - q.r); }
       for (const c of cols) { const dx = ex - at[0], dz = ez - at[1], t = Math.max(0, Math.min(1, ((c.x - at[0]) * dx + (c.z - at[1]) * dz) / (dx * dx + dz * dz))); m = Math.min(m, Math.hypot(at[0] + dx * t - c.x, at[1] + dz * t - c.z) - (c.r || 0)); }
       if (!I.inside(ex, ez)) m -= 50; if (m > bs) { bs = m; b = y; } } return b; };
-  /* a 28 degree lens from 8.6 u brings her to ~440 px of a 600 px frame */
-  const dist = 8.6;   /* she is 3.07 u tall in this world (not 1.75): 28 degrees at 8.6 u frames ~4.2 u, so she fills ~73% of the frame */
-  return { at: best, vis: +(bv / 255).toFixed(3), dist, yaw: yawFor(best, dist), eye: 1.6, look: 1.5, fov: 28, moveHer: true };
+  /* a 17.5 degree lens from 14 u brings her to ~430 px of a 600 px frame */
+  const dist = 14;   /* she is 3.07 u tall in this world (not 1.75): 17.5 degrees at 14 u frames ~4.3 u, so she fills ~71% of the frame; the lens sits outside the crown, not in its leaves */
+  return { at: best, vis: +(bv / 255).toFixed(3), dist, yaw: yawFor(best, dist), eye: 1.6, look: 1.5, fov: 17.5, moveHer: true };
 })()`;
 const SIZE = `(() => { const T = window.__T, I = T.CUR, W = I.W, c = T.camera, v = new THREE.Vector3(), r = {};
   for (const [k, y] of [['feet', 0], ['head', 3.05]]) { v.set(W.x, W.y + y, W.z).project(c); r[k] = (1 - v.y) / 2 * window.innerHeight; } return { px: +(r.feet - r.head).toFixed(0) }; })()`;
