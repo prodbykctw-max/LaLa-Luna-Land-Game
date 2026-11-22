@@ -1,0 +1,1 @@
+env QA_ROOT=$BASE node qa/console_load.mjs
