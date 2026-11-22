@@ -1,0 +1,1 @@
+node qa/vcheck.mjs > qa/out/vcheck.out 2> qa/out/vcheck.log; r=$?; tail -25 qa/out/vcheck.log; tail -25 qa/out/vcheck.out; exit $r
