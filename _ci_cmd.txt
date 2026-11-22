@@ -1,0 +1,1 @@
+[ -f qa/float.mjs ] && timeout 3000 node qa/float.mjs > qa/out/float.out 2> qa/out/float.log; echo rc=$? >> qa/out/float.log

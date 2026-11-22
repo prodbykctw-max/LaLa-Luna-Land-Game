@@ -1,0 +1,282 @@
+{
+ "hub": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Moss",
+   "gap": 0,
+   "groundY": 0.5,
+   "footY": 0.5
+  },
+  {
+   "label": "Pip",
+   "gap": 0,
+   "groundY": 47.3,
+   "footY": 47.3
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 23.55,
+   "footY": 23.53
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 36.68,
+   "footY": 36.66
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 22.11,
+   "footY": 22.09
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 5.99,
+   "footY": 5.97
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 24.9,
+   "footY": 24.88
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 19.09,
+   "footY": 19.07
+  }
+ ],
+ "green": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Moss",
+   "gap": 0,
+   "groundY": 0.48,
+   "footY": 0.48
+  },
+  {
+   "label": "Pip",
+   "gap": 0,
+   "groundY": 47.6,
+   "footY": 47.6
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 23.57,
+   "footY": 23.55
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 36.69,
+   "footY": 36.67
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 22.11,
+   "footY": 22.09
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 6,
+   "footY": 5.98
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 24.89,
+   "footY": 24.87
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 19.09,
+   "footY": 19.07
+  }
+ ],
+ "gr": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Moss",
+   "gap": 0,
+   "groundY": 0.52,
+   "footY": 0.52
+  },
+  {
+   "label": "Pip",
+   "gap": 0,
+   "groundY": 46.02,
+   "footY": 46.02
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 23.57,
+   "footY": 23.55
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 36.69,
+   "footY": 36.66
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 22.11,
+   "footY": 22.09
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 6,
+   "footY": 5.98
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 24.89,
+   "footY": 24.87
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 19.09,
+   "footY": 19.07
+  }
+ ],
+ "sanity": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Moss",
+   "gap": 0,
+   "groundY": 0.49,
+   "footY": 0.49
+  },
+  {
+   "label": "Pip",
+   "gap": 0,
+   "groundY": 47.47,
+   "footY": 47.47
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 23.57,
+   "footY": 23.56
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 36.69,
+   "footY": 36.67
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 22.11,
+   "footY": 22.09
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 6,
+   "footY": 5.99
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 24.89,
+   "footY": 24.87
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 19.09,
+   "footY": 19.07
+  }
+ ],
+ "town": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Moss",
+   "gap": 0,
+   "groundY": 0.48,
+   "footY": 0.48
+  },
+  {
+   "label": "Pip",
+   "gap": 0,
+   "groundY": 47.63,
+   "footY": 47.63
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 23.57,
+   "footY": 23.55
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 36.69,
+   "footY": 36.67
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 22.11,
+   "footY": 22.09
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 6,
+   "footY": 5.98
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 24.89,
+   "footY": 24.87
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 19.09,
+   "footY": 19.07
+  }
+ ]
+}
