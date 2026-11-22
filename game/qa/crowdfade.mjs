@@ -124,7 +124,7 @@ out.coverage = (list, thr) => {
   list.forEach((g, k) => { Object.assign(g.userData.R.lodMain, S0[k]); Object.assign(g.userData.R.lodInk, K0[k]); g.visible = gv[k]; g.userData.R.inkTwins.forEach(m => m.visible = pK[k] > 0); });
   banks.forEach((b, k) => b.visible = bv[k]); st.cap = true;
   return list.map((g, k) => ({ p: pS[k], pInk: pK[k], dir: S0[k].dir, silMid: diffCount(mid[k], none[k], thr), silRigFull: diffCount(rigFull[k], none[k], thr), rigCov: diffCount(rigOnly[k], none[k], thr),
-    proxCov: diffCount(proxOnly[k], none[k], thr), inkFull: diffCount(inkFull[k], inkNone[k], thr), inkMid: diffCount(mid[k], rigOnly[k], thr) , rect: rects[k] }));
+    proxCov: diffCount(proxOnly[k], none[k], thr), inkFull: diffCount(inkFull[k], inkNone[k], thr), inkMid: diffCount(mid[k], inkNone[k], thr) , rect: rects[k] }));
 };
 /* the two-fan test: A drifts in across the near line (far -> rig), B out across the far line (rig -> far), together */
 out.pairInit = () => { const ms = members(), by = {}; ms.forEach(g => (by[g.userData.crowd] = by[g.userData.crowd] || []).push(g));
@@ -179,7 +179,7 @@ async function boot(mode) {
 
 async function run(mode) {
   const tag = INK ? mode + '_ink' : mode;
-  const dir = `${DIR}/${tag}`; rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
+  const dir = `${DIR}/${tag}${ONLY === "walk" ? "_walk" : ""}`; rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
   const H = await boot(mode), p = H.page, t0 = Date.now();
   const res = { mode, viewport: [VW, VH], steps: [], coverage: [], pair: null, walk: [], events: [] };
   /* ---- the clock: performance.now() must move by exactly one step per runFor ---- */
@@ -201,7 +201,7 @@ async function run(mode) {
 
   /* ---- 1. the scripted walk: D = camera-to-fan distance. ink on at <24, off at >26; rig<->proxy at >46 and <44 ---- */
   const SMOKE = !!process.env.CF_SMOKE;       /* CF_SMOKE=1: one far crossing + a short pair + a short walk, to check framing before the long run */
-  const segs = INK ? [[34, 20, 8, 'ink_in', 24], [20, 34, 8, 'ink_out', 26]] : SMOKE ? [[40, 50, 8, 'far_out', 46]] : [[34, 54, 8, 'far_out', 46], [54, 40, 8, 'far_in', 44]];
+  const segs = INK ? [[34, 20, 8, 'ink_in', 26], [20, 34, 8, 'ink_out', 26]] : SMOKE ? [[40, 50, 8, 'far_out', 46]] : [[34, 54, 8, 'far_out', 46], [54, 40, 8, 'far_in', 44]];
   const targets = []; if (ONLY !== 'walk') for (const [a, b, v] of segs) { const n = Math.round(Math.abs(b - a) / v * 60); for (let i = 0; i <= n; i++) targets.push(a + (b - a) * i / n); }
   /* only the frames around each crossing are drawn (SwiftShader takes seconds a frame); the rest still run the game, the LOD and the clock */
   const drawn = new Set();
