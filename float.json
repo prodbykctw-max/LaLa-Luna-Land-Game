@@ -1,0 +1,594 @@
+{
+ "hub": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Moss",
+   "gap": 0,
+   "groundY": 0.58,
+   "footY": 0.58
+  },
+  {
+   "label": "Pip",
+   "gap": 0,
+   "groundY": 47.59,
+   "footY": 47.59
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 23.56,
+   "footY": 23.54
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 36.68,
+   "footY": 36.66
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 22.11,
+   "footY": 22.09
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 5.99,
+   "footY": 5.97
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 24.89,
+   "footY": 24.87
+  },
+  {
+   "label": "creature:iguana",
+   "gap": -0.02,
+   "groundY": 19.09,
+   "footY": 19.07
+  }
+ ],
+ "green": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0.05,
+   "footY": 0.05
+  },
+  {
+   "label": "Wren",
+   "gap": 0,
+   "groundY": 1.14,
+   "footY": 1.14
+  },
+  {
+   "label": "Juno",
+   "gap": 0,
+   "groundY": 2.58,
+   "footY": 2.58
+  },
+  {
+   "label": "Marisol",
+   "gap": 0,
+   "groundY": 3.26,
+   "footY": 3.26
+  },
+  {
+   "label": "Dee",
+   "gap": 0,
+   "groundY": 26.78,
+   "footY": 26.78
+  },
+  {
+   "label": "Theo",
+   "gap": 0,
+   "groundY": 16.78,
+   "footY": 16.78
+  },
+  {
+   "label": "Nan",
+   "gap": 0,
+   "groundY": 2.88,
+   "footY": 2.88
+  },
+  {
+   "label": "Ollie the postman",
+   "gap": 1.97,
+   "groundY": 2.76,
+   "footY": 4.73
+  },
+  {
+   "label": "creature:horse",
+   "gap": -0.02,
+   "groundY": 0,
+   "footY": -0.02
+  },
+  {
+   "label": "creature:horse",
+   "gap": 0.03,
+   "groundY": 1.6,
+   "footY": 1.63
+  },
+  {
+   "label": "creature:horse",
+   "gap": -0.02,
+   "groundY": 1.34,
+   "footY": 1.33
+  },
+  {
+   "label": "creature:horse",
+   "gap": 0,
+   "groundY": 0.29,
+   "footY": 0.28
+  },
+  {
+   "label": "creature:horse",
+   "gap": -0.02,
+   "groundY": 17.24,
+   "footY": 17.22
+  },
+  {
+   "label": "creature:horse",
+   "gap": -0.01,
+   "groundY": 0.34,
+   "footY": 0.33
+  }
+ ],
+ "gr": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Marisol",
+   "gap": 0,
+   "groundY": 0.12,
+   "footY": 0.12
+  },
+  {
+   "label": "Dee",
+   "gap": 0,
+   "groundY": 15.37,
+   "footY": 15.37
+  },
+  {
+   "label": "Theo",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Nan",
+   "gap": 0,
+   "groundY": 17.01,
+   "footY": 17.01
+  },
+  {
+   "label": "Ollie the postman",
+   "gap": 2,
+   "groundY": 0.39,
+   "footY": 2.39
+  },
+  {
+   "label": "creature:dino",
+   "gap": -0.05,
+   "groundY": 0,
+   "footY": -0.05
+  },
+  {
+   "label": "creature:dino",
+   "gap": -0.01,
+   "groundY": 16.54,
+   "footY": 16.53
+  },
+  {
+   "label": "creature:raptor",
+   "gap": -0.01,
+   "groundY": 21.96,
+   "footY": 21.94
+  },
+  {
+   "label": "creature:raptor",
+   "gap": -0.01,
+   "groundY": 27.84,
+   "footY": 27.83
+  },
+  {
+   "label": "creature:raptor",
+   "gap": -0.01,
+   "groundY": 14.15,
+   "footY": 14.13
+  },
+  {
+   "label": "creature:raptor",
+   "gap": -0.01,
+   "groundY": 0,
+   "footY": -0.01
+  }
+ ],
+ "sanity": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Marisol",
+   "gap": 0,
+   "groundY": 0.52,
+   "footY": 0.52
+  },
+  {
+   "label": "Dee",
+   "gap": 0,
+   "groundY": 0.23,
+   "footY": 0.23
+  },
+  {
+   "label": "Theo",
+   "gap": 0,
+   "groundY": 16.24,
+   "footY": 16.24
+  },
+  {
+   "label": "Nan",
+   "gap": 0,
+   "groundY": 0,
+   "footY": 0
+  },
+  {
+   "label": "Ollie the postman",
+   "gap": 1.93,
+   "groundY": 0.41,
+   "footY": 2.34
+  },
+  {
+   "label": "creature:jelly(fly)",
+   "gap": 5.08,
+   "groundY": -3.34,
+   "footY": 1.74
+  },
+  {
+   "label": "creature:jelly(fly)",
+   "gap": -0.99,
+   "groundY": 1.94,
+   "footY": 0.95
+  },
+  {
+   "label": "creature:jelly(fly)",
+   "gap": 4.35,
+   "groundY": -3.34,
+   "footY": 1.01
+  },
+  {
+   "label": "creature:jelly(fly)",
+   "gap": 4.76,
+   "groundY": -3.31,
+   "footY": 1.45
+  },
+  {
+   "label": "creature:jelly(fly)",
+   "gap": 2.86,
+   "groundY": 0.42,
+   "footY": 3.28
+  },
+  {
+   "label": "creature:jelly(fly)",
+   "gap": 2.4,
+   "groundY": 0.52,
+   "footY": 2.93
+  }
+ ],
+ "town": [
+  {
+   "label": "Lala",
+   "gap": 0,
+   "groundY": 2.25,
+   "footY": 2.25
+  },
+  {
+   "label": "crowd:fan12",
+   "gap": 0,
+   "groundY": 2.97,
+   "footY": 2.97
+  },
+  {
+   "label": "crowd:fan5",
+   "gap": 0,
+   "groundY": 9.08,
+   "footY": 9.08
+  },
+  {
+   "label": "crowd:fan3",
+   "gap": 0,
+   "groundY": 9.79,
+   "footY": 9.79
+  },
+  {
+   "label": "crowd:fan4",
+   "gap": 0,
+   "groundY": 5.18,
+   "footY": 5.18
+  },
+  {
+   "label": "crowd:fan1",
+   "gap": 0,
+   "groundY": 5.29,
+   "footY": 5.29
+  },
+  {
+   "label": "crowd:fan11",
+   "gap": 0,
+   "groundY": 4.61,
+   "footY": 4.61
+  },
+  {
+   "label": "crowd:fan7",
+   "gap": 0,
+   "groundY": 5.69,
+   "footY": 5.69
+  },
+  {
+   "label": "crowd:fan2",
+   "gap": 0,
+   "groundY": 9.31,
+   "footY": 9.31
+  },
+  {
+   "label": "crowd:fan6",
+   "gap": 0,
+   "groundY": 7.24,
+   "footY": 7.24
+  },
+  {
+   "label": "crowd:fan9",
+   "gap": 0,
+   "groundY": 8.3,
+   "footY": 8.3
+  },
+  {
+   "label": "crowd:fan8",
+   "gap": 0,
+   "groundY": 4.39,
+   "footY": 4.39
+  },
+  {
+   "label": "crowd:fan10",
+   "gap": 0,
+   "groundY": 9.12,
+   "footY": 9.12
+  },
+  {
+   "label": "crowd:fan3",
+   "gap": 0,
+   "groundY": 5.39,
+   "footY": 5.39
+  },
+  {
+   "label": "crowd:fan11",
+   "gap": 0,
+   "groundY": 9.43,
+   "footY": 9.43
+  },
+  {
+   "label": "crowd:fan10",
+   "gap": 0,
+   "groundY": 9.86,
+   "footY": 9.86
+  },
+  {
+   "label": "crowd:fan1",
+   "gap": 0,
+   "groundY": 6.28,
+   "footY": 6.28
+  },
+  {
+   "label": "crowd:fan6",
+   "gap": 0,
+   "groundY": 4.27,
+   "footY": 4.27
+  },
+  {
+   "label": "crowd:fan7",
+   "gap": 0,
+   "groundY": 6.58,
+   "footY": 6.58
+  },
+  {
+   "label": "crowd:fan12",
+   "gap": 0,
+   "groundY": 6.7,
+   "footY": 6.7
+  },
+  {
+   "label": "crowd:fan4",
+   "gap": 0,
+   "groundY": 1.77,
+   "footY": 1.77
+  },
+  {
+   "label": "crowd:fan5",
+   "gap": 0,
+   "groundY": 5.77,
+   "footY": 5.77
+  },
+  {
+   "label": "crowd:fan8",
+   "gap": 0,
+   "groundY": 1.78,
+   "footY": 1.78
+  },
+  {
+   "label": "crowd:fan9",
+   "gap": 0,
+   "groundY": 2,
+   "footY": 2
+  },
+  {
+   "label": "crowd:fan2",
+   "gap": 0,
+   "groundY": 8.12,
+   "footY": 8.12
+  },
+  {
+   "label": "crowd:fan10",
+   "gap": 0,
+   "groundY": 2.33,
+   "footY": 2.33
+  },
+  {
+   "label": "crowd:fan4",
+   "gap": 0,
+   "groundY": 1.76,
+   "footY": 1.76
+  },
+  {
+   "label": "crowd:fan5",
+   "gap": 0,
+   "groundY": 2.35,
+   "footY": 2.35
+  },
+  {
+   "label": "crowd:fan3",
+   "gap": 0,
+   "groundY": 1.85,
+   "footY": 1.85
+  },
+  {
+   "label": "crowd:fan6",
+   "gap": 0,
+   "groundY": 1.78,
+   "footY": 1.78
+  },
+  {
+   "label": "crowd:fan8",
+   "gap": 0,
+   "groundY": 6.84,
+   "footY": 6.84
+  },
+  {
+   "label": "crowd:fan1",
+   "gap": 0,
+   "groundY": 0.54,
+   "footY": 0.54
+  },
+  {
+   "label": "crowd:fan11",
+   "gap": 0,
+   "groundY": 9.49,
+   "footY": 9.49
+  },
+  {
+   "label": "crowd:fan12",
+   "gap": 0,
+   "groundY": 1.73,
+   "footY": 1.73
+  },
+  {
+   "label": "crowd:fan2",
+   "gap": 0,
+   "groundY": 7.61,
+   "footY": 7.61
+  },
+  {
+   "label": "Bea",
+   "gap": 0,
+   "groundY": 0.69,
+   "footY": 0.69
+  },
+  {
+   "label": "Neri",
+   "gap": -0.12,
+   "groundY": 5.25,
+   "footY": 5.13
+  },
+  {
+   "label": "Cass",
+   "gap": 0,
+   "groundY": 6.4,
+   "footY": 6.4
+  },
+  {
+   "label": "Rafa",
+   "gap": 0,
+   "groundY": 1.89,
+   "footY": 1.89
+  },
+  {
+   "label": "Marisol",
+   "gap": -0.06,
+   "groundY": 2.04,
+   "footY": 1.98
+  },
+  {
+   "label": "Dee",
+   "gap": 0,
+   "groundY": 0.16,
+   "footY": 0.16
+  },
+  {
+   "label": "Theo",
+   "gap": 0,
+   "groundY": 1.93,
+   "footY": 1.93
+  },
+  {
+   "label": "Nan",
+   "gap": 0,
+   "groundY": 1.74,
+   "footY": 1.74
+  },
+  {
+   "label": "Ollie the postman",
+   "gap": 1.94,
+   "groundY": 2.77,
+   "footY": 4.71
+  },
+  {
+   "label": "creature:cow",
+   "gap": 0,
+   "groundY": 3.1,
+   "footY": 3.1
+  },
+  {
+   "label": "creature:cow",
+   "gap": 0,
+   "groundY": 4.71,
+   "footY": 4.7
+  },
+  {
+   "label": "creature:cow",
+   "gap": 0,
+   "groundY": 4.39,
+   "footY": 4.39
+  },
+  {
+   "label": "creature:cow",
+   "gap": -0.01,
+   "groundY": 4.46,
+   "footY": 4.46
+  },
+  {
+   "label": "creature:cow",
+   "gap": 0,
+   "groundY": 5.23,
+   "footY": 5.23
+  },
+  {
+   "label": "creature:chicken",
+   "gap": -0.06,
+   "groundY": 5.89,
+   "footY": 5.83
+  }
+ ]
+}

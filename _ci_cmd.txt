@@ -1,0 +1,1 @@
+node qa/float.mjs > qa/out/float.out 2> qa/out/float.log; r=$?; tail -25 qa/out/float.log; tail -25 qa/out/float.out; exit $r
