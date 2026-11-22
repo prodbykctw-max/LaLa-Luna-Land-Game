@@ -1,0 +1,5375 @@
+{
+ "inventory": [
+  {
+   "path": "assets/lala.glb",
+   "bytes": 6974652
+  },
+  {
+   "path": "assets/animals/raptor.glb",
+   "bytes": 3160456
+  },
+  {
+   "path": "assets/lala-v2-original.glb",
+   "bytes": 2898776
+  },
+  {
+   "path": "assets/animals/sauropod.glb",
+   "bytes": 2336028
+  },
+  {
+   "path": "assets/animals/horse_b.glb",
+   "bytes": 1781064
+  },
+  {
+   "path": "assets/animals/iguana_c.glb",
+   "bytes": 1636256
+  },
+  {
+   "path": "assets/npc-fan.glb",
+   "bytes": 1631524
+  },
+  {
+   "path": "assets/npc-crowd.glb",
+   "bytes": 1581736
+  },
+  {
+   "path": "assets/animals/chicken.glb",
+   "bytes": 1526976
+  },
+  {
+   "path": "assets/buildings/b5.glb",
+   "bytes": 1510348
+  },
+  {
+   "path": "assets/animals/ptero.glb",
+   "bytes": 1439908
+  },
+  {
+   "path": "assets/boats/dutch_ship.glb",
+   "bytes": 1438988
+  },
+  {
+   "path": "assets/buildings/b9.glb",
+   "bytes": 1433280
+  },
+  {
+   "path": "assets/npc-green.glb",
+   "bytes": 1405704
+  },
+  {
+   "path": "assets/items/desk.glb",
+   "bytes": 1270216
+  },
+  {
+   "path": "assets/npc-dock.glb",
+   "bytes": 1167504
+  },
+  {
+   "path": "assets/buildings/b2.glb",
+   "bytes": 1166036
+  },
+  {
+   "path": "index.html",
+   "bytes": 1149227,
+   "gzip": 382408
+  },
+  {
+   "path": "assets/animals/dolphin_b.glb",
+   "bytes": 1044516
+  },
+  {
+   "path": "assets/animals/bull.glb",
+   "bytes": 918276
+  },
+  {
+   "path": "assets/fans/fan04.glb",
+   "bytes": 903928
+  },
+  {
+   "path": "assets/buildings/b10.glb",
+   "bytes": 901852
+  },
+  {
+   "path": "assets/buildings/b7.glb",
+   "bytes": 853900
+  },
+  {
+   "path": "assets/buildings/b15.glb",
+   "bytes": 852644
+  },
+  {
+   "path": "assets/fans/fan07.glb",
+   "bytes": 846708
+  },
+  {
+   "path": "assets/buildings/b16.glb",
+   "bytes": 840808
+  },
+  {
+   "path": "vendor/three187.min.js",
+   "bytes": 831567,
+   "gzip": 215043
+  },
+  {
+   "path": "assets/fans/fan11.glb",
+   "bytes": 826652
+  },
+  {
+   "path": "assets/fans/fan10.glb",
+   "bytes": 813980
+  },
+  {
+   "path": "assets/animals/iguana_a.glb",
+   "bytes": 810756
+  },
+  {
+   "path": "assets/animals/monkey.glb",
+   "bytes": 807308
+  },
+  {
+   "path": "assets/fans/fan06.glb",
+   "bytes": 804316
+  },
+  {
+   "path": "assets/fans/fan05.glb",
+   "bytes": 800904
+  },
+  {
+   "path": "assets/items/lantern.glb",
+   "bytes": 792280
+  },
+  {
+   "path": "assets/animals/macaw_c.glb",
+   "bytes": 775860
+  },
+  {
+   "path": "assets/fans/fan01.glb",
+   "bytes": 772088
+  },
+  {
+   "path": "assets/animals/flamingo.glb",
+   "bytes": 767404
+  },
+  {
+   "path": "assets/animals/horse_c.glb",
+   "bytes": 766260
+  },
+  {
+   "path": "assets/fans/fan02.glb",
+   "bytes": 753544
+  },
+  {
+   "path": "assets/animals/iguana_b.glb",
+   "bytes": 737852
+  },
+  {
+   "path": "assets/fans/fan09.glb",
+   "bytes": 720988
+  },
+  {
+   "path": "assets/fans/fan12.glb",
+   "bytes": 716280
+  },
+  {
+   "path": "assets/animals/macaw_b.glb",
+   "bytes": 713152
+  },
+  {
+   "path": "assets/fans/fan03.glb",
+   "bytes": 705764
+  },
+  {
+   "path": "assets/fans/fan08.glb",
+   "bytes": 704892
+  },
+  {
+   "path": "assets/animals/turtle_b.glb",
+   "bytes": 681760
+  },
+  {
+   "path": "assets/animals/turtle_c.glb",
+   "bytes": 665896
+  },
+  {
+   "path": "assets/buildings/b3.glb",
+   "bytes": 614352
+  },
+  {
+   "path": "assets/animals/cow.glb",
+   "bytes": 611324
+  },
+  {
+   "path": "assets/animals/tang.glb",
+   "bytes": 544060
+  },
+  {
+   "path": "assets/animals/turtle_a.glb",
+   "bytes": 542816
+  },
+  {
+   "path": "assets/animals/crab.glb",
+   "bytes": 512708
+  },
+  {
+   "path": "assets/buildings/b8.glb",
+   "bytes": 469784
+  },
+  {
+   "path": "assets/buildings/b4.glb",
+   "bytes": 469496
+  },
+  {
+   "path": "assets/animals/gull.glb",
+   "bytes": 398336
+  },
+  {
+   "path": "assets/ground/meadow_diff.jpg",
+   "bytes": 386046
+  },
+  {
+   "path": "assets/buildings/b11.glb",
+   "bytes": 304244
+  },
+  {
+   "path": "assets/shore/sand_nor.jpg",
+   "bytes": 303773
+  },
+  {
+   "path": "assets/real2/paving_nor.jpg",
+   "bytes": 260893
+  },
+  {
+   "path": "assets/items/fans.glb",
+   "bytes": 238248
+  },
+  {
+   "path": "assets/real2/paving_diff.jpg",
+   "bytes": 237499
+  },
+  {
+   "path": "assets/items/carrot.glb",
+   "bytes": 236748
+  },
+  {
+   "path": "assets/real2/rooftiles_nor.jpg",
+   "bytes": 232506
+  },
+  {
+   "path": "assets/buildings/b19.glb",
+   "bytes": 226500
+  },
+  {
+   "path": "assets/boats/dinghy_weathered_diff.jpg",
+   "bytes": 213233
+  },
+  {
+   "path": "assets/real2/rooftiles_diff.jpg",
+   "bytes": 211475
+  },
+  {
+   "path": "assets/items/crown.glb",
+   "bytes": 198996
+  },
+  {
+   "path": "assets/boats/dinghy_weathered_nor.jpg",
+   "bytes": 197475
+  },
+  {
+   "path": "assets/cow.glb",
+   "bytes": 195212
+  },
+  {
+   "path": "assets/animals/dolphin_c.glb",
+   "bytes": 189136
+  },
+  {
+   "path": "assets/fans/proxy/fan10.glb",
+   "bytes": 188944
+  },
+  {
+   "path": "assets/horse.glb",
+   "bytes": 188256
+  },
+  {
+   "path": "assets/fans/proxy/fan06.glb",
+   "bytes": 178532
+  },
+  {
+   "path": "assets/dino.glb",
+   "bytes": 176892
+  },
+  {
+   "path": "assets/fans/proxy/fan04.glb",
+   "bytes": 175772
+  },
+  {
+   "path": "assets/items/boots.glb",
+   "bytes": 175252
+  },
+  {
+   "path": "assets/fans/proxy/fan11.glb",
+   "bytes": 174720
+  },
+  {
+   "path": "assets/fans/proxy/fan01.glb",
+   "bytes": 171872
+  },
+  {
+   "path": "assets/fans/proxy/fan07.glb",
+   "bytes": 171496
+  },
+  {
+   "path": "assets/grass/grasscard_diff.jpg",
+   "bytes": 170109
+  },
+  {
+   "path": "assets/real2/whitewall_nor.jpg",
+   "bytes": 167224
+  },
+  {
+   "path": "assets/fans/proxy/fan05.glb",
+   "bytes": 166996
+  },
+  {
+   "path": "assets/fans/proxy/fan02.glb",
+   "bytes": 159868
+  },
+  {
+   "path": "assets/grass/grasscard_alpha.jpg",
+   "bytes": 154621
+  },
+  {
+   "path": "assets/fans/proxy/fan09.glb",
+   "bytes": 148680
+  },
+  {
+   "path": "assets/fans/proxy/fan03.glb",
+   "bytes": 143768
+  },
+  {
+   "path": "assets/fans/proxy/fan12.glb",
+   "bytes": 140096
+  },
+  {
+   "path": "assets/shore/sand_diff.jpg",
+   "bytes": 138982
+  },
+  {
+   "path": "assets/real2/plaster_nor.jpg",
+   "bytes": 137246
+  },
+  {
+   "path": "assets/boats/dinghy_varnish_diff.jpg",
+   "bytes": 134904
+  },
+  {
+   "path": "assets/fans/proxy/fan08.glb",
+   "bytes": 134880
+  },
+  {
+   "path": "assets/ground/meadow_nor.jpg",
+   "bytes": 125003
+  },
+  {
+   "path": "assets/trees/bark_nor.jpg",
+   "bytes": 117595
+  },
+  {
+   "path": "assets/trees/frond_alpha.jpg",
+   "bytes": 114203
+  },
+  {
+   "path": "assets/build/wall_nor.jpg",
+   "bytes": 106083
+  },
+  {
+   "path": "assets/trees/palm_nor.jpg",
+   "bytes": 105133
+  },
+  {
+   "path": "assets/animals/gullflock.glb",
+   "bytes": 103488
+  },
+  {
+   "path": "assets/flora.glb",
+   "bytes": 101656
+  },
+  {
+   "path": "assets/sky/kloppenheim_06_puresky_up.jpg",
+   "bytes": 101597
+  },
+  {
+   "path": "assets/items/quill.glb",
+   "bytes": 97888
+  },
+  {
+   "path": "assets/trees/bark_diff.jpg",
+   "bytes": 95505
+  },
+  {
+   "path": "assets/trees/frond_diff.jpg",
+   "bytes": 94178
+  },
+  {
+   "path": "assets/rocks/strata_diff.jpg",
+   "bytes": 91766
+  },
+  {
+   "path": "assets/sky/kloppenheim_07_puresky_up.jpg",
+   "bytes": 88883
+  },
+  {
+   "path": "assets/rocks/strata_nor.jpg",
+   "bytes": 88250
+  },
+  {
+   "path": "assets/build/wall_diff.jpg",
+   "bytes": 87026
+  },
+  {
+   "path": "assets/sky/table_mountain_1_puresky_up.jpg",
+   "bytes": 86607
+  },
+  {
+   "path": "assets/sky/belfast_sunset_puresky_up.jpg",
+   "bytes": 79527
+  },
+  {
+   "path": "assets/real2/whitewall_diff.jpg",
+   "bytes": 76793
+  },
+  {
+   "path": "assets/boats/dinghy_paint_diff.jpg",
+   "bytes": 76142
+  },
+  {
+   "path": "assets/rocks/boulder_diff.jpg",
+   "bytes": 72274
+  },
+  {
+   "path": "assets/trees/foliage_diff.jpg",
+   "bytes": 72108
+  },
+  {
+   "path": "assets/build/planks_diff.jpg",
+   "bytes": 71189
+  },
+  {
+   "path": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+   "bytes": 70186
+  },
+  {
+   "path": "assets/sky/industrial_sunset_02_puresky_up.jpg",
+   "bytes": 59894
+  },
+  {
+   "path": "assets/build/slate_nor.jpg",
+   "bytes": 55659
+  },
+  {
+   "path": "assets/rocks/boulder_nor.jpg",
+   "bytes": 55064
+  },
+  {
+   "path": "assets/build/slate_diff.jpg",
+   "bytes": 54409
+  },
+  {
+   "path": "assets/trees/flowers_diff.jpg",
+   "bytes": 54250
+  },
+  {
+   "path": "assets/boats/dinghy_varnish_nor.jpg",
+   "bytes": 51756
+  },
+  {
+   "path": "assets/real2/plaster_grey.jpg",
+   "bytes": 49490
+  },
+  {
+   "path": "assets/trees/flowers_alpha.jpg",
+   "bytes": 49414
+  },
+  {
+   "path": "assets/trees/palm_diff.jpg",
+   "bytes": 46817
+  },
+  {
+   "path": "assets/trees/foliage_alpha.jpg",
+   "bytes": 41679
+  },
+  {
+   "path": "assets/build/planks_nor.jpg",
+   "bytes": 29240
+  },
+  {
+   "path": "assets/items/note.glb",
+   "bytes": 11056
+  },
+  {
+   "path": "vendor/build-three187.sh",
+   "bytes": 3680
+  },
+  {
+   "path": "vendor/three187-entry.js",
+   "bytes": 1344,
+   "gzip": 406
+  }
+ ],
+ "referencedInHtml": [
+  "vendor/three187.min.js",
+  "assets/ground/meadow_diff.jpg",
+  "assets/ground/meadow_nor.jpg",
+  "assets/trees/foliage_diff.jpg",
+  "assets/trees/foliage_alpha.jpg",
+  "assets/trees/bark_diff.jpg",
+  "assets/trees/bark_nor.jpg",
+  "assets/trees/palm_diff.jpg",
+  "assets/trees/palm_nor.jpg",
+  "assets/trees/frond_diff.jpg",
+  "assets/trees/frond_alpha.jpg",
+  "assets/rocks/boulder_diff.jpg",
+  "assets/rocks/boulder_nor.jpg",
+  "assets/rocks/strata_diff.jpg",
+  "assets/rocks/strata_nor.jpg",
+  "assets/build/planks_diff.jpg",
+  "assets/build/planks_nor.jpg",
+  "assets/build/wall_diff.jpg",
+  "assets/build/wall_nor.jpg",
+  "assets/build/slate_diff.jpg",
+  "assets/build/slate_nor.jpg",
+  "assets/real2/",
+  "assets/trees/flowers_diff.jpg",
+  "assets/trees/flowers_alpha.jpg",
+  "assets/boats/dutch_ship.glb",
+  "assets/boats/",
+  "assets/sky/",
+  "assets/lala-v2-original.glb",
+  "assets/lala.glb",
+  "assets/horse.glb",
+  "assets/cow.glb",
+  "assets/dino.glb",
+  "assets/npc-fan.glb",
+  "assets/npc-dock.glb",
+  "assets/npc-green.glb",
+  "assets/npc-crowd.glb",
+  "assets/items/carrot.glb",
+  "assets/items/note.glb",
+  "assets/items/quill.glb",
+  "assets/items/lantern.glb",
+  "assets/items/boots.glb",
+  "assets/items/fans.glb",
+  "assets/items/crown.glb",
+  "assets/items/desk.glb",
+  "assets/buildings/${key}.glb",
+  "assets/animals/cow.glb",
+  "assets/animals/sauropod.glb",
+  "assets/animals/raptor.glb",
+  "assets/animals/chicken.glb",
+  "assets/animals/horse_b.glb",
+  "assets/animals/horse_c.glb",
+  "assets/animals/bull.glb",
+  "assets/animals/iguana_a.glb",
+  "assets/animals/iguana_b.glb",
+  "assets/animals/iguana_c.glb",
+  "assets/animals/monkey.glb",
+  "assets/animals/flamingo.glb",
+  "assets/animals/ptero.glb",
+  "assets/animals/macaw_b.glb",
+  "assets/animals/macaw_c.glb",
+  "assets/animals/crab.glb",
+  "assets/animals/turtle_a.glb",
+  "assets/animals/turtle_b.glb",
+  "assets/animals/turtle_c.glb",
+  "assets/animals/dolphin_b.glb",
+  "assets/animals/dolphin_c.glb",
+  "assets/animals/tang.glb",
+  "assets/fans/fan${String(i+1).padStart(2,",
+  "assets/fans/proxy/fan${String(n).padStart(2,",
+  "assets/shore/sand_diff.jpg",
+  "assets/shore/sand_nor.jpg",
+  "assets/grass/grasscard_diff.jpg",
+  "assets/grass/grasscard_alpha.jpg",
+  "assets/flora.glb",
+  "assets/animals/gull.glb",
+  "assets/animals/gullflock.glb"
+ ],
+ "templatedRefs": [],
+ "bigFiles": [
+  {
+   "path": "assets/animals/chicken.glb",
+   "MB": 1.46,
+   "loadedOn": [
+    "town"
+   ]
+  },
+  {
+   "path": "assets/animals/horse_b.glb",
+   "MB": 1.7,
+   "loadedOn": [
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/animals/iguana_c.glb",
+   "MB": 1.56,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/animals/ptero.glb",
+   "MB": 1.37,
+   "loadedOn": [
+    "gr"
+   ]
+  },
+  {
+   "path": "assets/animals/raptor.glb",
+   "MB": 3.01,
+   "loadedOn": [
+    "gr"
+   ]
+  },
+  {
+   "path": "assets/animals/sauropod.glb",
+   "MB": 2.23,
+   "loadedOn": [
+    "gr"
+   ]
+  },
+  {
+   "path": "assets/boats/dutch_ship.glb",
+   "MB": 1.37,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/buildings/b2.glb",
+   "MB": 1.11,
+   "loadedOn": [
+    "town"
+   ]
+  },
+  {
+   "path": "assets/buildings/b5.glb",
+   "MB": 1.44,
+   "loadedOn": [
+    "town"
+   ]
+  },
+  {
+   "path": "assets/buildings/b9.glb",
+   "MB": 1.37,
+   "loadedOn": [
+    "town"
+   ]
+  },
+  {
+   "path": "assets/items/desk.glb",
+   "MB": 1.21,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/lala-v2-original.glb",
+   "MB": 2.76,
+   "loadedOn": []
+  },
+  {
+   "path": "assets/lala.glb",
+   "MB": 6.65,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/npc-crowd.glb",
+   "MB": 1.51,
+   "loadedOn": [
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/npc-dock.glb",
+   "MB": 1.11,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/npc-fan.glb",
+   "MB": 1.56,
+   "loadedOn": [
+    "hub",
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "assets/npc-green.glb",
+   "MB": 1.34,
+   "loadedOn": [
+    "green",
+    "gr",
+    "sanity",
+    "town"
+   ]
+  },
+  {
+   "path": "index.html",
+   "MB": 1.1,
+   "loadedOn": []
+  }
+ ],
+ "unreferencedOnDisk": [
+  {
+   "path": "assets/boats/dinghy_paint_diff.jpg",
+   "bytes": 76142
+  },
+  {
+   "path": "assets/boats/dinghy_weathered_diff.jpg",
+   "bytes": 213233
+  },
+  {
+   "path": "assets/boats/dinghy_weathered_nor.jpg",
+   "bytes": 197475
+  },
+  {
+   "path": "assets/buildings/b8.glb",
+   "bytes": 469784
+  },
+  {
+   "path": "assets/real2/plaster_grey.jpg",
+   "bytes": 49490
+  },
+  {
+   "path": "assets/real2/plaster_nor.jpg",
+   "bytes": 137246
+  },
+  {
+   "path": "assets/real2/rooftiles_diff.jpg",
+   "bytes": 211475
+  },
+  {
+   "path": "assets/real2/rooftiles_nor.jpg",
+   "bytes": 232506
+  },
+  {
+   "path": "assets/sky/belfast_sunset_puresky_up.jpg",
+   "bytes": 79527
+  },
+  {
+   "path": "assets/sky/industrial_sunset_02_puresky_up.jpg",
+   "bytes": 59894
+  },
+  {
+   "path": "assets/sky/kloppenheim_07_puresky_up.jpg",
+   "bytes": 88883
+  },
+  {
+   "path": "assets/sky/table_mountain_1_puresky_up.jpg",
+   "bytes": 86607
+  },
+  {
+   "path": "vendor/build-three187.sh",
+   "bytes": 3680
+  },
+  {
+   "path": "vendor/three187-entry.js",
+   "bytes": 1344,
+   "gzip": 406
+  }
+ ],
+ "live": {
+  "hub": {
+   "msToFirstFrame": 38285,
+   "requests": [
+    {
+     "url": "index_test.html",
+     "status": 200,
+     "bytes": 1150881,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8775/d68623f7-a438-4194-bf61-46e0698f323d",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/6b8c9275-6bdf-4b5e-8384-66cf19b76e33",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/dec8147d-60e2-4129-8bb2-ea02d566913e",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/c0281c3e-be1f-4521-9448-cad85fdccd6d",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/d4286b68-c17f-4d2a-842a-77b811a49af9",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/b11360eb-32f0-4cd3-a4b8-cdb6977631af",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/93ffb089-3226-419e-9420-1c1be9b1d652",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/88d7bc50-02bc-498b-8fe4-60ce5dd09cfd",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/7a5be0c1-b5e3-4a46-b3a6-a1fdb60947ce",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/55f5605f-199b-46ca-a030-031aa8e8224f",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/0e61095f-d3a1-4a9a-af04-e7295cc6184e",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/3083c909-cd6b-496d-ad37-5aab651b0e39",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/e80188f4-fea5-4f86-a1e5-b8f860c83242",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/11cc6e5d-6e78-405f-8f93-9f9e0915be17",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/12bda656-12ad-4cdf-b174-4413496699c8",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/cf9d5ba0-507a-49da-aca7-0d2b2896107e",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/5418cf88-5ca8-4cb3-80ce-394f8ab24742",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/028116b6-ddfb-44c0-9717-a08982bac030",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/6713807f-f10a-4389-b527-8e58a3ea3e38",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/00b68e44-87e8-4465-80ae-796facd0b7f9",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/e3ff732e-6976-41ad-8fec-7a090e12971a",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/f4e088ce-14bf-4e6f-b423-42089277a66f",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/a0e25995-21b8-48bf-b1aa-fc9f4bc3855a",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/c6c6744b-01ba-4933-9f36-7c671a3edbdd",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/91d95afa-b4a0-461d-a7f5-b3cefc718ef0",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/5d6e4e6b-2692-46d4-b38d-f4095e699713",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/91688dea-29d6-49fc-b400-e78e5b0973e2",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/ffa2fd5a-caab-4ed7-aaf8-aa7195659e44",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/7904e81c-aa03-44c5-b94b-a0274fc39774",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/da35d539-d464-494b-b21d-d52725060bc1",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/b7de78a0-bc59-43b3-a4e0-b54e6d825585",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/59bb9170-5157-4932-ad1e-990177eacc37",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/c13d43f5-02e7-4026-99ca-6f0b53c003af",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/486fc7ef-4d50-4471-b62f-526bf43b4f78",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/273d0c82-d29e-48ca-9e5f-b46830230c4f",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8775/a6bc8564-0569-4409-854e-cfe173a864bf",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/9d5f2755-365b-4645-9809-aeec9649a614",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/35a6bca0-913a-470d-9ced-89f97eaf2002",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8775/0839b264-2c02-4838-8990-521994370922",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8775/5bd8c4fa-f5b9-49df-80f6-4d121eefb76e",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8775/eebc6862-a7df-4d7c-9177-ef01d9b2c2a0",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/af58cd01-0bc4-48d9-90a0-9d3b7559fffc",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/7b5acbac-417c-41fc-85f3-2544b175bdc3",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/f6baa26b-b326-4b04-99d8-a6979988fbeb",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/eb6ba503-b59e-4e04-b391-b8bd468edd7b",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/2e172fe5-8a4d-46b9-ae41-62b9c03d8c96",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8775/d2a54f51-9a64-46e5-a20b-f07da13200d2",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    }
+   ],
+   "totalBytes": 25552846,
+   "totalMB": 24.37
+  },
+  "green": {
+   "msToFirstFrame": 39933,
+   "requests": [
+    {
+     "url": "index_test.html?go=green",
+     "status": 200,
+     "bytes": 1150881,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8885/7efcef0d-b6c5-4ba8-a10d-e379cbdb09fd",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/627f8f35-1223-4795-b1a9-5d172864790e",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/07a135d7-d210-4c26-a1cd-2309bf2d5ba8",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/10f14aae-f4ca-4638-8b13-f28da4df7529",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/1d5c71e0-d206-496a-9030-10618ef1addf",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/9aea3fb4-2676-4954-ac1f-105a600d8cc6",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/74365d77-8340-4001-8a0e-b97033782019",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/3dcdb86a-d4e2-4db9-b0fa-f63765e35f0a",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/f8e9cd93-b920-47e1-80f4-0613ba5c183e",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/8052c4da-7bda-4d82-ba9a-61cc2b0a27d6",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/f150973b-abdf-4388-88d4-f1a01611dee4",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/ef088e14-c825-405f-b07e-a97eeda65169",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/45ac5fba-468e-4eb4-be39-10c872a08b8a",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/ea0e4e9b-444d-4331-9844-f68785f3b433",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/392fcff3-f210-4a0f-aca5-07af8bc762df",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/6f4e79ec-43d6-4d8e-b8be-f0328849c653",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/db4edf40-ac15-43a9-a359-5b9e6f4bcc08",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/a0b35e1f-d9c4-46c0-ad7e-cd2e37370535",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/07da5635-3650-48d2-b04f-76b58493349e",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/01283e42-116e-4769-a1a2-db841d028722",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/b0ec3dff-8f08-49d4-a269-f5f7b8f26314",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/783252b9-e1a1-4fa1-86fb-a73ebfb9f16f",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/876653bd-61a2-41f5-b11d-24613526aaf0",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/f4b96387-5004-44fb-a57f-e463e2187700",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/64f8bd77-c041-4917-ad60-79f3e3f50787",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/5075401f-f61e-4fe3-bc91-2cdd627738c7",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/2995b727-2778-4d56-9f52-d57c4a62ff85",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/797d5abe-c767-4a38-be05-f4710de8a81c",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/ce555d70-4e76-463b-8065-7e73f38fb646",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/f6b8fe36-a327-4582-b3ee-7bfb2d0a7762",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/09f9a979-ef86-4319-94f1-6a03b2a55f39",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/95c6bff0-e3c6-4a84-88c9-7a1f3526216f",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/981e2361-e51b-4831-8478-6c7ff9785c2f",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/c1e970a4-2f88-4bdb-ac8a-7c2ab10ba6f2",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/26c5fe22-bfb9-4d02-af3b-35834b700632",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8885/70fb82b5-fce7-4a35-bb54-91d96564de39",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/edd53ebb-3756-4d14-a2a3-cc98ae63f9d7",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/d1e95952-c67a-4372-926b-a711efcc0467",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8885/939a6871-5c8e-4395-b5c6-df0e4c98308a",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/8f88bc04-2f64-4463-8cef-927997c2b609",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/df5c094f-7bdd-491f-ae9e-c600576e6172",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/4bdc395f-5f6d-4462-9b06-826370b9793a",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/1664f1d9-c5a0-4dac-8771-4d534a53a265",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/c338cd24-25db-4aae-adfb-8a086b3705f5",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8885/7ab0b6d9-fe48-4b68-8138-268632c7b53e",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/e8e7ec2d-c71d-4a6c-9b44-10c679d04b31",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8885/7c02b2e2-029c-4cb8-86b1-47e6a81ed216",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/npc-green.glb",
+     "status": 200,
+     "bytes": 1405704,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-crowd.glb",
+     "status": 200,
+     "bytes": 1581736,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/horse_c.glb",
+     "status": 200,
+     "bytes": 766260,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/horse_b.glb",
+     "status": 200,
+     "bytes": 1781064,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8885/59729bb5-4d1d-4092-9bf2-bf57146ddf80",
+     "status": 200,
+     "bytes": 200736,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/dd2c1cde-5b05-488e-99af-b2d638ea908e",
+     "status": 200,
+     "bytes": 42796,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8885/0cd4782d-4243-4611-8d01-74cfed18d7cf",
+     "status": 200,
+     "bytes": 120573,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/cd71935c-27e0-44f4-a2bf-e8e37fd8e9cb",
+     "status": 200,
+     "bytes": 85640,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8885/d3608a6c-ce74-42f0-8df8-78b4cd791f95",
+     "status": 200,
+     "bytes": 406610,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8885/749800fe-8323-40a9-88fa-37a26d3fe18f",
+     "status": 200,
+     "bytes": 141488,
+     "type": "image/webp"
+    }
+   ],
+   "totalBytes": 32085453,
+   "totalMB": 30.6
+  },
+  "gr": {
+   "msToFirstFrame": 44302,
+   "requests": [
+    {
+     "url": "index_test.html?go=gr",
+     "status": 200,
+     "bytes": 1150881,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8357/233bafb5-71f0-4b90-8eac-17b7a8a88150",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/60eac498-c22d-4f58-93f0-5a6de4db001f",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/c1494d66-e0d4-4846-9720-c11af394874a",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/96996142-2e65-4bbc-b0e2-c109eeb9afd1",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/b8c66f9f-98b3-40fd-980c-80dc431069cf",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/a77dc09b-6171-4f80-b2da-2f89c09d7e2d",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/09d11003-32d3-4734-bac2-fbb81a55a6eb",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/5b5be9c2-6248-4afd-b951-e066483ffca5",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/e20549f2-0548-4943-8674-d879cdca7afb",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/ed027fbb-ca33-4278-86d8-51002c4bf913",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/1f1af510-9b9f-4c72-b691-11ad1f051f7e",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/4fa852d5-a7a9-4012-883d-eda7b225014a",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/76566b5b-3ddc-46f8-9163-2ba5f7158de0",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/55c372ea-45a2-4f70-bd78-678f8133bfbf",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/aabee886-5b76-49b1-b275-9347f26d07b2",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/9dbad5d5-6404-4bff-81ae-aaa4cf3b4ccc",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/9c9a6404-4d8d-4f96-b6c8-d758acd4d953",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/99491b84-98f8-497f-b5fe-dfa2e82045b5",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/9ec1df48-7009-40b8-a3b7-7a8ca7881cab",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/9554e7c6-e14b-4841-b791-70382e0e3c10",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/8c2899e4-06fc-4d78-a9e5-2ed143374122",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/97c5dd7f-fc5a-4b95-8e95-2279816c7597",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/c0a1a35c-7521-4b4f-aede-45e15c1cedd9",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/96f2a221-010b-4c07-ac19-cf078127670c",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/3c3412c1-877a-4187-a6c4-e390f719298f",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/e7ea3956-758e-4f21-9585-19fd33eec6fb",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/8f32d629-b932-4b6f-a1af-c4e562e2ff73",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/461146fe-742f-4c12-b305-2f2db35945bc",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/ccf54827-7c42-4053-9a37-33506671e89d",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/db40dfac-893c-4a42-ae3a-3555c93eeddf",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/2d1c407c-55f4-4fc1-b7ac-d16656e3f531",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/22aee4a8-c30e-4e62-904b-27ac18141d30",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/2878cabf-417c-402f-b973-d4dd48e931fa",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/4563bd33-ad19-42b2-b438-98c0e6114042",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/ecc9dc9d-b776-4b79-91a3-2e3a3e50fba6",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8357/4b90946b-0541-4c8c-8310-55e04eb50219",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/567506a2-6a25-4506-99fd-a6a78363636b",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8357/37f08450-99ed-41c4-83c4-4a0097782af8",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8357/560be810-ef35-44b1-aae1-41952c038c97",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8357/4f67e80b-c176-4a39-8b7d-3937218cb928",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8357/31b2f9dc-8053-41a7-9f80-372ace5145e5",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8357/ca6119ac-f816-4f9a-b6dd-7c2bab931f69",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/82da2281-9b39-4c0f-acdf-2be95297d631",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/dba2279f-bf3d-485e-994e-ca7ecb9b199e",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/bbc29250-0dd4-4d5d-ac37-9ffa0bbce7ef",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/2919ccb1-8d23-4e0d-93b1-bd82dc050329",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/729ae2bc-ca80-4e70-a4a7-672fd2cc122c",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/npc-crowd.glb",
+     "status": 200,
+     "bytes": 1581736,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-green.glb",
+     "status": 200,
+     "bytes": 1405704,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/raptor.glb",
+     "status": 200,
+     "bytes": 3160456,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/sauropod.glb",
+     "status": 200,
+     "bytes": 2336028,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/monkey.glb",
+     "status": 200,
+     "bytes": 807308,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/ptero.glb",
+     "status": 200,
+     "bytes": 1439908,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/horse_b.glb",
+     "status": 200,
+     "bytes": 1781064,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8357/e14c2619-b049-4fe3-9b67-488287c691ce",
+     "status": 200,
+     "bytes": 62845,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/c2e68998-471e-4eca-a8d4-b3e5dc3db592",
+     "status": 200,
+     "bytes": 54818,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/d0867501-ea41-49ab-9e0e-62471914fd7d",
+     "status": 200,
+     "bytes": 141488,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8357/58505013-229b-4668-8772-a3b377ce66c3",
+     "status": 200,
+     "bytes": 42796,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8357/27654657-0d72-4019-afe9-c6af0f4ff95d",
+     "status": 200,
+     "bytes": 57933,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/2584f21e-2ad3-404f-804b-0473f74c8ad0",
+     "status": 200,
+     "bytes": 34563,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/46338232-f649-48c4-858f-25c104fcef25",
+     "status": 200,
+     "bytes": 39404,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/109f0d5a-f74e-4b8a-8923-8a2ce32d449a",
+     "status": 200,
+     "bytes": 153794,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/bb92b24d-d103-415f-9054-9b3539c8bce8",
+     "status": 200,
+     "bytes": 50094,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/43a12a7f-abc0-42c8-8b18-09003f2e1a16",
+     "status": 200,
+     "bytes": 297530,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/22c94d5e-e290-443a-b0ab-e42266cffe75",
+     "status": 200,
+     "bytes": 71243,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/b57e057d-fe78-4f17-aceb-b9fe166dfbc0",
+     "status": 200,
+     "bytes": 148086,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/3ca534a3-13da-4de6-9e6b-b259af81758a",
+     "status": 200,
+     "bytes": 101209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/597940dc-36ac-4dfe-ac08-e7214df6c909",
+     "status": 200,
+     "bytes": 217353,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/33233c8a-2011-429a-be2d-873617db530b",
+     "status": 200,
+     "bytes": 179199,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/4207922c-e41c-4e36-b246-68dae7c9a2dc",
+     "status": 200,
+     "bytes": 17119,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/f6dec595-1ba6-4925-ac12-61f2cae4606e",
+     "status": 200,
+     "bytes": 120573,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/5e53586d-a979-4689-9967-143e49aab05f",
+     "status": 200,
+     "bytes": 85640,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8357/6548736c-947c-420b-b8ea-fd038784bd5e",
+     "status": 200,
+     "bytes": 406610,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8357/f1098d57-ab72-41cf-89c8-adad4e3d6fac",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    }
+   ],
+   "totalBytes": 42025581,
+   "totalMB": 40.08
+  },
+  "sanity": {
+   "msToFirstFrame": 56835,
+   "requests": [
+    {
+     "url": "index_test.html?go=sanity",
+     "status": 200,
+     "bytes": 1150881,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8512/f3a5198a-5f18-475d-bcff-7610e75c8241",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/970bac87-51f1-488b-ab58-acd944428929",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/651bc543-5841-4e13-b33c-547e5612ead8",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/31d0d500-3086-4b9c-8d1f-c617a0f18bff",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/ddc389a5-7a4d-4cc5-a797-806d80817fe3",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/4bf07653-ece2-4241-993e-4e636d94a065",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/f045d235-5cd0-4801-ae91-6d2058b9de67",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/7d4158e5-7136-462f-8f52-90b000e9b256",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/170fc298-d43c-42ec-986f-f05a626a591d",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/f0ea96d5-511a-40e6-b89f-45224ccc799a",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/a5a54626-a98f-49da-a970-e0fee74c1d33",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/725df155-90d5-4106-ac3e-3feabb772c77",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/2f13d5b6-9024-4a78-b455-90e788a470cf",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/df2f6d07-0e57-4300-adc2-e7c7504cc78e",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/f5795dc8-4fa4-42fe-9017-c15a5d1e93a3",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/c855a5e1-8ffd-4ef3-8f42-8393a2cdf3c0",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/ec2221d5-65e9-40e8-94ed-c3b4bdae0249",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/e85e78cd-ffc7-414a-89ec-bffa6c7ebe6c",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/eb9dbdef-fddf-4637-83b0-c64c43148547",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/a270931e-bc35-42d9-ae29-cb2f2fb3d604",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/e9d18c1e-ea89-478d-ad40-f7950bb6ef35",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/fb3d383f-c676-4639-ae94-f29771affa23",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/aa0444cc-41f6-45bb-b50d-1abe30ce682e",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/f99987bd-a0f1-43b2-bb87-644ff739d68e",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/c0c81b5e-a1a8-49ba-9f80-7d60fb7390d7",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/66af5151-c7f4-431d-b67f-1f7f3854f780",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/059f2524-3f76-4569-9060-5d2444f05485",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/adc5350a-605b-4218-b24f-4cc71b57b6f4",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/05d93a9e-07ef-449b-8adb-0c09833941f3",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/60cbfb55-0920-4a68-9986-c170a00a005f",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/de5906c7-914b-4954-b4a1-394cec0c0c91",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/45e4e454-ed4b-439f-be3e-b8ce12dc230d",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/e810ee84-01ae-4d12-8436-9dcd09e0d707",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/de4770e2-d735-4b1f-b452-a7a504fcd70d",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/83cace5f-34f9-487d-9e2e-4a564cf1702e",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8512/75558216-504c-4ad7-9108-bd7b5f6ab951",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/b92efc3c-466e-4cdb-8f07-b89ac722c364",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/e2915620-932b-469d-a771-b47efd8b104a",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8512/da165c87-d2fd-4f53-97ce-c8b5485c5265",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8512/cce27327-9bf5-42da-b063-f024fa0338cc",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/e72dacbd-b355-491c-9629-88ef81be45a3",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/2da1c1f4-ec33-442e-a4ca-3ab919834a2d",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/5cdb8eff-54c4-496a-9367-e6030bfef1e2",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/eafd19fd-033c-4adc-bd45-60b65ca42267",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/7a190c40-f070-4cab-ba88-dfab86529aee",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8512/d5d5a6dd-62f7-44f9-b220-04d20908b3de",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/10996026-3273-4374-add0-47917789b1aa",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/real2/whitewall_nor.jpg",
+     "status": 200,
+     "bytes": 167224,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/real2/whitewall_diff.jpg",
+     "status": 200,
+     "bytes": 76793,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/npc-crowd.glb",
+     "status": 200,
+     "bytes": 1581736,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/tang.glb",
+     "status": 200,
+     "bytes": 544060,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/dolphin_c.glb",
+     "status": 200,
+     "bytes": 189136,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-green.glb",
+     "status": 200,
+     "bytes": 1405704,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/crab.glb",
+     "status": 200,
+     "bytes": 512708,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/dolphin_b.glb",
+     "status": 200,
+     "bytes": 1044516,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/turtle_a.glb",
+     "status": 200,
+     "bytes": 542816,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8512/30f5dc54-f20c-4c7c-ae31-197737871890",
+     "status": 200,
+     "bytes": 26297,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/ebdc380c-3c42-424b-a248-3ab87baa6c83",
+     "status": 200,
+     "bytes": 2782,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/animals/turtle_c.glb",
+     "status": 200,
+     "bytes": 665896,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/turtle_b.glb",
+     "status": 200,
+     "bytes": 681760,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8512/8cd35dc9-6b06-4cc4-bce1-06a7b84968a2",
+     "status": 200,
+     "bytes": 405305,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8512/9a801634-975f-498b-a6b7-bb5e1d011a90",
+     "status": 200,
+     "bytes": 365,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/eac0d59d-61f2-4ddd-bf33-a84816dba4d7",
+     "status": 200,
+     "bytes": 23156,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/animals/horse_b.glb",
+     "status": 200,
+     "bytes": 1781064,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8512/354bbb4f-299b-4c57-9ed1-27fd90b86b08",
+     "status": 200,
+     "bytes": 74683,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/c4472d8b-7e04-4731-b23c-b12ebcbd7a90",
+     "status": 200,
+     "bytes": 11796,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/2da40ace-8deb-4f2b-9930-e99b3daf14aa",
+     "status": 200,
+     "bytes": 50223,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/303d78bc-60c1-4e80-ac73-111ec3b5f220",
+     "status": 200,
+     "bytes": 55634,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/d931b77b-18fd-4bb8-a0ca-6f17a2f11dba",
+     "status": 200,
+     "bytes": 31436,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/420a9d21-ce26-408d-bb51-5093467a3f4b",
+     "status": 200,
+     "bytes": 57307,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/57c9204c-2a94-4a28-97b5-5354a4133b36",
+     "status": 200,
+     "bytes": 16039,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/281fbe20-8a53-4d48-bb4d-3e1fe562cb12",
+     "status": 200,
+     "bytes": 42796,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8512/03e2de92-f22a-48f2-9a82-17e8975c582b",
+     "status": 200,
+     "bytes": 13192,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/7a4f0cbf-5243-4a79-8696-fcba9340f750",
+     "status": 200,
+     "bytes": 6407,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/626f15cd-6c6a-40ba-af43-53926a529dbb",
+     "status": 200,
+     "bytes": 9274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/eefb3356-098d-414c-9480-00cef607021e",
+     "status": 200,
+     "bytes": 9848,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/f15b0f30-6b6e-4372-84b5-fb4541b8a541",
+     "status": 200,
+     "bytes": 141488,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8512/3e3a1f28-a93b-470d-8201-af4e906e2efe",
+     "status": 200,
+     "bytes": 51455,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/0742ffa6-3b26-4f53-b492-7746e15d1944",
+     "status": 200,
+     "bytes": 27680,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/de71bc7a-0ed8-47da-a610-4b57571e2b61",
+     "status": 200,
+     "bytes": 12197,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/ffd96046-23aa-4b92-aeed-44f7e06050a8",
+     "status": 200,
+     "bytes": 6423,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8512/f2564ec0-2563-442c-9a38-29838c03cab8",
+     "status": 200,
+     "bytes": 7086,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/c05b7fbd-e02e-4b6b-ad6c-dc165f35dda7",
+     "status": 200,
+     "bytes": 13804,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/52c5ebe1-96f7-4992-aa79-1d8f5b9702c8",
+     "status": 200,
+     "bytes": 74230,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/6389abc4-deef-443d-9da7-4080840946b6",
+     "status": 200,
+     "bytes": 59721,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/cb780a83-08e8-4aa3-adf5-3c3d17acb876",
+     "status": 200,
+     "bytes": 79424,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/d9ec42a6-a0da-434a-98b8-5fe56ea56a9d",
+     "status": 200,
+     "bytes": 120573,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/e30abb5e-1e26-4079-8f06-bd19c4e6e3fd",
+     "status": 200,
+     "bytes": 85640,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8512/60e4fcf2-ffa1-43ce-9809-c1e41f1357e7",
+     "status": 200,
+     "bytes": 406610,
+     "type": "image/png"
+    }
+   ],
+   "totalBytes": 36669130,
+   "totalMB": 34.97
+  },
+  "town": {
+   "msToFirstFrame": 50211,
+   "requests": [
+    {
+     "url": "index_test.html?go=town",
+     "status": 200,
+     "bytes": 1150881,
+     "type": "text/html"
+    },
+    {
+     "url": "vendor/three187.min.js",
+     "status": 200,
+     "bytes": 831567,
+     "type": "text/javascript"
+    },
+    {
+     "url": "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap",
+     "status": 200,
+     "bytes": 0,
+     "type": "text/css; charset=utf-8"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+     "status": 200,
+     "bytes": 14820,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTR7PB1QTsUX8KYvumzEYOtbQ.woff2",
+     "status": 200,
+     "bytes": 14988,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizHRFtNs2ka5fXjeivQ4LroWlx-6zAjjH7M.woff2",
+     "status": 200,
+     "bytes": 22128,
+     "type": "font/woff2"
+    },
+    {
+     "url": "https://fonts.gstatic.com/s/instrumentserif/v5/jizBRFtNs2ka5fXjeivQ4LroWlx-6zUTjg.woff2",
+     "status": 200,
+     "bytes": 21032,
+     "type": "font/woff2"
+    },
+    {
+     "url": "assets/trees/foliage_diff.jpg",
+     "status": 200,
+     "bytes": 72108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_diff.jpg",
+     "status": 200,
+     "bytes": 386046,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/foliage_alpha.jpg",
+     "status": 200,
+     "bytes": 41679,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/ground/meadow_nor.jpg",
+     "status": 200,
+     "bytes": 125003,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_diff.jpg",
+     "status": 200,
+     "bytes": 95505,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/bark_nor.jpg",
+     "status": 200,
+     "bytes": 117595,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_diff.jpg",
+     "status": 200,
+     "bytes": 46817,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/palm_nor.jpg",
+     "status": 200,
+     "bytes": 105133,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_alpha.jpg",
+     "status": 200,
+     "bytes": 114203,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_diff.jpg",
+     "status": 200,
+     "bytes": 72274,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/frond_diff.jpg",
+     "status": 200,
+     "bytes": 94178,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/boulder_nor.jpg",
+     "status": 200,
+     "bytes": 55064,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_nor.jpg",
+     "status": 200,
+     "bytes": 88250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/rocks/strata_diff.jpg",
+     "status": 200,
+     "bytes": 91766,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_diff.jpg",
+     "status": 200,
+     "bytes": 71189,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/planks_nor.jpg",
+     "status": 200,
+     "bytes": 29240,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_nor.jpg",
+     "status": 200,
+     "bytes": 106083,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/wall_diff.jpg",
+     "status": 200,
+     "bytes": 87026,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_diff.jpg",
+     "status": 200,
+     "bytes": 54409,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/build/slate_nor.jpg",
+     "status": 200,
+     "bytes": 55659,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_diff.jpg",
+     "status": 200,
+     "bytes": 54250,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/trees/flowers_alpha.jpg",
+     "status": 200,
+     "bytes": 49414,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_diff.jpg",
+     "status": 200,
+     "bytes": 138982,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_alpha.jpg",
+     "status": 200,
+     "bytes": 154621,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/shore/sand_nor.jpg",
+     "status": 200,
+     "bytes": 303773,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/grass/grasscard_diff.jpg",
+     "status": 200,
+     "bytes": 170109,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_nor.jpg",
+     "status": 200,
+     "bytes": 51756,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dinghy_varnish_diff.jpg",
+     "status": 200,
+     "bytes": 134904,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/boats/dutch_ship.glb",
+     "status": 200,
+     "bytes": 1438988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/carrot.glb",
+     "status": 200,
+     "bytes": 236748,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/quill.glb",
+     "status": 200,
+     "bytes": 97888,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/note.glb",
+     "status": 200,
+     "bytes": 11056,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/fans.glb",
+     "status": 200,
+     "bytes": 238248,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/boots.glb",
+     "status": 200,
+     "bytes": 175252,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/lantern.glb",
+     "status": 200,
+     "bytes": 792280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/crown.glb",
+     "status": 200,
+     "bytes": 198996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/items/desk.glb",
+     "status": 200,
+     "bytes": 1270216,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8187/6d82f574-a801-4281-ab7d-0141c66e86e1",
+     "status": 200,
+     "bytes": 32340,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/72ba0986-3ab1-4c7c-9b5c-56deec0d7b08",
+     "status": 200,
+     "bytes": 48967,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/e00f79d2-9631-42c5-82d8-5959e959dc37",
+     "status": 200,
+     "bytes": 57108,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/bdb1591d-d86c-4282-84f1-28f7062909d2",
+     "status": 200,
+     "bytes": 46988,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/40354645-616e-4acb-9acd-1ba241bea0a5",
+     "status": 200,
+     "bytes": 91034,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/0af8e708-65c5-4406-a9aa-e5acb0fdf08e",
+     "status": 200,
+     "bytes": 98445,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/472082be-1afe-456a-a908-3de56f46fdd5",
+     "status": 200,
+     "bytes": 34841,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/9f1b8144-8402-4768-882a-75b7ec1ca826",
+     "status": 200,
+     "bytes": 27578,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/0a81a598-2d21-45d3-98f6-11ad57545c04",
+     "status": 200,
+     "bytes": 56975,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/37ad6bec-07ab-494c-ae1f-f1c470d9ecab",
+     "status": 200,
+     "bytes": 4118,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/05ee699a-427e-4af2-a6f6-44db49544891",
+     "status": 200,
+     "bytes": 8067,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/c6829519-d271-4eeb-be26-1a435441f2d6",
+     "status": 200,
+     "bytes": 3209,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/47d0a234-2716-4b5e-ba6d-e03402624852",
+     "status": 200,
+     "bytes": 13950,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/f1864a13-6f85-4884-8baa-8bba5cae9f90",
+     "status": 200,
+     "bytes": 10819,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/c7cc8ea0-df8a-4930-a92f-7fec466fd4e4",
+     "status": 200,
+     "bytes": 10134,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/55685abb-97d1-4d9c-89c3-26e2d1e4855e",
+     "status": 200,
+     "bytes": 29785,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/3afe04ed-c9aa-4d49-befd-ffeefedd941e",
+     "status": 200,
+     "bytes": 25787,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/27c7f95b-a058-43c0-9bd7-c01cc1c889b0",
+     "status": 200,
+     "bytes": 36010,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/a6781322-3645-4765-8a16-a97a1f75b2d8",
+     "status": 200,
+     "bytes": 50032,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/10ca862b-4cbe-487e-af81-c7320ba3a5ba",
+     "status": 200,
+     "bytes": 65968,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/27e76395-da64-42d6-b4b0-21c68f178ba6",
+     "status": 200,
+     "bytes": 81802,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/148d2f08-acd9-4e22-8592-ebcc60b70e74",
+     "status": 200,
+     "bytes": 54466,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/0c507a98-9343-4376-b41c-1156101051c5",
+     "status": 200,
+     "bytes": 66374,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/304c4ded-ce39-4edc-b453-0c91df52690b",
+     "status": 200,
+     "bytes": 42013,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/89107a2a-b258-4484-a17c-bee77f7a7f18",
+     "status": 200,
+     "bytes": 59435,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/977da3b1-42e3-4496-8a73-e8eb6b94e30b",
+     "status": 200,
+     "bytes": 50101,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/35348a1b-df6e-4225-826c-c3a72d103192",
+     "status": 200,
+     "bytes": 57764,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/d4c12fe5-c6cf-4f3f-9f14-ab21fd4e29eb",
+     "status": 200,
+     "bytes": 87191,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/ebe6578c-2e04-4b2c-9d73-48198668da17",
+     "status": 200,
+     "bytes": 59893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/c203a80b-5c4b-4da3-8026-459600f5b006",
+     "status": 200,
+     "bytes": 55282,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/1c62a414-0f9c-4017-a477-df5326469ad2",
+     "status": 200,
+     "bytes": 48378,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/16c7cb8c-e124-402b-affa-a632cf69b06b",
+     "status": 200,
+     "bytes": 46887,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/6c7ae2bf-b12b-456e-9073-87e9487ff8b3",
+     "status": 200,
+     "bytes": 41728,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/23806a6e-038e-455b-9fde-c0486c11ea10",
+     "status": 200,
+     "bytes": 40456,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/10aa6957-a91e-4fdf-8e8d-925604a2b089",
+     "status": 200,
+     "bytes": 31497,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloofendal_overcast_puresky_up.jpg",
+     "status": 200,
+     "bytes": 70186,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/sky/kloppenheim_06_puresky_up.jpg",
+     "status": 200,
+     "bytes": 101597,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/flora.glb",
+     "status": 200,
+     "bytes": 101656,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gull.glb",
+     "status": 200,
+     "bytes": 398336,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/gullflock.glb",
+     "status": 200,
+     "bytes": 103488,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8187/659a0f08-f830-46f5-b73e-0255af20cbf8",
+     "status": 200,
+     "bytes": 59473,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/lala.glb",
+     "status": 200,
+     "bytes": 6974652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_a.glb",
+     "status": 200,
+     "bytes": 810756,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_b.glb",
+     "status": 200,
+     "bytes": 737852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-fan.glb",
+     "status": 200,
+     "bytes": 1631524,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-dock.glb",
+     "status": 200,
+     "bytes": 1167504,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/iguana_c.glb",
+     "status": 200,
+     "bytes": 1636256,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8187/5f0ef869-659a-449e-8e50-f97cbbff12a7",
+     "status": 200,
+     "bytes": 41372,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/01678206-0ab9-45d6-b01f-1b527c76440b",
+     "status": 200,
+     "bytes": 3073,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/f8ee38b9-d44c-44ab-9a30-979576ded284",
+     "status": 200,
+     "bytes": 78521,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/5ee3b486-d9eb-409e-b81f-21b0d30f9106",
+     "status": 200,
+     "bytes": 71709,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/4ea71d77-46a2-46c0-9a18-d278b0a66a8d",
+     "status": 200,
+     "bytes": 67100,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/0011e69c-1bb1-4b02-8083-274788a9778c",
+     "status": 200,
+     "bytes": 101290,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/9adcf2f6-7f93-4085-bbf1-4095b6ab0ce3",
+     "status": 200,
+     "bytes": 98027,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/f543d3ba-98b9-403a-a30c-efb94ad837fb",
+     "status": 200,
+     "bytes": 31784,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/905400bd-ced7-481f-8ac1-275ba316e589",
+     "status": 200,
+     "bytes": 41978,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/a10a73a8-6392-49ec-8192-1bf203b02486",
+     "status": 200,
+     "bytes": 53516,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/0e0f142b-ee4e-4d68-a621-b560ab11b2ca",
+     "status": 200,
+     "bytes": 113650,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/real2/paving_diff.jpg",
+     "status": 200,
+     "bytes": 237499,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/real2/paving_nor.jpg",
+     "status": 200,
+     "bytes": 260893,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "assets/buildings/b2.glb",
+     "status": 200,
+     "bytes": 1166036,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b4.glb",
+     "status": 200,
+     "bytes": 469496,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b5.glb",
+     "status": 200,
+     "bytes": 1510348,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b3.glb",
+     "status": 200,
+     "bytes": 614352,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b7.glb",
+     "status": 200,
+     "bytes": 853900,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b10.glb",
+     "status": 200,
+     "bytes": 901852,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b15.glb",
+     "status": 200,
+     "bytes": 852644,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b9.glb",
+     "status": 200,
+     "bytes": 1433280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b11.glb",
+     "status": 200,
+     "bytes": 304244,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b16.glb",
+     "status": 200,
+     "bytes": 840808,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/buildings/b19.glb",
+     "status": 200,
+     "bytes": 226500,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8187/b4c5c25c-ea2b-467d-bdc6-52cda9d4b668",
+     "status": 200,
+     "bytes": 62869,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/064dcd08-3a35-4c16-bf17-d2a490bd1b0d",
+     "status": 200,
+     "bytes": 32797,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/37f36aa6-34de-42a2-aff9-8d9030b2298b",
+     "status": 200,
+     "bytes": 201671,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/d5dd61da-b5bb-453b-9151-022f5c9333a1",
+     "status": 200,
+     "bytes": 125564,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/cd513baa-f5ec-463d-b2ba-e4c89a1de3e0",
+     "status": 200,
+     "bytes": 96075,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/aec9fe5a-7aa5-48d5-8d35-ab1b7c91324f",
+     "status": 200,
+     "bytes": 70960,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/9d2bf7b3-ea1f-4273-bc13-60b723e75485",
+     "status": 200,
+     "bytes": 121580,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/876b8752-b547-4c54-923e-caab574b1b1e",
+     "status": 200,
+     "bytes": 191472,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/7024a388-9005-4246-9e2e-97cf5ec59079",
+     "status": 200,
+     "bytes": 38263,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/21ca0bd1-2924-4676-9824-92a4c34273be",
+     "status": 200,
+     "bytes": 140410,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/3c3ae0a7-2a2d-4e22-8b38-a9dc48037f53",
+     "status": 200,
+     "bytes": 16497,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/fb021de9-5545-4565-acd8-5594a5ef3d9b",
+     "status": 200,
+     "bytes": 101504,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/a6d8578f-29a3-440d-8fd1-aaf161767473",
+     "status": 200,
+     "bytes": 144340,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/3689534e-2cda-4b47-9eca-a9d9f8984132",
+     "status": 200,
+     "bytes": 120972,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/41bd3811-4b0b-4739-ba47-df2c6bbfcbc6",
+     "status": 200,
+     "bytes": 43230,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/f8acc5a8-c4fe-40d3-866f-5e4163f2171d",
+     "status": 200,
+     "bytes": 163369,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/a0e8f0c0-8ea7-4bec-a427-65f0fcfe9d2c",
+     "status": 200,
+     "bytes": 212752,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/593304b4-4641-4841-aca0-69d72f878302",
+     "status": 200,
+     "bytes": 13170,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/cd201346-82bb-4027-b795-d4525de6ffdc",
+     "status": 200,
+     "bytes": 130741,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/a04bd54e-1cbf-4320-8e2e-9cef61826a44",
+     "status": 200,
+     "bytes": 485,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/5239c1d1-9d4f-426e-9551-9f3f6bb8b507",
+     "status": 200,
+     "bytes": 75497,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/c2d774f5-2bdf-4936-a39e-a88ba1cbd599",
+     "status": 200,
+     "bytes": 53702,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/93730584-bbd5-4b1a-a290-9f5bc3607e10",
+     "status": 200,
+     "bytes": 391,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/2e006d29-798a-4bd6-be24-03cd3228ae54",
+     "status": 200,
+     "bytes": 46453,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/b8d73d6c-9be5-486c-913d-b829ea44bdd6",
+     "status": 200,
+     "bytes": 140114,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/1c89a078-7846-4492-a938-d9a23357ad9e",
+     "status": 200,
+     "bytes": 41182,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/a346923b-8afd-41a3-b0a2-25262cc5abbd",
+     "status": 200,
+     "bytes": 41009,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/f68d0117-a6c9-47d0-9d9a-a6612fea0c7a",
+     "status": 200,
+     "bytes": 53656,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/47596c2c-3615-4613-ac27-065e09cd2049",
+     "status": 200,
+     "bytes": 29775,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/fcfa14cc-6f56-453a-b8b7-8ac8e9aa0f12",
+     "status": 200,
+     "bytes": 32892,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/0f76b02a-21fe-4444-8fb4-d50581ef42f3",
+     "status": 200,
+     "bytes": 55928,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/b4b5ea00-76cc-4bde-870d-a35f9a6a434d",
+     "status": 200,
+     "bytes": 29688,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/dd62f1e7-d6c4-4dfa-b3d8-544193cf1655",
+     "status": 200,
+     "bytes": 24223,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/8771a0f1-5bb3-40bc-bb72-e4b79752d8c7",
+     "status": 200,
+     "bytes": 56558,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/feb60dcf-bd1b-4251-b6ab-81de9a245a7e",
+     "status": 200,
+     "bytes": 26453,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/a8cc106a-3a77-4c68-9286-907d7fb22b89",
+     "status": 200,
+     "bytes": 31898,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/6656f798-2d70-4270-ba71-ed82103f37dc",
+     "status": 200,
+     "bytes": 51143,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/b186da4e-2dbf-46d4-bc0d-549e17041939",
+     "status": 200,
+     "bytes": 24518,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/fea3438f-4993-41d9-860f-9fe1a4441eb4",
+     "status": 200,
+     "bytes": 34270,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/a9ad3918-3c3b-4c6d-b807-a003172ed155",
+     "status": 200,
+     "bytes": 32456,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/02dbd2f9-66f0-4c98-9e03-1dea264235aa",
+     "status": 200,
+     "bytes": 14160,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/f268dd81-8fcf-4f5a-84c5-4edd1d5bd426",
+     "status": 200,
+     "bytes": 16604,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/547cb42b-5245-4236-881a-0ec00ca660f8",
+     "status": 200,
+     "bytes": 50624,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/d11e8193-4d37-4494-880c-83f8f11f2826",
+     "status": 200,
+     "bytes": 30063,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/d2f89b55-d56b-439c-8490-113f4ddd43f6",
+     "status": 200,
+     "bytes": 22863,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/e2b618e4-b0eb-4620-85ab-b047f32af75d",
+     "status": 200,
+     "bytes": 47741,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/841a960b-4cd3-4f80-a458-0ee3eaaa9e3b",
+     "status": 200,
+     "bytes": 154504,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/8e5865f2-bd70-405a-a959-5d1bdbc30293",
+     "status": 200,
+     "bytes": 38442,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/31784b74-6bcd-4a30-8dcc-c39e9d2cfedb",
+     "status": 200,
+     "bytes": 28378,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/bc1f5850-a988-4a10-b05e-30a34b004f15",
+     "status": 200,
+     "bytes": 62469,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/798454c0-122f-4f8f-b018-cf222cac90a2",
+     "status": 200,
+     "bytes": 26090,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/80f921cc-b23c-45b7-9b98-13741b51f91b",
+     "status": 200,
+     "bytes": 50247,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/1aa34836-0f46-4e6f-a51b-4f28beaa095a",
+     "status": 200,
+     "bytes": 37503,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/b7d047b2-653b-40aa-a56e-3969a2956b64",
+     "status": 200,
+     "bytes": 11535,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/d876a62c-d83b-48e7-888f-aa6956d9cf51",
+     "status": 200,
+     "bytes": 32581,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/c89398bc-fd87-4b77-b467-3a211bb377ee",
+     "status": 200,
+     "bytes": 39994,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/3144ff24-bc3e-4d45-aed6-e23a5dd386ef",
+     "status": 200,
+     "bytes": 49090,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/9c6fb0bd-bd18-4aeb-aa76-5e40f9fcb1e9",
+     "status": 200,
+     "bytes": 48089,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/80f0e4c4-adfb-4e3c-8ce8-5734063cee19",
+     "status": 200,
+     "bytes": 38740,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/5ccdace3-288d-4e9c-b6b3-fb261d98361d",
+     "status": 200,
+     "bytes": 31234,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/ebc00e65-87d7-4ba4-89f1-9b0bc01aae1c",
+     "status": 200,
+     "bytes": 60464,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/32b3ff06-aafc-483a-ba0b-b4af6df486bb",
+     "status": 200,
+     "bytes": 15987,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/93d93941-e522-4d2c-8f52-db2b96a50fc8",
+     "status": 200,
+     "bytes": 21368,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/ef08215b-8065-435a-a117-3cc0328bb7a0",
+     "status": 200,
+     "bytes": 42234,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/8a329b10-df96-49e2-a01b-fdfbcdf88517",
+     "status": 200,
+     "bytes": 11586,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/86d1034e-e0e6-47ea-8f99-ed0a0b5f07d6",
+     "status": 200,
+     "bytes": 13103,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/94820cc2-fba2-44e3-a52e-ea978c5a890a",
+     "status": 200,
+     "bytes": 61012,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/0da75ca7-dab2-445e-980d-f7cb7ca69131",
+     "status": 200,
+     "bytes": 30885,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/b4972ab4-367c-498f-83cc-f3095768ada6",
+     "status": 200,
+     "bytes": 16330,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/da2f36c0-d5e7-441b-a54d-d23c0aebc019",
+     "status": 200,
+     "bytes": 10324,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/458aafa4-66a7-4e8d-9a25-0fb3bb451533",
+     "status": 200,
+     "bytes": 35287,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/cd9e400d-47cf-49d1-aff1-c2c546067598",
+     "status": 200,
+     "bytes": 63605,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/1e944c30-258a-4744-b5ef-e7a875610057",
+     "status": 200,
+     "bytes": 27918,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/e6adc029-7177-4c09-ac53-54977b3ca322",
+     "status": 200,
+     "bytes": 117949,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/75b1ebca-75f4-424c-b587-0bba299039ed",
+     "status": 200,
+     "bytes": 43230,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/eb07d607-9db0-40d0-bf02-b12f3cb093eb",
+     "status": 200,
+     "bytes": 163369,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/c3869f76-fa41-41a0-95a6-fdb182239918",
+     "status": 200,
+     "bytes": 212752,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/cd94094c-4e77-4413-87f6-6337cb8c9cfc",
+     "status": 200,
+     "bytes": 120972,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/0b7536d2-0c0e-4088-8e9f-c119e51e5262",
+     "status": 200,
+     "bytes": 116963,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/0201ea87-a44a-40f7-89e9-c27f6c42b9bd",
+     "status": 200,
+     "bytes": 75828,
+     "type": "image/png"
+    },
+    {
+     "url": "assets/fans/fan03.glb",
+     "status": 200,
+     "bytes": 705764,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan12.glb",
+     "status": 200,
+     "bytes": 716280,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan05.glb",
+     "status": 200,
+     "bytes": 800904,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan04.glb",
+     "status": 200,
+     "bytes": 903928,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan01.glb",
+     "status": 200,
+     "bytes": 772088,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan11.glb",
+     "status": 200,
+     "bytes": 826652,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan07.glb",
+     "status": 200,
+     "bytes": 846708,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan02.glb",
+     "status": 200,
+     "bytes": 753544,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan06.glb",
+     "status": 200,
+     "bytes": 804316,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan09.glb",
+     "status": 200,
+     "bytes": 720988,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan08.glb",
+     "status": 200,
+     "bytes": 704892,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/fan10.glb",
+     "status": 200,
+     "bytes": 813980,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-crowd.glb",
+     "status": 200,
+     "bytes": 1581736,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/npc-green.glb",
+     "status": 200,
+     "bytes": 1405704,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/cow.glb",
+     "status": 200,
+     "bytes": 611324,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/bull.glb",
+     "status": 200,
+     "bytes": 918276,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/chicken.glb",
+     "status": 200,
+     "bytes": 1526976,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/macaw_b.glb",
+     "status": 200,
+     "bytes": 713152,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/macaw_c.glb",
+     "status": 200,
+     "bytes": 775860,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/flamingo.glb",
+     "status": 200,
+     "bytes": 767404,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/animals/horse_b.glb",
+     "status": 200,
+     "bytes": 1781064,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8187/807d306e-2593-4dd3-bfe5-ef395058231c",
+     "status": 200,
+     "bytes": 33798,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/fans/proxy/fan12.glb",
+     "status": 200,
+     "bytes": 140096,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan05.glb",
+     "status": 200,
+     "bytes": 166996,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan03.glb",
+     "status": 200,
+     "bytes": 143768,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan04.glb",
+     "status": 200,
+     "bytes": 175772,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan01.glb",
+     "status": 200,
+     "bytes": 171872,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan11.glb",
+     "status": 200,
+     "bytes": 174720,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8187/6c0f98b8-6776-41e9-a3ec-97b33fda10d9",
+     "status": 200,
+     "bytes": 32324,
+     "type": "image/webp"
+    },
+    {
+     "url": "assets/fans/proxy/fan02.glb",
+     "status": 200,
+     "bytes": 159868,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan07.glb",
+     "status": 200,
+     "bytes": 171496,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan06.glb",
+     "status": 200,
+     "bytes": 178532,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan09.glb",
+     "status": 200,
+     "bytes": 148680,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan08.glb",
+     "status": 200,
+     "bytes": 134880,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "assets/fans/proxy/fan10.glb",
+     "status": 200,
+     "bytes": 188944,
+     "type": "model/gltf-binary"
+    },
+    {
+     "url": "blob:http://localhost:8187/cd7b9e8f-58bc-401f-9eff-fbecc305e3b5",
+     "status": 200,
+     "bytes": 46372,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/b0af57ef-2e00-4e13-bdb2-cccb2f639d1e",
+     "status": 200,
+     "bytes": 52682,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/097f7383-ecbc-42f7-926d-e5777f9176a7",
+     "status": 200,
+     "bytes": 49268,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/b1a73468-c143-4aa4-aae9-74ff94bb9bbe",
+     "status": 200,
+     "bytes": 50448,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/6747cc84-85e0-406c-8141-da4effbdc3ff",
+     "status": 200,
+     "bytes": 39350,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/6e7ccab7-b008-48e1-928b-c2d4f43ce16e",
+     "status": 200,
+     "bytes": 44652,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/001f4898-73f2-46cc-b3cb-943da0bac2aa",
+     "status": 200,
+     "bytes": 56538,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/21b5b964-fb0b-4d53-811e-9620bfd6dbe8",
+     "status": 200,
+     "bytes": 39444,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/5bba3fbf-0b75-4e7a-97ab-d9fc4780d06b",
+     "status": 200,
+     "bytes": 35312,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/a9f140a8-59a6-4bb6-b2ae-13d4bf48d20c",
+     "status": 200,
+     "bytes": 65532,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/2dc52b6b-630f-4327-8615-d11b3fee75e3",
+     "status": 200,
+     "bytes": 141488,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/306c1ee8-3737-4e78-a75a-b810a7952558",
+     "status": 200,
+     "bytes": 42796,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/ecc8f35b-00e1-4713-bdbf-db370b90ad0f",
+     "status": 200,
+     "bytes": 22429,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/311f7a29-54d6-4b20-948f-8c22557eb323",
+     "status": 200,
+     "bytes": 1599,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/e2f77066-0555-46a5-be94-c01b681f085d",
+     "status": 200,
+     "bytes": 48143,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/3ab51697-5f51-439d-b4e4-194a265507aa",
+     "status": 200,
+     "bytes": 152631,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/05264938-7155-465c-b0b1-4db931fd5124",
+     "status": 200,
+     "bytes": 44311,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/e1be1df8-09b8-4e54-8f1e-c69b0fba7224",
+     "status": 200,
+     "bytes": 606564,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/38ac3677-9d61-4934-a136-7497092a2597",
+     "status": 200,
+     "bytes": 497969,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/1a3bca4e-239e-4212-b164-30ecb7556c78",
+     "status": 200,
+     "bytes": 521219,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/f682c8a3-a093-4e5b-a15b-1ec993f74585",
+     "status": 200,
+     "bytes": 53327,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/d9fa1d3e-067e-469b-81bc-aa9d3492c392",
+     "status": 200,
+     "bytes": 120573,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/304ac7d6-d684-4b0c-a225-6c371a2948de",
+     "status": 200,
+     "bytes": 85640,
+     "type": "image/jpeg"
+    },
+    {
+     "url": "blob:http://localhost:8187/198393b4-22c9-4792-8e08-889aef70f279",
+     "status": 200,
+     "bytes": 406610,
+     "type": "image/png"
+    },
+    {
+     "url": "blob:http://localhost:8187/9047ec3f-82d6-429b-b0e9-9671f433de96",
+     "status": 200,
+     "bytes": 32324,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/c88cfcdd-71fd-491a-b8d9-34884ba14eaf",
+     "status": 200,
+     "bytes": 46372,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/f2b5906d-fa6b-412f-a919-21d35b2b322e",
+     "status": 200,
+     "bytes": 33798,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/9a0bad5b-2001-4358-9f7d-8cada9c59b3a",
+     "status": 200,
+     "bytes": 52682,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/c090dba7-ce2b-468b-89fb-783663f485b4",
+     "status": 200,
+     "bytes": 49268,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/0d419082-adfa-4b59-af55-6fc66e51f4d5",
+     "status": 200,
+     "bytes": 50448,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/e472acc7-bb6d-45d6-8d47-0d274f449f7d",
+     "status": 200,
+     "bytes": 44652,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/2feedcd2-7219-4070-968b-59ba0aa7044c",
+     "status": 200,
+     "bytes": 39350,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/c6f0471c-c611-4274-b400-fa63e5d5f7ac",
+     "status": 200,
+     "bytes": 56538,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/779b92b3-3afa-416c-9679-86ea7c83beea",
+     "status": 200,
+     "bytes": 39444,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/c3e1b723-c841-427b-bbfc-717dba3eb026",
+     "status": 200,
+     "bytes": 35312,
+     "type": "image/webp"
+    },
+    {
+     "url": "blob:http://localhost:8187/830d46d5-cd74-4767-b1d2-21ea0e94b289",
+     "status": 200,
+     "bytes": 65532,
+     "type": "image/webp"
+    }
+   ],
+   "totalBytes": 65471245,
+   "totalMB": 62.44
+  }
+ }
+}
