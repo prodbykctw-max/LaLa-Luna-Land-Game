@@ -1,0 +1,1 @@
+node qa/sanityperf_census.mjs hub --tag=new > qa/out/census_new_hub.txt 2>&1
