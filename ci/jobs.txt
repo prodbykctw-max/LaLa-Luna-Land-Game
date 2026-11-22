@@ -1,0 +1,32 @@
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=sanity
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=town
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old2 --islands=hub --frames=85
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new2 --islands=hub --frames=85
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=newLS0 --islands=sanity --query=lalashadow=0 --frames=85
+QA_ROOT=$BASE node qa/sanityperf_jump.mjs --tag=old > qa/out/jump_old.txt 2>&1
+node qa/sanityperf_jump.mjs --tag=new > qa/out/jump_new.txt 2>&1
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=vold --islands=sanity --video=1
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=vnew --islands=sanity --video=1
+QA_ROOT=$BASE node qa/sanityperf_play.mjs sanity --tag=old --frames=20 > qa/out/play_old_sanity.txt 2>&1
+node qa/sanityperf_play.mjs sanity --tag=new --frames=20 > qa/out/play_new_sanity.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_play.mjs hub --tag=old --frames=15 > qa/out/play_old_hub.txt 2>&1
+node qa/sanityperf_play.mjs hub --tag=new --frames=15 > qa/out/play_new_hub.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_play.mjs green --tag=old --frames=15 > qa/out/play_old_green.txt 2>&1
+node qa/sanityperf_play.mjs green --tag=new --frames=15 > qa/out/play_new_green.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_play.mjs gr --tag=old --frames=15 > qa/out/play_old_gr.txt 2>&1
+node qa/sanityperf_play.mjs gr --tag=new --frames=15 > qa/out/play_new_gr.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_play.mjs town --tag=old --frames=15 > qa/out/play_old_town.txt 2>&1
+node qa/sanityperf_play.mjs town --tag=new --frames=15 > qa/out/play_new_town.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_load.mjs sanity --tag=old > qa/out/load_old.txt 2>&1
+node qa/sanityperf_load.mjs sanity --tag=new > qa/out/load_new.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_census.mjs sanity --tag=old > qa/out/census_old_sanity.txt 2>&1
+node qa/sanityperf_census.mjs sanity --tag=new > qa/out/census_new_sanity.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_census.mjs hub --tag=old > qa/out/census_old_hub.txt 2>&1
+node qa/sanityperf_census.mjs hub --tag=new > qa/out/census_new_hub.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_census.mjs green --tag=old > qa/out/census_old_green.txt 2>&1
+node qa/sanityperf_census.mjs green --tag=new > qa/out/census_new_green.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_census.mjs gr --tag=old > qa/out/census_old_gr.txt 2>&1
+node qa/sanityperf_census.mjs gr --tag=new > qa/out/census_new_gr.txt 2>&1
+QA_ROOT=$BASE node qa/sanityperf_census.mjs town --tag=old > qa/out/census_old_town.txt 2>&1
+node qa/sanityperf_census.mjs town --tag=new > qa/out/census_new_town.txt 2>&1
+bash qa/run_all.sh > qa/out/run_all.txt 2>&1
