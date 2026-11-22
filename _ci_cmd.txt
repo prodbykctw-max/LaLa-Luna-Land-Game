@@ -1,0 +1,1 @@
+node qa/sanityperf_top.mjs gr --tag=all > qa/out/top_all_gr.txt 2>&1
