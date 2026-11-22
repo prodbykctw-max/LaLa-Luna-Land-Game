@@ -1,0 +1,1 @@
+timeout 3300 node qa/mobile.mjs > qa/out/new_mobile.out 2> qa/out/new_mobile.log; echo rc=$? >> qa/out/new_mobile.log
