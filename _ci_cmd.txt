@@ -1,0 +1,1 @@
+node qa/sanityperf_top.mjs sanity --tag=new > qa/out/top_sanity.txt 2>&1
