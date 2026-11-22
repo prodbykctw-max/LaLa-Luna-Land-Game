@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/sanityperf_jump.mjs --tag=old > qa/out/jump_old.txt 2>&1
