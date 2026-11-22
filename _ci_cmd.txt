@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/scale.mjs > qa/out/scale.base.out 2> qa/out/scale.base.log; r=$?; tail -25 qa/out/scale.base.log; tail -25 qa/out/scale.base.out; exit $r
