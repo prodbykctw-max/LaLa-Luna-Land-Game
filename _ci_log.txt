@@ -1,0 +1,2 @@
+{"video":false,"tag":"old2","clockSteps":{"sanity":[17,17,16,17,17,16]},"errors":{"sanity":[]},"shots":{"sanity":[19,79],"sanity_finalPose":{"x":0,"y":1.706,"z":441.552}}}
+rc=0

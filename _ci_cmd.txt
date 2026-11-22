@@ -1,0 +1,1 @@
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old2 --islands=sanity --frames=85
