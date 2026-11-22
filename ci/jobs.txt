@@ -1,0 +1,6 @@
+node qa/sanityperf_load.mjs sanity --tag=warmnew1 > qa/out/load_warmnew1.txt 2>&1
+node qa/sanityperf_load.mjs sanity --tag=warmold1 --flags=warm=old > qa/out/load_warmold1.txt 2>&1
+node qa/sanityperf_load.mjs sanity --tag=warmnew2 > qa/out/load_warmnew2.txt 2>&1
+node qa/sanityperf_load.mjs sanity --tag=warmold2 --flags=warm=old > qa/out/load_warmold2.txt 2>&1
+node qa/sanityperf_load.mjs town --tag=warmnew > qa/out/load_town_new.txt 2>&1
+node qa/sanityperf_load.mjs town --tag=warmold --flags=warm=old > qa/out/load_town_old.txt 2>&1
