@@ -1,0 +1,1 @@
+[ -f qa/vaudit.mjs ] && timeout 3000 node qa/vaudit.mjs > qa/out/vaudit.out 2> qa/out/vaudit.log; echo rc=$? >> qa/out/vaudit.log
