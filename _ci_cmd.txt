@@ -1,0 +1,1 @@
+node qa/sanityperf_play.mjs green --tag=new --frames=15 > qa/out/play_new_green.txt 2>&1
