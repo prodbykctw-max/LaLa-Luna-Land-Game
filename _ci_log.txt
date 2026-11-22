@@ -1,0 +1,31 @@
+[reach] hub: note/Pinned to the keep door=OK, note/Folded under a stone=OK, note/Tucked in a lantern=OK, note/Left at the tree line=OK, note/Nailed to the dock post=OK, npc/Moss=OK, npc/Pip=OK, dock/dock=OK, castle/keep doors=OK
+[reach] green: note/Under the arch=OK, note/On Horse Hill=OK, note/By the stream=OK, ability/Her fans=OK, letter/Letter L=OK, npc/Wren=OK, npc/Juno=OK, npc/Marisol=OK, npc/Dee=OK, npc/Theo=OK, npc/Nan=OK, npc/Ollie the postman=OK, dock/dock=OK
+[reach] gr: note/Wedged in a fossil=OK, note/At the foot of the caldera=OK, note/Below the ledge=OK, ability/Her boots=OK, letter/Letter U=OK, npc/Marisol=OK, npc/Dee=OK, npc/Theo=OK, npc/Nan=OK, npc/Ollie the postman=OK, dock/dock=OK
+[reach] sanity: note/In a tide pool=OK, note/At the foot of the lighthouse=OK, note/On the sea stack=OK, ability/Her lantern=OK, letter/Letter N=OK, npc/Marisol=OK, npc/Dee=OK, npc/Theo=OK, npc/Nan=OK, npc/Ollie the postman=OK, dock/dock=OK
+[reach] town: note/Pinned to a beach umbrella=OK, note/By the fountain=OK, note/At the gate=OK, ability/Her crown=OK, letter/Letter A=OK, npc/Bea=OK, npc/Neri=OK, npc/Cass=OK, npc/Rafa=OK, npc/Marisol=OK, npc/Dee=OK_OTHER_NPC_CLOSER, npc/Theo=OK, npc/Nan=OK, npc/Ollie the postman=OK, dock/dock=OK
+    "note": 0,
+    "noteAt": [
+     -102.9,
+     61.4
+    ],
+    "dist": 6.3
+   },
+   {
+    "npc": "Nan",
+    "home": [
+     7,
+     -8
+    ],
+    "wander": 28,
+    "note": 1,
+    "noteAt": [
+     16,
+     24
+    ],
+    "dist": 33.2
+   }
+  ],
+  "pageErrors": []
+ }
+}
+rc=0

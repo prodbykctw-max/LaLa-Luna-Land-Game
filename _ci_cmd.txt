@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/reach.mjs > qa/out/reach.base.out 2> qa/out/reach.base.log; r=$?; tail -25 qa/out/reach.base.log; tail -25 qa/out/reach.base.out; exit $r
