@@ -1,0 +1,40 @@
+node qa/sanityperf_top.mjs hub --tag=all > qa/out/top_all_hub.txt 2>&1
+node qa/sanityperf_top.mjs hub --tag=nofs --flags=farskin=0 > qa/out/top_nofs_hub.txt 2>&1
+node qa/sanityperf_top.mjs hub --tag=nofc --flags=farcull=0 > qa/out/top_nofc_hub.txt 2>&1
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=hub
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new2 --islands=hub
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofs --islands=hub --query=farskin=0
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofc --islands=hub --query=farcull=0
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=hub
+node qa/sanityperf_top.mjs green --tag=all > qa/out/top_all_green.txt 2>&1
+node qa/sanityperf_top.mjs green --tag=nofs --flags=farskin=0 > qa/out/top_nofs_green.txt 2>&1
+node qa/sanityperf_top.mjs green --tag=nofc --flags=farcull=0 > qa/out/top_nofc_green.txt 2>&1
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=green
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new2 --islands=green
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofs --islands=green --query=farskin=0
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofc --islands=green --query=farcull=0
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=green
+node qa/sanityperf_top.mjs gr --tag=all > qa/out/top_all_gr.txt 2>&1
+node qa/sanityperf_top.mjs gr --tag=nofs --flags=farskin=0 > qa/out/top_nofs_gr.txt 2>&1
+node qa/sanityperf_top.mjs gr --tag=nofc --flags=farcull=0 > qa/out/top_nofc_gr.txt 2>&1
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=gr
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new2 --islands=gr
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofs --islands=gr --query=farskin=0
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofc --islands=gr --query=farcull=0
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=gr
+node qa/sanityperf_top.mjs sanity --tag=all > qa/out/top_all_sanity.txt 2>&1
+node qa/sanityperf_top.mjs sanity --tag=nofs --flags=farskin=0 > qa/out/top_nofs_sanity.txt 2>&1
+node qa/sanityperf_top.mjs sanity --tag=nofc --flags=farcull=0 > qa/out/top_nofc_sanity.txt 2>&1
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=sanity
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new2 --islands=sanity
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofs --islands=sanity --query=farskin=0
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofc --islands=sanity --query=farcull=0
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=sanity
+node qa/sanityperf_top.mjs town --tag=all > qa/out/top_all_town.txt 2>&1
+node qa/sanityperf_top.mjs town --tag=nofs --flags=farskin=0 > qa/out/top_nofs_town.txt 2>&1
+node qa/sanityperf_top.mjs town --tag=nofc --flags=farcull=0 > qa/out/top_nofc_town.txt 2>&1
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new --islands=town
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=new2 --islands=town
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofs --islands=town --query=farskin=0
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofc --islands=town --query=farcull=0
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=old --islands=town
