@@ -1,0 +1,34 @@
+timeout 3300 node qa/syntax.mjs > qa/out/new_syntax.out 2> qa/out/new_syntax.log; echo rc=$? >> qa/out/new_syntax.log
+QA_ROOT=$BASE timeout 3300 node qa/syntax.mjs > qa/out/old_syntax.out 2> qa/out/old_syntax.log; echo rc=$? >> qa/out/old_syntax.log
+timeout 3300 node qa/determinism.mjs > qa/out/new_determinism.out 2> qa/out/new_determinism.log; echo rc=$? >> qa/out/new_determinism.log
+QA_ROOT=$BASE timeout 3300 node qa/determinism.mjs > qa/out/old_determinism.out 2> qa/out/old_determinism.log; echo rc=$? >> qa/out/old_determinism.log
+timeout 3300 node qa/codehealth.mjs > qa/out/new_codehealth.out 2> qa/out/new_codehealth.log; echo rc=$? >> qa/out/new_codehealth.log
+QA_ROOT=$BASE timeout 3300 node qa/codehealth.mjs > qa/out/old_codehealth.out 2> qa/out/old_codehealth.log; echo rc=$? >> qa/out/old_codehealth.log
+timeout 3300 node qa/console_load.mjs > qa/out/new_console_load.out 2> qa/out/new_console_load.log; echo rc=$? >> qa/out/new_console_load.log
+QA_ROOT=$BASE timeout 3300 node qa/console_load.mjs > qa/out/old_console_load.out 2> qa/out/old_console_load.log; echo rc=$? >> qa/out/old_console_load.log
+timeout 3300 node qa/assets.mjs > qa/out/new_assets.out 2> qa/out/new_assets.log; echo rc=$? >> qa/out/new_assets.log
+QA_ROOT=$BASE timeout 3300 node qa/assets.mjs > qa/out/old_assets.out 2> qa/out/old_assets.log; echo rc=$? >> qa/out/old_assets.log
+timeout 3300 node qa/reach.mjs > qa/out/new_reach.out 2> qa/out/new_reach.log; echo rc=$? >> qa/out/new_reach.log
+QA_ROOT=$BASE timeout 3300 node qa/reach.mjs > qa/out/old_reach.out 2> qa/out/old_reach.log; echo rc=$? >> qa/out/old_reach.log
+timeout 3300 node qa/traversal.mjs > qa/out/new_traversal.out 2> qa/out/new_traversal.log; echo rc=$? >> qa/out/new_traversal.log
+QA_ROOT=$BASE timeout 3300 node qa/traversal.mjs > qa/out/old_traversal.out 2> qa/out/old_traversal.log; echo rc=$? >> qa/out/old_traversal.log
+timeout 3300 node qa/camera.mjs > qa/out/new_camera.out 2> qa/out/new_camera.log; echo rc=$? >> qa/out/new_camera.log
+QA_ROOT=$BASE timeout 3300 node qa/camera.mjs > qa/out/old_camera.out 2> qa/out/old_camera.log; echo rc=$? >> qa/out/old_camera.log
+timeout 3300 node qa/framebudget.mjs > qa/out/new_framebudget.out 2> qa/out/new_framebudget.log; echo rc=$? >> qa/out/new_framebudget.log
+QA_ROOT=$BASE timeout 3300 node qa/framebudget.mjs > qa/out/old_framebudget.out 2> qa/out/old_framebudget.log; echo rc=$? >> qa/out/old_framebudget.log
+timeout 3300 node qa/mobile.mjs > qa/out/new_mobile.out 2> qa/out/new_mobile.log; echo rc=$? >> qa/out/new_mobile.log
+QA_ROOT=$BASE timeout 3300 node qa/mobile.mjs > qa/out/old_mobile.out 2> qa/out/old_mobile.log; echo rc=$? >> qa/out/old_mobile.log
+timeout 3300 node qa/float.mjs > qa/out/new_float.out 2> qa/out/new_float.log; echo rc=$? >> qa/out/new_float.log
+QA_ROOT=$BASE timeout 3300 node qa/float.mjs > qa/out/old_float.out 2> qa/out/old_float.log; echo rc=$? >> qa/out/old_float.log
+timeout 3300 node qa/overhead.mjs > qa/out/new_overhead.out 2> qa/out/new_overhead.log; echo rc=$? >> qa/out/new_overhead.log
+QA_ROOT=$BASE timeout 3300 node qa/overhead.mjs > qa/out/old_overhead.out 2> qa/out/old_overhead.log; echo rc=$? >> qa/out/old_overhead.log
+timeout 3300 node qa/scale.mjs > qa/out/new_scale.out 2> qa/out/new_scale.log; echo rc=$? >> qa/out/new_scale.log
+QA_ROOT=$BASE timeout 3300 node qa/scale.mjs > qa/out/old_scale.out 2> qa/out/old_scale.log; echo rc=$? >> qa/out/old_scale.log
+timeout 3300 node qa/vgeo.mjs > qa/out/new_vgeo.out 2> qa/out/new_vgeo.log; echo rc=$? >> qa/out/new_vgeo.log
+QA_ROOT=$BASE timeout 3300 node qa/vgeo.mjs > qa/out/old_vgeo.out 2> qa/out/old_vgeo.log; echo rc=$? >> qa/out/old_vgeo.log
+timeout 3300 node qa/vcheck.mjs > qa/out/new_vcheck.out 2> qa/out/new_vcheck.log; echo rc=$? >> qa/out/new_vcheck.log
+QA_ROOT=$BASE timeout 3300 node qa/vcheck.mjs > qa/out/old_vcheck.out 2> qa/out/old_vcheck.log; echo rc=$? >> qa/out/old_vcheck.log
+timeout 3300 node qa/vmat.mjs > qa/out/new_vmat.out 2> qa/out/new_vmat.log; echo rc=$? >> qa/out/new_vmat.log
+QA_ROOT=$BASE timeout 3300 node qa/vmat.mjs > qa/out/old_vmat.out 2> qa/out/old_vmat.log; echo rc=$? >> qa/out/old_vmat.log
+timeout 3300 node qa/vaudit.mjs > qa/out/new_vaudit.out 2> qa/out/new_vaudit.log; echo rc=$? >> qa/out/new_vaudit.log
+QA_ROOT=$BASE timeout 3300 node qa/vaudit.mjs > qa/out/old_vaudit.out 2> qa/out/old_vaudit.log; echo rc=$? >> qa/out/old_vaudit.log
