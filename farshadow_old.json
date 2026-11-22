@@ -1,0 +1,64 @@
+{
+ "variant": "old",
+ "mobile": false,
+ "islands": {
+  "hub": {
+   "yaw": 4.1887902047863905,
+   "crowns": 29,
+   "E": 62,
+   "long": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_fs_hub_long_old.jpg",
+   "far": null,
+   "seam": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_fs_hub_seam_old.jpg",
+   "seamAt": {
+    "screen": [
+     1.7299880889737163e-15,
+     0
+    ],
+    "d": 0
+   },
+   "seamInfo": {
+    "d": 90,
+    "crowns": 2
+   }
+  },
+  "gr": {
+   "yaw": 4.4505895925855405,
+   "crowns": 20,
+   "E": 62,
+   "long": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_fs_gr_long_old.jpg",
+   "far": null,
+   "seam": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_fs_gr_seam_old.jpg",
+   "seamAt": {
+    "screen": [
+     2.507104381994979e-15,
+     0
+    ],
+    "d": 0
+   },
+   "seamInfo": {
+    "d": 104,
+    "crowns": 3
+   }
+  },
+  "sanity": {
+   "yaw": 3.4033920413889427,
+   "crowns": 27,
+   "E": 62,
+   "long": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_fs_sanity_long_old.jpg",
+   "far": null,
+   "seam": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_fs_sanity_seam_old.jpg",
+   "seamAt": {
+    "screen": [
+     4.2932694008372435e-16,
+     0
+    ],
+    "d": 0
+   },
+   "seamInfo": {
+    "d": 207,
+    "crowns": 3
+   }
+  }
+ },
+ "errors": []
+}
