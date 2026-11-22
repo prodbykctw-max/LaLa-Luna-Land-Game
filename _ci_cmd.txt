@@ -1,0 +1,1 @@
+[ -f qa/determinism.mjs ] && timeout 3000 node qa/determinism.mjs > qa/out/determinism.out 2> qa/out/determinism.log; echo rc=$? >> qa/out/determinism.log
