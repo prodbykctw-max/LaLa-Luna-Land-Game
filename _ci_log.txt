@@ -1,0 +1,24 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.screenshot: Timeout 150000ms exceeded.
+Call log:
+  - taking page screenshot
+  - waiting for fonts to load...
+  - fonts loaded
+
+    at /home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/overhead.mjs:34:14 {
+  log: [
+    '  - taking page screenshot',
+    '  - waiting for fonts to load...',
+    '  - fonts loaded'
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.23.5
+[map] hub: radius 132  dock 0,292.6215733333232  boat 5.2,307.6  notes 5  npcs 2+0  colliders 519
+[map] green: radius 250  dock 0,752.8084799999815  boat 5.2,767.8  notes 3  npcs 7+0  colliders 834
+[map] gr: radius 161  dock 0,272.4152800000095  boat 5.2,287.4  notes 3  npcs 5+0  colliders 584
+rc=1
