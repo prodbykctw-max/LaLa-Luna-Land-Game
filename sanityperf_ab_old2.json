@@ -1,0 +1,28 @@
+{
+ "video": false,
+ "tag": "old2",
+ "clockSteps": {
+  "hub": [
+   17,
+   17,
+   16,
+   17,
+   17,
+   16
+  ]
+ },
+ "errors": {
+  "hub": []
+ },
+ "shots": {
+  "hub": [
+   19,
+   79
+  ],
+  "hub_finalPose": {
+   "x": 0,
+   "y": 1.706,
+   "z": 278.799
+  }
+ }
+}
