@@ -1,0 +1,10 @@
+ok /home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/_base/game /home/runner/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome
+README.md
+_harness.mjs
+_pensee.mjs
+aim.mjs
+animalcheck.mjs
+HANDOFF.md
+assets
+blender
+rc=0
