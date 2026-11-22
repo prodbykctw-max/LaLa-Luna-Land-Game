@@ -1,0 +1,6 @@
+CF_INK=1 node qa/crowdfade.mjs new
+CF_INK=1 node qa/crowdfade.mjs old
+node qa/console_load.mjs
+node qa/codehealth.mjs
+node qa/framebudget.mjs
+node qa/traversal.mjs
