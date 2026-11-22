@@ -1,0 +1,5 @@
+[clock old] performance.now x5 = 6394.00, 6411.00, 6428.00, 6444.00, 6461.00, 6478.00, 6494.00  deltas 17, 17, 16, 17, 17, 16 ms
+[old] hub long 29 crowns in the cone; seam 90 u, 2 crowns; far null
+[old] gr long 20 crowns in the cone; seam 104 u, 3 crowns; far null
+[old] sanity long 27 crowns in the cone; seam 207 u, 3 crowns; far null
+rc=0
