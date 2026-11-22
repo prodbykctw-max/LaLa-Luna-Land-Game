@@ -1,0 +1,22 @@
+[clock new] performance.now x5 = 5868.00, 5885.00, 5902.00, 5918.00, 5935.00, 5952.00, 5968.00  deltas 17, 17, 16, 17, 17, 16 ms
+[fly new] 0/240 twice=0 fading=0
+[fly new] 30/240 twice=1 fading=3
+[fly new] 60/240 twice=0 fading=1
+[fly new] 90/240 twice=0 fading=0
+[fly new] 120/240 twice=0 fading=1
+[fly new] 150/240 twice=1 fading=1
+[fly new] 180/240 twice=0 fading=2
+[fly new] 210/240 twice=1 fading=1
+{
+ "variant": "new",
+ "island": "hub",
+ "frames": 240,
+ "twiceDrawnMax": 2,
+ "twiceDrawnMean": 0.442,
+ "framesWithAnyTwice": 101,
+ "fadingCellsMax": 8,
+ "cells": 68,
+ "levelChanges": 25,
+ "errors": []
+}
+rc=0
