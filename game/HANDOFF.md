@@ -2200,7 +2200,7 @@ Pitfall found: `?go=<island>` stays on the hub for islands not built at startup;
   outgoing version never drawn after the fade, opposite fades at once correct, nothing stuck half-faded.
 - Regression (QA farm job crowdreg-1, every suite on this branch AND on main): syntax, determinism, codehealth,
   console_load (0 errors), assets, reach, camera, framebudget, mobile, float, overhead, scale, vgeo, vcheck, vmat
-  all match main within run-to-run noise. traversal and vaudit had not reported on either side when this shipped.
+  all match main within run-to-run noise. traversal and vaudit then reported on farm job crowdreg-1: the crowd build and main both had traversal 0 traps / 0 stalls / 0 buried on all 5 islands, and vaudit 0 errors on all 5 islands, identical between them (both finish on the farm, they just take long: give them their own lines).
   Pre-existing on main too: seeded runs differ (determinism), Ollie the postman floats while walking (float).
 - Not yet done: the real-GPU check on Melvin's laptop (it was not linked to the session). Do it next time it is.
 - Harness: `_harness.mjs` now enters non-hub islands itself (`enterIsland`). Before this, `?go=<island>` stayed on
