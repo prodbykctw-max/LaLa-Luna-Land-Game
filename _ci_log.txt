@@ -1,0 +1,5 @@
+[clock old] performance.now x5 = 5937.00, 5954.00, 5971.00, 5987.00, 6004.00, 6021.00, 6037.00  deltas 17, 17, 16, 17, 17, 16 ms
+[old] hub {"meadow":true,"flowers":{"near":5602,"far":0},"grass":{"near":9549,"far":0},"score":1,"long":{"tris":956178,"calls":387,"frameMs":2620,"file":"/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_ff_hub_old.jpg"}}
+[old] green {"meadow":true,"flowers":{"near":5602,"far":0},"grass":{"near":9549,"far":0},"score":8,"long":{"tris":1290687,"calls":237,"frameMs":14,"file":"/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_ff_green_old.jpg"}}
+[done] old errors: 0
+rc=0
