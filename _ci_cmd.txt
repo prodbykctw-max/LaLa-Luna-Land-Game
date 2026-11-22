@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/sanityperf_play.mjs sanity --tag=old --frames=20 > qa/out/play_old_sanity.txt 2>&1

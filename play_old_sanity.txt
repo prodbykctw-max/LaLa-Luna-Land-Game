@@ -1,0 +1,596 @@
+{
+ "tag": "old",
+ "key": "sanity",
+ "flags": "",
+ "frames": 20,
+ "scenes": {
+  "idle": {
+   "n": 22,
+   "jsFrame": {
+    "p50": 25.3,
+    "p95": 60,
+    "max": 1285.3,
+    "mean": 83.7
+   },
+   "jsUpdate": {
+    "p50": 3.5,
+    "p95": 18.9,
+    "max": 37.7,
+    "mean": 5.71
+   },
+   "jsRender": {
+    "p50": 20.6,
+    "p95": 32.6,
+    "max": 1281.4,
+    "mean": 78
+   },
+   "calls": 770,
+   "tris": 2106065
+  },
+  "walk": {
+   "n": 21,
+   "jsFrame": {
+    "p50": 22.5,
+    "p95": 29.7,
+    "max": 36.1,
+    "mean": 23.23
+   },
+   "jsUpdate": {
+    "p50": 4,
+    "p95": 8.4,
+    "max": 18.1,
+    "mean": 4.89
+   },
+   "jsRender": {
+    "p50": 18.8,
+    "p95": 20.8,
+    "max": 25.7,
+    "mean": 18.34
+   },
+   "calls": 766,
+   "tris": 2105825
+  },
+  "jump": {
+   "n": 21,
+   "jsFrame": {
+    "p50": 19.8,
+    "p95": 27,
+    "max": 30.4,
+    "mean": 20.46
+   },
+   "jsUpdate": {
+    "p50": 3.4,
+    "p95": 5.3,
+    "max": 6.6,
+    "mean": 3.52
+   },
+   "jsRender": {
+    "p50": 16.9,
+    "p95": 23.3,
+    "max": 23.8,
+    "mean": 16.93
+   },
+   "calls": 736,
+   "tris": 2099865
+  }
+ },
+ "walk20s": {
+  "frames": 1026,
+  "js": {
+   "p50": 1.9,
+   "p95": 2.6,
+   "max": 8.9,
+   "mean": 1.98
+  },
+  "hitchesOver50ms": 0,
+  "hitchesOver25ms": 0,
+  "worst": [
+   8.9,
+   6.1,
+   4.7,
+   4.7,
+   4.4
+  ]
+ },
+ "info": {
+  "programs": 222,
+  "geometries": 1736,
+  "textures": 221,
+  "heapMB": 175
+ },
+ "cpuProfile": {
+  "frames": 21,
+  "totalMsPerFrame": 6364.86,
+  "inclusivePerFrameMs": [
+   [
+    "(root)",
+    6364.857
+   ],
+   [
+    "(program)",
+    6338.762
+   ],
+   [
+    "(anon)",
+    23.271
+   ],
+   [
+    "tick:14176",
+    23.161
+   ],
+   [
+    "present:756",
+    19.554
+   ],
+   [
+    "render@ext",
+    19.539
+   ],
+   [
+    "c.render",
+    19.539
+   ],
+   [
+    "Cf.render@ext",
+    19.477
+   ],
+   [
+    "Cf.renderBufferDirect@ext",
+    12.865
+   ],
+   [
+    "Zl@ext",
+    11.716
+   ],
+   [
+    "xp@ext",
+    11.603
+   ],
+   [
+    "N_@ext",
+    10.505
+   ],
+   [
+    "gp@ext",
+    7.147
+   ],
+   [
+    "_p@ext",
+    4.657
+   ],
+   [
+    "setValue@ext",
+    4.018
+   ],
+   [
+    "wu@ext",
+    3.783
+   ],
+   [
+    "update@ext",
+    3.596
+   ],
+   [
+    "upload@ext",
+    3.323
+   ],
+   [
+    "islandUpdate:12863",
+    3.247
+   ],
+   [
+    "a@ext",
+    3.044
+   ],
+   [
+    "v@ext",
+    2.091
+   ],
+   [
+    "Ia@ext",
+    1.936
+   ],
+   [
+    "updateMatrixWorld@ext",
+    1.547
+   ],
+   [
+    "(garbage collector)",
+    1.356
+   ],
+   [
+    "(idle)",
+    1.291
+   ],
+   [
+    "GM@ext",
+    1.205
+   ],
+   [
+    "OM@ext",
+    1.161
+   ],
+   [
+    "o@ext",
+    1.151
+   ],
+   [
+    "(anon):13074",
+    1.031
+   ],
+   [
+    "JM@ext",
+    1.026
+   ],
+   [
+    "p@ext",
+    0.982
+   ],
+   [
+    "oe@ext",
+    0.931
+   ],
+   [
+    "fxUpdate:7082",
+    0.924
+   ],
+   [
+    "le@ext",
+    0.813
+   ],
+   [
+    "one:6529",
+    0.803
+   ],
+   [
+    "i@ext",
+    0.661
+   ],
+   [
+    "uniform3f",
+    0.599
+   ],
+   [
+    "(anon):6600",
+    0.589
+   ],
+   [
+    "c@ext",
+    0.517
+   ],
+   [
+    "bindVertexArray",
+    0.485
+   ],
+   [
+    "s@ext",
+    0.483
+   ],
+   [
+    "uniformMatrix4fv",
+    0.478
+   ],
+   [
+    "height:9869",
+    0.451
+   ],
+   [
+    "Ht@ext",
+    0.431
+   ],
+   [
+    "multiplyMatrices@ext",
+    0.422
+   ],
+   [
+    "_@ext",
+    0.414
+   ],
+   [
+    "dist:5596",
+    0.404
+   ],
+   [
+    "noGrass:11156",
+    0.392
+   ],
+   [
+    "musPump:3574",
+    0.385
+   ],
+   [
+    "evaluate@ext",
+    0.383
+   ],
+   [
+    "l@ext",
+    0.382
+   ],
+   [
+    "oS@ext",
+    0.366
+   ],
+   [
+    "walkerUpdate:12419",
+    0.353
+   ],
+   [
+    "_setValue_fromArray_setMatrixWorldNeedsUpdate@ext",
+    0.345
+   ],
+   [
+    "Vt@ext",
+    0.329
+   ],
+   [
+    "ut@ext",
+    0.312
+   ],
+   [
+    "musStep:3622",
+    0.302
+   ],
+   [
+    "ue@ext",
+    0.297
+   ],
+   [
+    "Ea@ext",
+    0.284
+   ],
+   [
+    "texSubImage2D",
+    0.266
+   ]
+  ],
+  "selfPerFrameMs": [
+   [
+    "(program)",
+    6338.762
+   ],
+   [
+    "update@ext",
+    2.731
+   ],
+   [
+    "(garbage collector)",
+    1.356
+   ],
+   [
+    "N_@ext",
+    1.346
+   ],
+   [
+    "updateMatrixWorld@ext",
+    1.292
+   ],
+   [
+    "(idle)",
+    1.291
+   ],
+   [
+    "setValue@ext",
+    0.997
+   ],
+   [
+    "p@ext",
+    0.982
+   ],
+   [
+    "Cf.renderBufferDirect@ext",
+    0.644
+   ],
+   [
+    "uniform3f",
+    0.599
+   ],
+   [
+    "OM@ext",
+    0.563
+   ],
+   [
+    "Ia@ext",
+    0.54
+   ],
+   [
+    "upload@ext",
+    0.515
+   ],
+   [
+    "wu@ext",
+    0.513
+   ],
+   [
+    "bindVertexArray",
+    0.485
+   ],
+   [
+    "uniformMatrix4fv",
+    0.478
+   ],
+   [
+    "Ht@ext",
+    0.431
+   ],
+   [
+    "multiplyMatrices@ext",
+    0.422
+   ],
+   [
+    "xp@ext",
+    0.412
+   ],
+   [
+    "dist:5596",
+    0.404
+   ],
+   [
+    "s@ext",
+    0.358
+   ],
+   [
+    "_@ext",
+    0.343
+   ],
+   [
+    "Vt@ext",
+    0.329
+   ],
+   [
+    "o@ext",
+    0.297
+   ],
+   [
+    "texSubImage2D",
+    0.266
+   ],
+   [
+    "v@ext",
+    0.255
+   ],
+   [
+    "f@ext",
+    0.252
+   ],
+   [
+    "drawElements",
+    0.251
+   ],
+   [
+    "slerpFlat@ext",
+    0.25
+   ],
+   [
+    "i@ext",
+    0.239
+   ]
+  ]
+ },
+ "alloc": {
+  "frames": 20,
+  "kBPerFrame": 1387,
+  "top": [
+   [
+    "p",
+    293.58
+   ],
+   [
+    "update",
+    276.88
+   ],
+   [
+    "OM",
+    156.27
+   ],
+   [
+    "GM",
+    148.99
+   ],
+   [
+    "evaluate",
+    76.43
+   ],
+   [
+    "join",
+    56.38
+   ],
+   [
+    "m",
+    46.26
+   ],
+   [
+    "walkerUpdate:12419",
+    32.48
+   ],
+   [
+    "(anon):12963",
+    26.52
+   ],
+   [
+    "Ea",
+    24.72
+   ],
+   [
+    "hypot",
+    22.57
+   ],
+   [
+    "placeCamera:12715",
+    16.35
+   ],
+   [
+    "(anon):13074",
+    15.91
+   ],
+   [
+    "kM",
+    14.83
+   ],
+   [
+    "BM",
+    12.81
+   ],
+   [
+    "N_",
+    11.38
+   ],
+   [
+    "next",
+    8.97
+   ],
+   [
+    "_",
+    8.31
+   ],
+   [
+    "height:9869",
+    7.11
+   ],
+   [
+    "cameraCollide:3357",
+    6.16
+   ],
+   [
+    "KS",
+    5.77
+   ],
+   [
+    "o_",
+    4.96
+   ],
+   [
+    "push",
+    4.95
+   ],
+   [
+    "q",
+    4.3
+   ],
+   [
+    "wu",
+    3.98
+   ],
+   [
+    "sort",
+    3.94
+   ],
+   [
+    "n",
+    3.74
+   ],
+   [
+    "(anon):9220",
+    3.7
+   ],
+   [
+    "s",
+    3.68
+   ],
+   [
+    "applyMatrix4",
+    3.62
+   ]
+  ]
+ },
+ "errors": []
+}
