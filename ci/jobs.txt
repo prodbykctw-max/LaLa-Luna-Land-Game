@@ -1,0 +1,17 @@
+[ -f qa/syntax.mjs ] && timeout 3000 node qa/syntax.mjs > qa/out/syntax.out 2> qa/out/syntax.log; echo rc=$? >> qa/out/syntax.log
+[ -f qa/determinism.mjs ] && timeout 3000 node qa/determinism.mjs > qa/out/determinism.out 2> qa/out/determinism.log; echo rc=$? >> qa/out/determinism.log
+[ -f qa/codehealth.mjs ] && timeout 3000 node qa/codehealth.mjs > qa/out/codehealth.out 2> qa/out/codehealth.log; echo rc=$? >> qa/out/codehealth.log
+[ -f qa/console_load.mjs ] && timeout 3000 node qa/console_load.mjs > qa/out/console_load.out 2> qa/out/console_load.log; echo rc=$? >> qa/out/console_load.log
+[ -f qa/assets.mjs ] && timeout 3000 node qa/assets.mjs > qa/out/assets.out 2> qa/out/assets.log; echo rc=$? >> qa/out/assets.log
+[ -f qa/reach.mjs ] && timeout 3000 node qa/reach.mjs > qa/out/reach.out 2> qa/out/reach.log; echo rc=$? >> qa/out/reach.log
+[ -f qa/traversal.mjs ] && timeout 3000 node qa/traversal.mjs > qa/out/traversal.out 2> qa/out/traversal.log; echo rc=$? >> qa/out/traversal.log
+[ -f qa/camera.mjs ] && timeout 3000 node qa/camera.mjs > qa/out/camera.out 2> qa/out/camera.log; echo rc=$? >> qa/out/camera.log
+[ -f qa/framebudget.mjs ] && timeout 3000 node qa/framebudget.mjs > qa/out/framebudget.out 2> qa/out/framebudget.log; echo rc=$? >> qa/out/framebudget.log
+[ -f qa/mobile.mjs ] && timeout 3000 node qa/mobile.mjs > qa/out/mobile.out 2> qa/out/mobile.log; echo rc=$? >> qa/out/mobile.log
+[ -f qa/float.mjs ] && timeout 3000 node qa/float.mjs > qa/out/float.out 2> qa/out/float.log; echo rc=$? >> qa/out/float.log
+[ -f qa/overhead.mjs ] && timeout 3000 node qa/overhead.mjs > qa/out/overhead.out 2> qa/out/overhead.log; echo rc=$? >> qa/out/overhead.log
+[ -f qa/scale.mjs ] && timeout 3000 node qa/scale.mjs > qa/out/scale.out 2> qa/out/scale.log; echo rc=$? >> qa/out/scale.log
+[ -f qa/vgeo.mjs ] && timeout 3000 node qa/vgeo.mjs > qa/out/vgeo.out 2> qa/out/vgeo.log; echo rc=$? >> qa/out/vgeo.log
+[ -f qa/vcheck.mjs ] && timeout 3000 node qa/vcheck.mjs > qa/out/vcheck.out 2> qa/out/vcheck.log; echo rc=$? >> qa/out/vcheck.log
+[ -f qa/vmat.mjs ] && timeout 3000 node qa/vmat.mjs > qa/out/vmat.out 2> qa/out/vmat.log; echo rc=$? >> qa/out/vmat.log
+[ -f qa/vaudit.mjs ] && timeout 3000 node qa/vaudit.mjs > qa/out/vaudit.out 2> qa/out/vaudit.log; echo rc=$? >> qa/out/vaudit.log
