@@ -1,0 +1,1 @@
+QA_ROOT=$BASE timeout 3300 node qa/framebudget.mjs > qa/out/old_framebudget.out 2> qa/out/old_framebudget.log; echo rc=$? >> qa/out/old_framebudget.log
