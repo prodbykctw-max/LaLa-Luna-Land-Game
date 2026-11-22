@@ -1,0 +1,3 @@
+[clock old] performance.now x5 = 6373.00, 6390.00, 6407.00, 6423.00, 6440.00, 6457.00, 6473.00  deltas 17, 17, 16, 17, 17, 16 ms
+[done] clip old errors: 0
+rc=0
