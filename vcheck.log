@@ -1,0 +1,6 @@
+[vcheck] hub: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] green: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] gr: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] sanity: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] town: lights 9, lamps 4 (0 bad), errors 0
+rc=0

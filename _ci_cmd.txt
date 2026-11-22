@@ -1,0 +1,1 @@
+[ -f qa/vcheck.mjs ] && timeout 3000 node qa/vcheck.mjs > qa/out/vcheck.out 2> qa/out/vcheck.log; echo rc=$? >> qa/out/vcheck.log
