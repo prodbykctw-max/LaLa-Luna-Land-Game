@@ -1,0 +1,36 @@
+[mobile] hub portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] hub landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] green portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] green landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] gr portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] gr landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] sanity portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] sanity landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] town portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] town landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+    "toast": {
+     "x": 253,
+     "y": 74,
+     "w": 338,
+     "h": 46,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/_base/game/qa/out/mobile_town_landscape.png"
+  }
+ }
+}
+rc=0
