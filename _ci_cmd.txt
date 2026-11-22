@@ -1,0 +1,1 @@
+node qa/sanityperf_census.mjs green --tag=new > qa/out/census_new_green.txt 2>&1

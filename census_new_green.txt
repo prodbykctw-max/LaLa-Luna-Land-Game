@@ -1,0 +1,42 @@
+green {"mainCalls":687,"mainTris":1273749,"shadowCalls":126,"shadowTris":331167,"meshes":737} {"total":{"calls":970,"tris":1637907},"mainOnly":{"calls":840,"tris":1280692},"shadow":{"calls":130,"tris":357215},"programs":140,"geometries":1845,"textures":181}
+    {"dbl":false,"id":"","r":839,"attrs":"position,aD,aO","verts":83324,"name":"BufferGeometry","tris":162144,"inMain":true,"inShadow":false,"cast":false,"cull":false,"mat":"ShaderMaterial","ink":false}
+    {"dbl":false,"id":"LALA","r":1,"attrs":"position,normal,uv,skinIndex,skinWeight","verts":95073,"name":"material:skinned","tris":149752,"inMain":true,"inShadow":false,"cast":false,"cull":false,"mat":"MeshPhysicalMaterial","ink":false}
+    {"dbl":false,"id":"TERRAIN","r":801,"attrs":"position,color,aRk,uv,normal","verts":45410,"name":"BufferGeometry","tris":79922,"inMain":true,"inShadow":true,"cast":true,"cull":true,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"","r":784,"attrs":"position,normal,uv,color,aSway","verts":77196,"name":"BufferGeometry","tris":78408,"inMain":true,"inShadow":true,"cast":true,"cull":true,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"","r":1,"attrs":"position,normal,uv,color","verts":18,"name":"BufferGeometry:inst4838","tris":58056,"inMain":true,"inShadow":false,"cast":false,"cull":false,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"SEA","r":1131,"attrs":"position,normal,uv","verts":25921,"name":"PlaneGeometry","tris":51200,"inMain":true,"inShadow":false,"cast":false,"cull":true,"mat":"ShaderMaterial","ink":false}
+    {"dbl":false,"id":"","r":786,"attrs":"position,normal,uv,color,aSway","verts":72364,"name":"BufferGeometry","tris":36182,"inMain":true,"inShadow":true,"cast":true,"cull":true,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"","r":798,"attrs":"position,normal,aObj,uv","verts":17100,"name":"BufferGeometry","tris":31340,"inMain":true,"inShadow":true,"cast":true,"cull":true,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"","r":814,"attrs":"position,aD,normal","verts":12386,"name":"BufferGeometry","tris":23646,"inMain":true,"inShadow":false,"cast":false,"cull":true,"mat":"ShaderMaterial","ink":false}
+    {"dbl":false,"id":"NPC","r":1,"attrs":"position,normal,uv,skinIndex,skinWeight","verts":18322,"name":"material:skinned","tris":19791,"inMain":true,"inShadow":false,"cast":false,"cull":false,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"NPC","r":1,"attrs":"position,normal,uv,skinIndex,skinWeight","verts":26843,"name":"material:skinned","tris":19654,"inMain":true,"inShadow":false,"cast":false,"cull":false,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"NPC","r":1,"attrs":"position,normal,uv,skinIndex,skinWeight","verts":26843,"name":"material:skinned","tris":19654,"inMain":true,"inShadow":false,"cast":false,"cull":false,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"NPC","r":1,"attrs":"position,normal,uv,skinIndex,skinWeight","verts":26843,"name":"material:skinned","tris":19654,"inMain":true,"inShadow":false,"cast":false,"cull":false,"mat":"MeshStandardMaterial","ink":false}
+    {"dbl":false,"id":"NPC","r":1,"attrs":"position,normal,uv,skinIndex,skinWeight","verts":22709,"name":"material:skinned","tris":19637,"inMain":true,"inShadow":false,"cast":false,"cull":true,"mat":"MeshStandardMaterial","ink":false}
+   DRAWTOT {"main":[840,1280692],"shadow":[130,357215]}
+   D ["main|-|MeshBasicMaterial:T|Mesh|position,normal,uv",300,20096]
+   D ["main|CREATURE|MeshStandardMaterial|Mesh|position,normal,uv",138,7836]
+   D ["main|-|MeshStandardMaterial|Mesh|position,normal,uv",93,24764]
+   D ["shadow|-|MeshDepthMaterial:D|Mesh|normal,position,uv",75,52300]
+   D ["main|-|MeshStandardMaterial:D|Mesh|normal,position,uv",75,52300]
+   D ["main|-|MeshBasicMaterial|Mesh|position,normal,uv",65,930]
+   D ["shadow|-|MeshDepthMaterial|Mesh|position,normal,uv",34,17280]
+   D ["main|-|MeshStandardMaterial:D|Mesh|position,normal,uv",24,46776]
+   D ["main|-|MeshStandardMaterial:D|Mesh:inst|position,normal,uv,color",20,148107]
+   D ["main|CREATURE|MeshBasicMaterial:T|Mesh|position,normal,uv",19,38]
+   D ["main|-|ShaderMaterial|Mesh|position,uv",13,13]
+   D ["main|-|MeshStandardMaterial:D|SkinnedMesh:skin|skinIndex,normal,position,uv,skinWeight",9,50616]
+   D ["main|CREATURE|MeshStandardMaterial|SkinnedMesh:skin|color,skinIndex,normal,position,tangent,",8,46860]
+   D ["main|NPC|MeshStandardMaterial|SkinnedMesh:skin|position,normal,uv,skinIndex,skinWeight",7,135101]
+   D ["shadow|-|MeshDepthMaterial:D|Mesh|normal,position,tangent,uv",6,15479]
+   D ["main|-|MeshStandardMaterial:D|Mesh|normal,position,tangent,uv",6,15479]
+   D ["main|NPC|MeshBasicMaterial:T|Mesh|position,normal,uv",6,12]
+   D ["main|-|ShaderMaterial:T:D|Mesh|position,uv,normal",6,312]
+   D ["main|CREATURE|MeshBasicMaterial|SkinnedMesh:skin|skinIndex,position,uv,skinWeight",5,14570]
+   D ["shadow|-|MeshDepthMaterial:D|Mesh|position,normal,uv",4,17440]
+   D ["main|-|MeshStandardMaterial:D|SkinnedMesh:skin|skinIndex,normal,position,tangent,uv,ski",4,796]
+   D ["main|-|MeshStandardMaterial|Mesh|position,normal,aObj,uv",4,56940]
+   passes [{"scene":"island","target":"640x360","calls":956,"tris":1637893},{"scene":"Mesh","target":"320x180","calls":1,"tris":1},{"scene":"Mesh","target":"320x180","calls":1,"tris":1},{"scene":"Mesh","target":"320x180","calls":1,"tris":1},{"scene":"Mesh","target":"160x90","calls":1,"tris":1},{"scene":"Mesh","target":"160x90","calls":1,"tris":1},{"scene":"Mesh","target":"80x45","calls":1,"tris":1},{"scene":"Mesh","target":"80x45","calls":1,"tris":1},{"scene":"Mesh","target":"40x23","calls":1,"tris":1},{"scene":"Mesh","target":"40x23","calls":1,"tris":1},{"scene":"Mesh","target":"20x12","calls":1,"tris":1},{"scene":"Mesh","target":"20x12","calls":1,"tris":1},{"scene":"Mesh","target":"320x180","calls":1,"tris":1},{"scene":"Mesh","target":"640x360","calls":1,"tris":1},{"scene":"Mesh","target":"screen","calls":1,"tris":1}]
+   twoPass {"meshes":136,"extraCalls":136,"extraTris":7050,"top":[["position,normal,uv","MeshBasicMaterial",266],["position,normal,uv","MeshBasicMaterial",266],["position,normal,uv","MeshBasicMaterial",58],["position,normal,uv","MeshBasicMaterial",58],["position,normal,uv","MeshBasicMaterial",58],["position,normal,uv","MeshBasicMaterial",58],["position,normal,uv","MeshBasicMaterial",58],["position,normal,uv","MeshBasicMaterial",58]]}
+   groups [["MeshBasicMaterial|position,normal,uv|c-|<200",{"n":208,"tris":7814}],["MeshStandardMaterial|normal,position,uv|Us|<1k",{"n":58,"tris":29671}],["MeshStandardMaterial|position,normal,uv|cs|<1k",{"n":49,"tris":18967}],["MeshStandardMaterial|position,normal,uv|c-|<200",{"n":49,"tris":1372}],["MeshBasicMaterial|position,normal,uv|c-|<1k",{"n":12,"tris":6104}],["MeshStandardMaterial|position,normal,uv|cs|<200",{"n":12,"tris":796}],["MeshStandardMaterial|position,normal,uv,color|U-|<5k",{"n":10,"tris":31429}],["MeshStandardMaterial|skinIndex,normal,position,uv,skinWeight|U-|>5k",{"n":9,"tris":50616}],["MeshStandardMaterial|position,normal,uv,color|U-|>5k",{"n":8,"tris":116084}],["MeshStandardMaterial|normal,position,uv|Us|<200",{"n":8,"tris":1394}],["MeshBasicMaterial|position,normal,uv|U-|<200",{"n":8,"tris":16}],["MeshStandardMaterial|position,normal,uv|cs|>5k",{"n":7,"tris":50405}],["MeshStandardMaterial|normal,position,uv|Us|<5k",{"n":7,"tris":8561}],["ShaderMaterial|position,uv,normal|c-|<200",{"n":6,"tris":312}]]
+   byKind [["unculled",{"n":129,"tris":441810,"shTris":68127}],["LALA",{"n":5,"tris":152718,"shTris":2964}],["TERRAIN",{"n":1,"tris":79922,"shTris":79922}],["cullable",{"n":366,"tris":342358,"shTris":152802}],["SEA",{"n":1,"tris":51200,"shTris":0}],["NPC",{"n":13,"tris":135113,"shTris":0}],["CREATURE",{"n":170,"tris":69304,"shTris":0}],["cullable:offscreen",{"n":50,"tris":0,"shTris":27352}],["SKY",{"n":1,"tris":1216,"shTris":0}],["STATIC",{"n":1,"tris":108,"shTris":0}]]
