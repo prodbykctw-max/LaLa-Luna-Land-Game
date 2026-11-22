@@ -1,0 +1,1 @@
+timeout 3300 node qa/framebudget.mjs > qa/out/new_framebudget.out 2> qa/out/new_framebudget.log; echo rc=$? >> qa/out/new_framebudget.log
