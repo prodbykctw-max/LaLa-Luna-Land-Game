@@ -1,0 +1,278 @@
+{
+ "hub": {
+  "samples": [
+   {
+    "spot": "spawn",
+    "tris": 1305134,
+    "calls": 478
+   },
+   {
+    "spot": "Luna's Keep",
+    "tris": 1321412,
+    "calls": 461
+   },
+   {
+    "spot": "South Dock",
+    "tris": 1319319,
+    "calls": 373
+   }
+  ],
+  "breakdown": {
+   "totalSceneTris": 1177336,
+   "meshes": 744,
+   "uniqueMaterials": 496,
+   "uniqueGeometries": 596,
+   "lights": 10,
+   "shadowCasters": 328,
+   "skinnedTris": 273695,
+   "top": [
+    {
+     "key": "inst:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 273027,
+     "meshes": 20
+    },
+    {
+     "key": "MeshStandardMaterial:BufferGeometry",
+     "tris": 271982,
+     "meshes": 56
+    },
+    {
+     "key": "skinned:MeshPhysicalMaterial:BufferGeometry",
+     "tris": 149752,
+     "meshes": 1
+    },
+    {
+     "key": "skinned:MeshStandardMaterial:BufferGeometry",
+     "tris": 123943,
+     "meshes": 24
+    },
+    {
+     "key": "MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 120636,
+     "meshes": 128
+    },
+    {
+     "key": "ShaderMaterial:BufferGeometry",
+     "tris": 97066,
+     "meshes": 4
+    },
+    {
+     "key": "ShaderMaterial:PlaneGeometry",
+     "tris": 51200,
+     "meshes": 1
+    },
+    {
+     "key": "MeshBasicMaterial:BufferGeometry",
+     "tris": 36578,
+     "meshes": 72
+    },
+    {
+     "key": "inst:MeshStandardMaterial:BufferGeometry",
+     "tris": 22408,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:SphereGeometry",
+     "tris": 11394,
+     "meshes": 54
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 3564,
+     "meshes": 79
+    },
+    {
+     "key": "MeshStandardMaterial:ExtrudeGeometry",
+     "tris": 3076,
+     "meshes": 3
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ },
+ "green": {
+  "samples": [
+   {
+    "spot": "spawn",
+    "tris": 1303576,
+    "calls": 476
+   },
+   {
+    "spot": "Luna's Keep",
+    "tris": 1280556,
+    "calls": 296
+   },
+   {
+    "spot": "South Dock",
+    "tris": 1275001,
+    "calls": 257
+   }
+  ],
+  "breakdown": {
+   "totalSceneTris": 1177336,
+   "meshes": 744,
+   "uniqueMaterials": 496,
+   "uniqueGeometries": 596,
+   "lights": 10,
+   "shadowCasters": 328,
+   "skinnedTris": 273695,
+   "top": [
+    {
+     "key": "inst:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 273027,
+     "meshes": 20
+    },
+    {
+     "key": "MeshStandardMaterial:BufferGeometry",
+     "tris": 271982,
+     "meshes": 56
+    },
+    {
+     "key": "skinned:MeshPhysicalMaterial:BufferGeometry",
+     "tris": 149752,
+     "meshes": 1
+    },
+    {
+     "key": "skinned:MeshStandardMaterial:BufferGeometry",
+     "tris": 123943,
+     "meshes": 24
+    },
+    {
+     "key": "MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 120636,
+     "meshes": 128
+    },
+    {
+     "key": "ShaderMaterial:BufferGeometry",
+     "tris": 97066,
+     "meshes": 4
+    },
+    {
+     "key": "ShaderMaterial:PlaneGeometry",
+     "tris": 51200,
+     "meshes": 1
+    },
+    {
+     "key": "MeshBasicMaterial:BufferGeometry",
+     "tris": 36578,
+     "meshes": 72
+    },
+    {
+     "key": "inst:MeshStandardMaterial:BufferGeometry",
+     "tris": 22408,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:SphereGeometry",
+     "tris": 11394,
+     "meshes": 54
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 3564,
+     "meshes": 79
+    },
+    {
+     "key": "MeshStandardMaterial:ExtrudeGeometry",
+     "tris": 3076,
+     "meshes": 3
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ },
+ "gr": {
+  "samples": [
+   {
+    "spot": "spawn",
+    "tris": 1302796,
+    "calls": 476
+   },
+   {
+    "spot": "Luna's Keep",
+    "tris": 1278740,
+    "calls": 296
+   },
+   {
+    "spot": "South Dock",
+    "tris": 1275095,
+    "calls": 257
+   }
+  ],
+  "breakdown": {
+   "totalSceneTris": 1177336,
+   "meshes": 744,
+   "uniqueMaterials": 496,
+   "uniqueGeometries": 596,
+   "lights": 10,
+   "shadowCasters": 328,
+   "skinnedTris": 273695,
+   "top": [
+    {
+     "key": "inst:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 273027,
+     "meshes": 20
+    },
+    {
+     "key": "MeshStandardMaterial:BufferGeometry",
+     "tris": 271982,
+     "meshes": 56
+    },
+    {
+     "key": "skinned:MeshPhysicalMaterial:BufferGeometry",
+     "tris": 149752,
+     "meshes": 1
+    },
+    {
+     "key": "skinned:MeshStandardMaterial:BufferGeometry",
+     "tris": 123943,
+     "meshes": 24
+    },
+    {
+     "key": "MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 120636,
+     "meshes": 128
+    },
+    {
+     "key": "ShaderMaterial:BufferGeometry",
+     "tris": 97066,
+     "meshes": 4
+    },
+    {
+     "key": "ShaderMaterial:PlaneGeometry",
+     "tris": 51200,
+     "meshes": 1
+    },
+    {
+     "key": "MeshBasicMaterial:BufferGeometry",
+     "tris": 36578,
+     "meshes": 72
+    },
+    {
+     "key": "inst:MeshStandardMaterial:BufferGeometry",
+     "tris": 22408,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:SphereGeometry",
+     "tris": 11394,
+     "meshes": 54
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 3564,
+     "meshes": 79
+    },
+    {
+     "key": "MeshStandardMaterial:ExtrudeGeometry",
+     "tris": 3076,
+     "meshes": 3
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ }
+}
