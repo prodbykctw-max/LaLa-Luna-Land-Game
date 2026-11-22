@@ -1,0 +1,90 @@
+{
+ "opt": "D",
+ "island": "gr",
+ "curKey": "gr",
+ "errors": [],
+ "failed": [],
+ "bad": [],
+ "warnings": [
+  "[.WebGL-0xd640016b200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+  "[.WebGL-0xd640016b200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+ ],
+ "requests": 138,
+ "bytes": 46697898,
+ "treeAssets": [
+  {
+   "url": "trees/bark_diff.jpg",
+   "len": 95505
+  },
+  {
+   "url": "trees/foliage_diff.jpg",
+   "len": 72108
+  },
+  {
+   "url": "trees/foliage_alpha.jpg",
+   "len": 41679
+  },
+  {
+   "url": "trees/bark_nor.jpg",
+   "len": 117595
+  },
+  {
+   "url": "trees/frond_diff.jpg",
+   "len": 94178
+  },
+  {
+   "url": "trees/palm_diff.jpg",
+   "len": 46817
+  },
+  {
+   "url": "trees/frond_alpha.jpg",
+   "len": 114203
+  },
+  {
+   "url": "trees/palm_nor.jpg",
+   "len": 105133
+  },
+  {
+   "url": "trees/flowers_diff.jpg",
+   "len": 54250
+  },
+  {
+   "url": "trees/flowers_alpha.jpg",
+   "len": 49414
+  },
+  {
+   "url": "d/trees_d.glb",
+   "len": 4155784
+  },
+  {
+   "url": "d/branch_diff.jpg",
+   "len": 62295
+  },
+  {
+   "url": "d/branch_nor.jpg",
+   "len": 78418
+  },
+  {
+   "url": "d/v1_trunk_nor.jpg",
+   "len": 106451
+  },
+  {
+   "url": "d/v1_trunk_diff.jpg",
+   "len": 63908
+  },
+  {
+   "url": "d/leaf.webp",
+   "len": 33392
+  },
+  {
+   "url": "d/v2_trunk_nor.jpg",
+   "len": 94411
+  },
+  {
+   "url": "d/v2_trunk_diff.jpg",
+   "len": 58902
+  }
+ ],
+ "trees": 72,
+ "instanced": 1
+}
