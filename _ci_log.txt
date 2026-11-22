@@ -1,0 +1,1375 @@
+{
+ "stats": {
+  "totalLines": 14462,
+  "scriptLines": 14027,
+  "longestLine": 73922,
+  "linesOver200": 182,
+  "functions": 372,
+  "listeners": 43
+ },
+ "todo": [],
+ "magicNumbers": {
+  "cameraCollide": {
+   "lines": [
+    3358,
+    3391
+   ],
+   "numbers": [
+    {
+     "line": 3363,
+     "nums": [
+      "1.5"
+     ],
+     "text": "const buffer = 1.5;"
+    },
+    {
+     "line": 3366,
+     "nums": [
+      ".9"
+     ],
+     "text": "const cr = c.camR != null ? c.camR : c.r; if(cr < .9) continue;      /* thin posts and pebbles never grab the "
+    },
+    {
+     "line": 3374,
+     "nums": [
+      "23",
+      "153"
+     ],
+     "text": "every floored frame on GR's A and D segments to this loop: 23 of 153 frames jammed at the"
+    },
+    {
+     "line": 3375,
+     "nums": [
+      "3.5"
+     ],
+     "text": "3.5 floor, flapping in and out as she strafes past decor."
+    },
+    {
+     "line": 3389,
+     "nums": [
+      "5.0"
+     ],
+     "text": "clamped = Math.max(clamped, minDist ?? 5.0);"
+    }
+   ]
+  },
+  "walkerUpdate": {
+   "lines": [
+    12568,
+    12819
+   ],
+   "numbers": [
+    {
+     "line": 12594,
+     "nums": [
+      "34",
+      "46",
+      "0.22",
+      "7.4"
+     ],
+     "text": "const ACCEL = 34, DECEL = 46, AIR = 0.22, TURN = 7.4, STOPQ = QS.get(\"stop\") !== \"glide\";"
+    },
+    {
+     "line": 12598,
+     "nums": [
+      "1.35"
+     ],
+     "text": "const boost = W.gliding ? 1.35 : (W.mount ? RIDE_MUL : 1);"
+    },
+    {
+     "line": 12599,
+     "nums": [
+      ".55",
+      "1.0"
+     ],
+     "text": "const wade  = 1 - .55*Math.min(1, (W.depth||0)/1.0);     /* water drags at her legs: waist-deep is about half "
+    },
+    {
+     "line": 12602,
+     "nums": [
+      ".08"
+     ],
+     "text": "if(mag > .08){ ang = Math.atan2(-ix,-iz) + W.camYaw; tvx = Math.sin(ang)*top*mag; tvz = Math.cos(ang)*top*mag;"
+    },
+    {
+     "line": 12607,
+     "nums": [
+      "104"
+     ],
+     "text": "basis, which moved the target: qa/camera.mjs caught it as -104 deg of yaw drift on a strafe and her"
+    },
+    {
+     "line": 12608,
+     "nums": [
+      "37.3",
+      "8.5"
+     ],
+     "text": "distance covered collapsing 37.3 -> 8.5 u. She was running in a circle. The stick does not lag. */"
+    },
+    {
+     "line": 12609,
+     "nums": [
+      ".08"
+     ],
+     "text": "{ const h = Math.hypot(ix, iz); W.stickAway = h > .08 ? Math.max(0, -iz / h) : 0; }"
+    },
+    {
+     "line": 12611,
+     "nums": [
+      ".08"
+     ],
+     "text": "W.vx = tvx; W.vz = tvz; if(mag > .08) W.heading = ang;"
+    },
+    {
+     "line": 12614,
+     "nums": [
+      ".08"
+     ],
+     "text": "const rate = (mag > .08 ? ACCEL : DECEL) * grip;"
+    },
+    {
+     "line": 12615,
+     "nums": [
+      "0.001"
+     ],
+     "text": "const k = Math.min(1, rate*dt / Math.max(0.001, top));  /* normalised so the feel holds at any top speed */"
+    },
+    {
+     "line": 12618,
+     "nums": [
+      ".02",
+      ".08"
+     ],
+     "text": "if(Math.abs(W.vx) < .02 && Math.abs(W.vz) < .02 && mag <= .08){ W.vx = 0; W.vz = 0; }"
+    },
+    {
+     "line": 12619,
+     "nums": [
+      "30"
+     ],
+     "text": "/* Melvin, Oct 30: \"once I'm done moving she should stop immediately ... there's a little bit of movement"
+    },
+    {
+     "line": 12623,
+     "nums": [
+      ".08"
+     ],
+     "text": "if(STOPQ && mag <= .08 && W.grounded && !W.mount){ W.vx = 0; W.vz = 0; }"
+    },
+    {
+     "line": 12630,
+     "nums": [
+      "23",
+      "28"
+     ],
+     "text": "chased heading. Holding W straight through GR's collider cluster swung the camera 23-28"
+    },
+    {
+     "line": 12632,
+     "nums": [
+      "2026",
+      "09"
+     ],
+     "text": "plain A/D, on segments that read flat 0 in every report before 2026-09-14a."
+    },
+    {
+     "line": 12638,
+     "nums": [
+      ".08"
+     ],
+     "text": "const driven = mag > .08;"
+    },
+    {
+     "line": 12639,
+     "nums": [
+      ".25"
+     ],
+     "text": "if(driven || sp > .25){"
+    },
+    {
+     "line": 12647,
+     "nums": [
+      ".02"
+     ],
+     "text": "if(curSpeed > .02){"
+    },
+    {
+     "line": 12662,
+     "nums": [
+      ".5"
+     ],
+     "text": "const rr = c.r + .5, dx = W.x-c.x, dz = W.z-c.z, d = Math.hypot(dx,dz);      /* her own body radius on top of "
+    },
+    {
+     "line": 12666,
+     "nums": [
+      "1.1",
+      "2.5"
+     ],
+     "text": "if(d < 1.1 && d > 1e-4 && Math.abs(W.y - g.position.y) < 2.5){ const px = g.position.x + dx/d*1.1, pz = g.posi"
+    },
+    {
+     "line": 12689,
+     "nums": [
+      "2.2"
+     ],
+     "text": "There was a 2.2-unit step-UP tolerance and nothing for stepping DOWN. This is that: while she"
+    },
+    {
+     "line": 12694,
+     "nums": [
+      "0.75",
+      "3.2"
+     ],
+     "text": "const stepDown = Math.max(0.75, (curSpeed || 0) * dt * 3.2);"
+    },
+    {
+     "line": 12704,
+     "nums": [
+      ".55"
+     ],
+     "text": "const E = .55;"
+    },
+    {
+     "line": 12705,
+     "nums": [
+      "40"
+     ],
+     "text": "for(let k = 0; k < 40; k++){"
+    },
+    {
+     "line": 12709,
+     "nums": [
+      "1.4"
+     ],
+     "text": "const nx = W.x - gx/m*1.4, nz = W.z - gz/m*1.4;"
+    },
+    {
+     "line": 12722,
+     "nums": [
+      "15"
+     ],
+     "text": "W.group.rotation.y += da*Math.min(1, dt*15);"
+    },
+    {
+     "line": 12725,
+     "nums": [
+      ".35"
+     ],
+     "text": "const moving = curSpeed > .35 && W.grounded;"
+    },
+    {
+     "line": 12726,
+     "nums": [
+      ".1"
+     ],
+     "text": "W.speedNow = curSpeed > .1 ? curSpeed : 0;                 /* what the shore birds judge her by */"
+    },
+    {
+     "line": 12730,
+     "nums": [
+      "99"
+     ],
+     "text": "{ const seaY = I.seaY ? I.seaY(W.x, W.z, t) : -99, depth = W.grounded ? Math.max(0, seaY - W.y) : 0;"
+    },
+    {
+     "line": 12731,
+     "nums": [
+      ".05"
+     ],
+     "text": "const wasWet = !!W.wet; W.depth = depth; W.wet = depth > .05;"
+    },
+    {
+     "line": 12736,
+     "nums": [
+      "36",
+      "1.5",
+      "2.2",
+      "1.2",
+      ".2"
+     ],
+     "text": "if(big || (W.wet && !wasWet && !W.grounded)){ I.water.splash(px, seaY, pz, 36, 1.5); I.water.ripple(px, pz, 2."
+    },
+    {
+     "line": 12738,
+     "nums": [
+      "1.3"
+     ],
+     "text": "const k = Math.min(1.3, curSpeed/SPEED), horse = !!W.mount;"
+    },
+    {
+     "line": 12739,
+     "nums": [
+      ".5",
+      ".8",
+      ".7",
+      ".9"
+     ],
+     "text": "I.water.ripple(px + (Math.random()-.5)*.5, pz + (Math.random()-.5)*.5, .8 + Math.min(1, depth)*.7 + (horse ? ."
+    },
+    {
+     "line": 12740,
+     "nums": [
+      "12",
+      ".55",
+      ".35"
+     ],
+     "text": "I.water.splash(px, seaY, pz, horse ? 12 : 4 + Math.round(depth*6), .55 + k*.55 + (horse ? .35 : 0));"
+    },
+    {
+     "line": 12741,
+     "nums": [
+      ".10",
+      ".15"
+     ],
+     "text": "W.rippleT = horse ? .10 : .15; }"
+    },
+    {
+     "line": 12742,
+     "nums": [
+      ".6",
+      ".4",
+      "1.2"
+     ],
+     "text": "else if(!moving && W.rippleT <= 0){ I.water.ripple(px, pz, .6 + depth*.4); W.rippleT = 1.2 + Math.random()*.6;"
+    },
+    {
+     "line": 12745,
+     "nums": [
+      "10",
+      ".3"
+     ],
+     "text": "W.legs.forEach((l,i) => l.position.z = moving ? Math.sin(t*10+i*Math.PI)*.3 : 0);"
+    },
+    {
+     "line": 12748,
+     "nums": [
+      ".62"
+     ],
+     "text": "const jog = curSpeed > SPEED*.62;"
+    },
+    {
+     "line": 12750,
+     "nums": [
+      "28"
+     ],
+     "text": "at riding speed (Oct 28) */"
+    },
+    {
+     "line": 12757,
+     "nums": [
+      ".40",
+      ".34"
+     ],
+     "text": "if(moving && !(RIDEQ && W.mount)){ AU.stepT -= dt; if(AU.stepT <= 0){ if(W.wet) auWade(); else auStep(I.cfg.ke"
+    },
+    {
+     "line": 12761,
+     "nums": [
+      ".035"
+     ],
+     "text": "W.shadow.position.y = .035 - (W.group.position.y - gy);"
+    },
+    {
+     "line": 12762,
+     "nums": [
+      ".22"
+     ],
+     "text": "const k = 1 / (1 + lift*.22);"
+    },
+    {
+     "line": 12763,
+     "nums": [
+      "1.1",
+      "0.55"
+     ],
+     "text": "W.shadow.scale.set(1.1*(0.55*2)*k, 1.1*(0.55*2)*k, 1);"
+    },
+    {
+     "line": 12764,
+     "nums": [
+      ".85",
+      ".15"
+     ],
+     "text": "W.shadow.material.opacity = .85 * Math.max(.15, k);"
+    },
+    {
+     "line": 12772,
+     "nums": [
+      ".09"
+     ],
+     "text": "/* The animal bobs with its stride and so does she - it used to bob alone (up to .09 u) and she stayed at a fi"
+    },
+    {
+     "line": 12774,
+     "nums": [
+      ".09"
+     ],
+     "text": "const bob = Math.abs(Math.sin(t*7))*.09*rk;"
+    },
+    {
+     "line": 12779,
+     "nums": [
+      "1.3"
+     ],
+     "text": "const fx = Math.sin(W.group.rotation.y)*1.3, fz = Math.cos(W.group.rotation.y)*1.3;"
+    },
+    {
+     "line": 12780,
+     "nums": [
+      ".28",
+      "2.6"
+     ],
+     "text": "const pt = Math.max(-.28, Math.min(.28, Math.atan2(I.height(W.x+fx, W.z+fz) - I.height(W.x-fx, W.z-fz), 2.6)))"
+    },
+    {
+     "line": 12784,
+     "nums": [
+      ".55"
+     ],
+     "text": "(W.mount.userData.legs||[]).forEach((l,i) => { if(l.userData.trot != null) l.rotation.z = (l.userData.rz0||0) "
+    },
+    {
+     "line": 12789,
+     "nums": [
+      "2.4"
+     ],
+     "text": "const gal = MR.actions.run && MR.actions.run !== MR.actions.walk && MR.speeds.walk && v > MR.speeds.walk * 2.4"
+    },
+    {
+     "line": 12790,
+     "nums": [
+      ".15",
+      ".25"
+     ],
+     "text": "playClip(MR, rk < .15 ? \"idle\" : gal ? \"run\" : \"walk\", .25);"
+    },
+    {
+     "line": 12792,
+     "nums": [
+      ".15",
+      ".05",
+      "2.2",
+      ".5"
+     ],
+     "text": "MR.mixer.update(dt * (rk < .15 || !(cv > .05) ? 1 : Math.min(2.2, Math.max(.5, v / cv)))); }"
+    },
+    {
+     "line": 12793,
+     "nums": [
+      ".35",
+      "1.15"
+     ],
+     "text": "else MR.mixer.update(dt * (.35 + 1.15*rk)); }"
+    },
+    {
+     "line": 12796,
+     "nums": [
+      ".2",
+      ".62"
+     ],
+     "text": "const SY = fitOK ? Math.max(.2, fit.top + SEAT_PAD - (W.seatHipDY != null ? W.seatHipDY : M(.62))) : SADDLE_Y;"
+    },
+    {
+     "line": 12801,
+     "nums": [
+      ".3",
+      ".7",
+      ".6"
+     ],
+     "text": "W.seatW = hop ? (hop.kind === \"on\" ? wdEase((hop.k - .3)/.7) : 1 - wdEase(hop.k/.6)) : 1;"
+    },
+    {
+     "line": 12806,
+     "nums": [
+      "10",
+      ".07"
+     ],
+     "text": "W.group.position.set(W.x, W.y + Math.abs(Math.sin(t*10))*.07*W.stepK, W.z);"
+    },
+    {
+     "line": 12807,
+     "nums": [
+      ".06"
+     ],
+     "text": "W.group.rotation.z = W.gliding ? Math.sin(t*2)*.06 : 0;"
+    },
+    {
+     "line": 12811,
+     "nums": [
+      ".62",
+      "1.6",
+      ".7"
+     ],
+     "text": "if(ab.glide) W.fanMeshes.forEach((f,i) => { const s = (W.model ? .62 : 1) * (W.gliding ? 1.6 : .7);"
+    },
+    {
+     "line": 12814,
+     "nums": [
+      "1.6",
+      ".9",
+      ".05"
+     ],
+     "text": "if(W.model) f.rotation.z = (i?1:-1)*(W.gliding ? 1.6 : .9) + Math.sin(t*3+i)*.05;"
+    },
+    {
+     "line": 12815,
+     "nums": [
+      "1.25",
+      ".5",
+      ".05"
+     ],
+     "text": "else f.rotation.z = (i?1:-1)*(W.gliding ? 1.25 : .5) + Math.sin(t*3+i)*.05; });"
+    },
+    {
+     "line": 12818,
+     "nums": [
+      ".08"
+     ],
+     "text": "updateCamera(I, dt, mag > .08 ? curSpeed : 0);"
+    }
+   ]
+  },
+  "lookHandlers": {
+   "lines": [
+    5225,
+    5237
+   ],
+   "numbers": [
+    {
+     "line": 5229,
+     "nums": [
+      ".5",
+      ".35"
+     ],
+     "text": "if(e.clientX < innerWidth*.5 && (isTouch || e.clientY > innerHeight*.35)) return;"
+    },
+    {
+     "line": 5231,
+     "nums": [
+      "78"
+     ],
+     "text": "if(isTouch && cstick){ cstick.style.left = (e.clientX-78)+\"px\"; cstick.style.top = (e.clientY-78)+\"px\"; cstick"
+    },
+    {
+     "line": 5236,
+     "nums": [
+      ".0062",
+      ".0045",
+      ".7"
+     ],
+     "text": "CUR.W.camYaw -= dx*.0062; CUR.W.camPitch += dy*.0045; CUR.W.lookHold = .7; CUR.W.recenter = false; }"
+    }
+   ]
+  },
+  "joyHandlers": {
+   "lines": [
+    5199,
+    5219
+   ],
+   "numbers": [
+    {
+     "line": 5199,
+     "nums": [
+      "62"
+     ],
+     "text": "let joy = {x:0,y:0,id:null,cx:0,cy:0}; const MAXR = 62;"
+    },
+    {
+     "line": 5204,
+     "nums": [
+      ".5",
+      ".35"
+     ],
+     "text": "const inLeft = e.clientX < innerWidth*.5 && e.clientY > innerHeight*.35;"
+    },
+    {
+     "line": 5208,
+     "nums": [
+      "78"
+     ],
+     "text": "if(!onStick){ stick.style.left = (joy.cx-78)+\"px\"; stick.style.top = (joy.cy-78)+\"px\"; stick.style.bottom = \"a"
+    }
+   ]
+  },
+  "goIslandCam": {
+   "lines": [
+    14155,
+    14162
+   ],
+   "numbers": []
+  }
+ },
+ "duplicatedLiterals": [
+  {
+   "literal": ".5",
+   "uses": 490,
+   "lines": [
+    563,
+    591,
+    616,
+    618,
+    719,
+    754,
+    755,
+    824,
+    850,
+    870,
+    967,
+    967
+   ]
+  },
+  {
+   "literal": "1.0",
+   "uses": 398,
+   "lines": [
+    474,
+    496,
+    498,
+    640,
+    699,
+    711,
+    719,
+    720,
+    730,
+    730,
+    791,
+    795
+   ]
+  },
+  {
+   "literal": ".55",
+   "uses": 182,
+   "lines": [
+    689,
+    925,
+    1281,
+    1350,
+    1480,
+    1480,
+    1480,
+    1480,
+    1486,
+    1616,
+    1742,
+    1742
+   ]
+  },
+  {
+   "literal": "0.0",
+   "uses": 146,
+   "lines": [
+    497,
+    711,
+    720,
+    851,
+    851,
+    874,
+    875,
+    1043,
+    1043,
+    1130,
+    1137,
+    1931
+   ]
+  },
+  {
+   "literal": ".6",
+   "uses": 144,
+   "lines": [
+    473,
+    1218,
+    1280,
+    1343,
+    1432,
+    1480,
+    1494,
+    1650,
+    1743,
+    1754,
+    1791,
+    1819
+   ]
+  },
+  {
+   "literal": ".35",
+   "uses": 133,
+   "lines": [
+    1358,
+    1458,
+    1480,
+    1517,
+    1530,
+    1530,
+    1739,
+    1739,
+    1746,
+    1746,
+    1898,
+    1899
+   ]
+  },
+  {
+   "literal": ".05",
+   "uses": 132,
+   "lines": [
+    854,
+    1421,
+    1487,
+    1488,
+    1494,
+    1570,
+    1619,
+    1739,
+    1742,
+    1742,
+    1752,
+    1949
+   ]
+  },
+  {
+   "literal": ".9",
+   "uses": 131,
+   "lines": [
+    842,
+    925,
+    966,
+    969,
+    1219,
+    1457,
+    1472,
+    1473,
+    1478,
+    1478,
+    1480,
+    1518
+   ]
+  },
+  {
+   "literal": ".45",
+   "uses": 123,
+   "lines": [
+    719,
+    962,
+    980,
+    1243,
+    1455,
+    1461,
+    1480,
+    1546,
+    1748,
+    1764,
+    1790,
+    1803
+   ]
+  },
+  {
+   "literal": ".8",
+   "uses": 120,
+   "lines": [
+    591,
+    926,
+    964,
+    980,
+    1479,
+    1480,
+    1616,
+    1616,
+    1776,
+    1792,
+    1821,
+    1948
+   ]
+  },
+  {
+   "literal": ".7",
+   "uses": 118,
+   "lines": [
+    1233,
+    1244,
+    1264,
+    1266,
+    1282,
+    1346,
+    1355,
+    1435,
+    1479,
+    1480,
+    1494,
+    1494
+   ]
+  },
+  {
+   "literal": ".3",
+   "uses": 117,
+   "lines": [
+    1233,
+    1264,
+    1342,
+    1346,
+    1355,
+    1478,
+    1739,
+    1739,
+    1742,
+    1742,
+    1764,
+    1789
+   ]
+  },
+  {
+   "literal": ".25",
+   "uses": 113,
+   "lines": [
+    1242,
+    1494,
+    1521,
+    1527,
+    1570,
+    1616,
+    1621,
+    1621,
+    1621,
+    1621,
+    1625,
+    1625
+   ]
+  },
+  {
+   "literal": "1.5",
+   "uses": 100,
+   "lines": [
+    534,
+    539,
+    792,
+    1241,
+    1343,
+    1511,
+    1742,
+    1742,
+    1825,
+    2093,
+    2457,
+    2571
+   ]
+  },
+  {
+   "literal": ".4",
+   "uses": 100,
+   "lines": [
+    563,
+    591,
+    652,
+    828,
+    1480,
+    1480,
+    1486,
+    1494,
+    1518,
+    1553,
+    1650,
+    2264
+   ]
+  },
+  {
+   "literal": "1.6",
+   "uses": 98,
+   "lines": [
+    500,
+    591,
+    843,
+    1280,
+    1351,
+    1366,
+    1425,
+    1476,
+    1768,
+    1791,
+    1809,
+    1819
+   ]
+  },
+  {
+   "literal": ".22",
+   "uses": 92,
+   "lines": [
+    563,
+    591,
+    695,
+    729,
+    1271,
+    1742,
+    1748,
+    1805,
+    1805,
+    1820,
+    1827,
+    1849
+   ]
+  },
+  {
+   "literal": ".62",
+   "uses": 90,
+   "lines": [
+    730,
+    842,
+    1480,
+    1521,
+    1651,
+    1849,
+    2545,
+    2546,
+    2551,
+    2552,
+    2559,
+    2653
+   ]
+  },
+  {
+   "literal": ".30",
+   "uses": 86,
+   "lines": [
+    656,
+    729,
+    868,
+    1088,
+    1243,
+    1455,
+    1521,
+    1545,
+    1619,
+    1863,
+    1897,
+    2104
+   ]
+  },
+  {
+   "literal": "255",
+   "uses": 83,
+   "lines": [
+    619,
+    620,
+    1031,
+    1099,
+    1100,
+    1101,
+    1102,
+    1102,
+    1218,
+    1229,
+    1264,
+    1270
+   ]
+  },
+  {
+   "literal": ".12",
+   "uses": 82,
+   "lines": [
+    559,
+    629,
+    629,
+    843,
+    961,
+    1739,
+    1739,
+    1739,
+    1742,
+    1748,
+    1763,
+    1844
+   ]
+  },
+  {
+   "literal": "2.0",
+   "uses": 82,
+   "lines": [
+    716,
+    865,
+    1130,
+    1490,
+    1809,
+    1819,
+    1819,
+    1819,
+    1819,
+    2156,
+    2223,
+    2243
+   ]
+  },
+  {
+   "literal": "1.3",
+   "uses": 80,
+   "lines": [
+    442,
+    1489,
+    1511,
+    1536,
+    1554,
+    1555,
+    1619,
+    1619,
+    1619,
+    1673,
+    1764,
+    1791
+   ]
+  },
+  {
+   "literal": "1.4",
+   "uses": 79,
+   "lines": [
+    629,
+    964,
+    1271,
+    1351,
+    1531,
+    1791,
+    1844,
+    2155,
+    2204,
+    2337,
+    2354,
+    2583
+   ]
+  },
+  {
+   "literal": "1.2",
+   "uses": 78,
+   "lines": [
+    1791,
+    2449,
+    2558,
+    2570,
+    2572,
+    2662,
+    2829,
+    2829,
+    3680,
+    4740,
+    4774,
+    5514
+   ]
+  }
+ ],
+ "possiblyUnused": [
+  "shoreMaskTexture",
+  "applyLook",
+  "realDinghy",
+  "dMergeParts",
+  "shoreRocks",
+  "shoreDuneGrass",
+  "grassField",
+  "reliefBuild",
+  "_tkL"
+ ],
+ "duplicatedLines": [
+  {
+   "lines": [
+    131,
+    135
+   ],
+   "text": "-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);"
+  },
+  {
+   "lines": [
+    459,
+    3395,
+    3658,
+    5042,
+    5178,
+    5275,
+    7186,
+    7441,
+    7632,
+    7878,
+    11646,
+    12940,
+    13762,
+    13990,
+    14320
+   ],
+   "text": "============================================================ */"
+  },
+  {
+   "lines": [
+    734,
+    747
+   ],
+   "text": "if(LOOK_EXP0 === null) LOOK_EXP0 = renderer.toneMappingExposure;"
+  },
+  {
+   "lines": [
+    839,
+    867
+   ],
+   "text": "vec2 dv = (vUv - sunUV) * vec2(aspect, 1.0); float r2 = dot(dv, dv);"
+  },
+  {
+   "lines": [
+    1154,
+    1997,
+    2003,
+    5901,
+    8377,
+    8919
+   ],
+   "text": "m.onBeforeCompile = sh => m.userData.patches.forEach(([,fn]) => fn(sh));"
+  },
+  {
+   "lines": [
+    1155,
+    1998,
+    2004,
+    5902,
+    8378,
+    8920
+   ],
+   "text": "m.customProgramCacheKey = () => m.userData.patches.map(([n]) => n).join(\"_\");"
+  },
+  {
+   "lines": [
+    1205,
+    2027,
+    6149
+   ],
+   "text": "mat.onBeforeCompile = sh => mat.userData.patches.forEach(([,fn]) => fn(sh));"
+  },
+  {
+   "lines": [
+    1206,
+    2028
+   ],
+   "text": "mat.customProgramCacheKey = () => mat.userData.patches.map(([n]) => n).join(\"_\");"
+  },
+  {
+   "lines": [
+    1213,
+    1304
+   ],
+   "text": "const S = 256, cv = document.createElement(\"canvas\"); cv.width = cv.height = S;"
+  },
+  {
+   "lines": [
+    1227,
+    1259
+   ],
+   "text": "const S = 512, cv = document.createElement(\"canvas\"); cv.width = cv.height = S;"
+  },
+  {
+   "lines": [
+    1466,
+    1504
+   ],
+   "text": "const m4 = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vec"
+  },
+  {
+   "lines": [
+    1609,
+    5910
+   ],
+   "text": "const hsh = (x, y, z) => { const s = Math.sin(x*127.1 + y*311.7 + z*74.7)*43758.5453; return s - Math.floor(s); };"
+  },
+  {
+   "lines": [
+    1610,
+    5911
+   ],
+   "text": "const vn3 = (x, y, z) => { const ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z), fx = x-ix, fy = y-iy, fz = "
+  },
+  {
+   "lines": [
+    1611,
+    5912
+   ],
+   "text": "const sx = fx*fx*(3-2*fx), sy = fy*fy*(3-2*fy), sz = fz*fz*(3-2*fz); let r = 0;"
+  },
+  {
+   "lines": [
+    1612,
+    5913
+   ],
+   "text": "for(let a=0;a<2;a++) for(let b=0;b<2;b++) for(let c=0;c<2;c++) r += hsh(ix+a, iy+b, iz+c) * (a?sx:1-sx) * (b?sy:1-sy) * "
+  },
+  {
+   "lines": [
+    1630,
+    5944
+   ],
+   "text": "v.fromBufferAttribute(na, i).applyMatrix3(nm).normalize(); nor.push(v.x, v.y, v.z);"
+  },
+  {
+   "lines": [
+    1638,
+    5954,
+    5991
+   ],
+   "text": "g.setAttribute(\"position\", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute(\"normal\", new THREE.Float32BufferAt"
+  },
+  {
+   "lines": [
+    1639,
+    5955
+   ],
+   "text": "g.setAttribute(\"aObj\", new THREE.Float32BufferAttribute(ob, 3)); g.setIndex(idx); g.computeBoundingSphere();"
+  },
+  {
+   "lines": [
+    1646,
+    5963
+   ],
+   "text": ".replace(\"#include <map_fragment>\", `{ vec3 bw = pow(abs(normalize(vObjN)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);"
+  },
+  {
+   "lines": [
+    1648,
+    5965
+   ],
+   "text": "vec4 tx = texture2D(map, q.zy)*bw.x + texture2D(map, q.xz)*bw.y + texture2D(map, q.xy)*bw.z;"
+  }
+ ],
+ "debugLogging": {
+  "count": 54,
+  "sample": [
+   {
+    "line": 455,
+    "text": "function(){ try { if(onError) return onError.apply(this, arguments); else console.warn(\"asset failed\", url); } finally { fin(); } }); }; });"
+   },
+   {
+    "line": 511,
+    "text": "if(n !== 6) console.warn(\"legacy lights: only \" + n + \"/6 patches applied\");"
+   },
+   {
+    "line": 811,
+    "text": "} else console.warn(\"shadow filter: r187 PCF block not found, keeping its 5 taps\");"
+   },
+   {
+    "line": 895,
+    "text": "}catch(e){ console.warn(\"light pass failed, shafts off\", e && e.message, e && e.stack && e.stack.split(\"\\n\")[1]); L.ok = false; }   /* DBG i"
+   },
+   {
+    "line": 1002,
+    "text": "DBG(\"webgl context lost\");"
+   },
+   {
+    "line": 1006,
+    "text": "DBG(\"webgl context restored\");"
+   },
+   {
+    "line": 1583,
+    "text": "DBG(\"real trees\", TR.pos.length/3, \"trunk verts\", LF.pos.length/12, \"leaf cards\", FR.idx.length/6, \"frond quads\");"
+   },
+   {
+    "line": 2084,
+    "text": "}catch(e){ DBG(\"normalFromTex failed\", e && e.message); out = null; }"
+   }
+  ]
+ },
+ "emptyCatch": [
+  {
+   "line": 1003,
+   "text": "try{ const el = $(\"ctxLost\"); if(el) el.classList.remove(\"hide\"); }catch(e2){}"
+  },
+  {
+   "line": 1010,
+   "text": "}catch(e2){}"
+  },
+  {
+   "line": 1017,
+   "text": "try{ if(AU.ctx && AU.ctx.state === \"suspended\") AU.ctx.resume(); }catch(e2){}"
+  },
+  {
+   "line": 4060,
+   "text": "}catch(e){}"
+  },
+  {
+   "line": 4637,
+   "text": "try{ window.HAT_SEAT = HAT_SEAT; window.HAT_TILT_MAX = HAT_TILT_MAX; window.HAT_CLEAR = HAT_CLEAR; window.HAT_FIT = HAT_FIT; }catch(e){}"
+  },
+  {
+   "line": 4969,
+   "text": "try{ window.narrowStance = narrowStance; }catch(e){}"
+  },
+  {
+   "line": 5010,
+   "text": "try{ window.levelClipHeads = levelClipHeads; }catch(e){}"
+  },
+  {
+   "line": 5038,
+   "text": "try{ window.applyOutfit = applyOutfit; window.applyHeadwear = applyHeadwear; }catch(e){}"
+  },
+  {
+   "line": 5053,
+   "text": "try{ const u = new URL(location.href); u.searchParams.delete(\"reset\"); history.replaceState(null, \"\", u); }catch(e){}"
+  },
+  {
+   "line": 5057,
+   "text": "try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){}"
+  },
+  {
+   "line": 5065,
+   "text": "}catch(e){}"
+  },
+  {
+   "line": 5069,
+   "text": "try{ localStorage.removeItem(SAVE_KEY); }catch(e){}"
+  },
+  {
+   "line": 5071,
+   "text": "else if(window.storage && window.storage.set) await window.storage.set(SAVE_KEY, \"\"); }catch(e){}"
+  },
+  {
+   "line": 5075,
+   "text": "try{ localStorage.setItem(SAVE_KEY, s); }catch(e){}"
+  },
+  {
+   "line": 5076,
+   "text": "try{ if(window.storage && window.storage.set) await window.storage.set(SAVE_KEY, s); }catch(e){}"
+  },
+  {
+   "line": 5115,
+   "text": "function glideStop(id){ const a = glideAnim[id]; if(a){ glideAnim[id] = null; try{ a.cancel(); }catch(e){} } }"
+  },
+  {
+   "line": 5142,
+   "text": "try{ a.cancel(); }catch(e){} card.style.transition = \"\"; };"
+  },
+  {
+   "line": 5161,
+   "text": "let ql = \"\"; try{ const o = CUR ? objectiveOf(CUR) : null; if(o) ql = o.label; }catch(e){}"
+  },
+  {
+   "line": 5172,
+   "text": "}catch(e){}"
+  },
+  {
+   "line": 9813,
+   "text": "try{ gradePass.uniforms.airCol.value.copy(fogCol); }catch(e){}"
+  },
+  {
+   "line": 11535,
+   "text": "}catch(e){}"
+  },
+  {
+   "line": 12979,
+   "text": "if(CUR === I){ try{ gradePass.uniforms.airCol.value.copy(fog.color); }catch(e){} }"
+  },
+  {
+   "line": 13468,
+   "text": "if(CUR === I){ try{ gradePass.uniforms.airCol.value.copy(fog.color); }catch(e){} }"
+  },
+  {
+   "line": 14224,
+   "text": "try{ if(CUR && CUR.W) CUR.W.active = false; }catch(e){}"
+  },
+  {
+   "line": 14273,
+   "text": "try{ if(CUR && CUR.W) CUR.W.active = false; }catch(e){}"
+  },
+  {
+   "line": 14427,
+   "text": "try{ ctxBack = sessionStorage.getItem(\"lala:ctxIsland\"); sessionStorage.removeItem(\"lala:ctxIsland\"); }catch(e){}"
+  }
+ ]
+}
+rc=0
