@@ -1,0 +1,1 @@
+[ -f qa/syntax.mjs ] && timeout 3000 node qa/syntax.mjs > qa/out/syntax.out 2> qa/out/syntax.log; echo rc=$? >> qa/out/syntax.log
