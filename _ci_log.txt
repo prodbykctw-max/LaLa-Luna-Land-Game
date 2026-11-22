@@ -1,0 +1,6 @@
+{"opt":"B","island":"hub","curKey":"hub","errors":0,"failed":0,"bad":0,"trees":160,"instMeshes":2}
+{"opt":"B","island":"green","curKey":"green","errors":0,"failed":0,"bad":0,"trees":258,"instMeshes":2}
+{"opt":"B","island":"gr","curKey":"gr","errors":0,"failed":0,"bad":0,"trees":72,"instMeshes":1}
+{"opt":"B","island":"sanity","curKey":"sanity","errors":0,"failed":0,"bad":0,"trees":121,"instMeshes":1}
+{"opt":"B","island":"town","curKey":"town","errors":0,"failed":0,"bad":0,"trees":10,"instMeshes":13}
+rc=0
