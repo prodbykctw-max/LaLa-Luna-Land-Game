@@ -1,0 +1,34 @@
+node qa/syntax.mjs > qa/out/syntax.out 2> qa/out/syntax.log; r=$?; tail -25 qa/out/syntax.log; tail -25 qa/out/syntax.out; exit $r
+QA_ROOT=$BASE node qa/syntax.mjs > qa/out/syntax.base.out 2> qa/out/syntax.base.log; r=$?; tail -25 qa/out/syntax.base.log; tail -25 qa/out/syntax.base.out; exit $r
+node qa/determinism.mjs > qa/out/determinism.out 2> qa/out/determinism.log; r=$?; tail -25 qa/out/determinism.log; tail -25 qa/out/determinism.out; exit $r
+QA_ROOT=$BASE node qa/determinism.mjs > qa/out/determinism.base.out 2> qa/out/determinism.base.log; r=$?; tail -25 qa/out/determinism.base.log; tail -25 qa/out/determinism.base.out; exit $r
+node qa/codehealth.mjs > qa/out/codehealth.out 2> qa/out/codehealth.log; r=$?; tail -25 qa/out/codehealth.log; tail -25 qa/out/codehealth.out; exit $r
+QA_ROOT=$BASE node qa/codehealth.mjs > qa/out/codehealth.base.out 2> qa/out/codehealth.base.log; r=$?; tail -25 qa/out/codehealth.base.log; tail -25 qa/out/codehealth.base.out; exit $r
+node qa/console_load.mjs > qa/out/console_load.out 2> qa/out/console_load.log; r=$?; tail -25 qa/out/console_load.log; tail -25 qa/out/console_load.out; exit $r
+QA_ROOT=$BASE node qa/console_load.mjs > qa/out/console_load.base.out 2> qa/out/console_load.base.log; r=$?; tail -25 qa/out/console_load.base.log; tail -25 qa/out/console_load.base.out; exit $r
+node qa/assets.mjs > qa/out/assets.out 2> qa/out/assets.log; r=$?; tail -25 qa/out/assets.log; tail -25 qa/out/assets.out; exit $r
+QA_ROOT=$BASE node qa/assets.mjs > qa/out/assets.base.out 2> qa/out/assets.base.log; r=$?; tail -25 qa/out/assets.base.log; tail -25 qa/out/assets.base.out; exit $r
+node qa/reach.mjs > qa/out/reach.out 2> qa/out/reach.log; r=$?; tail -25 qa/out/reach.log; tail -25 qa/out/reach.out; exit $r
+QA_ROOT=$BASE node qa/reach.mjs > qa/out/reach.base.out 2> qa/out/reach.base.log; r=$?; tail -25 qa/out/reach.base.log; tail -25 qa/out/reach.base.out; exit $r
+node qa/traversal.mjs > qa/out/traversal.out 2> qa/out/traversal.log; r=$?; tail -25 qa/out/traversal.log; tail -25 qa/out/traversal.out; exit $r
+QA_ROOT=$BASE node qa/traversal.mjs > qa/out/traversal.base.out 2> qa/out/traversal.base.log; r=$?; tail -25 qa/out/traversal.base.log; tail -25 qa/out/traversal.base.out; exit $r
+node qa/camera.mjs > qa/out/camera.out 2> qa/out/camera.log; r=$?; tail -25 qa/out/camera.log; tail -25 qa/out/camera.out; exit $r
+QA_ROOT=$BASE node qa/camera.mjs > qa/out/camera.base.out 2> qa/out/camera.base.log; r=$?; tail -25 qa/out/camera.base.log; tail -25 qa/out/camera.base.out; exit $r
+node qa/framebudget.mjs > qa/out/framebudget.out 2> qa/out/framebudget.log; r=$?; tail -25 qa/out/framebudget.log; tail -25 qa/out/framebudget.out; exit $r
+QA_ROOT=$BASE node qa/framebudget.mjs > qa/out/framebudget.base.out 2> qa/out/framebudget.base.log; r=$?; tail -25 qa/out/framebudget.base.log; tail -25 qa/out/framebudget.base.out; exit $r
+node qa/mobile.mjs > qa/out/mobile.out 2> qa/out/mobile.log; r=$?; tail -25 qa/out/mobile.log; tail -25 qa/out/mobile.out; exit $r
+QA_ROOT=$BASE node qa/mobile.mjs > qa/out/mobile.base.out 2> qa/out/mobile.base.log; r=$?; tail -25 qa/out/mobile.base.log; tail -25 qa/out/mobile.base.out; exit $r
+node qa/float.mjs > qa/out/float.out 2> qa/out/float.log; r=$?; tail -25 qa/out/float.log; tail -25 qa/out/float.out; exit $r
+QA_ROOT=$BASE node qa/float.mjs > qa/out/float.base.out 2> qa/out/float.base.log; r=$?; tail -25 qa/out/float.base.log; tail -25 qa/out/float.base.out; exit $r
+node qa/overhead.mjs > qa/out/overhead.out 2> qa/out/overhead.log; r=$?; tail -25 qa/out/overhead.log; tail -25 qa/out/overhead.out; exit $r
+QA_ROOT=$BASE node qa/overhead.mjs > qa/out/overhead.base.out 2> qa/out/overhead.base.log; r=$?; tail -25 qa/out/overhead.base.log; tail -25 qa/out/overhead.base.out; exit $r
+node qa/scale.mjs > qa/out/scale.out 2> qa/out/scale.log; r=$?; tail -25 qa/out/scale.log; tail -25 qa/out/scale.out; exit $r
+QA_ROOT=$BASE node qa/scale.mjs > qa/out/scale.base.out 2> qa/out/scale.base.log; r=$?; tail -25 qa/out/scale.base.log; tail -25 qa/out/scale.base.out; exit $r
+node qa/vgeo.mjs > qa/out/vgeo.out 2> qa/out/vgeo.log; r=$?; tail -25 qa/out/vgeo.log; tail -25 qa/out/vgeo.out; exit $r
+QA_ROOT=$BASE node qa/vgeo.mjs > qa/out/vgeo.base.out 2> qa/out/vgeo.base.log; r=$?; tail -25 qa/out/vgeo.base.log; tail -25 qa/out/vgeo.base.out; exit $r
+node qa/vcheck.mjs > qa/out/vcheck.out 2> qa/out/vcheck.log; r=$?; tail -25 qa/out/vcheck.log; tail -25 qa/out/vcheck.out; exit $r
+QA_ROOT=$BASE node qa/vcheck.mjs > qa/out/vcheck.base.out 2> qa/out/vcheck.base.log; r=$?; tail -25 qa/out/vcheck.base.log; tail -25 qa/out/vcheck.base.out; exit $r
+node qa/vmat.mjs > qa/out/vmat.out 2> qa/out/vmat.log; r=$?; tail -25 qa/out/vmat.log; tail -25 qa/out/vmat.out; exit $r
+QA_ROOT=$BASE node qa/vmat.mjs > qa/out/vmat.base.out 2> qa/out/vmat.base.log; r=$?; tail -25 qa/out/vmat.base.log; tail -25 qa/out/vmat.base.out; exit $r
+node qa/vaudit.mjs > qa/out/vaudit.out 2> qa/out/vaudit.log; r=$?; tail -25 qa/out/vaudit.log; tail -25 qa/out/vaudit.out; exit $r
+QA_ROOT=$BASE node qa/vaudit.mjs > qa/out/vaudit.base.out 2> qa/out/vaudit.base.log; r=$?; tail -25 qa/out/vaudit.base.log; tail -25 qa/out/vaudit.base.out; exit $r
