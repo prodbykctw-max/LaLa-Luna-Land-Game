@@ -1,0 +1,6 @@
+[console] hub: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=38130ms rig=44849ms
+[console] green: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=40985ms rig=45324ms
+[console] gr: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=47150ms rig=51341ms
+[console] sanity: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=56372ms rig=60969ms
+[console] town: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=44880ms rig=49803ms
+rc=0

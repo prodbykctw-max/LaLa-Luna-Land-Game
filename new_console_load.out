@@ -1,0 +1,348 @@
+{
+ "runs": [
+  {
+   "island": "hub",
+   "url": "http://localhost:8847/index_test.html?fps=1",
+   "msToFirstFrame": 38130,
+   "msToPlayerRig": 44849,
+   "state": {
+    "island": "hub",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "1 fps · 1,240,661 tris · 377 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Moss",
+      "model": true
+     },
+     {
+      "name": "Pip",
+      "model": true
+     }
+    ],
+    "creatures": 7,
+    "overlays": []
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0x494001a7e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x494001a7e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 103
+  },
+  {
+   "island": "green",
+   "url": "http://localhost:8856/index_test.html?go=green&fps=1",
+   "msToFirstFrame": 40985,
+   "msToPlayerRig": 45324,
+   "state": {
+    "island": "green",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 1,970,299 tris · 970 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Wren",
+      "model": true
+     },
+     {
+      "name": "Juno",
+      "model": true
+     },
+     {
+      "name": "Marisol",
+      "model": true
+     },
+     {
+      "name": "Dee",
+      "model": true
+     },
+     {
+      "name": "Theo",
+      "model": true
+     },
+     {
+      "name": "Nan",
+      "model": true
+     },
+     {
+      "name": "Ollie the postman",
+      "model": true
+     }
+    ],
+    "creatures": 19,
+    "overlays": []
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0xefc001aca00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0xefc001aca00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 113
+  },
+  {
+   "island": "gr",
+   "url": "http://localhost:8570/index_test.html?go=gr&fps=1",
+   "msToFirstFrame": 47150,
+   "msToPlayerRig": 51341,
+   "state": {
+    "island": "gr",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 1,713,836 tris · 501 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Marisol",
+      "model": true
+     },
+     {
+      "name": "Dee",
+      "model": true
+     },
+     {
+      "name": "Theo",
+      "model": true
+     },
+     {
+      "name": "Nan",
+      "model": true
+     },
+     {
+      "name": "Ollie the postman",
+      "model": true
+     }
+    ],
+    "creatures": 20,
+    "overlays": []
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0xbd400162600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0xbd400162600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 131
+  },
+  {
+   "island": "sanity",
+   "url": "http://localhost:8232/index_test.html?go=sanity&fps=1",
+   "msToFirstFrame": 56372,
+   "msToPlayerRig": 60969,
+   "state": {
+    "island": "sanity",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 2,160,430 tris · 696 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Marisol",
+      "model": true
+     },
+     {
+      "name": "Dee",
+      "model": true
+     },
+     {
+      "name": "Theo",
+      "model": true
+     },
+     {
+      "name": "Nan",
+      "model": true
+     },
+     {
+      "name": "Ollie the postman",
+      "model": true
+     }
+    ],
+    "creatures": 36,
+    "overlays": []
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0x1f8400162600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x1f8400162600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 145
+  },
+  {
+   "island": "town",
+   "url": "http://localhost:8192/index_test.html?go=town&fps=1",
+   "msToFirstFrame": 44880,
+   "msToPlayerRig": 49803,
+   "state": {
+    "island": "town",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 1,976,636 tris · 1319 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "model": true
+     },
+     {
+      "name": "Bea",
+      "model": true
+     },
+     {
+      "name": "Neri",
+      "model": true
+     },
+     {
+      "name": "Cass",
+      "model": true
+     },
+     {
+      "name": "Rafa",
+      "model": true
+     },
+     {
+      "name": "Marisol",
+      "model": true
+     },
+     {
+      "name": "Dee",
+      "model": true
+     },
+     {
+      "name": "Theo",
+      "model": true
+     },
+     {
+      "name": "Nan",
+      "model": true
+     },
+     {
+      "name": "Ollie the postman",
+      "model": true
+     }
+    ],
+    "creatures": 28,
+    "overlays": []
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0x25d4001a7400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x25d4001a7400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 267
+  }
+ ]
+}
