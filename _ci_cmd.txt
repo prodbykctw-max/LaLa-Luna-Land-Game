@@ -1,0 +1,1 @@
+[ -f qa/console_load.mjs ] && timeout 3000 node qa/console_load.mjs > qa/out/console_load.out 2> qa/out/console_load.log; echo rc=$? >> qa/out/console_load.log

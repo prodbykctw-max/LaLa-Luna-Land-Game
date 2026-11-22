@@ -1,0 +1,178 @@
+{
+ "runs": [
+  {
+   "island": "hub",
+   "url": "http://localhost:8155/index_test.html?fps=1",
+   "msToFirstFrame": 44247,
+   "msToPlayerRig": 52302,
+   "state": {
+    "island": "hub",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 1,240,677 tris · 376 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Moss",
+      "model": true
+     },
+     {
+      "name": "Pip",
+      "model": true
+     }
+    ],
+    "creatures": 7,
+    "overlays": []
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0xec4001a6800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0xec4001a6800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 103
+  },
+  {
+   "island": "green",
+   "url": "http://localhost:8596/index_test.html?go=green&fps=1",
+   "msToFirstFrame": 9990,
+   "msToPlayerRig": 9992,
+   "state": {
+    "island": "hub",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 1,595,281 tris · 1012 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Moss",
+      "model": true
+     },
+     {
+      "name": "Pip",
+      "model": true
+     }
+    ],
+    "creatures": 7,
+    "overlays": [
+     "ovTitle"
+    ]
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0x3e5c001a5000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 103
+  },
+  {
+   "island": "gr",
+   "url": "http://localhost:8398/index_test.html?go=gr&fps=1",
+   "msToFirstFrame": 10019,
+   "msToPlayerRig": 10021,
+   "state": {
+    "island": "hub",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 1,607,777 tris · 1012 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Moss",
+      "model": true
+     },
+     {
+      "name": "Pip",
+      "model": true
+     }
+    ],
+    "creatures": 7,
+    "overlays": [
+     "ovTitle"
+    ]
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0x237c0019e600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 103
+  },
+  {
+   "island": "sanity",
+   "url": "http://localhost:8633/index_test.html?go=sanity&fps=1",
+   "msToFirstFrame": 10116,
+   "msToPlayerRig": 10119,
+   "state": {
+    "island": "hub",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 1,395,345 tris · 1004 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Moss",
+      "model": true
+     },
+     {
+      "name": "Pip",
+      "model": true
+     }
+    ],
+    "creatures": 7,
+    "overlays": [
+     "ovTitle"
+    ]
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0x268400162600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 103
+  },
+  {
+   "island": "town",
+   "url": "http://localhost:8380/index_test.html?go=town&fps=1",
+   "msToFirstFrame": 10122,
+   "msToPlayerRig": 10125,
+   "state": {
+    "island": "hub",
+    "nonFinite": [],
+    "nanBoundingSpheres": 0,
+    "readout": "0 fps · 1,395,345 tris · 1004 calls",
+    "playerModel": true,
+    "npcRigs": [
+     {
+      "name": "Moss",
+      "model": true
+     },
+     {
+      "name": "Pip",
+      "model": true
+     }
+    ],
+    "creatures": 7,
+    "overlays": [
+     "ovTitle"
+    ]
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0x3e4001a5000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 103
+  }
+ ]
+}
