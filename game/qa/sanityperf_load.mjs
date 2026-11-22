@@ -8,7 +8,7 @@ import { open, OUT, argIslands } from './_harness.mjs';
 import { writeFileSync } from 'fs';
 const tag = (process.argv.find(a => a.startsWith('--tag=')) || '--tag=new').slice(6);
 const keys = argIslands(['sanity']);
-const H = await open({ navigate: false, init: `
+const H = await open({ navigate: false, query: (process.argv.find(a => a.startsWith('--flags=')) || '').slice(8), init: `
   window.__STEPLOG = []; window.__LT = [];
   try { new PerformanceObserver(l => { for (const e of l.getEntries()) window.__LT.push([+e.startTime.toFixed(0), +e.duration.toFixed(0)]); }).observe({ entryTypes: ['longtask'] }); } catch (e) {}` });
 const { page } = H; const cdp = await H.context.newCDPSession(page);
@@ -17,7 +17,8 @@ const sum = a => a.reduce((x, s) => x + s[3], 0), mx = a => a.reduce((x, s) => M
 async function report(key, mark, lt0, cpu, wall) {
   const r = await page.evaluate(([mark, lt0]) => ({ log: window.__STEPLOG.slice(mark), lt: window.__LT.slice(lt0), programs: window.__T.renderer.info.programs.length, geometries: window.__T.renderer.info.memory.geometries, textures: window.__T.renderer.info.memory.textures }), [mark, lt0]);
   const build = r.log.filter(s => s[1] === 'step' && s[0] === key), warm = r.log.filter(s => s[1] === 'warm' && s[0] === key);
-  const o = { tag, key, wallS: +(wall / 1000).toFixed(1), cpuS: cpu, build: { steps: build.length, totalMs: Math.round(sum(build)), maxMs: Math.round(mx(build)), over50: build.filter(s => s[3] > 50).length, over100: build.filter(s => s[3] > 100).length, over250: build.filter(s => s[3] > 250).length,
+  const comp = r.log.filter(s => s[1] === 'compile' && s[0] === key).map(s => [s[2], Math.round(s[3])]);
+  const o = { compile: comp, tag, key, wallS: +(wall / 1000).toFixed(1), cpuS: cpu, build: { steps: build.length, totalMs: Math.round(sum(build)), maxMs: Math.round(mx(build)), over50: build.filter(s => s[3] > 50).length, over100: build.filter(s => s[3] > 100).length, over250: build.filter(s => s[3] > 250).length,
       biggest: build.map((s, i) => [i, Math.round(s[3])]).sort((a, b) => b[1] - a[1]).slice(0, 12) },
     warm: { steps: warm.length, totalMs: Math.round(sum(warm)), maxMs: Math.round(mx(warm)), over50: warm.filter(s => s[3] > 50).length, over100: warm.filter(s => s[3] > 100).length, biggest: warm.map(s => [s[2], Math.round(s[3])]).sort((a, b) => b[1] - a[1]).slice(0, 8) },
     longTasks: { n: r.lt.length, totalMs: r.lt.reduce((x, l) => x + l[1], 0), maxMs: r.lt.reduce((x, l) => Math.max(x, l[1]), 0), over100: r.lt.filter(l => l[1] > 100).length },

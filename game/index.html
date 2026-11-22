@@ -14189,10 +14189,34 @@ function warmRange(I, a, b){
   kids.forEach((o, i) => { if(o.isLight) return;
     if(i >= a && i < b) o.traverse(k => { if(k.isLight) return; if(!k.visible && !P.lit.has(k)){ flips.push(k); k.visible = true; } if(k.frustumCulled){ fc.push(k); k.frustumCulled = false; } });
     else o.traverse(k => { if(drawn(k) && k.visible && !P.lit.has(k)){ flips.push(k); k.visible = false; } }); });
-  if(!WARM_RT){ const src = composer.renderTarget1.texture; WARM_RT = new THREE.WebGLRenderTarget(8, 8, {type: src.type, format: src.format}); WARM_RT.texture.colorSpace = src.colorSpace; }
+  warmRT();
   const prev = renderer.getRenderTarget();
   try { renderer.setRenderTarget(WARM_RT); renderer.render(I.scene, camera); }
   finally { renderer.setRenderTarget(prev); flips.forEach(k => { k.visible = !k.visible; }); fc.forEach(k => { k.frustumCulled = true; }); }
+}
+/* ===================  PARALLEL SHADER COMPILE BEFORE THE WARM DRAW  ===================
+   The warm pass below draws the island ten top-level pieces at a time and each draw that meets a new shader waits for the driver to compile and
+   link it ON THE MAIN THREAD: on a phone that is a block of hundreds of milliseconds per step, the freeze on the Sanity load card. three's
+   compileAsync() builds every material's program for the scene and, where the browser has KHR_parallel_shader_compile, lets the driver link them on
+   its own threads. It is called per top-level piece, a few at a time per frame, against the same render-target format the real passes use
+   (WARM_RT), so the programs it makes are the ones the frame will ask for; the warm draw then only uploads. The draw loop itself is unchanged.
+   ?warm=old skips this and restores the old warm loop. Where the extension is missing compileAsync resolves at once and nothing is lost. */
+const WARM_OLD = QS.get("warm") === "old";
+function warmRT(){ if(!WARM_RT){ const src = composer.renderTarget1.texture; WARM_RT = new THREE.WebGLRenderTarget(8, 8, {type: src.type, format: src.format}); WARM_RT.texture.colorSpace = src.colorSpace; } return WARM_RT; }
+async function warmCompile(I, prog){
+  if(WARM_OLD || !renderer.compileAsync) return;
+  const t0 = performance.now(), kids = I.scene.children.slice(), pend = [], prev = renderer.getRenderTarget(), p0 = renderer.info.programs ? renderer.info.programs.length : 0;
+  let slice = performance.now();
+  try{
+    for(let i = 0; i < kids.length; i++){
+      const o = kids[i]; if(o.isLight) continue;
+      renderer.setRenderTarget(warmRT());
+      try { pend.push(renderer.compileAsync(o, camera, I.scene).catch(() => {})); } finally { renderer.setRenderTarget(prev); }
+      if(performance.now() - slice > 12){ if(prog) prog(i/kids.length); await nextFrame(); slice = performance.now(); }
+    }
+    await Promise.race([Promise.all(pend), new Promise(r => setTimeout(r, 20000))]);
+  } catch(e){ DBG("warmCompile failed", String(e)); }
+  if(window.__STEPLOG) window.__STEPLOG.push([I.cfg.key, "compile", "pieces=" + kids.length + " programs " + p0 + "->" + (renderer.info.programs ? renderer.info.programs.length : 0), performance.now() - t0, t0]);
 }
 function warmStep(I, budget){
   const P = PREP[I.cfg.key] || (PREP[I.cfg.key] = {i:0, done:false, ms:0});
@@ -14223,6 +14247,7 @@ async function readyIsland(key, prog){
       if(performance.now() - t0 > 75000){ rigNames(I).forEach(rigGiveUp); if(performance.now() - t0 > 90000) break; }
       n0 = Math.max(n0, ASSET_PENDING); prog(.5 + .3*(1 - ASSET_PENDING/n0)); await nextFrame(); preloadRigs(I); }
     PREP[key] = {i:0, done:false, ms:0};         /* everything that arrived is in the scene now: draw it all once */
+    await warmCompile(I);
     while(!warmStep(I, 40)){ prog(.8 + .2*PREP[key].i/Math.max(1, I.scene.children.length)); await nextFrame(); }
     I.__readyQ = true; prog(1);
     DBG("ready " + key + " in " + Math.round(performance.now() - t0) + " ms");
