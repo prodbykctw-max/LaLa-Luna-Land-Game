@@ -1,0 +1,462 @@
+{
+ "variant": "old",
+ "mobile": true,
+ "islands": {
+  "hub": {
+   "layoutHash": -1852928692,
+   "trees": 167,
+   "views": {
+    "spawn": {
+     "total": {
+      "tris": 1149435,
+      "calls": 344
+     },
+     "main": {
+      "tris": 768485,
+      "calls": 286
+     },
+     "shadow": {
+      "tris": 380950,
+      "calls": 58
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_hub_spawn_old_m.jpg"
+    },
+    "grove": {
+     "total": {
+      "tris": 1115693,
+      "calls": 108
+     },
+     "main": {
+      "tris": 751095,
+      "calls": 85
+     },
+     "shadow": {
+      "tris": 364598,
+      "calls": 23
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_hub_grove_old_m.jpg",
+     "grove": 29
+    },
+    "long": {
+     "total": {
+      "tris": 1146459,
+      "calls": 340
+     },
+     "main": {
+      "tris": 765509,
+      "calls": 282
+     },
+     "shadow": {
+      "tris": 380950,
+      "calls": 58
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_hub_long_old_m.jpg"
+    }
+   }
+  },
+  "green": {
+   "layoutHash": -1505824652,
+   "trees": 252,
+   "views": {
+    "spawn": {
+     "total": {
+      "tris": 1797482,
+      "calls": 891
+     },
+     "main": {
+      "tris": 1245326,
+      "calls": 749
+     },
+     "shadow": {
+      "tris": 552156,
+      "calls": 142
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_green_spawn_old_m.jpg"
+    },
+    "grove": {
+     "total": {
+      "tris": 1671058,
+      "calls": 306
+     },
+     "main": {
+      "tris": 1147322,
+      "calls": 199
+     },
+     "shadow": {
+      "tris": 523736,
+      "calls": 107
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_green_grove_old_m.jpg",
+     "grove": 27
+    },
+    "long": {
+     "total": {
+      "tris": 1797470,
+      "calls": 890
+     },
+     "main": {
+      "tris": 1245314,
+      "calls": 748
+     },
+     "shadow": {
+      "tris": 552156,
+      "calls": 142
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_green_long_old_m.jpg"
+    }
+   }
+  },
+  "gr": {
+   "layoutHash": 1682710006,
+   "trees": 186,
+   "views": {
+    "spawn": {
+     "total": {
+      "tris": 1820890,
+      "calls": 430
+     },
+     "main": {
+      "tris": 1137231,
+      "calls": 338
+     },
+     "shadow": {
+      "tris": 683659,
+      "calls": 92
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_gr_spawn_old_m.jpg"
+    },
+    "grove": {
+     "total": {
+      "tris": 1657501,
+      "calls": 177
+     },
+     "main": {
+      "tris": 1059067,
+      "calls": 129
+     },
+     "shadow": {
+      "tris": 598434,
+      "calls": 48
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_gr_grove_old_m.jpg",
+     "grove": 21
+    },
+    "long": {
+     "total": {
+      "tris": 1820870,
+      "calls": 425
+     },
+     "main": {
+      "tris": 1137211,
+      "calls": 333
+     },
+     "shadow": {
+      "tris": 683659,
+      "calls": 92
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_gr_long_old_m.jpg"
+    }
+   }
+  },
+  "sanity": {
+   "layoutHash": -564387551,
+   "trees": 128,
+   "views": {
+    "spawn": {
+     "total": {
+      "tris": 2022173,
+      "calls": 607
+     },
+     "main": {
+      "tris": 1529465,
+      "calls": 502
+     },
+     "shadow": {
+      "tris": 492708,
+      "calls": 105
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_sanity_spawn_old_m.jpg"
+    },
+    "grove": {
+     "total": {
+      "tris": 1790857,
+      "calls": 242
+     },
+     "main": {
+      "tris": 1360131,
+      "calls": 178
+     },
+     "shadow": {
+      "tris": 430726,
+      "calls": 64
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_sanity_grove_old_m.jpg",
+     "grove": 19
+    },
+    "long": {
+     "total": {
+      "tris": 2022201,
+      "calls": 602
+     },
+     "main": {
+      "tris": 1529493,
+      "calls": 497
+     },
+     "shadow": {
+      "tris": 492708,
+      "calls": 105
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_sanity_long_old_m.jpg"
+    }
+   }
+  },
+  "town": {
+   "layoutHash": -603053600,
+   "trees": 123,
+   "views": {
+    "spawn": {
+     "total": {
+      "tris": 1885832,
+      "calls": 704
+     },
+     "main": {
+      "tris": 1230525,
+      "calls": 486
+     },
+     "shadow": {
+      "tris": 655307,
+      "calls": 218
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_town_spawn_old_m.jpg"
+    },
+    "grove": {
+     "total": {
+      "tris": 1654990,
+      "calls": 249
+     },
+     "main": {
+      "tris": 1155488,
+      "calls": 179
+     },
+     "shadow": {
+      "tris": 499502,
+      "calls": 70
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_town_grove_old_m.jpg",
+     "grove": 14
+    },
+    "long": {
+     "total": {
+      "tris": 1882878,
+      "calls": 694
+     },
+     "main": {
+      "tris": 1227571,
+      "calls": 476
+     },
+     "shadow": {
+      "tris": 655307,
+      "calls": 218
+     },
+     "cells": 0,
+     "cellsAtLevel": [
+      0,
+      0,
+      0
+     ],
+     "meshesVisible": [
+      0,
+      0,
+      0
+     ],
+     "leafStats": null,
+     "far": null,
+     "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_lv_town_long_old_m.jpg"
+    }
+   }
+  }
+ },
+ "errors": []
+}
