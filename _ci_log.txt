@@ -1,0 +1,18 @@
+[clock new] performance.now x5 = 6485.00, 6502.00, 6519.00, 6535.00, 6552.00, 6569.00, 6585.00  deltas 17, 17, 16, 17, 17, 16 ms
+[new] hub spawn: total 1303325 tris / 467 calls, main 940839/386, cells@lv 2,3,63
+[new] hub grove: total 1242043 tris / 125 calls, main 886497/88, cells@lv 3,2,63
+[new] hub long: total 1327301 tris / 468 calls, main 964815/387, cells@lv 2,4,62
+[new] green spawn: total 2021188 tris / 1121 calls, main 1484050/963, cells@lv 4,3,102
+[new] green grove: total 1979790 tris / 1034 calls, main 1476754/906, cells@lv 4,4,101
+[new] green long: total 2035284 tris / 1101 calls, main 1498146/943, cells@lv 3,4,102
+[new] gr spawn: total 2011523 tris / 660 calls, main 1337236/537, cells@lv 0,0,68
+[new] gr grove: total 1874035 tris / 385 calls, main 1264345/298, cells@lv 2,4,62
+[new] gr long: total 2010863 tris / 657 calls, main 1336576/534, cells@lv 0,0,68
+[new] sanity spawn: total 2289803 tris / 885 calls, main 1805203/770, cells@lv 0,1,58
+[new] sanity grove: total 2268928 tris / 795 calls, main 1820599/696, cells@lv 2,4,53
+[new] sanity long: total 2310227 tris / 877 calls, main 1825627/762, cells@lv 0,2,57
+[new] town spawn: total 2194353 tris / 1696 calls, main 1483919/1162, cells@lv 0,1,46
+[new] town grove: total 1846258 tris / 305 calls, main 1309782/208, cells@lv 2,4,41
+[new] town long: total 2193991 tris / 1689 calls, main 1483557/1155, cells@lv 0,1,46
+[done] errors 0
+rc=0
