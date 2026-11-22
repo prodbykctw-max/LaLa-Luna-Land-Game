@@ -1,0 +1,1 @@
+QA_ROOT=$BASE timeout 3300 node qa/syntax.mjs > qa/out/old_syntax.out 2> qa/out/old_syntax.log; echo rc=$? >> qa/out/old_syntax.log
