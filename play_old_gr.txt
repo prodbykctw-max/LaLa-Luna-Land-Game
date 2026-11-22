@@ -1,0 +1,596 @@
+{
+ "tag": "old",
+ "key": "gr",
+ "flags": "",
+ "frames": 15,
+ "scenes": {
+  "idle": {
+   "n": 16,
+   "jsFrame": {
+    "p50": 19.4,
+    "p95": 67.2,
+    "max": 67.2,
+    "mean": 22.09
+   },
+   "jsUpdate": {
+    "p50": 4.3,
+    "p95": 26.3,
+    "max": 26.3,
+    "mean": 6.62
+   },
+   "jsRender": {
+    "p50": 12.9,
+    "p95": 49.6,
+    "max": 49.6,
+    "mean": 15.47
+   },
+   "calls": 528,
+   "tris": 1858665
+  },
+  "walk": {
+   "n": 17,
+   "jsFrame": {
+    "p50": 19,
+    "p95": 23.2,
+    "max": 23.2,
+    "mean": 17.99
+   },
+   "jsUpdate": {
+    "p50": 4.4,
+    "p95": 7.4,
+    "max": 7.4,
+    "mean": 4.83
+   },
+   "jsRender": {
+    "p50": 13.9,
+    "p95": 18.2,
+    "max": 18.2,
+    "mean": 13.16
+   },
+   "calls": 527,
+   "tris": 1858663
+  },
+  "jump": {
+   "n": 16,
+   "jsFrame": {
+    "p50": 16.8,
+    "p95": 21.5,
+    "max": 21.5,
+    "mean": 16.69
+   },
+   "jsUpdate": {
+    "p50": 4.1,
+    "p95": 7.1,
+    "max": 7.1,
+    "mean": 4.47
+   },
+   "jsRender": {
+    "p50": 11.7,
+    "p95": 16.2,
+    "max": 16.2,
+    "mean": 12.21
+   },
+   "calls": 505,
+   "tris": 1827972
+  }
+ },
+ "walk20s": {
+  "frames": 1116,
+  "js": {
+   "p50": 2.6,
+   "p95": 3.6,
+   "max": 12.7,
+   "mean": 2.76
+  },
+  "hitchesOver50ms": 0,
+  "hitchesOver25ms": 0,
+  "worst": [
+   12.7,
+   6.5,
+   5.9,
+   4.8,
+   4.7
+  ]
+ },
+ "info": {
+  "programs": 198,
+  "geometries": 1705,
+  "textures": 206,
+  "heapMB": 195
+ },
+ "cpuProfile": {
+  "frames": 17,
+  "totalMsPerFrame": 1996.3,
+  "inclusivePerFrameMs": [
+   [
+    "(root)",
+    1996.299
+   ],
+   [
+    "(program)",
+    1975.179
+   ],
+   [
+    "(anon)",
+    19.502
+   ],
+   [
+    "tick:14176",
+    19.321
+   ],
+   [
+    "c.render",
+    14.414
+   ],
+   [
+    "present:756",
+    14.414
+   ],
+   [
+    "render@ext",
+    14.359
+   ],
+   [
+    "Cf.render@ext",
+    14.212
+   ],
+   [
+    "Cf.renderBufferDirect@ext",
+    8.875
+   ],
+   [
+    "gp@ext",
+    7.931
+   ],
+   [
+    "Zl@ext",
+    7.902
+   ],
+   [
+    "xp@ext",
+    7.795
+   ],
+   [
+    "N_@ext",
+    7.23
+   ],
+   [
+    "islandUpdate:12863",
+    4.646
+   ],
+   [
+    "setValue@ext",
+    2.677
+   ],
+   [
+    "updateMatrixWorld@ext",
+    2.282
+   ],
+   [
+    "Ia@ext",
+    2.24
+   ],
+   [
+    "v@ext",
+    1.994
+   ],
+   [
+    "upload@ext",
+    1.931
+   ],
+   [
+    "wu@ext",
+    1.874
+   ],
+   [
+    "fxUpdate:7082",
+    1.353
+   ],
+   [
+    "p@ext",
+    1.266
+   ],
+   [
+    "height:9869",
+    1.152
+   ],
+   [
+    "f:6538",
+    1.023
+   ],
+   [
+    "dist:5596",
+    1.007
+   ],
+   [
+    "le@ext",
+    0.849
+   ],
+   [
+    "(garbage collector)",
+    0.834
+   ],
+   [
+    "(anon):6600",
+    0.824
+   ],
+   [
+    "GM@ext",
+    0.795
+   ],
+   [
+    "_setValue_fromArray_setMatrixWorldNeedsUpdate@ext",
+    0.766
+   ],
+   [
+    "o@ext",
+    0.72
+   ],
+   [
+    "noGrass:11156",
+    0.696
+   ],
+   [
+    "a@ext",
+    0.691
+   ],
+   [
+    "_update@ext",
+    0.687
+   ],
+   [
+    "JM@ext",
+    0.68
+   ],
+   [
+    "oe@ext",
+    0.663
+   ],
+   [
+    "multiplyMatrices@ext",
+    0.646
+   ],
+   [
+    "(idle)",
+    0.61
+   ],
+   [
+    "OM@ext",
+    0.517
+   ],
+   [
+    "update@ext",
+    0.5
+   ],
+   [
+    "walkerUpdate:12419",
+    0.405
+   ],
+   [
+    "i@ext",
+    0.387
+   ],
+   [
+    "s@ext",
+    0.339
+   ],
+   [
+    "h@ext",
+    0.329
+   ],
+   [
+    "_@ext",
+    0.324
+   ],
+   [
+    "uniformMatrix4fv",
+    0.319
+   ],
+   [
+    "n@ext",
+    0.313
+   ],
+   [
+    "slerpFlat@ext",
+    0.298
+   ],
+   [
+    "uniform3f",
+    0.287
+   ],
+   [
+    "musPump:3574",
+    0.272
+   ],
+   [
+    "c@ext",
+    0.267
+   ],
+   [
+    "ue@ext",
+    0.26
+   ],
+   [
+    "Vt@ext",
+    0.259
+   ],
+   [
+    "musVoice:3534",
+    0.243
+   ],
+   [
+    "musStep:3622",
+    0.243
+   ],
+   [
+    "setFromRotationMatrix@ext",
+    0.237
+   ],
+   [
+    "bindVertexArray",
+    0.23
+   ],
+   [
+    "texSubImage2D",
+    0.223
+   ],
+   [
+    "intersectsFrustum@ext",
+    0.223
+   ],
+   [
+    "u@ext",
+    0.216
+   ]
+  ],
+  "selfPerFrameMs": [
+   [
+    "(program)",
+    1975.179
+   ],
+   [
+    "updateMatrixWorld@ext",
+    1.933
+   ],
+   [
+    "p@ext",
+    1.191
+   ],
+   [
+    "dist:5596",
+    1.007
+   ],
+   [
+    "wu@ext",
+    0.902
+   ],
+   [
+    "(garbage collector)",
+    0.834
+   ],
+   [
+    "islandUpdate:12863",
+    0.779
+   ],
+   [
+    "Ia@ext",
+    0.651
+   ],
+   [
+    "multiplyMatrices@ext",
+    0.646
+   ],
+   [
+    "v@ext",
+    0.617
+   ],
+   [
+    "(idle)",
+    0.61
+   ],
+   [
+    "_setValue_fromArray_setMatrixWorldNeedsUpdate@ext",
+    0.546
+   ],
+   [
+    "upload@ext",
+    0.505
+   ],
+   [
+    "setValue@ext",
+    0.456
+   ],
+   [
+    "N_@ext",
+    0.375
+   ],
+   [
+    "Cf.renderBufferDirect@ext",
+    0.358
+   ],
+   [
+    "_update@ext",
+    0.351
+   ],
+   [
+    "uniformMatrix4fv",
+    0.319
+   ],
+   [
+    "slerpFlat@ext",
+    0.298
+   ],
+   [
+    "uniform3f",
+    0.287
+   ],
+   [
+    "Vt@ext",
+    0.259
+   ],
+   [
+    "setFromRotationMatrix@ext",
+    0.237
+   ],
+   [
+    "h@ext",
+    0.235
+   ],
+   [
+    "_@ext",
+    0.232
+   ],
+   [
+    "OM@ext",
+    0.231
+   ],
+   [
+    "bindVertexArray",
+    0.23
+   ],
+   [
+    "texSubImage2D",
+    0.223
+   ],
+   [
+    "u@ext",
+    0.216
+   ],
+   [
+    "Ht@ext",
+    0.209
+   ],
+   [
+    "f:6538",
+    0.198
+   ]
+  ]
+ },
+ "alloc": {
+  "frames": 17,
+  "kBPerFrame": 1348.2,
+  "top": [
+   [
+    "p",
+    455.62
+   ],
+   [
+    "GM",
+    119.96
+   ],
+   [
+    "_update",
+    96.46
+   ],
+   [
+    "join",
+    80.97
+   ],
+   [
+    "placeCamera:12715",
+    73.12
+   ],
+   [
+    "m",
+    72.48
+   ],
+   [
+    "OM",
+    63.65
+   ],
+   [
+    "walkerUpdate:12419",
+    49.88
+   ],
+   [
+    "(anon):12963",
+    47.13
+   ],
+   [
+    "hypot",
+    40.07
+   ],
+   [
+    "(anon):13074",
+    36.58
+   ],
+   [
+    "height:9869",
+    25.43
+   ],
+   [
+    "_",
+    13.7
+   ],
+   [
+    "Vt",
+    11.9
+   ],
+   [
+    "yp",
+    10.58
+   ],
+   [
+    "next",
+    10.2
+   ],
+   [
+    "cameraCollide:3357",
+    8.42
+   ],
+   [
+    "BM",
+    6.82
+   ],
+   [
+    "o_",
+    6.46
+   ],
+   [
+    "(anon)",
+    5.5
+   ],
+   [
+    "push",
+    4.77
+   ],
+   [
+    "filter",
+    4.48
+   ],
+   [
+    "wu",
+    3.99
+   ],
+   [
+    "sort",
+    3.97
+   ],
+   [
+    "applyMatrix4",
+    3.96
+   ],
+   [
+    "q",
+    3.95
+   ],
+   [
+    "s",
+    3.84
+   ],
+   [
+    "n",
+    3.72
+   ],
+   [
+    "l",
+    3.66
+   ],
+   [
+    "dist:5596",
+    3.55
+   ]
+  ]
+ },
+ "errors": []
+}
