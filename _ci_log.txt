@@ -1,0 +1,26 @@
+     FLOAT    2.01u  Ollie the postman [idle]
+
+== green: 14 characters, 1 not touching the ground
+   FLOAT    1.93u   ground   3.12  foot   5.05   Ollie the postman
+   in motion: 2 of 10 states off the ground:
+     FLOAT    2.02u  Ollie the postman [walking]
+     FLOAT    2.01u  Ollie the postman [idle]
+
+== gr: 12 characters, 1 not touching the ground
+   FLOAT    1.94u   ground   0.71  foot   2.65   Ollie the postman
+   in motion: 2 of 10 states off the ground:
+     FLOAT    2.02u  Ollie the postman [idle]
+     FLOAT    2.02u  Ollie the postman [walking]
+
+== sanity: 12 characters, 1 not touching the ground
+   FLOAT    1.99u   ground   0.45  foot   2.44   Ollie the postman
+   in motion: 5 of 41 states off the ground:
+     FLOAT    2.02u  Ollie the postman [walking]
+     FLOAT    2.01u  Ollie the postman [idle]
+     SUNK    -0.13u  Neri [idle]
+     SUNK    -0.13u  Marisol [walking]
+     SUNK    -0.13u  Marisol [idle]
+
+== town: 50 characters, 1 not touching the ground
+   FLOAT       2u   ground   2.42  foot   4.42   Ollie the postman
+rc=0

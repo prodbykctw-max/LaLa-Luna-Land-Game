@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/float.mjs > qa/out/float.base.out 2> qa/out/float.base.log; r=$?; tail -25 qa/out/float.base.log; tail -25 qa/out/float.base.out; exit $r
