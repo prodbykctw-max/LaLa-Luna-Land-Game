@@ -1,0 +1,10 @@
+import { openCtl, gotoIsland, clockCheck, STEP, OUT } from './_leafqa.mjs';
+const t0 = Date.now(), L = s => console.error(`[${((Date.now() - t0) / 1000).toFixed(0)}s] ${s}`);
+const q = process.env.Q || '';
+const H = await openCtl({ viewport: { width: 390, height: 300 }, query: q, mobile: true }); L('open');
+await H.page.evaluate(() => { window.__NORENDER = false; });
+for (let i = 0; i < 40; i++) await H.tick(); L('ticks');
+const r = await H.page.evaluate(() => { const I = window.__T.CUR; return { key: I.cfg.key, cells: (I.leafCells || []).length, lvls: (I.leafCells || []).map(c => c.cur).reduce((a, v) => (a[v] = (a[v] || 0) + 1, a), {}), far: I.far ? { N: I.far.N, ready: I.far.ready, job: !!I.far.job, stats: I.far.stats } : null, meadow: I.fx.meadow ? { n: I.fx.meadow.nNear, f: I.fx.meadow.nFar } : null, grass: I.fx.grass ? { n: I.fx.grass.nNear, f: I.fx.grass.nFar } : null, info: { ...window.__T.renderer.info.render } }; });
+console.log(JSON.stringify(r)); console.log('errors', JSON.stringify([...new Set(H.log.errors)].slice(0, 8)));
+await H.page.screenshot({ path: OUT + '/_p3.jpg', type: 'jpeg', quality: 80, timeout: 600000 }); L('shot');
+await H.close(); process.exit(0);

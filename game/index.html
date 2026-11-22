@@ -519,7 +519,32 @@ const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the b
 const WATERQ = QS.get("water") !== "old";   /* physically-shaded sea on the islands; ?water=old restores the previous one */
 const DARKQ = QS.get("dark") === "1";   /* ?dark=1 holds Sanity at the full dark look, ?dark=0 at the light one; by default it moves between them with the clock and the weather */
 const DARKMODE = QS.get("dark");
-const FARSHQ = QS.get("farshadow") !== "0";   /* a second, island-wide shadow map the cheap far crowns draw into, so a tree casts a shadow past the near map's box; ?farshadow=0 removes it */
+const FARSHQ = QS.get("farshadow") !== "0";
+/* ?farflora=1 (OFF by default - it is a look he picks): flowers and fine grass keep their density IN PIXELS at a distance instead of
+   shrinking to nothing at 34-46 u. Past ~30 u a card gets bigger and fewer of them are drawn (ffVert), a second, sparser tile of them
+   covers out to ~98 u, and every alpha-cut card (those two, the leaf cards and the LOD crowns) loosens its cutoff and takes a mip bias
+   with distance so a thin stem stays solid (ffFrag). The colour of the transparent texels is bled outward in a build step
+   (tools/bleed_cards.py -> *_bleed.jpg), because the map and the alpha are separate files and the map is near-black where the alpha is 0. */
+const FFQ = QS.get("farflora") === "1";
+const FF = {from:30, cross0:34, cross1:42, end0:88, end1:98, bias:2.0, cutFlower:.30, cutGrass:.28, cutLeaf:.30, leafFrom:40, leafTo:160, grassTo:130, flowerTo:120};
+/* distance-based alpha cutoff + mip bias (the reel's: f = saturate((d-from)/(to-from)); lod = mip + f*bias; draw if alpha >= lerp(cutoff, cutoffFar, f)) */
+function ffFrag(fs, cutFar, from, to){
+  const C = THREE.ShaderChunk, a = "texture2D( map, vMapUv )", b = "texture2D( alphaMap, vAlphaMapUv )", c = "diffuseColor.a < alphaTest";
+  if(!C.map_fragment.includes(a) || !C.alphamap_fragment.includes(b) || !C.alphatest_fragment.includes(c)){ console.warn("farflora: engine chunks changed, cutoff/mip off"); return fs; }
+  const bias = FF.bias.toFixed(2);
+  return fs.replace("#include <map_fragment>", `float ffF = clamp((length(vViewPosition) - ${from.toFixed(1)})/${(to - from).toFixed(1)}, 0.0, 1.0);\n` + C.map_fragment.replace(a, `texture2D( map, vMapUv, ffF*${bias} )`))
+    .replace("#include <alphamap_fragment>", C.alphamap_fragment.replace(b, `texture2D( alphaMap, vAlphaMapUv, ffF*${bias} )`))
+    .replace("#include <alphatest_fragment>", C.alphatest_fragment.replace(c, `diffuseColor.a < mix( alphaTest, ${cutFar.toFixed(3)}, ffF )`));
+}
+/* scale up + thin out with distance. aFF is 0 for the near tile and 1 for the sparse far tile; camd = distance to the camera, io = the
+   instance's world origin. The rank is a hash of that origin, so which instances are drawn depends only on WHERE they stand and how far
+   away the camera is - never on time - and each grows/shrinks over a keep-range of .2 instead of switching, so nothing flickers. */
+const ffVert = farSc => `{ float ffr = fract(sin(dot(io.xz, vec2(12.9898,78.233)))*43758.5453); float ffKeep, ffSc;
+  if(aFF < .5){ float ffT = camd < ${FF.from.toFixed(1)} ? 1.0 : ${FF.from.toFixed(1)}/camd; ffKeep = ffT*(1.0 - smoothstep(${FF.cross0.toFixed(1)}, ${FF.cross1.toFixed(1)}, camd)); ffSc = sqrt(max(1.0, camd/${FF.from.toFixed(1)})); }
+  else { ffKeep = smoothstep(${FF.cross0.toFixed(1)}, ${FF.cross1.toFixed(1)}, camd)*(1.0 - smoothstep(${FF.end0.toFixed(1)}, ${FF.end1.toFixed(1)}, camd)); ffSc = ${farSc.toFixed(2)}*(1.0 + .3*clamp((camd - 46.0)/60.0, 0.0, 1.0)); }
+  transformed *= smoothstep(0.0, .2, ffKeep*1.2 - ffr) * ffSc; }`;
+/* a geometry with the per-instance near/far flag: first nNear instances are 0, the rest 1 */
+function ffGeometry(g, nNear, nTot){ const h = g.clone(), a = new Float32Array(nTot); a.fill(1, nNear); h.setAttribute("aFF", new THREE.InstancedBufferAttribute(a, 1)); return h; }   /* a second, island-wide shadow map the cheap far crowns draw into, so a tree casts a shadow past the near map's box; ?farshadow=0 removes it */
 const LIGHTQ = QS.get("light") !== "old";   /* real light: god rays + sun glare, low golden-hour sun, soft shadows that follow the view, moon shadows on Sanity; ?light=old restores */
 /* ---- art direction ----
    "real" is the Where Winds Meet direction: physically-shaded surfaces lit by the sky itself, no
@@ -1554,10 +1579,10 @@ const TREE_TEX = !TREESQ ? null : (() => {
   const L = new THREE.TextureLoader();
   const mk = (url, srgb, wrap) => { const t = L.load(url); t.wrapS = t.wrapT = wrap ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
     t.anisotropy = 4; if(srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
-  return {leaf: mk("assets/trees/foliage_diff.jpg", true, false), leafA: mk("assets/trees/foliage_alpha.jpg", false, false),
+  return {leaf: mk(`assets/trees/foliage_${FFQ ? "bleed" : "diff"}.jpg`, true, false), leafA: mk("assets/trees/foliage_alpha.jpg", false, false),
           bark: mk("assets/trees/bark_diff.jpg", true, true), barkN: mk("assets/trees/bark_nor.jpg", false, true),
           palm: mk("assets/trees/palm_diff.jpg", true, true), palmN: mk("assets/trees/palm_nor.jpg", false, true),
-          frond: mk("assets/trees/frond_diff.jpg", true, false), frondA: mk("assets/trees/frond_alpha.jpg", false, false)};
+          frond: mk(`assets/trees/frond_${FFQ ? "bleed" : "diff"}.jpg`, true, false), frondA: mk("assets/trees/frond_alpha.jpg", false, false)};
 })();
 
 /* ---- LEAF WIND (?leafwind=old restores the rigid sway) ----
@@ -1855,6 +1880,7 @@ function forestBuilder(P, night){
         if(lod){ sh.uniforms.uLodF = lodU;
           sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec2 uLodF; uniform float uTime;")
             .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\n" + LOD_GLSL); }
+        if(FFQ) sh.fragmentShader = ffFrag(sh.fragmentShader, FF.cutLeaf, FF.leafFrom, FF.leafTo);       /* ?farflora: looser cutoff + mip bias with distance */
         /* both faces of a card shade with the crown's outward normal - three would flip it on the back face,
            and half the leaves would go black */
         sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>",
@@ -1862,7 +1888,7 @@ function forestBuilder(P, night){
           /* light through the leaves: the shadow side of a crown is never black, it glows faintly green */
           .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05) * " + (night ? ".25" : "1.0") + ";");
       };
-      lm.customProgramCacheKey = () => key + (LEAFWINDQ ? "|w2" : "") + (lod ? "|lod" : "");
+      lm.customProgramCacheKey = () => key + (LEAFWINDQ ? "|w2" : "") + (lod ? "|lod" : "") + (FFQ ? "|ff" : "");
       camFadeWrap(lm);
       return {lm, lodU};
     };
@@ -2273,7 +2299,7 @@ function bloomPatch(sh, amt){
 #endif`);
 }
 const FLOWERS_TEX = !MEADOWQ ? null : (() => { const L = new THREE.TextureLoader();
-  const a = L.load("assets/trees/flowers_diff.jpg"), b = L.load("assets/trees/flowers_alpha.jpg"); a.colorSpace = THREE.SRGBColorSpace; return {map:a, alpha:b}; })();
+  const a = L.load(FFQ ? "assets/trees/flowers_bleed.jpg" : "assets/trees/flowers_diff.jpg"), b = L.load("assets/trees/flowers_alpha.jpg"); a.colorSpace = THREE.SRGBColorSpace; return {map:a, alpha:b}; })();
 function flowerMeadow(scene, n, origin, heightFn, blocked){
   const RING = 46;
   /* two crossed cards, rooted at y = 0 */
@@ -2286,19 +2312,21 @@ function flowerMeadow(scene, n, origin, heightFn, blocked){
   g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3));
   g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); g.setIndex(I);
   const uni = {uTime:{value:0}, uWind:{value:1}};
+  const FFM = FFQ && GRASSFIXQ, FF_S = 200, FF_DENS = .25;
   const mat = new THREE.MeshStandardMaterial({map:FLOWERS_TEX.map, alphaMap:FLOWERS_TEX.alpha, alphaTest:.45, side:THREE.DoubleSide, roughness:.85, metalness:0, envMapIntensity:.3});
   mat.color.setScalar(.95);
   mat.onBeforeCompile = sh => { sh.uniforms.uTime = uni.uTime; sh.uniforms.uWind = uni.uWind;
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uTime, uWind;")
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uTime, uWind;" + (FFM ? "\nattribute float aFF;" : ""))
       .replace("#include <begin_vertex>", `#include <begin_vertex>
         { vec3 io = (modelMatrix * instanceMatrix * vec4(0.0,0.0,0.0,1.0)).xyz; float w = uv.y*uv.y;
           float ph = dot(io.xz, vec2(.86,.51))*.16 - uTime*1.15; float gust = sin(ph)*.5+.5; gust *= gust;
           transformed.x += (0.05 + .16*gust) * uWind * w + sin(uTime*3.1 + io.x*1.9)*.03*w;
           transformed.z += (0.03 + .10*gust) * uWind * w;
-          float camd = distance(io.xz, cameraPosition.xz); transformed *= 1.0 - smoothstep(34.0, 46.0, camd); }`);
+          float camd = distance(io.xz, cameraPosition.xz); ` + (FFM ? ffVert(1/Math.sqrt(FF_DENS)) : "transformed *= 1.0 - smoothstep(34.0, 46.0, camd);") + ` }`);
     sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;");
+    if(FFM) sh.fragmentShader = ffFrag(sh.fragmentShader, FF.cutFlower, FF.from, FF.flowerTo);
   };
-  mat.customProgramCacheKey = () => "meadowflowers";
+  mat.customProgramCacheKey = () => "meadowflowers" + (FFM ? "|ff" : "");
   const mesh = new THREE.InstancedMesh(g, mat, n);
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
   const px = new Float32Array(n), pz = new Float32Array(n);
@@ -2318,16 +2346,20 @@ function flowerMeadow(scene, n, origin, heightFn, blocked){
        in the disc ended up in a drift; FLOWER_FIX_K scales the count so a drift keeps that same density. */
     const S = 92, K = FLOWER_FIX_K;      /* edge at 46 u from the camera, where the flower shader has faded them out */
     const nn = Math.round(n * S*S / (Math.PI*RING*RING) * K);
-    const fm = new THREE.InstancedMesh(g, mat, nn);
-    const fixed = fixedTileField(nn, S, seedOf("flowers:" + origin[0].toFixed(1) + ":" + origin[1].toFixed(1)), (i, x, z, r) => {
+    const nf = FFM ? Math.round(nn * FF_S*FF_S / (S*S) * FF_DENS) : 0;       /* ?farflora: a second, sparser tile out to ~98 u, drawn bigger (the near one has thinned out by 42 u) */
+    const fm = new THREE.InstancedMesh(FFM ? ffGeometry(g, nn, nn + nf) : g, mat, nn + nf);
+    const put = off => (i0, x, z, r) => { const i = i0 + off;
       if(bloomMask(x, z) < BLOOM_T + r()*.35 || blocked(x, z)){ M.compose(pos.set(x, -50, z), q.identity(), sc.set(1e-4,1e-4,1e-4)); fm.setMatrixAt(i, M); return; }
       q.setFromAxisAngle(up, r()*Math.PI);
       const sv = .65 + r()*.6; sc.set(sv, sv*(.8 + r()*.5), sv);
       M.compose(pos.set(x, heightFn(x, z) - .05, z), q, sc); fm.setMatrixAt(i, M);
-    });
-    fixed(origin[0], origin[1]);
+    };
+    const seed0 = seedOf("flowers:" + origin[0].toFixed(1) + ":" + origin[1].toFixed(1));
+    const fixed = fixedTileField(nn, S, seed0, put(0));
+    const fixedF = nf ? fixedTileField(nf, FF_S, seed0 ^ 0x5bd1e995, put(nn)) : null;
+    fixed(origin[0], origin[1]); if(fixedF) fixedF(origin[0], origin[1]);
     fm.instanceMatrix.needsUpdate = true; fm.frustumCulled = false; fm.receiveShadow = true; fm.userData.dyn = 1; scene.add(fm);
-    return {mesh: fm, uni, follow: (cx, cz) => { if(fixed(cx, cz)) fm.instanceMatrix.needsUpdate = true; }, fixed:true};
+    return {mesh: fm, uni, follow: (cx, cz) => { let mv = fixed(cx, cz); if(fixedF && fixedF(cx, cz)) mv = true; if(mv) fm.instanceMatrix.needsUpdate = true; }, fixed:true, nNear:nn, nFar:nf};
   }
   for(let i=0;i<n;i++) place(i, origin[0], origin[1]);
   mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; mesh.receiveShadow = true; mesh.userData.dyn = 1; scene.add(mesh);
@@ -6767,7 +6799,7 @@ function clumpGeometry(){
    trail all still run, because the shader keys on uv.y exactly as before. */
 const FINEGRASS = QS.get("grass2") !== "old";
 const GRASS_TEX = !FINEGRASS ? null : (() => { const L = new THREE.TextureLoader();
-  const a = L.load("assets/grass/grasscard_diff.jpg"), b = L.load("assets/grass/grasscard_alpha.jpg");
+  const a = L.load(FFQ ? "assets/grass/grasscard_bleed.jpg" : "assets/grass/grasscard_diff.jpg"), b = L.load("assets/grass/grasscard_alpha.jpg");
   a.colorSpace = THREE.SRGBColorSpace; a.anisotropy = b.anisotropy = 4; return {map:a, alpha:b}; })();
 function cardClumpGeometry(){
   const P = [], N = [], U = [], C = [], I = [];
@@ -6917,6 +6949,9 @@ function* grassFieldSteps(scene, n, origin, heightFn, cols, blocked, edgeK){
      clump to nothing; the count grows with the tile's area so clumps per square unit stay what they were */
   const FIX_S = 88;
   if(GRASSFIXQ) n = Math.round(n * FIX_S*FIX_S / (Math.PI*RING*RING));
+  /* ?farflora: a second, sparser tile (200 u square: out to ~98 u) of bigger clumps, in the same mesh and the same draw call */
+  const FFG = FFQ && GRASSFIXQ && FINEGRASS, FF_S = 200, FF_DENS = (matchMedia("(pointer:coarse)").matches || innerWidth < 820) ? .14 : .22, nNear = n, nFar = FFG ? Math.round(n * FF_S*FF_S / (FIX_S*FIX_S) * FF_DENS) : 0;
+  n += nFar;
   const mat = FINEGRASS ? toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide, map:GRASS_TEX.map, alphaMap:GRASS_TEX.alpha, alphaTest:.42, roughness:.9})
                         : toon(0xffffff, {vertexColors:true, side:THREE.DoubleSide});
   if(FINEGRASS) mat.color.setScalar(1.55);     /* the blade photo is dark; the instance tint and the card shade bring it to the meadow's value */
@@ -6927,8 +6962,14 @@ function* grassFieldSteps(scene, n, origin, heightFn, cols, blocked, edgeK){
   farC.multiplyScalar(1 / Math.max(1, (cols || [1]).length));
   mat.userData.patches = [["grass", sh => { grassPatch(sh, farC); mat.userData.uniforms = sh.uniforms;
     /* both faces of a card shade alike, or half the blades would go black */
-    if(FINEGRASS) sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;"); }]];
-  const mesh = new THREE.InstancedMesh(CLUMP, mat, n);
+    if(FINEGRASS) sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>", "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;");
+    if(FFG){
+      /* the shrink-to-nothing becomes scale-up + thinning (ffVert); the colour melt into the ground moves out to where the clumps now end */
+      sh.vertexShader = sh.vertexShader.replace("uniform float uTime, uWind;", "attribute float aFF; uniform float uTime, uWind;")
+        .replace("transformed *= 1.0 - fade;", ffVert(1/Math.sqrt(FF_DENS)))
+        .replace("vFarBlend = pow(fade, 0.78);", "vFarBlend = .5*pow(smoothstep(52.0, 130.0, camd), .78);");
+      sh.fragmentShader = ffFrag(sh.fragmentShader, FF.cutGrass, FF.from, FF.grassTo); } }]];
+  const mesh = new THREE.InstancedMesh(FFG ? ffGeometry(CLUMP, nNear, n) : CLUMP, mat, n);
   const M = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), c = new THREE.Color();
   const up = new THREE.Vector3(0,1,0), pos = new THREE.Vector3();
   const px = new Float32Array(n), pz = new Float32Array(n);
@@ -6961,7 +7002,7 @@ function* grassFieldSteps(scene, n, origin, heightFn, cols, blocked, edgeK){
   if(GRASSFIXQ){
     /* the same clump `place` makes, but at a fixed spot and from that spot's own random stream */
     const white = new THREE.Color(1,1,1);
-    const fixed = fixedTileField(n, FIX_S, seedOf("grass:" + origin[0].toFixed(1) + ":" + origin[1].toFixed(1)), (i, x, z, r) => {
+    const put = off => (i0, x, z, r) => { const i = i0 + off;
       if(blocked(x, z)){ M.compose(pos.set(x, -50, z), q.identity(), sc.set(1e-4,1e-4,1e-4)); mesh.setMatrixAt(i, M); return; }   /* sand, path, a rock: nothing grows here, ever */
       q.setFromAxisAngle(up, r()*Math.PI);
       if(FINEGRASS) sc.set(.7+r()*.45, .55+r()*.50, .7+r()*.45);
@@ -6977,13 +7018,15 @@ function* grassFieldSteps(scene, n, origin, heightFn, cols, blocked, edgeK){
       c.offsetHSL(0, (r()-.5)*.07, -.02+(r()-.5)*.06);
       if(FINEGRASS) c.lerp(white, .72);
       mesh.setColorAt(i, c);
-    });
-    yield* fixed.steps(origin[0], origin[1]);
+    };
+    const gseed = seedOf("grass:" + origin[0].toFixed(1) + ":" + origin[1].toFixed(1));
+    const fixed = fixedTileField(nNear, FIX_S, gseed, put(0)), fixedF = nFar ? fixedTileField(nFar, FF_S, gseed ^ 0x5bd1e995, put(nNear)) : null;
+    yield* fixed.steps(origin[0], origin[1]); if(fixedF) yield* fixedF.steps(origin[0], origin[1]);
     mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.castShadow = false; mesh.receiveShadow = true; mesh.frustumCulled = false;
     scene.add(mesh);
-    const follow = (cx, cz) => { if(fixed(cx, cz)){ mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true; } };
-    return {mesh, mat, follow, fixed:true};
+    const follow = (cx, cz) => { let mv = fixed(cx, cz); if(fixedF && fixedF(cx, cz)) mv = true; if(mv){ mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true; } };
+    return {mesh, mat, follow, fixed:true, nNear, nFar};
   }
   for(let i=0;i<n;i++){ if((i & 1023) === 1023) yield; place(i, origin[0], origin[1]); }
   mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate = true;

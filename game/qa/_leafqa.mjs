@@ -45,12 +45,15 @@ export async function openCtl(opts = {}) {
 export async function gotoIsland(H, key) {
   const { page } = H;
   if (key === 'hub') return;
+  /* T.ISL[key] builds the island (synchronously, and the same way the sail does) the first time it is asked for; goIsland puts her on it.
+     The composer is stubbed for the duration so the build's frames are not drawn in software. */
   await page.evaluate(k => {
-    const T = window.__T, P = window.__prep; window.__goDone = false;
-    (async () => { const o = T.composer.render; T.composer.render = function () { };      /* do not spend the build's frames drawing the hub in software */
-      try { await P.readyIsland(k, () => { }); await T.goIsland(T.ISL[k], true); } finally { T.composer.render = o; } window.__goDone = true; })();
+    const T = window.__T; window.__goDone = false;
+    (async () => { const o = T.composer.render; T.composer.render = function () { };
+      try { const I = T.ISL[k]; await T.goIsland(I, true); } catch (e) { window.__goErr = String(e && e.stack || e); } finally { T.composer.render = o; } window.__goDone = true; })();
   }, key);
-  await H.until(() => window.__goDone === true, 'island ' + key, 20000);
+  await H.until(() => window.__goDone === true, 'island ' + key, 2000);
+  const err = await page.evaluate(() => window.__goErr || null); if (err) throw new Error('goIsland failed: ' + err);
   await page.clock.runFor(1000);
 }
 
