@@ -1,0 +1,848 @@
+{
+ "drawTot": {
+  "main": [
+   1022,
+   1487659
+  ],
+  "shadow": [
+   200,
+   449952
+  ]
+ },
+ "drawAgg": [
+  [
+   "main|-|MeshBasicMaterial:T|Mesh|position,normal,uv",
+   185,
+   10510
+  ],
+  [
+   "main|-|MeshStandardMaterial|Mesh|position,normal,uv",
+   121,
+   18684
+  ],
+  [
+   "main|-|MeshStandardMaterial:D|Mesh|normal,position,tangent,uv",
+   112,
+   28117
+  ],
+  [
+   "main|-|MeshStandardMaterial:D|Mesh|normal,position",
+   93,
+   28079
+  ],
+  [
+   "shadow|-|MeshDepthMaterial|Mesh|position,normal,uv",
+   63,
+   19060
+  ],
+  [
+   "main|-|MeshBasicMaterial|Mesh|position",
+   50,
+   2400
+  ],
+  [
+   "main|-|MeshStandardMaterial:D|Mesh|normal,position,uv",
+   44,
+   15461
+  ],
+  [
+   "main|-|MeshStandardMaterial:D|Mesh|normal,uv,position",
+   44,
+   100
+  ],
+  [
+   "main|NPC|MeshStandardMaterial|SkinnedMesh:skin|position,normal,uv,skinIndex,skinWeight",
+   42,
+   511398
+  ],
+  [
+   "main|NPC|MeshBasicMaterial:T|Mesh|position,normal,uv",
+   41,
+   82
+  ],
+  [
+   "main|-|MeshBasicMaterial|Mesh|position,normal,uv",
+   37,
+   530
+  ],
+  [
+   "main|-|MeshStandardMaterial:D|Mesh|position,normal,uv",
+   35,
+   32278
+  ],
+  [
+   "shadow|-|MeshDepthMaterial:D|Mesh|normal,position,tangent,uv",
+   28,
+   26667
+  ],
+  [
+   "shadow|-|MeshDepthMaterial:D|Mesh|normal,position",
+   26,
+   26015
+  ],
+  [
+   "main|-|MeshStandardMaterial:T|Mesh|normal,uv,position",
+   26,
+   52
+  ],
+  [
+   "main|CREATURE|MeshBasicMaterial:T|Mesh|position,normal,uv",
+   24,
+   48
+  ],
+  [
+   "shadow|-|MeshDepthMaterial:D|Mesh|normal,position,uv",
+   20,
+   26047
+  ],
+  [
+   "main|-|MeshStandardMaterial:D|Mesh:inst|position,normal,uv,color",
+   20,
+   125435
+  ],
+  [
+   "main|-|MeshStandardMaterial:T|Mesh|position,normal,uv,aSt",
+   18,
+   3168
+  ],
+  [
+   "shadow|-|MeshDepthMaterial:D|Mesh|position,normal,uv",
+   14,
+   34234
+  ],
+  [
+   "main|-|ShaderMaterial|Mesh|position,uv",
+   13,
+   13
+  ],
+  [
+   "main|CREATURE|MeshStandardMaterial|SkinnedMesh:skin|skinIndex,normal,position,tangent,uv,ski",
+   12,
+   48124
+  ]
+ ],
+ "passes": [
+  {
+   "scene": "island",
+   "target": "640x360",
+   "calls": 1208,
+   "tris": 1937597
+  },
+  {
+   "scene": "Mesh",
+   "target": "320x180",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "320x180",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "320x180",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "160x90",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "160x90",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "80x45",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "80x45",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "40x23",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "40x23",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "20x12",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "20x12",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "320x180",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "640x360",
+   "calls": 1,
+   "tris": 1
+  },
+  {
+   "scene": "Mesh",
+   "target": "screen",
+   "calls": 1,
+   "tris": 1
+  }
+ ],
+ "twoPass": {
+  "meshes": 109,
+  "extraCalls": 109,
+  "extraTris": 14468,
+  "top": [
+   [
+    "normal,position,uv",
+    "MeshStandardMaterial",
+    6943
+   ],
+   [
+    "normal,position,uv",
+    "MeshStandardMaterial",
+    500
+   ],
+   [
+    "normal,position,uv",
+    "MeshStandardMaterial",
+    500
+   ],
+   [
+    "normal,position,uv",
+    "MeshStandardMaterial",
+    391
+   ],
+   [
+    "position,normal,uv",
+    "MeshBasicMaterial",
+    266
+   ],
+   [
+    "position,normal,uv",
+    "MeshBasicMaterial",
+    266
+   ],
+   [
+    "position,normal,uv,aSt",
+    "MeshStandardMaterial",
+    192
+   ],
+   [
+    "position,normal,uv,aSt",
+    "MeshStandardMaterial",
+    192
+   ]
+  ]
+ },
+ "counted": {
+  "mainCalls": 895,
+  "mainTris": 1454635,
+  "shadowCalls": 188,
+  "shadowTris": 405386,
+  "meshes": 1160
+ },
+ "measured": {
+  "total": {
+   "calls": 1222,
+   "tris": 1937611
+  },
+  "mainOnly": {
+   "calls": 1022,
+   "tris": 1487659
+  },
+  "shadow": {
+   "calls": 200,
+   "tris": 449952
+  },
+  "programs": 166,
+  "geometries": 2127,
+  "textures": 344
+ },
+ "top": [
+  {
+   "dbl": false,
+   "id": "LALA",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 95073,
+   "name": "material:skinned",
+   "tris": 149752,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": false,
+   "mat": "MeshPhysicalMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 669,
+   "attrs": "position,aD,aO",
+   "verts": 71484,
+   "name": "BufferGeometry",
+   "tris": 139104,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": false,
+   "mat": "ShaderMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 1,
+   "attrs": "position,normal,uv,color",
+   "verts": 18,
+   "name": "BufferGeometry:inst4838",
+   "tris": 58056,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": false,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "SEA",
+   "r": 1131,
+   "attrs": "position,normal,uv",
+   "verts": 25921,
+   "name": "PlaneGeometry",
+   "tris": 51200,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": true,
+   "mat": "ShaderMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "TERRAIN",
+   "r": 632,
+   "attrs": "position,color,aRk,uv,normal",
+   "verts": 21721,
+   "name": "BufferGeometry",
+   "tris": 42292,
+   "inMain": true,
+   "inShadow": true,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 539,
+   "attrs": "position,normal,uv,color,aSway",
+   "verts": 17589,
+   "name": "BufferGeometry",
+   "tris": 29520,
+   "inMain": true,
+   "inShadow": true,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 634,
+   "attrs": "position,normal,aObj,uv",
+   "verts": 15488,
+   "name": "BufferGeometry",
+   "tris": 28460,
+   "inMain": true,
+   "inShadow": true,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 544,
+   "attrs": "position,normal,uv,color,aSway",
+   "verts": 24640,
+   "name": "BufferGeometry",
+   "tris": 21560,
+   "inMain": true,
+   "inShadow": true,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 643,
+   "attrs": "position,aD,normal",
+   "verts": 10538,
+   "name": "BufferGeometry",
+   "tris": 20118,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": true,
+   "mat": "ShaderMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 18322,
+   "name": "material:skinned",
+   "tris": 19791,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": false,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 18322,
+   "name": "material:skinned",
+   "tris": 19791,
+   "inMain": true,
+   "inShadow": true,
+   "cast": true,
+   "cull": false,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 26843,
+   "name": "material:skinned",
+   "tris": 19654,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": false,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 26843,
+   "name": "material:skinned",
+   "tris": 19654,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": false,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 26843,
+   "name": "material:skinned",
+   "tris": 19654,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": false,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 26843,
+   "name": "material:skinned",
+   "tris": 19654,
+   "inMain": true,
+   "inShadow": true,
+   "cast": true,
+   "cull": false,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 26843,
+   "name": "material:skinned",
+   "tris": 19654,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": false,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 22709,
+   "name": "material:skinned",
+   "tris": 19637,
+   "inMain": false,
+   "inShadow": false,
+   "cast": false,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "NPC",
+   "r": 1,
+   "attrs": "position,normal,uv,skinIndex,skinWeight",
+   "verts": 24425,
+   "name": "material:skinned",
+   "tris": 17074,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 1,
+   "attrs": "normal,position,uv",
+   "verts": 10339,
+   "name": "Object_4",
+   "tris": 15000,
+   "inMain": false,
+   "inShadow": false,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 1,
+   "attrs": "normal,position,uv",
+   "verts": 10339,
+   "name": "Object_4",
+   "tris": 15000,
+   "inMain": true,
+   "inShadow": false,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 656,
+   "attrs": "position,uv,color,normal",
+   "verts": 7185,
+   "name": "BufferGeometry",
+   "tris": 13412,
+   "inMain": true,
+   "inShadow": false,
+   "cast": false,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 35,
+   "attrs": "normal,position",
+   "verts": 7918,
+   "name": "Object01_Material_0",
+   "tris": 12791,
+   "inMain": false,
+   "inShadow": false,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 35,
+   "attrs": "normal,position",
+   "verts": 7918,
+   "name": "Object01_Material_0",
+   "tris": 12791,
+   "inMain": false,
+   "inShadow": true,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  },
+  {
+   "dbl": false,
+   "id": "",
+   "r": 162,
+   "attrs": "position,normal,aObj,uv",
+   "verts": 33600,
+   "name": "BufferGeometry",
+   "tris": 11200,
+   "inMain": true,
+   "inShadow": true,
+   "cast": true,
+   "cull": true,
+   "mat": "MeshStandardMaterial",
+   "ink": false
+  }
+ ],
+ "groups": [
+  [
+   "MeshBasicMaterial|position,normal,uv|c-|<200",
+   {
+    "n": 129,
+    "tris": 4972
+   }
+  ],
+  [
+   "MeshStandardMaterial|position,normal,uv|cs|<200",
+   {
+    "n": 119,
+    "tris": 3382
+   }
+  ],
+  [
+   "MeshStandardMaterial|normal,position,tangent,uv|cs|<200",
+   {
+    "n": 96,
+    "tris": 3140
+   }
+  ],
+  [
+   "MeshStandardMaterial|normal,position|cs|<200",
+   {
+    "n": 66,
+    "tris": 3686
+   }
+  ],
+  [
+   "MeshStandardMaterial|normal,uv,position|cs|<200",
+   {
+    "n": 57,
+    "tris": 126
+   }
+  ],
+  [
+   "MeshBasicMaterial|position|c-|<200",
+   {
+    "n": 50,
+    "tris": 2400
+   }
+  ],
+  [
+   "MeshStandardMaterial|position,normal,uv|cs|<1k",
+   {
+    "n": 30,
+    "tris": 11322
+   }
+  ],
+  [
+   "MeshStandardMaterial|normal,position,uv|cs|<200",
+   {
+    "n": 30,
+    "tris": 1313
+   }
+  ],
+  [
+   "MeshStandardMaterial|normal,position|cs|<1k",
+   {
+    "n": 22,
+    "tris": 9596
+   }
+  ],
+  [
+   "MeshStandardMaterial|position,normal,uv,color|U-|<5k",
+   {
+    "n": 12,
+    "tris": 34475
+   }
+  ],
+  [
+   "MeshStandardMaterial|normal,position,uv|cs|<1k",
+   {
+    "n": 10,
+    "tris": 4289
+   }
+  ],
+  [
+   "MeshStandardMaterial|position,normal,uv,aSt|c-|<200",
+   {
+    "n": 10,
+    "tris": 1632
+   }
+  ],
+  [
+   "MeshBasicMaterial|position,normal,uv|U-|<200",
+   {
+    "n": 9,
+    "tris": 18
+   }
+  ],
+  [
+   "MeshStandardMaterial|normal,position,tangent,uv|cs|<1k",
+   {
+    "n": 7,
+    "tris": 4344
+   }
+  ]
+ ],
+ "byKind": [
+  [
+   "LALA",
+   {
+    "n": 5,
+    "tris": 152718,
+    "shTris": 2964
+   }
+  ],
+  [
+   "unculled",
+   {
+    "n": 56,
+    "tris": 324729,
+    "shTris": 24745
+   }
+  ],
+  [
+   "SEA",
+   {
+    "n": 1,
+    "tris": 51200,
+    "shTris": 0
+   }
+  ],
+  [
+   "TERRAIN",
+   {
+    "n": 1,
+    "tris": 42292,
+    "shTris": 42292
+   }
+  ],
+  [
+   "cullable",
+   {
+    "n": 690,
+    "tris": 281440,
+    "shTris": 126017
+   }
+  ],
+  [
+   "NPC",
+   {
+    "n": 83,
+    "tris": 511480,
+    "shTris": 39445
+   }
+  ],
+  [
+   "NPC:offscreen",
+   {
+    "n": 1,
+    "tris": 0,
+    "shTris": 0
+   }
+  ],
+  [
+   "cullable:offscreen",
+   {
+    "n": 243,
+    "tris": 0,
+    "shTris": 70908
+   }
+  ],
+  [
+   "CREATURE",
+   {
+    "n": 57,
+    "tris": 88412,
+    "shTris": 47566
+   }
+  ],
+  [
+   "CREATURE:offscreen",
+   {
+    "n": 21,
+    "tris": 0,
+    "shTris": 50301
+   }
+  ],
+  [
+   "SKY",
+   {
+    "n": 1,
+    "tris": 1216,
+    "shTris": 0
+   }
+  ],
+  [
+   "STATIC",
+   {
+    "n": 1,
+    "tris": 1148,
+    "shTris": 1148
+   }
+  ]
+ ],
+ "errors": []
+}

@@ -1,0 +1,1 @@
+node qa/sanityperf_census.mjs town --tag=new > qa/out/census_new_town.txt 2>&1
