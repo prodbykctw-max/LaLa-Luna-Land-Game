@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/traversal.mjs > qa/out/traversal.base.out 2> qa/out/traversal.base.log; r=$?; tail -25 qa/out/traversal.base.log; tail -25 qa/out/traversal.base.out; exit $r
