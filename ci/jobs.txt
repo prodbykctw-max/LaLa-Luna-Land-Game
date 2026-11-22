@@ -1,0 +1,18 @@
+env EXTRA=farshadow=0 DPR=0.5 node qa/leaves.mjs stats new
+env DPR=0.5 node qa/leaves.mjs stats old
+env MOBILE=1 EXTRA=farshadow=0 DPR=0.5 node qa/leaves.mjs stats new
+env MOBILE=1 DPR=0.5 node qa/leaves.mjs stats old
+env DPR=0.5 node qa/farshadow.mjs shoot new
+env DPR=0.5 node qa/farshadow.mjs shoot old
+env ISL="hub green" DPR=0.5 node qa/farflora.mjs shoot new
+env ISL="hub green" DPR=0.5 node qa/farflora.mjs shoot old
+env MOBILE=1 ISL="hub green" DPR=0.5 node qa/farflora.mjs shoot new
+env MOBILE=1 ISL="hub green" DPR=0.5 node qa/farflora.mjs shoot old
+env DPR=1 node qa/leafsize.mjs shoot old hub
+env DPR=1 node qa/leafsize.mjs shoot new hub
+env DPR=1 node qa/leafsize.mjs shoot old green
+env DPR=1 node qa/leafsize.mjs shoot new green
+env DPR=1 node qa/leafsize.mjs shoot old gr
+env DPR=1 node qa/leafsize.mjs shoot new gr
+env DPR=0.5 node qa/leafsize.mjs clip old
+env DPR=0.5 node qa/leafsize.mjs clip new
