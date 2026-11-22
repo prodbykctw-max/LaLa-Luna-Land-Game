@@ -1,0 +1,43 @@
+{
+ "variant": "old",
+ "mobile": true,
+ "islands": {
+  "hub": {
+   "meadow": true,
+   "flowers": {
+    "near": 2801,
+    "far": 0
+   },
+   "grass": {
+    "near": 4838,
+    "far": 0
+   },
+   "score": 1,
+   "long": {
+    "tris": 712140,
+    "calls": 267,
+    "frameMs": 1207,
+    "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_ff_hub_old_m.jpg"
+   }
+  },
+  "green": {
+   "meadow": true,
+   "flowers": {
+    "near": 2801,
+    "far": 0
+   },
+   "grass": {
+    "near": 4838,
+    "far": 0
+   },
+   "score": 8,
+   "long": {
+    "tris": 1028515,
+    "calls": 201,
+    "frameMs": 1166,
+    "file": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/_ff_green_old_m.jpg"
+   }
+  }
+ },
+ "errors": []
+}
