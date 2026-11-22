@@ -38,12 +38,12 @@ if (cmd === 'shoot') {
   const variant = a1, scenes = (a2 || 'hub,palm').split(',');
   /* a palm-only run boots straight onto gr (?go=gr): hub and gr built in one page is more memory than a shared machine always has */
   const palmOnly = scenes.length === 1 && scenes[0] === 'palm';
-  const H = await openCtl({ viewport: { width: PW, height: PH }, query: (variant === 'old' ? 'leafwind=old' : '') + (palmOnly ? '&go=gr' : '') });
+  const H = await openCtl({ viewport: { width: PW, height: PH }, query: (variant === 'old' ? 'leafwind=old' : '') });
   await clockCheck(H, variant);
   for (const scene of scenes) {
     const isPalm = scene === 'palm', island = isPalm ? 'gr' : 'hub';
     const dir = `${OUT}/lw_${scene}_${variant}`; mkdirSync(dir, { recursive: true });
-    if (!palmOnly) await gotoIsland(H, island);
+    await gotoIsland(H, island);
     const pick = await H.page.evaluate(`${PICK}(${isPalm})`);
     if (!pick) throw new Error('no tree with open shadow ground on ' + island);
     console.error('[pick]', JSON.stringify(pick));

@@ -331,6 +331,7 @@ NPCs, beach, grotto, stones, **and now places**.
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)
 `?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=`
+`?leafwind=old` (rigid crown sway, frozen leaf shadow)
 
 ## 2.8 Commit history this session (newest first)
 
@@ -2156,3 +2157,22 @@ genuinely-should-be-lit count is in the teens per island, not the hundreds.
 confirmed something he had been saying, and it went out without the one extra look that would have
 killed it. That is C8 - good news and satisfying news both get the HIGHER evidence bar, not the
 lower one - applied to a diagnosis instead of to a status.
+
+### 4.52 — Leaves that visibly move (`?leafwind=old` restores the old sway)
+
+Client: fuller crowns like the reel's, far-reaching leaf shadows, leaves that visibly move. Part 1 of three (crowns and shadows follow).
+
+What changed. The old sway was one rigid rotation per crown plus a bob per palm frond, and the leaf SHADOW did not move at all (the depth
+material had no wind). Now: every leaf card flutters about its OWN pivot (per-card phase and pivot are vertex attributes, `aPh`/`aPiv`);
+the crown as a whole sways in proportion to height above its trunk (willows hang lower and swing more); gusts are a travelling wave over world
+x/z (`uGust`); palm fronds bob and flutter along their length using the existing `aSway` ramp; trunks stay grounded. The SAME displacement
+is compiled into the leaf and frond shadow depth materials (`LEAF_WIND_*` GLSL, one source for both), so the shadow on the ground moves with
+the crown. The card's turn also tilts its shading normal, so the light on a crown shimmers. `prefers-reduced-motion` (`GLIDE_REDUCE`, the
+game's only reduced-motion switch) zeroes `uMove`.
+
+Verified: `qa/leafwind.mjs` (controlled clock: `page.clock.install()` before goto, paused after, advanced only by `runFor`; see qa/README).
+The fake clock moves in WHOLE milliseconds, so one 60 fps frame is 17, 17, 16 ms (mean 16.667) - `clockCheck` prints it before recording.
+Software GL pays per pixel, so the clips were drawn at `?dpr=0.5` and every 2nd tick (logic runs every tick; the clip is encoded at 60 fps by
+repeating each drawn frame) - say so if the client sees the softness. Stills/clip: qa/out/leafwind_hub.mp4 + leafwind_hub_strip.jpg
+(the change-from-frame-0 rows show the OLD crown barely moving and its shadow frozen; NEW moves card by card and the shadow dapples).
+
