@@ -1,0 +1,1 @@
+node qa/sanityperf_top.mjs hub --tag=nofc --flags=farcull=0 > qa/out/top_nofc_hub.txt 2>&1
