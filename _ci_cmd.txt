@@ -1,0 +1,1 @@
+QA_ROOT=$BASE timeout 3300 node qa/float.mjs > qa/out/old_float.out 2> qa/out/old_float.log; echo rc=$? >> qa/out/old_float.log
