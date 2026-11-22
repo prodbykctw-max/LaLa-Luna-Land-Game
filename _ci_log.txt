@@ -1,0 +1,5 @@
+[clock new] performance.now x5 = 6121.00, 6138.00, 6155.00, 6171.00, 6188.00, 6205.00, 6221.00  deltas 17, 17, 16, 17, 17, 16 ms
+[new] hub long 29 crowns in the cone; seam 90 u, 2 crowns; far {"N":2048,"ready":true,"job":false,"texel":0.4408049622351608,"items":140,"tris":15780,"jobs":1,"lastJobMs":0,"lastFrames":35,"maxSliceMs":0,"timing":{"fullMapMs":2,"sliceMs":1,"sliceItems":4}}
+[new] gr long 20 crowns in the cone; seam 104 u, 3 crowns; far {"N":2048,"ready":true,"job":false,"texel":0.504045058862088,"items":169,"tris":28681,"jobs":1,"lastJobMs":0,"lastFrames":43,"maxSliceMs":0,"timing":{"fullMapMs":2,"sliceMs":1,"sliceItems":4}}
+[new] sanity long 27 crowns in the cone; seam 207 u, 3 crowns; far {"N":2048,"ready":true,"job":false,"texel":0.21921164794611442,"items":119,"tris":27709,"jobs":1,"lastJobMs":0,"lastFrames":30,"maxSliceMs":0,"timing":{"fullMapMs":1,"sliceMs":1,"sliceItems":4}}
+rc=0
