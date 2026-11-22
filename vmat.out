@@ -1,0 +1,752 @@
+{
+ "hub": {
+  "key": "hub",
+  "byType": {
+   "ShaderMaterial": 16,
+   "PointsMaterial": 3,
+   "MeshBasicMaterial": 371,
+   "MeshStandardMaterial": 428,
+   "MeshPhysicalMaterial": 2
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#a8dcd8"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffe9cc"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#86c4e0"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8"
+   }
+  ],
+  "basicBigTop": [
+   [
+    "SphereGeometry",
+    5
+   ],
+   [
+    "RingGeometry",
+    4
+   ],
+   [
+    "CylinderGeometry",
+    2
+   ],
+   [
+    "TorusGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ],
+   [
+    "basicBatch",
+    1
+   ]
+  ],
+  "basicBigCount": 14,
+  "noShadowTop": [
+   [
+    "BufferGeometry",
+    2
+   ],
+   [
+    "SphereGeometry",
+    1
+   ],
+   [
+    "RingGeometry",
+    1
+   ],
+   [
+    "CylinderGeometry",
+    1
+   ]
+  ],
+  "noShadowCount": 5,
+  "transpDepthWriteTop": [
+   [
+    "ShapeGeometry",
+    36
+   ],
+   [
+    "RingGeometry",
+    12
+   ],
+   [
+    "BufferGeometry",
+    3
+   ],
+   [
+    "TorusGeometry",
+    3
+   ],
+   [
+    "SphereGeometry",
+    3
+   ],
+   [
+    "CircleGeometry",
+    2
+   ],
+   [
+    "PlaneGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ]
+  ],
+  "transpCount": 61,
+  "nan": [],
+  "degen": [],
+  "tone": {
+   "exposure": 1.12,
+   "toneMapping": 4,
+   "outputCS": "srgb"
+  },
+  "fog": {
+   "type": "FogExp2",
+   "color": "#bbd2c8",
+   "density": 0.003399999999999999
+  }
+ },
+ "green": {
+  "key": "hub",
+  "byType": {
+   "ShaderMaterial": 16,
+   "PointsMaterial": 3,
+   "MeshBasicMaterial": 371,
+   "MeshStandardMaterial": 428,
+   "MeshPhysicalMaterial": 2
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#a8dcd8"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffe9cc"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#86c4e0"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8"
+   }
+  ],
+  "basicBigTop": [
+   [
+    "SphereGeometry",
+    5
+   ],
+   [
+    "RingGeometry",
+    3
+   ],
+   [
+    "CylinderGeometry",
+    2
+   ],
+   [
+    "TorusGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ],
+   [
+    "basicBatch",
+    1
+   ]
+  ],
+  "basicBigCount": 13,
+  "noShadowTop": [
+   [
+    "BufferGeometry",
+    2
+   ],
+   [
+    "SphereGeometry",
+    1
+   ],
+   [
+    "RingGeometry",
+    1
+   ],
+   [
+    "CylinderGeometry",
+    1
+   ]
+  ],
+  "noShadowCount": 5,
+  "transpDepthWriteTop": [
+   [
+    "ShapeGeometry",
+    36
+   ],
+   [
+    "RingGeometry",
+    12
+   ],
+   [
+    "BufferGeometry",
+    3
+   ],
+   [
+    "TorusGeometry",
+    3
+   ],
+   [
+    "SphereGeometry",
+    3
+   ],
+   [
+    "CircleGeometry",
+    2
+   ],
+   [
+    "PlaneGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ]
+  ],
+  "transpCount": 61,
+  "nan": [],
+  "degen": [],
+  "tone": {
+   "exposure": 1.12,
+   "toneMapping": 4,
+   "outputCS": "srgb"
+  },
+  "fog": {
+   "type": "FogExp2",
+   "color": "#bbd2c8",
+   "density": 0.003399999999999999
+  }
+ },
+ "gr": {
+  "key": "hub",
+  "byType": {
+   "ShaderMaterial": 16,
+   "PointsMaterial": 3,
+   "MeshBasicMaterial": 371,
+   "MeshStandardMaterial": 428,
+   "MeshPhysicalMaterial": 2
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#a8dcd8"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffe9cc"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#86c4e0"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8"
+   }
+  ],
+  "basicBigTop": [
+   [
+    "SphereGeometry",
+    5
+   ],
+   [
+    "RingGeometry",
+    3
+   ],
+   [
+    "CylinderGeometry",
+    2
+   ],
+   [
+    "TorusGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ],
+   [
+    "basicBatch",
+    1
+   ]
+  ],
+  "basicBigCount": 13,
+  "noShadowTop": [
+   [
+    "BufferGeometry",
+    2
+   ],
+   [
+    "SphereGeometry",
+    1
+   ],
+   [
+    "RingGeometry",
+    1
+   ],
+   [
+    "CylinderGeometry",
+    1
+   ]
+  ],
+  "noShadowCount": 5,
+  "transpDepthWriteTop": [
+   [
+    "ShapeGeometry",
+    36
+   ],
+   [
+    "RingGeometry",
+    12
+   ],
+   [
+    "BufferGeometry",
+    3
+   ],
+   [
+    "TorusGeometry",
+    3
+   ],
+   [
+    "SphereGeometry",
+    3
+   ],
+   [
+    "CircleGeometry",
+    2
+   ],
+   [
+    "PlaneGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ]
+  ],
+  "transpCount": 61,
+  "nan": [],
+  "degen": [],
+  "tone": {
+   "exposure": 1.12,
+   "toneMapping": 4,
+   "outputCS": "srgb"
+  },
+  "fog": {
+   "type": "FogExp2",
+   "color": "#bbd2c8",
+   "density": 0.003399999999999999
+  }
+ },
+ "sanity": {
+  "key": "hub",
+  "byType": {
+   "ShaderMaterial": 16,
+   "PointsMaterial": 3,
+   "MeshBasicMaterial": 371,
+   "MeshStandardMaterial": 428,
+   "MeshPhysicalMaterial": 2
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#a8dcd8"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffe9cc"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#86c4e0"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8"
+   }
+  ],
+  "basicBigTop": [
+   [
+    "SphereGeometry",
+    5
+   ],
+   [
+    "RingGeometry",
+    3
+   ],
+   [
+    "CylinderGeometry",
+    2
+   ],
+   [
+    "TorusGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ],
+   [
+    "basicBatch",
+    1
+   ]
+  ],
+  "basicBigCount": 13,
+  "noShadowTop": [
+   [
+    "BufferGeometry",
+    2
+   ],
+   [
+    "SphereGeometry",
+    1
+   ],
+   [
+    "RingGeometry",
+    1
+   ],
+   [
+    "CylinderGeometry",
+    1
+   ]
+  ],
+  "noShadowCount": 5,
+  "transpDepthWriteTop": [
+   [
+    "ShapeGeometry",
+    36
+   ],
+   [
+    "RingGeometry",
+    12
+   ],
+   [
+    "BufferGeometry",
+    3
+   ],
+   [
+    "TorusGeometry",
+    3
+   ],
+   [
+    "SphereGeometry",
+    3
+   ],
+   [
+    "CircleGeometry",
+    2
+   ],
+   [
+    "PlaneGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ]
+  ],
+  "transpCount": 61,
+  "nan": [],
+  "degen": [],
+  "tone": {
+   "exposure": 1.12,
+   "toneMapping": 4,
+   "outputCS": "srgb"
+  },
+  "fog": {
+   "type": "FogExp2",
+   "color": "#bbd2c8",
+   "density": 0.003399999999999999
+  }
+ },
+ "town": {
+  "key": "hub",
+  "byType": {
+   "ShaderMaterial": 16,
+   "PointsMaterial": 3,
+   "MeshBasicMaterial": 371,
+   "MeshStandardMaterial": 428,
+   "MeshPhysicalMaterial": 2
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#a8dcd8"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffe9cc"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#86c4e0"
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff"
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8"
+   }
+  ],
+  "basicBigTop": [
+   [
+    "SphereGeometry",
+    5
+   ],
+   [
+    "RingGeometry",
+    3
+   ],
+   [
+    "CylinderGeometry",
+    2
+   ],
+   [
+    "TorusGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ],
+   [
+    "basicBatch",
+    1
+   ]
+  ],
+  "basicBigCount": 13,
+  "noShadowTop": [
+   [
+    "BufferGeometry",
+    2
+   ],
+   [
+    "SphereGeometry",
+    1
+   ],
+   [
+    "RingGeometry",
+    1
+   ],
+   [
+    "CylinderGeometry",
+    1
+   ]
+  ],
+  "noShadowCount": 5,
+  "transpDepthWriteTop": [
+   [
+    "ShapeGeometry",
+    36
+   ],
+   [
+    "RingGeometry",
+    12
+   ],
+   [
+    "BufferGeometry",
+    3
+   ],
+   [
+    "TorusGeometry",
+    3
+   ],
+   [
+    "SphereGeometry",
+    3
+   ],
+   [
+    "CircleGeometry",
+    2
+   ],
+   [
+    "PlaneGeometry",
+    1
+   ],
+   [
+    "seaLid",
+    1
+   ]
+  ],
+  "transpCount": 61,
+  "nan": [],
+  "degen": [],
+  "tone": {
+   "exposure": 1.12,
+   "toneMapping": 4,
+   "outputCS": "srgb"
+  },
+  "fog": {
+   "type": "FogExp2",
+   "color": "#bbd2c8",
+   "density": 0.003399999999999999
+  }
+ }
+}

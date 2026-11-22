@@ -1,0 +1,11 @@
+[traversal] hub: traps=0 pockets=0 camHits=47008 stalls=0 buried=0 fps~59.6
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Target page, context or browser has been closed
+    at /home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/traversal.mjs:14:26 {
+  log: []
+}
+
+Node.js v22.23.5

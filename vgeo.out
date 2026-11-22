@@ -1,0 +1,197 @@
+{
+ "hub": {
+  "key": "hub",
+  "floating": [
+   {
+    "name": "basicBatch",
+    "x": 0,
+    "z": 6.9,
+    "gap": 7.94,
+    "h": 3.3
+   }
+  ],
+  "floatCount": 1,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 292.6,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 4,
+   "unlit": 4,
+   "mats": [
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.88,
+   "minWorld": 0.45,
+   "mean": 0.65,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ },
+ "green": {
+  "key": "hub",
+  "floating": [
+   {
+    "name": "basicBatch",
+    "x": 0,
+    "z": 6.9,
+    "gap": 7.94,
+    "h": 3.3
+   }
+  ],
+  "floatCount": 1,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 292.6,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 4,
+   "unlit": 4,
+   "mats": [
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.94,
+   "minWorld": 0.43,
+   "mean": 0.67,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ },
+ "gr": {
+  "key": "hub",
+  "floating": [
+   {
+    "name": "basicBatch",
+    "x": 0,
+    "z": 6.9,
+    "gap": 7.94,
+    "h": 3.3
+   }
+  ],
+  "floatCount": 1,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 292.6,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 4,
+   "unlit": 4,
+   "mats": [
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.92,
+   "minWorld": 0.44,
+   "mean": 0.65,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ },
+ "sanity": {
+  "key": "hub",
+  "floating": [
+   {
+    "name": "basicBatch",
+    "x": 0,
+    "z": 6.9,
+    "gap": 7.94,
+    "h": 3.3
+   }
+  ],
+  "floatCount": 1,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 292.6,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 4,
+   "unlit": 4,
+   "mats": [
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.9,
+   "minWorld": 0.46,
+   "mean": 0.66,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ },
+ "town": {
+  "key": "hub",
+  "floating": [
+   {
+    "name": "basicBatch",
+    "x": 0,
+    "z": 6.9,
+    "gap": 7.94,
+    "h": 3.3
+   }
+  ],
+  "floatCount": 1,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 292.6,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 4,
+   "unlit": 4,
+   "mats": [
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.93,
+   "minWorld": 0.47,
+   "mean": 0.67,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ }
+}

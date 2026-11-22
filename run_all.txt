@@ -1,0 +1,78 @@
+== syntax
+[syntax] ok - 1 script block(s) parse
+== determinism
+[det] hub: seeded MATCH (db3b398e / db3b398e, 354 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] green: seeded MATCH (57b4211c / 57b4211c, 380 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] gr: seeded MATCH (57b4211c / 57b4211c, 380 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] sanity: seeded MATCH (57b4211c / 57b4211c, 380 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] town: seeded MATCH (57b4211c / 57b4211c, 380 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+== codehealth
+== console_load
+[console] hub: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=50640ms rig=61909ms
+[console] green: errors=0 warnings=1 failed=0 http>=400=0 firstFrame=11479ms rig=11481ms
+[console] gr: errors=0 warnings=1 failed=0 http>=400=0 firstFrame=11542ms rig=11545ms
+[console] sanity: errors=0 warnings=1 failed=0 http>=400=0 firstFrame=11668ms rig=11669ms
+[console] town: errors=0 warnings=1 failed=0 http>=400=0 firstFrame=11711ms rig=11714ms
+== assets
+[assets] hub: 103 requests, 24.67 MB, firstFrame 40798 ms
+[assets] green: 103 requests, 24.67 MB, firstFrame 11020 ms
+[assets] gr: 103 requests, 24.67 MB, firstFrame 11123 ms
+[assets] sanity: 103 requests, 24.67 MB, firstFrame 10990 ms
+[assets] town: 103 requests, 24.67 MB, firstFrame 10783 ms
+== reach
+[reach] hub: note/Pinned to the keep door=OK, note/Folded under a stone=OK, note/Tucked in a lantern=OK, note/Left at the tree line=OK, note/Nailed to the dock post=OK, npc/Moss=OK, npc/Pip=OK, dock/dock=OK, castle/keep doors=OK
+[reach] green: note/Under the arch=OK, note/On Horse Hill=OK, note/By the stream=OK, ability/Her fans=OK, letter/Letter L=OK, npc/Wren=OK, npc/Juno=OK, npc/Marisol=OK, npc/Dee=OK, npc/Theo=OK, npc/Nan=OK, npc/Ollie the postman=OK, dock/dock=OK
+[reach] gr: note/Wedged in a fossil=OK, note/At the foot of the caldera=OK, note/Below the ledge=OK, ability/Her boots=OK, letter/Letter U=OK, npc/Marisol=OK, npc/Dee=OK, npc/Theo=OK, npc/Nan=OK, npc/Ollie the postman=OK, dock/dock=OK
+[reach] sanity: note/In a tide pool=OK, note/At the foot of the lighthouse=OK, note/On the sea stack=OK, ability/Her lantern=OK, letter/Letter N=OK, npc/Marisol=OK, npc/Dee=OK, npc/Theo=OK, npc/Nan=OK, npc/Ollie the postman=OK, dock/dock=OK
+[reach] town: note/Pinned to a beach umbrella=OK, note/By the fountain=OK, note/At the gate=OK, ability/Her crown=OK, letter/Letter A=OK, npc/Bea=OK, npc/Neri=OK, npc/Cass=OK, npc/Rafa=OK, npc/Marisol=OK, npc/Dee=OK_OTHER_NPC_CLOSER, npc/Theo=OK, npc/Nan=OK, npc/Ollie the postman=OK, dock/dock=OK
+== traversal
+    at /home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/traversal.mjs:14:26 {
+  log: []
+}
+
+Node.js v22.23.5
+== camera
+[camera] hub: W: drift 0° pops 0 dist 11.62-11.86 | A: drift 0° pops 0 dist 11.02-11.79 | D: drift 0° pops 0 dist 10.99-11.02 | idle: drift 0° pops 0 dist 10.99-11 | A-from-rest: drift 0° pops 2 dist 5.23-11.01 | S-from-rest: drift 0° pops 0 dist 10.16-10.98 | W-through-colliders: drift 0° pops 1 dist 3.97-11.63 | arrive-idle: drift 0° pops 0 dist 10.99-10.99
+[camera] green: W: drift 0° pops 0 dist 449.2-449.2 | A: drift 0° pops 0 dist 449.2-449.2 | D: drift 0° pops 0 dist 449.2-449.2 | idle: drift 0° pops 0 dist 449.2-449.2 | A-from-rest: drift 0° pops 0 dist 449.2-449.2 | S-from-rest: drift 0° pops 0 dist 449.2-449.2 | W-through-colliders: drift 0° pops 0 dist 954.07-954.07 | arrive-idle: drift 0° pops 0 dist 10.99-10.99
+[camera] gr: W: drift 0° pops 0 dist 31.19-31.19 | A: drift 0° pops 0 dist 31.19-31.19 | D: drift 0° pops 0 dist 31.19-31.19 | idle: drift 0° pops 0 dist 31.19-31.19 | A-from-rest: drift 0° pops 0 dist 31.19-31.19 | S-from-rest: drift 0° pops 0 dist 31.19-31.19 | arrive-idle: drift 0° pops 0 dist 10.99-10.99
+[camera] sanity: W: drift 0° pops 0 dist 151.77-151.77 | A: drift 0° pops 0 dist 151.77-151.77 | D: drift 0° pops 0 dist 151.77-151.77 | idle: drift 0° pops 0 dist 151.77-151.77 | A-from-rest: drift 0° pops 0 dist 151.77-151.77 | S-from-rest: drift 0° pops 0 dist 151.77-151.77 | W-through-colliders: drift 0° pops 0 dist 510.49-510.49 | arrive-idle: drift 0° pops 0 dist 10.99-10.99
+[camera] town: W: drift 0° pops 0 dist 113.96-113.96 | A: drift 0° pops 0 dist 113.96-113.96 | D: drift 0° pops 0 dist 113.96-113.96 | idle: drift 0° pops 0 dist 113.96-113.96 | A-from-rest: drift 0° pops 0 dist 113.96-113.96 | S-from-rest: drift 0° pops 0 dist 113.96-113.96 | W-through-colliders: drift 0° pops 0 dist 411.24-411.24 | arrive-idle: drift 0° pops 0 dist 10.99-10.99
+== framebudget
+[budget] hub: spawn 1239745 tris/353 calls | Luna's Keep 1256459 tris/348 calls | South Dock 1174100 tris/139 calls | top: inst:MeshStandardMaterial-merged:BufferGeometry=272616, MeshStandardMaterial:BufferGeometry=270030, skinned:MeshPhysicalMaterial:BufferGeometry=149752
+[budget] green: spawn 1239465 tris/351 calls | Luna's Keep 1208895 tris/227 calls | South Dock 1186079 tris/195 calls | top: inst:MeshStandardMaterial-merged:BufferGeometry=272616, MeshStandardMaterial:BufferGeometry=270030, skinned:MeshPhysicalMaterial:BufferGeometry=149752
+[budget] gr: spawn 1239465 tris/351 calls | Luna's Keep 1208895 tris/227 calls | South Dock 1186079 tris/195 calls | top: inst:MeshStandardMaterial-merged:BufferGeometry=272616, MeshStandardMaterial:BufferGeometry=270030, skinned:MeshPhysicalMaterial:BufferGeometry=149752
+[budget] sanity: spawn 1239465 tris/351 calls | Luna's Keep 1208895 tris/227 calls | South Dock 1186079 tris/195 calls | top: inst:MeshStandardMaterial-merged:BufferGeometry=272616, MeshStandardMaterial:BufferGeometry=270030, skinned:MeshPhysicalMaterial:BufferGeometry=149752
+[budget] town: spawn 1239465 tris/351 calls | Luna's Keep 1208895 tris/227 calls | South Dock 1186079 tris/195 calls | top: inst:MeshStandardMaterial-merged:BufferGeometry=272616, MeshStandardMaterial:BufferGeometry=270030, skinned:MeshPhysicalMaterial:BufferGeometry=149752
+== mobile
+[mobile] gr landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] sanity portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] sanity landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] town portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] town landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+== float
+== overhead
+== scale
+== vgeo
+[vgeo] hub: floating 1, buried 1, globes 4 (4 unlit), grass max 0.88
+[vgeo] green: floating 1, buried 1, globes 4 (4 unlit), grass max 0.94
+[vgeo] gr: floating 1, buried 1, globes 4 (4 unlit), grass max 0.92
+[vgeo] sanity: floating 1, buried 1, globes 4 (4 unlit), grass max 0.9
+[vgeo] town: floating 1, buried 1, globes 4 (4 unlit), grass max 0.93
+== vcheck
+[vcheck] hub: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] green: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] gr: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] sanity: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] town: lights 9, lamps 4 (0 bad), errors 0
+== vmat
+[vmat] hub: basicBig 14, noShadow 5, transp 61, lights 9
+[vmat] green: basicBig 13, noShadow 5, transp 61, lights 9
+[vmat] gr: basicBig 13, noShadow 5, transp 61, lights 9
+[vmat] sanity: basicBig 13, noShadow 5, transp 61, lights 9
+[vmat] town: basicBig 13, noShadow 5, transp 61, lights 9
+== vaudit
+[vaudit] hub: 7 shots, npcs 2, creatures 7, errors 0
+[vaudit] green: 7 shots, npcs 2, creatures 7, errors 0
+[vaudit] gr: 7 shots, npcs 2, creatures 7, errors 0
+[vaudit] sanity: 7 shots, npcs 2, creatures 7, errors 0
+[vaudit] town: 7 shots, npcs 2, creatures 7, errors 0

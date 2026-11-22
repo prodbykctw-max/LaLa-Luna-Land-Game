@@ -1,0 +1,51 @@
+{
+ "town": [
+  {
+   "label": "Moss",
+   "h": 3.31,
+   "w": 3.51,
+   "d": 1.73,
+   "footY": 0.52,
+   "rig": "dock",
+   "scale": 1.02
+  },
+  {
+   "label": "Lala (player)",
+   "h": 3,
+   "w": 2.67,
+   "d": 1.1,
+   "footY": 0,
+   "rig": "lala"
+  },
+  {
+   "label": "Pip",
+   "h": 2.78,
+   "w": 2.05,
+   "d": 2.53,
+   "footY": 46.71,
+   "rig": "fan",
+   "scale": 0.94
+  },
+  {
+   "label": "creature:iguana",
+   "h": 0.6,
+   "w": 2,
+   "d": 2.13,
+   "footY": 36.72
+  },
+  {
+   "label": "creature:iguana",
+   "h": 0.59,
+   "w": 2.56,
+   "d": 1.29,
+   "footY": 23.65
+  },
+  {
+   "label": "creature:iguana",
+   "h": 0.21,
+   "w": 1.44,
+   "d": 1.86,
+   "footY": 22.11
+  }
+ ]
+}

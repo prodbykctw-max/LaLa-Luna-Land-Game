@@ -1,0 +1,1 @@
+bash qa/run_all.sh > qa/out/run_all.txt 2>&1
