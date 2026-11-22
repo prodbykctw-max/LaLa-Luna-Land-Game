@@ -1,0 +1,1 @@
+node qa/sanityperf_play.mjs sanity --tag=new --frames=20 > qa/out/play_new_sanity.txt 2>&1
