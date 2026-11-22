@@ -14,6 +14,8 @@ Suites: `traversal` (stuck spots, burial, camera-in-geometry), `reach` (every in
 
 `skylightab` (the baked sky light, same camera pose with `?sky=old` and with the bake on, three spots per island - open meadow, under trees, by walls - written as `qa/out/sky_<island>.jpg`, plus the baked map itself as `qa/out/skymap_<island>.png`; `SKYN=32` bakes with fewer directions, `MOBILE=1` is the 390x844 run).
 
+`sky3ab` (three-way: OLD `?skylight=old` | FIRST `?skylight=v1` | STRONGER, the same spots as `skylightab`, written as `qa/out/sky3_<island>.jpg`, `sky3_green_mobile.jpg` with `MOBILE=1`, and a close shot of her in the hub's deepest shade pool as `sky3_lala.jpg`; `VARIANT=new|old|v1` runs one column, `COMPOSE=1` builds the sheets from the files on disk; `qa/sky3metrics.py` prints the shade-pool luma numbers). Run it through `/home/claude/scripts/qarun.sh` on the shared machine.
+
 Requirements: Node 18+, Playwright with a Chromium (`CHROMIUM_PATH`, default /opt/pw-browsers/chromium),
 `PW_PATH` if playwright isn't resolvable. The game must expose test hooks on `window.__T` — the harness makes
 `index_test.html` from `index.html` by appending that line; see `_harness.mjs`.

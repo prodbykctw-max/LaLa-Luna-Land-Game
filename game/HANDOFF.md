@@ -336,16 +336,23 @@ NPCs, beach, grotto, stones, **and now places**.
   environment) by it, fading to 1 above ~3 u of ground. The sun, the key light and the shadow map are untouched. The uniforms
   are one shared object (`SL_U`) that `present()` points at the scene being drawn (`scene.userData.skyLight`); a scene with no
   bake gets `uSkyK = 0`. The island's own record is `I.skyLight` (NOT `I.sky`: that is the sky dome). `?skylight=0..1` sets the
-  strength (default .85), `?skyn=` the direction count, `?skyres=` the depth picture size, `?skyacc=8` forces the 8-bit
+  strength (default 1; `?skylight=v1` is the FIRST version, kept for QA: raw visibility, .85, indirect light only), `?skyn=` the direction count, `?skyres=` the depth picture size, `?skyacc=8` forces the 8-bit
   accumulator (the half-float one is used where the GPU can render to it). The town's house models arrive after the build:
   the bake waits for them (`I.bldPending`), `readyIsland` runs it once they are in (`I.skyDirty`), and a debounced
   `skyLate` does the same for an island that is already being played. Log line: `SKYBAKE` (a bake that matches nothing says
   `NOTHING TO BAKE`). Suite: `qa/skylightab.mjs`.
+  **Stronger shade (second pass).** The factor is remapped so open ground stays EXACTLY 1.0: `s = clamp((0.97 - occ)/0.50, 0, 1)`,
+  `skySo = 1 - s*0.85*uSkyK` (visibility .98 -> 1.0, .89 -> ~.86, .75 -> ~.63), computed once per fragment ahead of
+  `lights_fragment_begin`. It also multiplies the SHADOWLESS directional fills (bounce, rim): the shader chunk text is edited once
+  (`SL_LIGHTS`) so every directional light past `NUM_DIR_LIGHT_SHADOWS` gets `directLight.color *= skySo`. Three sorts shadow
+  casters first and the key always has `castShadow`, so the key/sun is never touched, with the shadow map on or off. If a three
+  update changes the chunk, `SL_LIGHTS` is null (console warning) and only the indirect light is dimmed. Suite: `qa/sky3ab.mjs`
+  (OLD | FIRST | STRONGER, same spots) + `qa/sky3metrics.py`.
 
 ## 2.7 URL flags
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)
-`?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=` `?skylight=old|0..1` `?skyn=` `?skyres=` `?skyacc=8`
+`?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=` `?skylight=old|v1|0..1` `?skyn=` `?skyres=` `?skyacc=8`
 
 ## 2.8 Commit history this session (newest first)
 

@@ -37,9 +37,13 @@ const POSE = `((s) => {
   const T = window.__T, I = T.CUR, W = I.W, c = T.camera, g = I.height(s.at[0], s.at[1]);
   W.x = s.at[0]; W.z = s.at[1]; W.y = g; W.active = false;
   const ex = s.at[0] + Math.sin(s.yaw) * s.dist, ez = s.at[1] + Math.cos(s.yaw) * s.dist, ey = Math.max(g, I.height(ex, ez)) + (s.eye == null ? 2.2 : s.eye);
-  window.__POSE = { e: [ex, ey, ez], t: [s.at[0], g + (s.look == null ? 1.4 : s.look), s.at[1]] };
+  window.__POSE = { e: [ex, ey, ez], t: [s.at[0], g + (s.look == null ? 1.4 : s.look), s.at[1]], her: true, fov: s.fov || 0 };   /* she is carried to the spot in EVERY shot of every column, so the three columns match */
   if (!window.__HOOKED) { window.__HOOKED = true; const o = T.composer.render.bind(T.composer);
-    T.composer.render = function () { const p = window.__POSE; if (p) { c.position.set(...p.e); c.lookAt(...p.t); c.updateMatrixWorld(); } return o.apply(null, arguments); }; }
+    T.composer.render = function () { const p = window.__POSE; if (p) { c.position.set(...p.e); c.lookAt(...p.t); c.updateMatrixWorld();
+      if (p.fov && c.fov !== p.fov) { c.fov = p.fov; c.updateProjectionMatrix(); }
+      /* the game only moves her model while she is under control (W.active). She is carried to the spot and turned to the lens in every shot, the same in all three columns */
+      if (p.her) { W.group.position.set(W.x, W.y, W.z); W.group.rotation.y = Math.atan2(p.e[0] - W.x, p.e[2] - W.z); W.group.updateMatrixWorld(true); } }
+      return o.apply(null, arguments); }; }
 })`;
 /* the deepest shade pool of the island the page is on: darkest 3x3 of the baked map that is not inside a trunk, then the clearest side for the camera */
 const POOL = `(() => {
@@ -60,12 +64,12 @@ const POOL = `(() => {
       for (const q of blobs) m = Math.min(m, Math.hypot(q.x - ex, q.y - ey, q.z - ez) - q.r);
       for (const c of cols) { const dx = ex - at[0], dz = ez - at[1], t = Math.max(0, Math.min(1, ((c.x - at[0]) * dx + (c.z - at[1]) * dz) / (dx * dx + dz * dz))); m = Math.min(m, Math.hypot(at[0] + dx * t - c.x, at[1] + dz * t - c.z) - (c.r || 0)); }
       if (!I.inside(ex, ez)) m -= 50; if (m > bs) { bs = m; b = y; } } return b; };
-  /* close enough that she is at least 420 px tall: solve for the distance from the camera's own fov */
-  const H = window.innerHeight, fov = T.camera.fov * Math.PI / 180, dist = 1.75 * H / (2 * Math.tan(fov / 2) * 430);
-  return { at: best, vis: +(bv / 255).toFixed(3), dist, yaw: yawFor(best, dist), eye: .9, look: .95 };
+  /* a 28 degree lens from 8.6 u brings her to ~440 px of a 600 px frame */
+  const dist = 8.6;   /* she is 3.07 u tall in this world (not 1.75): 28 degrees at 8.6 u frames ~4.2 u, so she fills ~73% of the frame */
+  return { at: best, vis: +(bv / 255).toFixed(3), dist, yaw: yawFor(best, dist), eye: 1.6, look: 1.5, fov: 28, moveHer: true };
 })()`;
 const SIZE = `(() => { const T = window.__T, I = T.CUR, W = I.W, c = T.camera, v = new THREE.Vector3(), r = {};
-  for (const [k, y] of [['feet', 0], ['head', 1.75]]) { v.set(W.x, W.y + y, W.z).project(c); r[k] = (1 - v.y) / 2 * window.innerHeight; } return { px: +(r.feet - r.head).toFixed(0) }; })()`;
+  for (const [k, y] of [['feet', 0], ['head', 3.05]]) { v.set(W.x, W.y + y, W.z).project(c); r[k] = (1 - v.y) / 2 * window.innerHeight; } return { px: +(r.feet - r.head).toFixed(0) }; })()`;
 
 const out = { spots: {}, lights: {}, errors: {}, shots: {}, lala: null };
 const shots = {}, lalaShots = {};
@@ -101,7 +105,7 @@ for (const [variant, q] of (compose ? [] : [variants[2], variants[0], variants[1
     }
   }
   /* Lala in the hub's deepest pool (old vs stronger; the first version too, since it is free) */
-  if (!mobile && lalaOnly) {
+  if (!mobile && variant !== 'v1' && islands.includes('hub')) {   /* the close shot of her goes last, in the same page, so a whole variant is ONE browser session */
     /* her close shot is the heaviest frame there is (a lens inside the grass): a smaller viewport, 960x600, keeps software rendering inside the screenshot timeout; she is still 430 px tall */
     await H.page.setViewportSize({ width: 960, height: 600 }); await H.page.waitForTimeout(1500);
     await H.page.evaluate(`${READY}('hub')`);
@@ -115,6 +119,15 @@ for (const [variant, q] of (compose ? [] : [variants[2], variants[0], variants[1
       /* her close shot never completed through page.screenshot on the shared machine (it waits for a compositor frame); read the canvas itself, in the same task as a render, instead */
       const du = await H.page.evaluate(() => { const T = window.__T; T.composer.render(); return T.renderer.domElement.toDataURL('image/jpeg', .92); });
       writeFileSync(f, Buffer.from(du.split(',')[1], 'base64')); lalaShots[variant] = f;
+      if (process.env.LALADIAG) {   /* where is she, and is she drawn at all? render with everything else hidden, and report her projected box */
+        const dg = await H.page.evaluate(() => { const T = window.__T, I = T.CUR, W = I.W, v = new THREE.Vector3(); const pr = [];
+          for (const y of [0, .9, 1.75]) { v.set(W.x, W.y + y, W.z).project(T.camera); pr.push([+((v.x + 1) / 2 * innerWidth).toFixed(0), +((1 - v.y) / 2 * innerHeight).toFixed(0), +v.z.toFixed(3)]); }
+          const keep = new Set(); W.group.traverseVisible(o => keep.add(o)); let p = W.group; while (p) { keep.add(p); p = p.parent; }
+          const hid = []; I.scene.traverse(o => { if (!keep.has(o) && o.visible && (o.isMesh || o.isPoints || o.isLine || o.isSprite)) { o.visible = false; hid.push(o); } });
+          const prevBg = I.scene.background; I.scene.background = new THREE.Color(0x303060); T.composer.render(); const img = T.renderer.domElement.toDataURL('image/jpeg', .8);
+          hid.forEach(o => { o.visible = true; }); I.scene.background = prevBg;
+          return { proj: pr, cam: T.camera.position.toArray(), her: [W.x, W.y, W.z], gp: W.group.position.toArray(), gv: W.group.visible, img }; });
+        writeFileSync(`${OUT}/_sky3_lala_diag.jpg`, Buffer.from(dg.img.split(',')[1], 'base64')); delete dg.img; writeFileSync(`${OUT}/_sky3_lala_diag.json`, JSON.stringify(dg)); }
       await H.page.evaluate(thaw);
     }
   }
@@ -129,6 +142,7 @@ if (!mobile) { let was = { shots: {}, lalaShots: {} }; try { was = JSON.parse(re
 /* compose: a row per spot, [OLD | FIRST | STRONGER], labelled */
 for (const isl of Object.keys(shots)) {
   const rows = Object.entries(shots[isl]).filter(([, v]) => v.old && v.v1 && v.new);
+  if (!rows.length) continue;   /* a single-variant run has no row to compose; COMPOSE=1 builds the sheets at the end */
   execFileSync('python3', ['-c', `
 import sys, json
 from PIL import Image, ImageDraw
