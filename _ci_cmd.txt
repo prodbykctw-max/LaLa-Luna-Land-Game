@@ -1,0 +1,1 @@
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=newLS0 --islands=sanity --query=lalashadow=0 --frames=85
