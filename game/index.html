@@ -7704,7 +7704,8 @@ const sailPatch = width => mat => { mat.userData.patches.push(["sail", sh => {
    material, so three.js frustum culling can drop what is behind her or outside the shadow box. Same vertices, same material,
    same draw order within a cell: nothing on screen changes, the GPU just stops being handed what it cannot show.
    `pad` widens each cell's bounds for what the vertex shader moves (wind sway, the ink outline's growth with distance). */
-const CHUNK_CELL = (() => { const v = parseFloat(QS.get("chunk")); return isNaN(v) ? 48 : Math.max(0, v); })();
+const BASIC_CELL = (() => { const v = parseFloat(QS.get("basicmerge")); return isNaN(v) ? 64 : Math.max(0, v); })();   /* ?basicmerge=0 turns the MeshBasic batch off, =N sets its cell size */
+const CHUNK_CELL = (() => { const v = parseFloat(QS.get("chunk")); return isNaN(v) ? 0 : Math.max(0, v); })();   /* default OFF: measured +260 draw calls on Sanity for -15k main triangles, a bad trade on a CPU-bound laptop; ?chunk=96 turns it on */
 function chunkMesh(mesh, scene, pad, cell){
   cell = cell == null ? CHUNK_CELL : cell;
   if(!cell || !mesh || !mesh.isMesh || !mesh.geometry || mesh.isSkinnedMesh || mesh.isInstancedMesh || !mesh.parent) return [mesh];
@@ -7771,6 +7772,13 @@ function mergeStatics(I, scene){
   /* This gate used to test isMeshToonMaterial, so in real mode nothing matched and the whole static
      batch quietly stopped merging — every prop stayed its own draw call. Test for either family. */
   const plainToon = m => m && (m.isMeshToonMaterial || m.isMeshStandardMaterial) && !m.map && !m.transparent && m.opacity === 1 && m.side === THREE.FrontSide && !m.emissiveMap;
+  /* Everything the island's own code keeps a handle on (lamps whose colour changes, doors, stones...) stays a separate object: a
+     deep-ish scan of what I points at, two levels down, and everything hanging under it. */
+  const refd = new Set(); { const mark = v => { if(v && v.isObject3D) v.traverse(k => refd.add(k)); };
+    const scan = (v, d) => { if(!v || d > 2) return; if(v.isObject3D){ mark(v); return; } if(Array.isArray(v)){ v.forEach(x => scan(x, d + 1)); return; } if(typeof v === "object" && !v.isMaterial && !v.isTexture && !v.isBufferGeometry){ for(const k in v){ try{ scan(v[k], d + 1); }catch(e){} } } };
+    for(const k of Object.keys(I)){ if(k === "scene" || k === "cfg" || k === "W") continue; try{ scan(I[k], 0); }catch(e){} } }
+  const plainBasic = o => { const m = o.material; return o.geometry && o.geometry.attributes.position && !Array.isArray(m) && m.isMeshBasicMaterial && !m.transparent && !m.map && !m.alphaMap && !m.vertexColors && m.opacity === 1 && !o.children.length && !o.userData.dyn && !o.userData.ground && o.visible && !o.userData.noBatch; };
+  const basics = new Map();
   const mains = [], inks = []; let tris = 0;
   const stock = m => m.material.userData.patches && m.material.userData.patches.length === 1;   /* rim only — no wind/grass patch */
   const visit = o => {
@@ -7781,10 +7789,29 @@ function mergeStatics(I, scene){
       o.children.slice().forEach(visit);            /* things hung on it (a canopy on a trunk, a half-sphere on a ball) */
       if(!o.children.length) o.parent.remove(o); return;
     }
-    if(o.isMesh){ if(!o.isInstancedMesh && !o.isSkinnedMesh && o.geometry && o.geometry.attributes.normal && plainToon(o.material) && stock(o) && !o.children.length){ mains.push(o); o.parent.remove(o); } return; }
+    if(o.isMesh){ if(!o.isInstancedMesh && !o.isSkinnedMesh && o.geometry && o.geometry.attributes.normal && plainToon(o.material) && stock(o) && !o.children.length){ mains.push(o); o.parent.remove(o); }
+      else if(BASIC_CELL && plainBasic(o) && !refd.has(o)){ const k = o.material.uuid + "|" + (+o.castShadow) + (+o.receiveShadow) + "|" + o.renderOrder; (basics.get(k) || basics.set(k, []).get(k)).push(o); o.parent.remove(o); }
+      return; }
     if(o.isGroup || o.isObject3D) o.children.slice().forEach(visit);
   };
   scene.children.slice().forEach(visit);
+  /* one shared MeshBasicMaterial on a hundred separate meshes is a hundred draw calls for one look: bake each (material, flags) group into a few meshes per
+     ground cell (cells so frustum culling still works). Same material object, same vertices, so the pixels are the same. ?basicmerge=0 restores. */
+  if(basics.size){ scene.updateMatrixWorld(true); const v = new THREE.Vector3(); let nb = 0, nm = 0;
+    for(const list of basics.values()){
+      const cells = new Map();
+      for(const m of list){ const g = m.geometry; if(!g.boundingSphere) g.computeBoundingSphere(); v.copy(g.boundingSphere.center).applyMatrix4(m.matrixWorld);
+        const ck = Math.floor(v.x/BASIC_CELL) + "," + Math.floor(v.z/BASIC_CELL); (cells.get(ck) || cells.set(ck, []).get(ck)).push(m); }
+      for(const part of cells.values()){
+        let n = 0; for(const m of part){ const g = m.geometry; n += g.index ? g.index.count : g.attributes.position.count; }
+        const pos = new Float32Array(n*3); let o = 0;
+        for(const m of part){ const g = m.geometry, P = g.attributes.position, ix = g.index, cnt = ix ? ix.count : P.count;
+          for(let k=0;k<cnt;k++){ v.fromBufferAttribute(P, ix ? ix.array[k] : k).applyMatrix4(m.matrixWorld); pos[o*3] = v.x; pos[o*3+1] = v.y; pos[o*3+2] = v.z; o++; } }
+        const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.computeBoundingSphere();
+        const src = part[0], mesh = new THREE.Mesh(geo, src.material); mesh.castShadow = src.castShadow; mesh.receiveShadow = src.receiveShadow; mesh.renderOrder = src.renderOrder; mesh.name = "basicBatch";
+        scene.add(mesh); (I.basicBatches || (I.basicBatches = [])).push(mesh); nm++; }
+      nb += list.length; list.forEach(m => { if(m.geometry && !m.geometry.userData.shared) m.geometry.dispose(); }); }
+    DBG("basic batch", I.cfg.key, nb, "meshes ->", nm); }
   if(!mains.length) return;
   /* where each baked piece sat, for qa/worldcheck.mjs: a piece of anything takeable showing up in here is the floating-quill bug */
   I.bakedAt = mains.map(m => { const g = m.geometry; if(!g.boundingSphere) g.computeBoundingSphere();

@@ -22,6 +22,16 @@ for (const key of argIslands(['sanity'])) {
     R.shadowMap.autoUpdate = true;
     /* every renderer.render() call in one composer frame: which scene, which target, how many calls/triangles it added */
     const passes = []; { const r0 = R.render.bind(R); R.render = (sc, ca) => { const c = info.render.calls, t = info.render.triangles, rt = R.getRenderTarget(); r0(sc, ca); passes.push({ scene: sc.name || (sc === I.scene ? 'island' : sc.type), target: rt ? rt.width + 'x' + rt.height : 'screen', calls: info.render.calls - c, tris: info.render.triangles - t }); }; frame(); R.render = r0; }
+    /* ground truth: every renderBufferDirect (one draw) in one frame, attributed to its object; pass = shadow when the camera is the sun's */
+    const draws = []; { const d0 = R.renderBufferDirect.bind(R), sunCam = I.sun && I.sun.shadow && I.sun.shadow.camera;
+      R.renderBufferDirect = function (camera, sc, geometry, material, object, group) { const c = info.render.calls, t = info.render.triangles; d0(camera, sc, geometry, material, object, group);
+        const dc = info.render.calls - c, dt = info.render.triangles - t; if (dc) { const mats = Array.isArray(object.material) ? object.material : [object.material];
+          let who = ''; for (let q = object; q; q = q.parent) { if (q === I.W.group) who = 'LALA'; else if ((I.npcs || []).includes(q)) who = 'NPC'; else if ((I.creatures || []).includes(q)) who = 'CREATURE'; if (who) break; }
+          draws.push({ pass: (sunCam && camera === sunCam) || (material && material.isMeshDepthMaterial) || (material && material.isMeshDistanceMaterial) ? 'shadow' : 'main', calls: dc, tris: dt, who, mat: material.type + (material.transparent ? ':T' : '') + (material.side === TH.DoubleSide ? ':D' : ''), obj: object.type + (object.isInstancedMesh ? ':inst' : '') + (object.isSkinnedMesh ? ':skin' : ''), attrs: Object.keys(geometry.attributes).join(',').slice(0, 40), name: object.name || '' }); } };
+      frame(); R.renderBufferDirect = d0; }
+    const agg = {}; for (const d of draws) { const k = d.pass + '|' + (d.who || '-') + '|' + d.mat + '|' + d.obj + '|' + d.attrs; const e = agg[k] || (agg[k] = { calls: 0, tris: 0, n: 0 }); e.calls += d.calls; e.tris += d.tris; e.n++; }
+    const drawAgg = Object.entries(agg).sort((a, b) => b[1].calls - a[1].calls).slice(0, 22).map(([k, v]) => [k, v.calls, v.tris]);
+    const drawTot = { main: draws.filter(d => d.pass === 'main').reduce((a, d) => [a[0] + d.calls, a[1] + d.tris], [0, 0]), shadow: draws.filter(d => d.pass === 'shadow').reduce((a, d) => [a[0] + d.calls, a[1] + d.tris], [0, 0]) };
     const measured = { total: both, mainOnly: noShadow, shadow: { calls: both.calls - noShadow.calls, tris: both.tris - noShadow.tris }, programs: info.programs.length, geometries: info.memory.geometries, textures: info.memory.textures };
     const fr = (c) => { c.updateMatrixWorld(true); const f = new TH.Frustum(); f.setFromProjectionMatrix(new TH.Matrix4().multiplyMatrices(c.projectionMatrix, c.matrixWorldInverse)); return f; };
     const sc = I.sun && I.sun.shadow && I.sun.shadow.camera, fm = fr(cam), fs = sc ? fr(sc) : null;
@@ -43,12 +53,12 @@ for (const key of argIslands(['sanity'])) {
     });
     const dblRows = rows.filter(r => r.inMain && r.dbl);
     const sum = (f, k) => rows.filter(f).reduce((a, r) => a + (k ? r.tris : 1), 0);
-    return { passes: passes.filter(p => p.calls > 0), twoPass: { meshes: dblRows.length, extraCalls: dblRows.length, extraTris: dblRows.reduce((a, r) => a + r.tris, 0), top: dblRows.sort((a, b) => b.tris - a.tris).slice(0, 8).map(r => [r.attrs, r.mat, r.tris]) }, counted: { mainCalls: sum(r => r.inMain), mainTris: sum(r => r.inMain, 1), shadowCalls: sum(r => r.inShadow), shadowTris: sum(r => r.inShadow, 1), meshes: rows.length }, measured,
+    return { drawTot, drawAgg, passes: passes.filter(p => p.calls > 0), twoPass: { meshes: dblRows.length, extraCalls: dblRows.length, extraTris: dblRows.reduce((a, r) => a + r.tris, 0), top: dblRows.sort((a, b) => b.tris - a.tris).slice(0, 8).map(r => [r.attrs, r.mat, r.tris]) }, counted: { mainCalls: sum(r => r.inMain), mainTris: sum(r => r.inMain, 1), shadowCalls: sum(r => r.inShadow), shadowTris: sum(r => r.inShadow, 1), meshes: rows.length }, measured,
       top: rows.sort((a, b) => b.tris - a.tris).slice(0, 24), groups: Object.entries(rows.filter(r => r.inMain && !r.id).reduce((m, r) => { const k = r.mat + '|' + r.attrs + '|' + (r.cull ? 'c' : 'U') + (r.cast ? 's' : '-') + '|' + (r.tris < 200 ? '<200' : r.tris < 1000 ? '<1k' : r.tris < 5000 ? '<5k' : '>5k'); const e = m[k] || (m[k] = { n: 0, tris: 0 }); e.n++; e.tris += r.tris; return m; }, {})).sort((a, b) => b[1].n - a[1].n).slice(0, 14), byKind: Object.entries(rows.reduce((m, r) => { const k = (r.id || (r.cull ? 'cullable' : 'unculled')) + (r.inMain ? '' : ':offscreen'); const e = m[k] || (m[k] = { n: 0, tris: 0, shTris: 0 }); e.n++; e.tris += r.inMain ? r.tris : 0; e.shTris += r.inShadow ? r.tris : 0; return m; }, {})) };
   });
   r.errors = H.log.errors.slice(0, 5); all[key] = r;
   writeFileSync(`${OUT}/sanityperf_census_${tag}_${key}.json`, JSON.stringify(r, null, 1));
   console.log(key, JSON.stringify(r.counted), JSON.stringify(r.measured));
-  r.top.slice(0, 14).forEach(x => console.log('   ', JSON.stringify(x))); console.log('   passes', JSON.stringify(r.passes)); console.log('   twoPass', JSON.stringify(r.twoPass)); console.log('   groups', JSON.stringify(r.groups)); console.log('   byKind', JSON.stringify(r.byKind));
+  r.top.slice(0, 14).forEach(x => console.log('   ', JSON.stringify(x))); console.log('   DRAWTOT', JSON.stringify(r.drawTot)); r.drawAgg.forEach(x => console.log('   D', JSON.stringify(x))); console.log('   passes', JSON.stringify(r.passes)); console.log('   twoPass', JSON.stringify(r.twoPass)); console.log('   groups', JSON.stringify(r.groups)); console.log('   byKind', JSON.stringify(r.byKind));
   await H.close();
 }
