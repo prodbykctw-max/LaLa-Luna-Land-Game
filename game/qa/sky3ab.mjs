@@ -109,7 +109,10 @@ for (const [variant, q] of (compose ? [] : [variants[2], variants[0], variants[1
       await H.page.evaluate(`${POSE}(${JSON.stringify(lalaSpot)})`); await H.page.waitForTimeout(8000);
       const sz = await H.page.evaluate(SIZE); out.lalaPx = sz.px;
       await H.page.evaluate(freeze(k++)); await H.page.waitForTimeout(3000); await H.page.evaluate(pinT); await H.page.waitForTimeout(3000);
-      const f = `${OUT}/_sky3_lala_${variant}.jpg`; await H.page.screenshot({ path: f, type: 'jpeg', quality: 92, timeout: 240000 }); lalaShots[variant] = f;
+      const f = `${OUT}/_sky3_lala_${variant}.jpg`;
+      /* her close shot never completed through page.screenshot on the shared machine (it waits for a compositor frame); read the canvas itself, in the same task as a render, instead */
+      const du = await H.page.evaluate(() => { const T = window.__T; T.composer.render(); return T.renderer.domElement.toDataURL('image/jpeg', .92); });
+      writeFileSync(f, Buffer.from(du.split(',')[1], 'base64')); lalaShots[variant] = f;
       await H.page.evaluate(thaw);
     }
   }
