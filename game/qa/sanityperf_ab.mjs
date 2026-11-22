@@ -9,7 +9,7 @@ import { open, OUT } from './_harness.mjs';
 import { writeFileSync, mkdirSync } from 'fs';
 const arg = (n, d) => { const a = process.argv.find(x => x.startsWith('--' + n + '=')); return a ? a.slice(n.length + 3) : d; };
 const query = arg('query', ''); const tag = arg('tag', 'new'), W = +arg('w', 1280), Hh = +arg('h', 720), keys = arg('islands', 'hub,green,gr,sanity,town').split(',');
-const STEP = 1000 / 60; const VIDEO = arg('video', '0') === '1', NF = +arg('frames', VIDEO ? 150 : 200);   /* --video=1: full-size, a screenshot EVERY frame, 150 frames (no pan) */
+const STEPS = [17, 17, 16]; let _si = 0; const STEP = () => STEPS[_si++ % 3];   /* page.clock ticks whole ms: 17,17,16 = 50 ms per 3 frames = exactly 16.667 on average */ const VIDEO = arg('video', '0') === '1', NF = +arg('frames', VIDEO ? 150 : 200);   /* --video=1: full-size, a screenshot EVERY frame, 150 frames (no pan) */
 const AB = process.env.AB_DIR || OUT; const dir = AB + '/ab/' + tag; mkdirSync(dir, { recursive: true });
 const report = { video: VIDEO, tag, clockSteps: {}, errors: {}, shots: {} };
 for (const key of keys) { try {
@@ -18,10 +18,10 @@ for (const key of keys) { try {
   await page.clock.install();
   await page.goto(H.url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 600);   /* page time, not node time: the page clock started at install() */
-  const adv = async n => { for (let i = 0; i < n; i++) await page.clock.runFor(STEP); };
+  const adv = async n => { for (let i = 0; i < n; i++) await page.clock.runFor(STEP()); };
   const until = async (fn, maxIter, chunk = 6) => { for (let i = 0; i < maxIter; i++) { if (await page.evaluate(fn)) return true; await adv(chunk); } return false; };
   const steps = [];
-  { const t0 = await page.evaluate(() => performance.now()); for (let i = 0; i < 5; i++) { await page.clock.runFor(STEP); const t1 = await page.evaluate(() => performance.now()); steps.push(+(t1 - (steps.length ? steps.reduce((a, b) => a + b, 0) + t0 : t0)).toFixed(3)); } }
+  { const t0 = await page.evaluate(() => performance.now()); for (let i = 0; i < 6; i++) { await page.clock.runFor(STEP()); const t1 = await page.evaluate(() => performance.now()); steps.push(+(t1 - (steps.length ? steps.reduce((a, b) => a + b, 0) + t0 : t0)).toFixed(3)); } }
   report.clockSteps[key] = steps;
   await until(() => window.__T && window.__T.CUR && window.__prep, 4000);
   if (key === 'hub') {
@@ -32,7 +32,8 @@ for (const key of keys) { try {
     await page.evaluate(k => { window.__rd = 0; window.__prep.readyIsland(k).then(async () => { await window.__T.goIsland(window.__T.ISL[k], true); window.__rd = 1; }); }, key);
     await until(() => window.__rd === 1, 20000, 10);
   }
-  await page.evaluate(v => { window.__video = v; window.__T.CUR.W.active = true; }, VIDEO);
+  await page.evaluate(v => { window.__video = v; window.__T.CUR.W.active = true; const b = document.getElementById('bIntro'); if (b && b.offsetParent) b.click(); }, VIDEO);   /* the island's title card ("Go ashore") covers the whole scene until it is dismissed */
+  await adv(30);
   await adv(30);                                           /* settle */
   const shots = []; const every = VIDEO ? 1 : 0;
   const shotFrames = new Set([19, 79, 95, 110, 139, ...Array.from({ length: 10 }, (_, i) => 145 + i * 6)]);
@@ -47,7 +48,7 @@ for (const key of keys) { try {
       if (f === 100) T.setJoy(0, 0);
       if (f >= 140 && !window.__video) Wk.camYaw += .03; }, f);
     if (VIDEO) await page.evaluate(d => { window.__NORENDER = d; }, f % 2 === 0);
-    await page.clock.runFor(STEP); await shoot();
+    await page.clock.runFor(STEP()); await shoot();
   }
   report.shots[key] = shots; report.errors[key] = H.log.errors.slice(0, 10);
   const poses = await page.evaluate(() => { const W = window.__T.CUR.W; return { x: +W.x.toFixed(3), y: +W.y.toFixed(3), z: +W.z.toFixed(3) }; });
