@@ -1,0 +1,1 @@
+[ -f qa/reach.mjs ] && timeout 3000 node qa/reach.mjs > qa/out/reach.out 2> qa/out/reach.log; echo rc=$? >> qa/out/reach.log
