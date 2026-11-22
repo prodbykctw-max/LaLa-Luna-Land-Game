@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/sanityperf_census.mjs green --tag=old > qa/out/census_old_green.txt 2>&1
