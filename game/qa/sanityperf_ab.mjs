@@ -13,7 +13,7 @@ const STEPS = [17, 17, 16]; let _si = 0; const STEP = () => STEPS[_si++ % 3];   
 const AB = process.env.AB_DIR || OUT; const dir = AB + '/ab/' + tag; mkdirSync(dir, { recursive: true });
 const report = { video: VIDEO, tag, clockSteps: {}, errors: {}, shots: {} };
 for (const key of keys) { try {
-  const H = await open({ navigate: false, query: VIDEO ? ((query ? query + '&' : '') + 'dpr=0.5') : query, viewport: VIDEO ? { width: W, height: Hh } : { width: W >> 1, height: Hh >> 1 }, init: `(function(){ let s = 123456789; Math.random = function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();` });
+  const H = await open({ navigate: false, query: VIDEO ? ((query ? query + '&' : '') + 'dpr=0.5') : query, viewport: VIDEO ? { width: W, height: Hh } : { width: W >> 1, height: Hh >> 1 }, init: `(function(){ let s = 123456789; window.__seed = v => { s = v; }; Math.random = function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();` });
   const { page } = H;
   await page.clock.install();
   await page.goto(H.url, { waitUntil: 'domcontentloaded', timeout: 120000 });
@@ -34,6 +34,12 @@ for (const key of keys) { try {
   }
   await page.evaluate(v => { window.__video = v; window.__T.CUR.W.active = true; const b = document.getElementById('bIntro'); if (b && b.offsetParent) b.click(); }, VIDEO);   /* the island's title card ("Go ashore") covers the whole scene until it is dismissed */
   await adv(30);
+  await adv(30);
+  /* Make the two builds start the sequence in the same state. How many frames it took to load (real-time downloads) differs run to run, and
+     it leaks into the game clock (wind, waves, lightning) and the random stream. Jump the page clock to a fixed instant, put the game clock
+     back to a fixed value and re-seed Math.random, then settle. */
+  { const now = await page.evaluate(() => performance.now()); await page.clock.fastForward(Math.max(1, 400000 - now)); }
+  await page.evaluate(() => { window.__T.setTime(100); window.__seed(987654321); });
   await adv(30);                                           /* settle */
   const shots = []; const every = VIDEO ? 1 : 0;
   const shotFrames = new Set([19, 79, 95, 110, 139, ...Array.from({ length: 10 }, (_, i) => 145 + i * 6)]);

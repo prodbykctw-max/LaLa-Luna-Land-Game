@@ -5,10 +5,10 @@ import { createRequire } from 'module'; import { readdirSync, writeFileSync } fr
 const require = createRequire(import.meta.url);
 const sharp = require(process.env.SHARP_PATH || '/home/claude/.npm-global/lib/node_modules/sharp');
 const [A, B, ...isl] = process.argv.slice(2).filter(x => !x.startsWith('--'));
-const files = readdirSync(`${OUT}/ab/${A}`).filter(f => f.endsWith('.png') && (!isl.length || isl.some(i => f.startsWith(i + '_'))));
+const files = readdirSync(`${OUT}/${process.env.AB_SUB || 'ab'}/${A}`).filter(f => f.endsWith('.png') && (!isl.length || isl.some(i => f.startsWith(i + '_'))));
 const res = {};
 for (const f of files) {
-  let a, b; try { a = await sharp(`${OUT}/ab/${A}/${f}`).removeAlpha().raw().toBuffer({ resolveWithObject: true }); b = await sharp(`${OUT}/ab/${B}/${f}`).removeAlpha().raw().toBuffer({ resolveWithObject: true }); } catch { continue; }
+  let a, b; try { a = await sharp(`${OUT}/${process.env.AB_SUB || 'ab'}/${A}/${f}`).removeAlpha().raw().toBuffer({ resolveWithObject: true }); b = await sharp(`${OUT}/${process.env.AB_SUB || 'ab'}/${B}/${f}`).removeAlpha().raw().toBuffer({ resolveWithObject: true }); } catch { continue; }
   const w = a.info.width, h = a.info.height; let sum = 0, bad = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
   for (let p = 0; p < w * h; p++) { const i = p * 3, d = (Math.abs(a.data[i] - b.data[i]) + Math.abs(a.data[i + 1] - b.data[i + 1]) + Math.abs(a.data[i + 2] - b.data[i + 2])) / 3; sum += d;
     if (d > 8) { bad++; const x = p % w, y = (p / w) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
