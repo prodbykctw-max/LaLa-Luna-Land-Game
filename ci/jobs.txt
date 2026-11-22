@@ -1,0 +1,2 @@
+QA_ROOT=$BASE W=840 H=720 FRAMES=240 STRIDE=2 node qa/leafwind.mjs shoot old palm
+QA_ROOT=$BASE W=840 H=720 FRAMES=240 STRIDE=2 node qa/leafwind.mjs shoot new palm
