@@ -1,0 +1,1 @@
+node qa/traversal.mjs > qa/out/traversal.out 2> qa/out/traversal.log; r=$?; tail -25 qa/out/traversal.log; tail -25 qa/out/traversal.out; exit $r

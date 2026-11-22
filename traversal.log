@@ -1,0 +1,5 @@
+[traversal] hub: traps=0 pockets=0 camHits=47008 stalls=0 buried=0 fps~59.5
+[traversal] green: traps=0 pockets=0 camHits=36204 stalls=0 buried=0 fps~59.9
+[traversal] gr: traps=0 pockets=0 camHits=40344 stalls=0 buried=0 fps~60
+[traversal] sanity: traps=0 pockets=0 camHits=27084 stalls=0 buried=0 fps~59.9
+[traversal] town: traps=0 pockets=0 camHits=31076 stalls=0 buried=0 fps~60
