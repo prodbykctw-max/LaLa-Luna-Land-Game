@@ -331,7 +331,7 @@ NPCs, beach, grotto, stones, **and now places**.
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)
 `?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=`
-`?leafwind=old` (rigid crown sway, frozen leaf shadow)
+`?leafwind=old` (rigid crown sway, frozen leaf shadow) `?leaves=old` (single merged crowns) `?farshadow=0` (no island-wide far shadow) `?farflora=1` (OFF by default: far flowers/grass scale-up + thinning, distance alpha cutoff + mip bias)
 
 ## 2.8 Commit history this session (newest first)
 
@@ -2175,4 +2175,43 @@ The fake clock moves in WHOLE milliseconds, so one 60 fps frame is 17, 17, 16 ms
 Software GL pays per pixel, so the clips were drawn at `?dpr=0.5` and every 2nd tick (logic runs every tick; the clip is encoded at 60 fps by
 repeating each drawn frame) - say so if the client sees the softness. Stills/clip: qa/out/leafwind_hub.mp4 + leafwind_hub_strip.jpg
 (the change-from-frame-0 rows show the OLD crown barely moving and its shadow frozen; NEW moves card by card and the shadow dapples).
+
+### 4.53 — Three-level chunked crowns (`?leaves=old` restores the single crown)
+
+Trees are chunked into ~40 u world cells (`I.leafCells`), each with a merged mesh per LOD level: L0 near (about 3x the cards on desktop, 2x on touch or
+narrow screens), L1 = the old density, L2 = a few dozen cards. The level is chosen by camera distance (34 / 80 u, 6 u hysteresis). A change of level is
+a 0.25 s dither crossfade driven by ONE start timestamp per cell (game time, `uLodF`): the outgoing level discards where the screen-space noise is below
+`a`, the incoming where it is at or above it - the same noise (the camera see-through's), so every pixel belongs to exactly one level and the pair never
+doubles up or leaves a hole. The shadow cannot flicker because the shadow caster is a separate layer-2 mesh built from the L1 geometry; the display
+levels have `castShadow=false` (`userData.noCast`, which the castShadow decision pass honours). Layout is untouched: L0 and L2 use local PRNGs and hashes,
+never `Math.random` (the island build is seeded; one extra draw would move every tree), so crownMarker, colliders and camBlobs read the same positions.
+Bark and palm meshes are per cell too. `?leaves=old` restores the old global buffers.
+
+### 4.54 — Far shadows (`?farshadow=0` turns it off)
+
+The near key shadow (124 u wide) is exactly as before. A SECOND shadow-casting DirectionalLight (intensity 0, `autoUpdate=false`) carries an island-wide ortho
+depth map (1024 on touch, 2048 otherwise) in the engine's own light slot, so every lit material already receives its map and matrix. Casters are cheap: each
+tree's far crown (the L2 cards), a five-sided trunk prism, a few strips per palm, and the big static rocks and buildings (2.6-90 u, 120k tris at most).
+`lights_fragment_begin` / `shadowmap_pars_fragment` are patched (`farPatchChunks`): outside the near box the key's direct term is multiplied by the far
+shadow, inside it by the near one, blended over a band of 15% of E at the box edge; 6 Vogel-disc PCF taps. The far light's own lighting term is skipped,
+and ambient is never touched. It is drawn K objects per frame (4 desktop, 2 touch) into a back buffer, swapped in with its matrix when finished, and
+made again only when the sun direction has moved more than 1 degree (Sanity's moon). `?noshadow` skips all of it.
+Note: `performance.now` is faked under the QA clock, so `I.far.stats.*Ms` read 0 there; `qa/farshadow.mjs` times the map from outside with the real clock.
+
+### 4.55 — `?farflora=1` (OFF by default; he picks the look)
+
+From the @memoryfloater reel. Meadow flowers and the fine grass used to SHRINK TO ZERO at 34-46 u. Now (flag on) past ~30 u a card is scaled up and fewer are
+drawn (`ffVert`: keep = 30/d, scale = sqrt(d/30); rank = hash of the instance's world origin, so it depends on where the instance stands and how far the camera
+is, never on time; each instance grows/shrinks over a keep-range of 0.2, so nothing flickers), and a second sparser tile (200 u square, drawn 2x bigger,
+same mesh and draw call, `aFF` per-instance flag) covers out to ~98 u. Every alpha card (flowers, grass, leaf cards and LOD crowns) takes the reel's
+`f = saturate((d-from)/(to-from)); mip bias f*2; cutoff lerp(cutoff, far, f)` (`ffFrag`, built from three's own chunks so it follows the engine).
+Colour bleed: MEASURED - map and alpha are separate files and the map is NOT bleed-free under alpha 0 (near-black texels: grass 56%, flowers 41%, leaf 29%,
+frond 15%; the grass edge texels average RGB 31,41,10 against 114,135,62 opaque), so `tools/bleed_cards.py` writes `*_bleed.jpg` (nearest-opaque colour via a
+distance transform, softened) beside the originals, which are untouched; the flag loads them, the default loads the originals.
+
+### Status at hand-off (2026-11-22) - read this before trusting 4.53-4.55
+Part 1 is verified (hub clip). Everything else booted with 0 console errors (hub, farflora=1, phone viewport, far map built in 66 slices) but the OLD|NEW
+stills/budgets for Parts 2-4 were NOT produced: the shared QA lock was held by other chains for hours. Not yet looked at: LOD0 fullness/size, far-shadow
+bias (`sh.bias -0.0006`, `normalBias .8` are guesses), the near/far seam, palm far proxies, the 1.5x mobile triangle rule, framebudget, console_load on all five
+islands, the regression suite. Scripts are ready: `qa/leaves.mjs`, `qa/farshadow.mjs`, `qa/farflora.mjs` (see qa/README).
 
