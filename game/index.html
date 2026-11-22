@@ -526,6 +526,10 @@ const FARSHQ = QS.get("farshadow") !== "0";
    with distance so a thin stem stays solid (ffFrag). The colour of the transparent texels is bled outward in a build step
    (tools/bleed_cards.py -> *_bleed.jpg), because the map and the alpha are separate files and the map is near-black where the alpha is 0. */
 const FFQ = QS.get("farflora") === "1";
+/* ?leafsize=old keeps the original leaf card. Each card carried ONE whole bush cluster (~80 leaves), so one leaf read ~0.4 m against her 1.7 m - about
+   4x a real leaf. The default card is the same art made small (tools/make_leafcluster.py: the cluster at 1/3, 12 copies, one rounded puff): leaves ~1/3
+   the size on a card of the same world size, same card count and draw cost. Its alpha is the shadow's too (TREE_TEX.leafA), so the shadow follows. */
+const LEAFSIZEQ = QS.get("leafsize") !== "old";
 const FF = {from:30, cross0:34, cross1:42, end0:88, end1:98, bias:2.0, cutFlower:.30, cutGrass:.28, cutLeaf:.30, leafFrom:40, leafTo:160, grassTo:130, flowerTo:120};
 /* distance-based alpha cutoff + mip bias (the reel's: f = saturate((d-from)/(to-from)); lod = mip + f*bias; draw if alpha >= lerp(cutoff, cutoffFar, f)) */
 function ffFrag(fs, cutFar, from, to){
@@ -1579,7 +1583,7 @@ const TREE_TEX = !TREESQ ? null : (() => {
   const L = new THREE.TextureLoader();
   const mk = (url, srgb, wrap) => { const t = L.load(url); t.wrapS = t.wrapT = wrap ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
     t.anisotropy = 4; if(srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
-  return {leaf: mk(`assets/trees/foliage_${FFQ ? "bleed" : "diff"}.jpg`, true, false), leafA: mk("assets/trees/foliage_alpha.jpg", false, false),
+  return {leaf: mk(LEAFSIZEQ ? "assets/trees/foliage_small_diff.jpg" : `assets/trees/foliage_${FFQ ? "bleed" : "diff"}.jpg`, true, false), leafA: mk(LEAFSIZEQ ? "assets/trees/foliage_small_alpha.jpg" : "assets/trees/foliage_alpha.jpg", false, false),
           bark: mk("assets/trees/bark_diff.jpg", true, true), barkN: mk("assets/trees/bark_nor.jpg", false, true),
           palm: mk("assets/trees/palm_diff.jpg", true, true), palmN: mk("assets/trees/palm_nor.jpg", false, true),
           frond: mk(`assets/trees/frond_${FFQ ? "bleed" : "diff"}.jpg`, true, false), frondA: mk("assets/trees/frond_alpha.jpg", false, false)};

@@ -331,7 +331,7 @@ NPCs, beach, grotto, stones, **and now places**.
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)
 `?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=`
-`?leafwind=old` (rigid crown sway, frozen leaf shadow) `?leaves=old` (single merged crowns) `?farshadow=0` (no island-wide far shadow) `?farflora=1` (OFF by default: far flowers/grass scale-up + thinning, distance alpha cutoff + mip bias)
+`?leafwind=old` (rigid crown sway, frozen leaf shadow) `?leaves=old` (single merged crowns) `?farshadow=0` (no island-wide far shadow) `?leafsize=old` (original giant-leaf card; the default is the small-leaf atlas) `?farflora=1` (OFF by default: far flowers/grass scale-up + thinning, distance alpha cutoff + mip bias)
 
 ## 2.8 Commit history this session (newest first)
 
@@ -2214,4 +2214,13 @@ Part 1 is verified (hub clip). Everything else booted with 0 console errors (hub
 stills/budgets for Parts 2-4 were NOT produced: the shared QA lock was held by other chains for hours. Not yet looked at: LOD0 fullness/size, far-shadow
 bias (`sh.bias -0.0006`, `normalBias .8` are guesses), the near/far seam, palm far proxies, the 1.5x mobile triangle rule, framebudget, console_load on all five
 islands, the regression suite. Scripts are ready: `qa/leaves.mjs`, `qa/farshadow.mjs`, `qa/farflora.mjs` (see qa/README).
+
+### 4.56 — Leaf SCALE: the card was a whole bush, so one leaf read 4x a real one (`?leafsize=old` restores)
+
+Client: "the leaves on the trees would have to be reworked to look more realistic instead of just large giant leaves." Each card (foliage_diff/alpha.jpg, 512 px) is ONE bush
+cluster of ~80 leaves, so at the hub a single leaf read ~0.4 m against Lala's 1.7 m. `tools/make_leafcluster.py` builds `assets/trees/foliage_small_{diff,alpha}.jpg` (1024 px) from
+the SAME art: the cluster is cut out with its own alpha, shrunk to 1/3, and 12 copies (random rotation, flips, hue/value jitter) are scattered into one rounded puff (opaque
+49% vs 50% for the original, so coverage matches), darker inside, lighter at the rim; colour is bled into alpha-0 texels as tools/bleed_cards.py does. Card size, card count, LOD
+counts and draw cost are unchanged; the shadow follows because it reads the same alpha (`TREE_TEX.leafA`). Bushes use the same card, so they changed with it. Palm fronds were
+checked and NOT changed: a frond card is one whole frond, and its leaflets already read at a plausible size. Proof: qa/leafsize.mjs (see qa/README).
 
