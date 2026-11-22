@@ -1,0 +1,31 @@
+[console] hub: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=54950ms rig=66397ms
+[console] green: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=58399ms rig=62075ms
+[console] gr: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=66021ms rig=73571ms
+[console] sanity: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=74520ms rig=90287ms
+[console] town: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=66819ms rig=75754ms
+     },
+     {
+      "name": "Nan",
+      "model": true
+     },
+     {
+      "name": "Ollie the postman",
+      "model": true
+     }
+    ],
+    "creatures": 28,
+    "overlays": []
+   },
+   "consoleErrors": [],
+   "consoleWarnings": [
+    "[.WebGL-0x287c001a6200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[.WebGL-0x287c001a6200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+   ],
+   "shaderMessages": [],
+   "failedRequests": [],
+   "httpErrors": [],
+   "requestCount": 266
+  }
+ ]
+}
+rc=0
