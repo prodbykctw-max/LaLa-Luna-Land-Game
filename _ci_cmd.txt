@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/sanityperf_load.mjs sanity --tag=old > qa/out/load_old.txt 2>&1
