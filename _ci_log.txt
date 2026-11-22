@@ -1,0 +1,31 @@
+[budget] hub: spawn 1407667 tris/368 calls | Luna's Keep 1400643 tris/346 calls | South Dock 1380112 tris/143 calls | top: inst:MeshStandardMaterial-merged:BufferGeometry=272616, MeshStandardMaterial:BufferGeometry=270030, skinned:MeshPhysicalMaterial:BufferGeometry=149752
+[budget] green: spawn 2168204 tris/985 calls | Horse Hill 2207476 tris/877 calls | The High Rock 2114498 tris/385 calls | The Ruins 2116722 tris/420 calls | top: MeshStandardMaterial:BufferGeometry=397077, inst:MeshStandardMaterial-merged:BufferGeometry=282819, MeshStandardMaterial-merged:BufferGeometry=258802
+[budget] gr: spawn 2075410 tris/523 calls | The Caldera 2061952 tris/352 calls | Bone Ledge 1946909 tris/238 calls | The Bone Yard 2057755 tris/352 calls | top: MeshStandardMaterial:BufferGeometry=361011, skinned:MeshPhysicalMaterial:BufferGeometry=333094, inst:MeshStandardMaterial-merged:BufferGeometry=276315
+[budget] sanity: spawn 2393497 tris/736 calls | Lighthouse Rock 2393497 tris/736 calls | The Sea Stack 2169658 tris/313 calls | The Shallows 2179427 tris/293 calls | top: MeshStandardMaterial:BufferGeometry=371843, skinned:MeshStandardMaterial:BufferGeometry=178980, skinned:MeshPhysicalMaterial:BufferGeometry=163234
+[budget] town: spawn 2563982 tris/1414 calls | The Square 2170873 tris/854 calls | The Point 2164291 tris/320 calls | The Beach 2280161 tris/861 calls | top: skinned:MeshStandardMaterial:BufferGeometry=747099, MeshStandardMaterial:BufferGeometry=472143, inst:MeshStandardMaterial-merged:BufferGeometry=248424
+     "key": "skinned:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 11715,
+     "meshes": 2
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 6528,
+     "meshes": 209
+    },
+    {
+     "key": "MeshStandardMaterial-merged:SphereGeometry",
+     "tris": 5460,
+     "meshes": 7
+    },
+    {
+     "key": "MeshStandardMaterial:ExtrudeGeometry",
+     "tris": 4604,
+     "meshes": 3
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ }
+}
+rc=0
