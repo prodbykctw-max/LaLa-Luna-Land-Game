@@ -1,0 +1,1 @@
+timeout 3300 node qa/scale.mjs > qa/out/new_scale.out 2> qa/out/new_scale.log; echo rc=$? >> qa/out/new_scale.log
