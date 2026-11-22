@@ -1,0 +1,1 @@
+node qa/sanityperf_play.mjs town --tag=new --frames=15 > qa/out/play_new_town.txt 2>&1
