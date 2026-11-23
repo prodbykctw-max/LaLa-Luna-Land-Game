@@ -1,0 +1,1 @@
+node qa/sanityperf_edge.mjs --tag=smoke --same=1 --islands=green --frames=14
