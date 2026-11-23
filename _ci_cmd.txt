@@ -1,0 +1,1 @@
+mkdir -p qa/out $BASE/qa/out; QA_ROOT=$BASE timeout 3300 node qa/console_load.mjs > $BASE/qa/out/console_load.out 2> $BASE/qa/out/console_load.log; echo "console_load rc=$?" >> qa/out/rc.txt ; mkdir -p qa/out/base; cp -r $BASE/qa/out/. qa/out/base/
