@@ -1,0 +1,1 @@
+node qa/sanityperf_ab.mjs --tag=nLB --islands=town,sanity --query="lalashadow=0&basicmerge=0"
