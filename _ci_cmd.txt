@@ -1,0 +1,1 @@
+node qa/overhead.mjs > qa/out/overhead.out 2> qa/out/overhead.log; r=$?; tail -25 qa/out/overhead.log; tail -25 qa/out/overhead.out; exit $r
