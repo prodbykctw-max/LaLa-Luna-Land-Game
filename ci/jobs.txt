@@ -1,0 +1,16 @@
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/syntax.mjs > qa/out/syntax.out 2> qa/out/syntax.log; echo "syntax rc=$?" >> qa/out/rc.txt ; timeout 3300 node qa/determinism.mjs > qa/out/determinism.out 2> qa/out/determinism.log; echo "determinism rc=$?" >> qa/out/rc.txt ; timeout 3300 node qa/codehealth.mjs > qa/out/codehealth.out 2> qa/out/codehealth.log; echo "codehealth rc=$?" >> qa/out/rc.txt ; timeout 3300 node qa/assets.mjs > qa/out/assets.out 2> qa/out/assets.log; echo "assets rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/console_load.mjs > qa/out/console_load.out 2> qa/out/console_load.log; echo "console_load rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/reach.mjs > qa/out/reach.out 2> qa/out/reach.log; echo "reach rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/camera.mjs > qa/out/camera.out 2> qa/out/camera.log; echo "camera rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/framebudget.mjs > qa/out/framebudget.out 2> qa/out/framebudget.log; echo "framebudget rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/mobile.mjs > qa/out/mobile.out 2> qa/out/mobile.log; echo "mobile rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/float.mjs > qa/out/float.out 2> qa/out/float.log; echo "float rc=$?" >> qa/out/rc.txt ; timeout 3300 node qa/overhead.mjs > qa/out/overhead.out 2> qa/out/overhead.log; echo "overhead rc=$?" >> qa/out/rc.txt ; timeout 3300 node qa/scale.mjs > qa/out/scale.out 2> qa/out/scale.log; echo "scale rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/vgeo.mjs > qa/out/vgeo.out 2> qa/out/vgeo.log; echo "vgeo rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/vcheck.mjs > qa/out/vcheck.out 2> qa/out/vcheck.log; echo "vcheck rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/vmat.mjs > qa/out/vmat.out 2> qa/out/vmat.log; echo "vmat rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/vaudit.mjs > qa/out/vaudit.out 2> qa/out/vaudit.log; echo "vaudit rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3500 node qa/traversal.mjs hub > qa/out/traversal_hub.out 2> qa/out/traversal_hub.log; echo "traversal hub rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3500 node qa/traversal.mjs green > qa/out/traversal_green.out 2> qa/out/traversal_green.log; echo "traversal green rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3500 node qa/traversal.mjs gr > qa/out/traversal_gr.out 2> qa/out/traversal_gr.log; echo "traversal gr rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3500 node qa/traversal.mjs sanity > qa/out/traversal_sanity.out 2> qa/out/traversal_sanity.log; echo "traversal sanity rc=$?" >> qa/out/rc.txt
+mkdir -p qa/out $BASE/qa/out; timeout 3500 node qa/traversal.mjs town > qa/out/traversal_town.out 2> qa/out/traversal_town.log; echo "traversal town rc=$?" >> qa/out/rc.txt
