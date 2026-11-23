@@ -2180,7 +2180,7 @@ killed it. That is C8 - good news and satisfying news both get the HIGHER eviden
 lower one - applied to a diagnosis instead of to a status.
 
 
-## Performance pass: sanity-perf branch (merged with main 2026-11-23a; not on main, no BUILD bump)
+## Performance pass (build `2026-11-23b`, 2026-11-23; branch sanity-perf)
 
 Why: the client said the whole game lagged and Sanity loaded slowly. Rule for every change here: the picture must not change. Everything below is SwiftShader on the QA farm: draw-call/triangle counts, pixel diffs and traversal/regression results transfer to a real GPU; absolute ms do not.
 
