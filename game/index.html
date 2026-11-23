@@ -1616,7 +1616,7 @@ function forestBuilder(P, night){
    an object (a uuid is a draw) runs under withFreeRandom, and variation comes from a private generator. */
 const TREE_MOBILE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
 const TWIND = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}, uGust:{value:1}, uSun:{value:new THREE.Vector3(0, 1, 0)},
-  uTK:{value:new THREE.Vector4(.55, 14, 1, 1.6)}, uCol:{value:new THREE.Vector3(1, 1, 1)}};      /* leaf look knobs: x light-through-leaf strength, y its sharpness (power), z base fill, w edge dither width; QA sweeps them through window.__TWIND */
+  uTK:{value:new THREE.Vector4(.40, 14, 1, 1.6)}, uCol:{value:new THREE.Vector3(1, 1, 1)}};      /* leaf look knobs: x light-through-leaf strength, y its sharpness (power), z base fill, w edge dither width; QA sweeps them through window.__TWIND */
 window.__TWIND = TWIND;
 /* the same sprig reads lighter and yellower under some islands' light than A's trees do (measured, A vs C mean foliage H/S/V in the follow shot): a per-island multiplier on the leaf colour */
 const TREE_ISL_TINT = {_: [1, 1, 1, .38], green: [.78, .86, .74, .10]};      /* r, g, b multiplier on the leaf colour, and the leaf's sky reflection (envMapIntensity) */
@@ -1702,7 +1702,7 @@ function bakeTreesC(night){
 function bakeGeoC(){
   const EZ = window.EZTREE;
   const LEAFTINT = [[.83, .70, .52], [.58, .57, .29], [.58, .66, .46]];       /* oak, ash, aspen: multiplied into the sprig (the sprigs are brighter and bluer than the island's greens) */
-  const ASHTINT = [.93, .725, .56], ASH_WIDE = +QS.get("ashw") || 1.38, ASH_LS = +QS.get("ashls") || 1.5;     /* ash sprig mean (.334,.476,.198) x this = the oak sprig mean (.375,.493,.213) x LEAFTINT[0] */
+  const ASHTINT = [.93, .725, .56], ASH_WIDE = +QS.get("ashw") || 1.12, ASH_LS = +QS.get("ashls") || 1.35;     /* ash sprig mean (.334,.476,.198) x this = the oak sprig mean (.375,.493,.213) x LEAFTINT[0] */
   const vr = mulberry32(seedOf("treeC-variation"));
   /* kinds: HT/HALFW is the box the baked tree is fitted to (world units per unit of tree scale sc). knots: ez height -> world height, piecewise linear,
      so the clear trunk can be shortened to A's while the crown keeps its shape. */
