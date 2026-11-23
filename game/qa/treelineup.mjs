@@ -22,7 +22,7 @@ const settle = async (H, n, render = false) => {
 const shot = async (H, f, clip) => { await H.page.screenshot({ path: f, type: 'jpeg', quality: 92, timeout: 600000, ...(clip ? { clip } : {}) }); };
 
 if (mode === 'stills') {
-  const H = await openCtl({ viewport: { width: 1280, height: 720 }, query: 'trees=' + opt });
+  const H = await openCtl({ viewport: { width: 1280, height: 720 }, query: 'trees=' + opt + (process.env.QX ? '&' + process.env.QX : '') });
   await clockCheck(H, opt);
   if (island !== 'hub') await gotoIsland(H, island);
   const p = await H.page.evaluate(PICK); if (!p) throw new Error('no clear tree on ' + island);
@@ -101,7 +101,7 @@ if (mode === 'stills') {
 
 if (mode === 'wind') {
   const PW = 540, PH = 720, dir = `${OUT}/tw_${opt}`; mkdirSync(dir, { recursive: true });
-  const H = await openCtl({ viewport: { width: PW, height: PH }, query: 'trees=' + opt });
+  const H = await openCtl({ viewport: { width: PW, height: PH }, query: 'trees=' + opt + (process.env.QX ? '&' + process.env.QX : '') });
   await clockCheck(H, opt);
   const p = await H.page.evaluate(PICK); const P = poses(p);
   console.error('[island]', await H.page.evaluate(() => window.__T.CUR.cfg.key));

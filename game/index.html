@@ -1693,6 +1693,7 @@ function bakeTreesC(night){
       leafDepth: treeDepthMat(T.atlas), barkDepth: treeDepthMat(null)};
     const M = TREE_C_MATS[nk];
     if(!TREE_C_GEO) TREE_C_GEO = bakeGeoC();
+    window.__TREEGEO = TREE_C_GEO;      /* QA */
     const dress = list => list.map(V => ({...V, parts: V.parts.map(p => ({...p, mat: p.leaf ? M.leaf : M.bark, depth: p.leaf ? M.leafDepth : M.barkDepth}))}));
     return {tree: dress(TREE_C_GEO.tree), willow: dress(TREE_C_GEO.willow), bush: dress(TREE_C_GEO.bush)};
   });
@@ -1701,7 +1702,7 @@ function bakeTreesC(night){
 function bakeGeoC(){
   const EZ = window.EZTREE;
   const LEAFTINT = [[.83, .70, .52], [.58, .57, .29], [.58, .66, .46]];       /* oak, ash, aspen: multiplied into the sprig (the sprigs are brighter and bluer than the island's greens) */
-  const ASHTINT = [.93, .725, .56], ASH_WIDE = 1.38;     /* ash sprig mean (.334,.476,.198) x this = the oak sprig mean (.375,.493,.213) x LEAFTINT[0] */
+  const ASHTINT = [.93, .725, .56], ASH_WIDE = +QS.get("ashw") || 1.38, ASH_LS = +QS.get("ashls") || 1.5;     /* ash sprig mean (.334,.476,.198) x this = the oak sprig mean (.375,.493,.213) x LEAFTINT[0] */
   const vr = mulberry32(seedOf("treeC-variation"));
   /* kinds: HT/HALFW is the box the baked tree is fitted to (world units per unit of tree scale sc). knots: ez height -> world height, piecewise linear,
      so the clear trunk can be shortened to A's while the crown keeps its shape. */
@@ -1714,7 +1715,7 @@ function bakeGeoC(){
   const specs = {
     tree: [["Oak Large", 1, 0, 1.3], ["Oak Large", 2, 0, 1.3], ["Oak Large", 3, 0, 1.3], ["Oak Medium", 1, 0, 1], ["Oak Medium", 7, 0, 1], ["Oak Medium", 9, 0, 1], ["Oak Small", 3, 0, .6],
            ["Oak Large", 4, 0, 1.3], ["Ash Large", 3, 1, 1.1], ["Ash Large", 5, 1, 1.1], ["Ash Medium", 5, 1, 1], ["Ash Medium", 8, 1, 1]].map(s => ({preset: s[0], seed: s[1], cell: s[2], w: s[3], radius: [2.7, 1.9, 1.5, 1.5], leafMul: 2.4, leafMax: 140,
-             leafSize: s[2] === 1 ? 1.5 : 1.35, wide: s[2] === 1 ? ASH_WIDE : 1, tint: s[2] === 1 ? ASHTINT : null})),      /* the ash sprig is a different green from the oak's: tinted to the oak's mean colour, and fitted wider (it came out 70% of A's crown) */
+             leafSize: s[2] === 1 ? ASH_LS : 1.35, wide: s[2] === 1 ? ASH_WIDE : 1, tint: s[2] === 1 ? ASHTINT : null})),      /* the ash sprig is a different green from the oak's: tinted to the oak's mean colour, and fitted wider (it came out 70% of A's crown) */
     willow: [1, 4, 6].map((sd, i) => ({preset: "Ash Large", seed: sd, cell: 1, w: 1, radius: [2.6, 1.3, .8, .5], leafMul: 2.2, leafMax: 130, leafSize: 1.35, tint: [.92, .74, .50], set: i === 2 ? {...WILLOW, "branch.force.strength": .2, "branch.length.0": 54, "branch.length.1": 20, "branch.length.2": 20, "branch.length.3": 18, "branch.angle.1": 45} : WILLOW})),
     bush: [["Bush 1", 1, 1], ["Bush 1", 3, 1], ["Bush 1", 5, 2], ["Bush 2", 2, 2]].map(s => ({preset: s[0], seed: s[1], cell: s[2], w: 1, radius: [1.5, 1.2, 1, 1], leafMul: 2.5, leafMax: 200, leafSize: 1.2}))
   };
