@@ -1,0 +1,1 @@
+mkdir -p qa/out $BASE/qa/out; timeout 3500 node qa/traversal.mjs gr > qa/out/traversal_gr.out 2> qa/out/traversal_gr.log; echo "traversal gr rc=$?" >> qa/out/rc.txt
