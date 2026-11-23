@@ -1,0 +1,1 @@
+node qa/sanityperf_edge.mjs --tag=smoke --islands=town --frames=40
