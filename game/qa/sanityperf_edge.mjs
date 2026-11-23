@@ -12,9 +12,9 @@ const STEPS = [17, 17, 16]; let _si = 0; const STEP = () => STEPS[_si++ % 3];
 const AB = process.env.AB_DIR || OUT; const dir = AB + '/edge/' + tag; mkdirSync(dir, { recursive: true });
 const report = { tag, query, islands: {} };
 for (const key of keys) { try {
-  const H = await open({ navigate: false, query, viewport: { width: W, height: Hh }, init: `(function(){ let s = 123456789; window.__seed = v => { s = v; }; Math.random = function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();` });
+  const H = await open({ navigate: false, query, viewport: { width: W, height: Hh }, init: `window.__fc = 0; (function fc(){ window.__fc++; requestAnimationFrame(fc); })(); (function(){ let s = 123456789; window.__seed = v => { s = v; }; Math.random = function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();` });
   const { page } = H;
-  await page.clock.install();
+  await page.clock.install({ time: 1700000000000 });   /* fixed wall clock: Date.now() drives the Sanity weather cycle and the hour of day */
   await page.goto(H.url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 600);
   const adv = async n => { for (let i = 0; i < n; i++) await page.clock.runFor(STEP()); };
@@ -25,8 +25,11 @@ for (const key of keys) { try {
     await page.evaluate(() => { const b = document.getElementById('bBegin'); if (b) b.click(); }); await adv(20);
     await page.evaluate(() => { const T = window.__T; if (T.CUR.cut) T.cutEnd(T.CUR); }); await adv(10);
   } else {
-    await page.evaluate(k => { window.__rd = 0; window.__prep.readyIsland(k).then(async () => { await window.__T.goIsland(window.__T.ISL[k], true); window.__rd = 1; }); }, key);
+    await page.evaluate(k => { window.__rd = 0; window.__prep.readyIsland(k).then(async () => { await window.__T.goIsland(window.__T.ISL[k], true); window.__rdFc = window.__fc; window.__rd = 1; }); }, key);
     await until(() => window.__rd === 1, 20000, 10);
+    /* The island's sim (NPC wander, the postman's ride) starts at goIsland, and `until` only looks every 10 frames, so a run started 0-9 frames later than another. Stand both on exactly 120 frames after goIsland. */
+    await until(() => window.__fc - window.__rdFc >= 120, 400, 1);
+    report.simFrames = (report.simFrames || {}); report.simFrames[key] = await page.evaluate(() => window.__fc - window.__rdFc);
   }
   await page.evaluate(() => { window.__T.CUR.W.active = true; const b = document.getElementById('bIntro'); if (b && b.offsetParent) b.click(); });
   await adv(60);

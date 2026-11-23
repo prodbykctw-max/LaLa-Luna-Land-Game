@@ -13,9 +13,9 @@ const STEPS = [17, 17, 16]; let _si = 0; const STEP = () => STEPS[_si++ % 3];   
 const AB = process.env.AB_DIR || OUT; const dir = AB + '/ab/' + tag; mkdirSync(dir, { recursive: true });
 const report = { video: VIDEO, tag, clockSteps: {}, errors: {}, shots: {} };
 for (const key of keys) { try {
-  const H = await open({ navigate: false, query: VIDEO ? ((query ? query + '&' : '') + 'dpr=0.5') : query, viewport: VIDEO ? { width: W, height: Hh } : { width: W >> 1, height: Hh >> 1 }, init: `(function(){ let s = 123456789; window.__seed = v => { s = v; }; Math.random = function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();` });
+  const H = await open({ navigate: false, query: VIDEO ? ((query ? query + '&' : '') + 'dpr=0.5') : query, viewport: VIDEO ? { width: W, height: Hh } : { width: W >> 1, height: Hh >> 1 }, init: `window.__fc = 0; (function fc(){ window.__fc++; requestAnimationFrame(fc); })(); (function(){ let s = 123456789; window.__seed = v => { s = v; }; Math.random = function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();` });
   const { page } = H;
-  await page.clock.install();
+  await page.clock.install({ time: 1700000000000 });   /* fixed wall clock: Date.now() drives the Sanity weather cycle and the hour of day */
   await page.goto(H.url, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 600);   /* page time, not node time: the page clock started at install() */
   const adv = async n => { for (let i = 0; i < n; i++) await page.clock.runFor(STEP()); };
@@ -29,8 +29,11 @@ for (const key of keys) { try {
     await page.evaluate(() => { const b = document.getElementById('bBegin'); if (b) b.click(); }); await adv(20);
     await page.evaluate(() => { const T = window.__T; if (T.CUR.cut) T.cutEnd(T.CUR); }); await adv(10);
   } else {
-    await page.evaluate(k => { window.__rd = 0; window.__prep.readyIsland(k).then(async () => { await window.__T.goIsland(window.__T.ISL[k], true); window.__rd = 1; }); }, key);
+    await page.evaluate(k => { window.__rd = 0; window.__prep.readyIsland(k).then(async () => { await window.__T.goIsland(window.__T.ISL[k], true); window.__rdFc = window.__fc; window.__rd = 1; }); }, key);
     await until(() => window.__rd === 1, 20000, 10);
+    /* The island's sim (NPC wander, the postman's ride) starts at goIsland, and `until` only looks every 10 frames, so a run started 0-9 frames later than another. Stand both on exactly 120 frames after goIsland. */
+    await until(() => window.__fc - window.__rdFc >= 120, 400, 1);
+    report.simFrames = (report.simFrames || {}); report.simFrames[key] = await page.evaluate(() => window.__fc - window.__rdFc);
   }
   await page.evaluate(v => { window.__video = v; window.__T.CUR.W.active = true; const b = document.getElementById('bIntro'); if (b && b.offsetParent) b.click(); }, VIDEO);   /* the island's title card ("Go ashore") covers the whole scene until it is dismissed */
   await adv(30);
@@ -41,6 +44,7 @@ for (const key of keys) { try {
   { const now = await page.evaluate(() => performance.now()); await page.clock.fastForward(Math.max(1, 400000 - now)); }
   await page.evaluate(() => { window.__T.setTime(100); window.__seed(987654321); });
   await adv(30);                                           /* settle */
+  report.seedState = report.seedState || {}; report.seedState[key] = await page.evaluate(() => { const I = window.__T.CUR, r = (I.npcs || []).filter(g => g.userData && g.userData.cfg).map(g => [g.userData.cfg.name || '', +g.position.x.toFixed(2), +g.position.z.toFixed(2), g.userData.state || '', +(g.userData.timer || 0).toFixed(2)]); return { fc: window.__fc, npcs: r.slice(0, 12) }; });   /* sim state at the start of the sequence: two builds that start here equal are comparable */
   const shots = []; const every = VIDEO ? 1 : 0;
   const shotFrames = new Set([19, 79, 95, 110, 139, ...Array.from({ length: 10 }, (_, i) => 145 + i * 6)]);
   if (VIDEO) await page.evaluate(() => { const c = window.__T.composer, r0 = c.render.bind(c); c.render = (...a) => { if (!window.__NORENDER) r0(...a); }; });   /* draw stride 2: the ticks between run logic only, same fake-time step */
