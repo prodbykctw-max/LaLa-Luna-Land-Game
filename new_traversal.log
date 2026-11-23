@@ -1,0 +1,15 @@
+[traversal] hub: traps=0 pockets=0 camHits=47008 stalls=0 buried=0 fps~59.7
+[traversal] green: traps=0 pockets=0 camHits=36204 stalls=0 buried=0 fps~60
+[traversal] gr: traps=0 pockets=0 camHits=40344 stalls=0 buried=0 fps~60
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.waitForTimeout: Target page, context or browser has been closed
+    at open (/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/_harness.mjs:82:18)
+    at async file:///home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/traversal.mjs:13:13 {
+  log: []
+}
+
+Node.js v22.23.5
+rc=124
