@@ -13,7 +13,7 @@ const fingerprint = async (island, query) => {
   const snap = () => H.page.evaluate(() => {
     const I = window.__T.CUR, m = [];
     I.scene.traverse(o => {
-      if (!o.isMesh || o.userData.dyn) return;
+      if (!o.isMesh || o.userData.dyn || o.userData.shadowProxy) return;   /* shadowProxy: Lala's low-poly shadow copy attaches when assets/lala-shadow.idx arrives, a timing, not a layout */
       const p = o.getWorldPosition(new THREE.Vector3());
       if (!isFinite(p.x)) return;
       m.push([o.uuid, o.geometry.type, p.x, p.y, p.z]);
