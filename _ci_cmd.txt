@@ -1,0 +1,1 @@
+mkdir -p qa/out $BASE/qa/out; QA_ROOT=$BASE timeout 3300 node qa/vaudit.mjs > $BASE/qa/out/vaudit.out 2> $BASE/qa/out/vaudit.log; echo "vaudit rc=$?" >> qa/out/rc.txt ; mkdir -p qa/out/base; cp -r $BASE/qa/out/. qa/out/base/
