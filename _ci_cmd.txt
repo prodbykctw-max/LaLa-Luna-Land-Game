@@ -1,0 +1,1 @@
+mkdir -p qa/out $BASE/qa/out; QA_ROOT=$BASE timeout 3300 node qa/camera.mjs > $BASE/qa/out/camera.out 2> $BASE/qa/out/camera.log; echo "camera rc=$?" >> qa/out/rc.txt ; mkdir -p qa/out/base; cp -r $BASE/qa/out/. qa/out/base/

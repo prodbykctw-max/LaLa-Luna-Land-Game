@@ -1,0 +1,3852 @@
+{
+ "hub": {
+  "island": "hub",
+  "stuckKeyAfterBlur": {
+   "movedIn1s": 0,
+   "keysStillDown": false
+  },
+  "colliders": 519,
+  "camOnly": 0,
+  "segments": [
+   {
+    "label": "W",
+    "key": "KeyW",
+    "frames": 178,
+    "moved": 33.19,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 11.6,
+    "distMax": 11.84,
+    "distEnd": 11.69,
+    "camHeightEnd": 5.98,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      269.61,
+      180,
+      11.8
+     ],
+     [
+      0,
+      268.55,
+      180,
+      11.8
+     ],
+     [
+      0,
+      266.42,
+      180,
+      11.6
+     ],
+     [
+      0,
+      263.92,
+      180,
+      11.7
+     ],
+     [
+      0,
+      260.63,
+      180,
+      11.7
+     ],
+     [
+      0,
+      257.7,
+      180,
+      11.8
+     ],
+     [
+      0,
+      254.65,
+      180,
+      11.8
+     ],
+     [
+      0,
+      251.58,
+      180,
+      11.8
+     ],
+     [
+      0,
+      248.35,
+      180,
+      11.8
+     ],
+     [
+      0,
+      245.35,
+      180,
+      11.8
+     ],
+     [
+      0,
+      242.3,
+      180,
+      11.8
+     ],
+     [
+      0,
+      239.21,
+      180,
+      11.8
+     ]
+    ]
+   },
+   {
+    "label": "A",
+    "key": "KeyA",
+    "frames": 173,
+    "moved": 33.38,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -175.8,
+    "yawLagEndDeg": 4.2,
+    "distMin": 11.01,
+    "distMax": 11.72,
+    "distEnd": 11.02,
+    "camHeightEnd": 5.99,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.02,
+      236.16,
+      180,
+      11.7
+     ],
+     [
+      -1.09,
+      234.1,
+      180,
+      11.4
+     ],
+     [
+      -3.23,
+      233.09,
+      180,
+      11.2
+     ],
+     [
+      -5.88,
+      232.59,
+      180,
+      11.1
+     ],
+     [
+      -8.9,
+      232.35,
+      180,
+      11.1
+     ],
+     [
+      -12.03,
+      232.23,
+      180,
+      11
+     ],
+     [
+      -15.49,
+      232.17,
+      180,
+      11
+     ],
+     [
+      -18.56,
+      232.14,
+      180,
+      11
+     ],
+     [
+      -22.27,
+      232.13,
+      180,
+      11
+     ],
+     [
+      -25.36,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -28.46,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -31.56,
+      232.12,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "D",
+    "key": "KeyD",
+    "frames": 179,
+    "moved": 28.81,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 175.7,
+    "yawLagEndDeg": -4.3,
+    "distMin": 10.99,
+    "distMax": 11.02,
+    "distEnd": 11.02,
+    "camHeightEnd": 6.01,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -33.22,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -34.34,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -33.21,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -31.16,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -28.56,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -25.7,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -22.71,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -19.63,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -16.57,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -13.28,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -10.23,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -7.13,
+      232.12,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "idle",
+    "key": null,
+    "frames": 178,
+    "moved": 0,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 11,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ],
+     [
+      -4.41,
+      232.12,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "A-from-rest",
+    "key": "KeyA",
+    "frames": 178,
+    "moved": 33.01,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -175.7,
+    "yawLagEndDeg": 4.3,
+    "distMin": 5.21,
+    "distMax": 11.01,
+    "distEnd": 10.97,
+    "camHeightEnd": 5.97,
+    "pops": [
+     {
+      "frame": 63,
+      "from": 11.01,
+      "to": 8.04,
+      "at": [
+       -9.53,
+       269.62
+      ]
+     }
+    ],
+    "popCount": 1,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.02,
+      269.62,
+      180,
+      11
+     ],
+     [
+      -1.15,
+      269.62,
+      180,
+      11
+     ],
+     [
+      -3.43,
+      269.62,
+      180,
+      11
+     ],
+     [
+      -6,
+      269.62,
+      180,
+      11
+     ],
+     [
+      -8.87,
+      269.62,
+      180,
+      11
+     ],
+     [
+      -11.85,
+      269.62,
+      180,
+      5.8
+     ],
+     [
+      -15.05,
+      269.62,
+      180,
+      5.2
+     ],
+     [
+      -18.05,
+      269.62,
+      180,
+      6.3
+     ],
+     [
+      -21.05,
+      269.62,
+      180,
+      8.6
+     ],
+     [
+      -24.15,
+      269.62,
+      180,
+      10
+     ],
+     [
+      -27.45,
+      269.62,
+      180,
+      10.7
+     ],
+     [
+      -30.55,
+      269.62,
+      180,
+      10.9
+     ]
+    ]
+   },
+   {
+    "label": "S-from-rest",
+    "key": "KeyS",
+    "frames": 172,
+    "moved": 27.15,
+    "headingDeg": 0,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.16,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.2,
+      269.63,
+      180,
+      10.9
+     ],
+     [
+      -2.27,
+      270.65,
+      180,
+      10.6
+     ],
+     [
+      -3.34,
+      272.89,
+      180,
+      10.4
+     ],
+     [
+      -3.83,
+      275.5,
+      180,
+      10.3
+     ],
+     [
+      -4.07,
+      278.36,
+      180,
+      10.2
+     ],
+     [
+      -4.19,
+      281.39,
+      180,
+      10.2
+     ],
+     [
+      -4.25,
+      284.7,
+      180,
+      10.2
+     ],
+     [
+      -4.28,
+      288.08,
+      180,
+      10.3
+     ],
+     [
+      -4.3,
+      291.7,
+      180,
+      10.2
+     ],
+     [
+      -4.3,
+      294.78,
+      180,
+      10.2
+     ],
+     [
+      -4.3,
+      296.46,
+      180,
+      10.9
+     ],
+     [
+      -4.3,
+      296.47,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "W-through-colliders",
+    "key": "KeyW",
+    "frames": 168,
+    "moved": 30.3,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -180,
+    "yawLagEndDeg": 0,
+    "distMin": 3.96,
+    "distMax": 11.62,
+    "distEnd": 4.17,
+    "camHeightEnd": 3.62,
+    "pops": [
+     {
+      "frame": 34,
+      "from": 11.62,
+      "to": 4.52,
+      "at": [
+       133.45,
+       -139.59
+      ]
+     }
+    ],
+    "popCount": 1,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      133.45,
+      -135.4,
+      180,
+      11
+     ],
+     [
+      133.45,
+      -136.73,
+      180,
+      11.4
+     ],
+     [
+      133.45,
+      -138.91,
+      180,
+      11.6
+     ],
+     [
+      133.45,
+      -141.58,
+      180,
+      4.1
+     ],
+     [
+      133.88,
+      -144.15,
+      180,
+      4
+     ],
+     [
+      134.23,
+      -146.98,
+      180,
+      4.2
+     ],
+     [
+      134.27,
+      -150.09,
+      180,
+      4.2
+     ],
+     [
+      134.27,
+      -153.16,
+      180,
+      4.2
+     ],
+     [
+      134.27,
+      -156.25,
+      180,
+      4.2
+     ],
+     [
+      133.92,
+      -159.13,
+      180,
+      4
+     ],
+     [
+      133.88,
+      -162.19,
+      180,
+      4.2
+     ],
+     [
+      133.88,
+      -165.29,
+      180,
+      4.2
+     ]
+    ],
+    "cluster": {
+     "at": [
+      133.5,
+      -149.4
+     ],
+     "r": 0.38599575526779517,
+     "neighbours": 26
+    }
+   },
+   {
+    "label": "arrive-idle",
+    "key": null,
+    "frames": 180,
+    "moved": 0,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ],
+     [
+      0,
+      269.62,
+      180,
+      11
+     ]
+    ],
+    "distStart": 11
+   }
+  ]
+ },
+ "green": {
+  "island": "green",
+  "stuckKeyAfterBlur": {
+   "movedIn1s": 0,
+   "keysStillDown": false
+  },
+  "colliders": 834,
+  "camOnly": 0,
+  "segments": [
+   {
+    "label": "W",
+    "key": "KeyW",
+    "frames": 178,
+    "moved": 33.11,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 11.01,
+    "distMax": 11.81,
+    "distEnd": 11.81,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      729.8,
+      180,
+      11
+     ],
+     [
+      0,
+      728.65,
+      180,
+      11.3
+     ],
+     [
+      0,
+      726.53,
+      180,
+      11.6
+     ],
+     [
+      0,
+      723.91,
+      180,
+      11.7
+     ],
+     [
+      0,
+      721.05,
+      180,
+      11.8
+     ],
+     [
+      0,
+      717.7,
+      180,
+      11.7
+     ],
+     [
+      0,
+      714.8,
+      180,
+      11.8
+     ],
+     [
+      0,
+      711.75,
+      180,
+      11.8
+     ],
+     [
+      0,
+      708.67,
+      180,
+      11.8
+     ],
+     [
+      0,
+      705.57,
+      180,
+      11.8
+     ],
+     [
+      0,
+      702.27,
+      180,
+      11.8
+     ],
+     [
+      0,
+      699.17,
+      180,
+      11.8
+     ]
+    ]
+   },
+   {
+    "label": "A",
+    "key": "KeyA",
+    "frames": 179,
+    "moved": 33.34,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -175.7,
+    "yawLagEndDeg": 4.3,
+    "distMin": 11.01,
+    "distMax": 11.76,
+    "distEnd": 11.02,
+    "camHeightEnd": 5.98,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.01,
+      696.5,
+      180,
+      11.8
+     ],
+     [
+      -1.03,
+      694.42,
+      180,
+      11.5
+     ],
+     [
+      -3.11,
+      693.4,
+      180,
+      11.2
+     ],
+     [
+      -5.7,
+      692.89,
+      180,
+      11.1
+     ],
+     [
+      -8.6,
+      692.63,
+      180,
+      11.1
+     ],
+     [
+      -11.52,
+      692.51,
+      180,
+      11
+     ],
+     [
+      -14.77,
+      692.45,
+      180,
+      11
+     ],
+     [
+      -17.84,
+      692.42,
+      180,
+      11
+     ],
+     [
+      -20.92,
+      692.4,
+      180,
+      11
+     ],
+     [
+      -24.01,
+      692.4,
+      180,
+      11
+     ],
+     [
+      -27.42,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -30.5,
+      692.39,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "D",
+    "key": "KeyD",
+    "frames": 178,
+    "moved": 28.98,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 175.7,
+    "yawLagEndDeg": -4.3,
+    "distMin": 10.99,
+    "distMax": 11.02,
+    "distEnd": 11.02,
+    "camHeightEnd": 6.03,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 4,
+    "settleMs": 67,
+    "path": [
+     [
+      -33.29,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -34.34,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -33.3,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -31.05,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -28.38,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -25.5,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -22.59,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -19.35,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -16.27,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -13.19,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -10.09,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -6.73,
+      692.39,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "idle",
+    "key": null,
+    "frames": 178,
+    "moved": 0,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 11,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ],
+     [
+      -4.31,
+      692.39,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "A-from-rest",
+    "key": "KeyA",
+    "frames": 180,
+    "moved": 32.88,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -175.7,
+    "yawLagEndDeg": 4.3,
+    "distMin": 10.99,
+    "distMax": 11.02,
+    "distEnd": 11.02,
+    "camHeightEnd": 5.98,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.01,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -1.04,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -3.11,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -5.76,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -8.54,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -11.52,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -14.56,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -17.63,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -20.74,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -23.85,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -26.9,
+      729.81,
+      180,
+      11
+     ],
+     [
+      -30,
+      729.81,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "S-from-rest",
+    "key": "KeyS",
+    "frames": 168,
+    "moved": 33.25,
+    "headingDeg": 0,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.16,
+    "distMax": 10.97,
+    "distEnd": 10.18,
+    "camHeightEnd": 6.18,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.2,
+      729.82,
+      180,
+      11
+     ],
+     [
+      -2.42,
+      731.1,
+      180,
+      10.6
+     ],
+     [
+      -3.35,
+      733.27,
+      180,
+      10.4
+     ],
+     [
+      -3.81,
+      735.93,
+      180,
+      10.3
+     ],
+     [
+      -4.05,
+      738.88,
+      180,
+      10.2
+     ],
+     [
+      -4.16,
+      742.23,
+      180,
+      10.2
+     ],
+     [
+      -4.22,
+      745.33,
+      180,
+      10.2
+     ],
+     [
+      -4.24,
+      749.3,
+      180,
+      10.2
+     ],
+     [
+      -4.26,
+      752.97,
+      180,
+      10.2
+     ],
+     [
+      -4.26,
+      756.2,
+      180,
+      10.2
+     ],
+     [
+      -4.26,
+      759.3,
+      180,
+      10.2
+     ],
+     [
+      -4.26,
+      762.37,
+      180,
+      10.2
+     ]
+    ]
+   },
+   {
+    "label": "W-through-colliders",
+    "key": "KeyW",
+    "frames": 175,
+    "moved": 28.66,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -180,
+    "yawLagEndDeg": 0,
+    "distMin": 3.89,
+    "distMax": 11.75,
+    "distEnd": 4.16,
+    "camHeightEnd": 3.63,
+    "pops": [
+     {
+      "frame": 71,
+      "from": 11.75,
+      "to": 4.63,
+      "at": [
+       170.86,
+       -665.75
+      ]
+     }
+    ],
+    "popCount": 1,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      170.86,
+      -657.63,
+      180,
+      11
+     ],
+     [
+      170.86,
+      -657.22,
+      180,
+      11.1
+     ],
+     [
+      170.86,
+      -658.66,
+      180,
+      11.4
+     ],
+     [
+      170.86,
+      -660.94,
+      180,
+      11.6
+     ],
+     [
+      170.86,
+      -663.69,
+      180,
+      11.7
+     ],
+     [
+      170.9,
+      -666.8,
+      180,
+      3.9
+     ],
+     [
+      171.34,
+      -669.41,
+      180,
+      4.2
+     ],
+     [
+      171.84,
+      -672.08,
+      180,
+      4
+     ],
+     [
+      172.03,
+      -674.88,
+      180,
+      4
+     ],
+     [
+      172.29,
+      -677.84,
+      180,
+      4.1
+     ],
+     [
+      172.23,
+      -681.31,
+      180,
+      4.1
+     ],
+     [
+      172.23,
+      -684.4,
+      180,
+      4.2
+     ]
+    ],
+    "cluster": {
+     "at": [
+      170.9,
+      -672
+     ],
+     "r": 0.47872095177765,
+     "neighbours": 30
+    }
+   },
+   {
+    "label": "arrive-idle",
+    "key": null,
+    "frames": 171,
+    "moved": 0,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ],
+     [
+      0,
+      729.81,
+      180,
+      11
+     ]
+    ],
+    "distStart": 11
+   }
+  ]
+ },
+ "gr": {
+  "island": "gr",
+  "stuckKeyAfterBlur": {
+   "movedIn1s": 0,
+   "keysStillDown": false
+  },
+  "colliders": 584,
+  "camOnly": 0,
+  "segments": [
+   {
+    "label": "W",
+    "key": "KeyW",
+    "frames": 178,
+    "moved": 32.36,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 11,
+    "distMax": 11.81,
+    "distEnd": 11.71,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      249.41,
+      180,
+      11
+     ],
+     [
+      0,
+      248.46,
+      180,
+      11.3
+     ],
+     [
+      0,
+      246.4,
+      180,
+      11.6
+     ],
+     [
+      0,
+      243.85,
+      180,
+      11.7
+     ],
+     [
+      0,
+      241.01,
+      180,
+      11.7
+     ],
+     [
+      0,
+      237.84,
+      180,
+      11.8
+     ],
+     [
+      0,
+      234.8,
+      180,
+      11.8
+     ],
+     [
+      0,
+      231.73,
+      180,
+      11.8
+     ],
+     [
+      0,
+      228.59,
+      180,
+      11.8
+     ],
+     [
+      0,
+      225.29,
+      180,
+      11.8
+     ],
+     [
+      0,
+      222.4,
+      180,
+      11.8
+     ],
+     [
+      0,
+      219.44,
+      180,
+      11.8
+     ]
+    ]
+   },
+   {
+    "label": "A",
+    "key": "KeyA",
+    "frames": 174,
+    "moved": 33.33,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -175.7,
+    "yawLagEndDeg": 4.3,
+    "distMin": 11.01,
+    "distMax": 11.72,
+    "distEnd": 11.02,
+    "camHeightEnd": 5.81,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.01,
+      216.86,
+      180,
+      11.7
+     ],
+     [
+      -1.47,
+      214.5,
+      180,
+      11.3
+     ],
+     [
+      -3.78,
+      213.62,
+      180,
+      11.2
+     ],
+     [
+      -6.63,
+      213.18,
+      180,
+      11.1
+     ],
+     [
+      -9.52,
+      212.98,
+      180,
+      11.1
+     ],
+     [
+      -12.73,
+      212.88,
+      180,
+      11
+     ],
+     [
+      -15.87,
+      212.83,
+      180,
+      11
+     ],
+     [
+      -18.85,
+      212.81,
+      180,
+      11
+     ],
+     [
+      -21.94,
+      212.8,
+      180,
+      11
+     ],
+     [
+      -25.3,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -28.34,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -31.44,
+      212.79,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "D",
+    "key": "KeyD",
+    "frames": 173,
+    "moved": 28.89,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 175.9,
+    "yawLagEndDeg": -4.1,
+    "distMin": 10.99,
+    "distMax": 11.02,
+    "distEnd": 11.01,
+    "camHeightEnd": 6.06,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 4,
+    "settleMs": 67,
+    "path": [
+     [
+      -33.28,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -34.32,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -33.16,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -30.97,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -28.41,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -25.54,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -22.01,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -18.96,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -15.89,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -12.8,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -9.2,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -6,
+      212.79,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "idle",
+    "key": null,
+    "frames": 157,
+    "moved": 0,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 11,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ],
+     [
+      -4.39,
+      212.79,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "A-from-rest",
+    "key": "KeyA",
+    "frames": 176,
+    "moved": 32.98,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -175.7,
+    "yawLagEndDeg": 4.3,
+    "distMin": 9.12,
+    "distMax": 11.02,
+    "distEnd": 10.99,
+    "camHeightEnd": 5.86,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.01,
+      249.42,
+      180,
+      11
+     ],
+     [
+      -1.17,
+      249.42,
+      180,
+      11
+     ],
+     [
+      -3.34,
+      249.42,
+      180,
+      11
+     ],
+     [
+      -5.97,
+      249.42,
+      180,
+      11
+     ],
+     [
+      -9.23,
+      249.42,
+      180,
+      11
+     ],
+     [
+      -12.22,
+      249.42,
+      180,
+      11
+     ],
+     [
+      -15.27,
+      249.42,
+      180,
+      9.8
+     ],
+     [
+      -18.34,
+      249.42,
+      180,
+      9.2
+     ],
+     [
+      -21.71,
+      249.42,
+      180,
+      10.1
+     ],
+     [
+      -24.78,
+      249.42,
+      180,
+      10.6
+     ],
+     [
+      -27.82,
+      249.42,
+      180,
+      10.9
+     ],
+     [
+      -30.92,
+      249.42,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "S-from-rest",
+    "key": "KeyS",
+    "frames": 156,
+    "moved": 33.13,
+    "headingDeg": 0,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.18,
+    "distMax": 10.92,
+    "distEnd": 10.25,
+    "camHeightEnd": 6.17,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.35,
+      249.45,
+      180,
+      11
+     ],
+     [
+      -2.51,
+      250.89,
+      180,
+      10.6
+     ],
+     [
+      -3.37,
+      253.07,
+      180,
+      10.4
+     ],
+     [
+      -3.81,
+      255.69,
+      180,
+      10.3
+     ],
+     [
+      -4.03,
+      258.58,
+      180,
+      10.2
+     ],
+     [
+      -4.14,
+      261.97,
+      180,
+      10.2
+     ],
+     [
+      -4.19,
+      265.25,
+      180,
+      10.2
+     ],
+     [
+      -4.22,
+      268.86,
+      180,
+      10.2
+     ],
+     [
+      -4.23,
+      272.59,
+      180,
+      10.2
+     ],
+     [
+      -4.24,
+      276.99,
+      180,
+      10.2
+     ],
+     [
+      -4.24,
+      281.23,
+      180,
+      10.3
+     ]
+    ]
+   },
+   {
+    "label": "arrive-idle",
+    "key": null,
+    "frames": 164,
+    "moved": 0,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ],
+     [
+      0,
+      249.42,
+      180,
+      11
+     ]
+    ],
+    "distStart": 11
+   }
+  ]
+ },
+ "sanity": {
+  "island": "sanity",
+  "stuckKeyAfterBlur": {
+   "movedIn1s": 0,
+   "keysStillDown": false
+  },
+  "colliders": 496,
+  "camOnly": 1,
+  "segments": [
+   {
+    "label": "W",
+    "key": "KeyW",
+    "frames": 170,
+    "moved": 32.99,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 11.01,
+    "distMax": 11.81,
+    "distEnd": 11.79,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      432.36,
+      180,
+      11
+     ],
+     [
+      0,
+      431.32,
+      180,
+      11.3
+     ],
+     [
+      0,
+      429.29,
+      180,
+      11.6
+     ],
+     [
+      0,
+      426.7,
+      180,
+      11.7
+     ],
+     [
+      0,
+      423.45,
+      180,
+      11.6
+     ],
+     [
+      0,
+      420.49,
+      180,
+      11.8
+     ],
+     [
+      0,
+      417.16,
+      180,
+      11.8
+     ],
+     [
+      0,
+      413.96,
+      180,
+      11.8
+     ],
+     [
+      0,
+      410.02,
+      180,
+      11.6
+     ],
+     [
+      0,
+      406.86,
+      180,
+      11.8
+     ],
+     [
+      0,
+      403.35,
+      180,
+      11.8
+     ],
+     [
+      0,
+      400.25,
+      180,
+      11.8
+     ]
+    ]
+   },
+   {
+    "label": "A",
+    "key": "KeyA",
+    "frames": 166,
+    "moved": 33.26,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -175.8,
+    "yawLagEndDeg": 4.2,
+    "distMin": 11.01,
+    "distMax": 11.76,
+    "distEnd": 11.02,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.01,
+      399.14,
+      180,
+      11.8
+     ],
+     [
+      -1.43,
+      396.86,
+      180,
+      11.4
+     ],
+     [
+      -3.83,
+      395.94,
+      180,
+      11.2
+     ],
+     [
+      -6.68,
+      395.51,
+      180,
+      11.1
+     ],
+     [
+      -9.56,
+      395.31,
+      180,
+      11.1
+     ],
+     [
+      -12.93,
+      395.21,
+      180,
+      11
+     ],
+     [
+      -15.92,
+      395.16,
+      180,
+      11
+     ],
+     [
+      -19.21,
+      395.14,
+      180,
+      11
+     ],
+     [
+      -22.5,
+      395.13,
+      180,
+      11
+     ],
+     [
+      -26.01,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -29.7,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -33.03,
+      395.12,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "D",
+    "key": "KeyD",
+    "frames": 177,
+    "moved": 29.08,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 175.7,
+    "yawLagEndDeg": -4.3,
+    "distMin": 10.99,
+    "distMax": 11.02,
+    "distEnd": 11.02,
+    "camHeightEnd": 6.02,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 4,
+    "settleMs": 59,
+    "path": [
+     [
+      -33.28,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -34.26,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -32.96,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -30.78,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -28.14,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -25.26,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -21.98,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -18.9,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -15.95,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -12.86,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -9.77,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -6.47,
+      395.12,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "idle",
+    "key": null,
+    "frames": 176,
+    "moved": 0,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      395.12,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "A-from-rest",
+    "key": "KeyA",
+    "frames": 174,
+    "moved": 33.07,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -175.7,
+    "yawLagEndDeg": 4.3,
+    "distMin": 10.99,
+    "distMax": 11.02,
+    "distEnd": 11.02,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.01,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -1.03,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -3.11,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -5.7,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -8.92,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -11.97,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -15.3,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -18.35,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -22.15,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -25.34,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -28.33,
+      432.37,
+      180,
+      11
+     ],
+     [
+      -31.43,
+      432.37,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "S-from-rest",
+    "key": "KeyS",
+    "frames": 164,
+    "moved": 28.28,
+    "headingDeg": 0,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.18,
+    "distMax": 10.98,
+    "distEnd": 10.98,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.2,
+      432.38,
+      180,
+      11
+     ],
+     [
+      -2.34,
+      433.55,
+      180,
+      10.6
+     ],
+     [
+      -3.32,
+      435.67,
+      180,
+      10.4
+     ],
+     [
+      -3.85,
+      438.71,
+      180,
+      10.3
+     ],
+     [
+      -4.07,
+      441.74,
+      180,
+      10.2
+     ],
+     [
+      -4.18,
+      445.12,
+      180,
+      10.2
+     ],
+     [
+      -4.23,
+      448.64,
+      180,
+      10.2
+     ],
+     [
+      -4.25,
+      452.14,
+      180,
+      10.2
+     ],
+     [
+      -4.26,
+      456.02,
+      180,
+      10.4
+     ],
+     [
+      -4.27,
+      459.44,
+      180,
+      10.2
+     ],
+     [
+      -4.27,
+      460.37,
+      180,
+      10.9
+     ]
+    ]
+   },
+   {
+    "label": "W-through-colliders",
+    "key": "KeyW",
+    "frames": 173,
+    "moved": 27.26,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 3.54,
+    "distMax": 11.67,
+    "distEnd": 11.61,
+    "camHeightEnd": 6.04,
+    "pops": [
+     {
+      "frame": 6,
+      "from": 11.11,
+      "to": 4.02,
+      "at": [
+       170.07,
+       -201.03
+      ]
+     }
+    ],
+    "popCount": 1,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      170.07,
+      -200.74,
+      180,
+      11
+     ],
+     [
+      170.07,
+      -201.84,
+      180,
+      3.7
+     ],
+     [
+      170.07,
+      -204.19,
+      180,
+      3.9
+     ],
+     [
+      170.23,
+      -205.65,
+      180,
+      3.7
+     ],
+     [
+      171.37,
+      -206.31,
+      180,
+      4.4
+     ],
+     [
+      172.37,
+      -208.64,
+      180,
+      5.8
+     ],
+     [
+      172.81,
+      -211.92,
+      180,
+      8.7
+     ],
+     [
+      173.31,
+      -214.79,
+      180,
+      10.5
+     ],
+     [
+      173.31,
+      -218,
+      180,
+      11.3
+     ],
+     [
+      173.67,
+      -220.81,
+      180,
+      11.6
+     ],
+     [
+      173.67,
+      -224.1,
+      180,
+      11.7
+     ],
+     [
+      173.67,
+      -226.66,
+      180,
+      11.6
+     ]
+    ],
+    "cluster": {
+     "at": [
+      170.1,
+      -214.7
+     ],
+     "r": 2.743611373721743,
+     "neighbours": 23
+    }
+   },
+   {
+    "label": "arrive-idle",
+    "key": null,
+    "frames": 166,
+    "moved": 0,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ],
+     [
+      0,
+      432.37,
+      180,
+      11
+     ]
+    ],
+    "distStart": 11
+   }
+  ]
+ },
+ "town": {
+  "island": "town",
+  "stuckKeyAfterBlur": {
+   "movedIn1s": 0,
+   "keysStillDown": false
+  },
+  "colliders": 726,
+  "camOnly": 0,
+  "segments": [
+   {
+    "label": "W",
+    "key": "KeyW",
+    "frames": 174,
+    "moved": 33.38,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 11.02,
+    "distMax": 11.81,
+    "distEnd": 11.6,
+    "camHeightEnd": 6.01,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      166.64,
+      180,
+      11
+     ],
+     [
+      0,
+      165.48,
+      180,
+      11.3
+     ],
+     [
+      0,
+      163.15,
+      180,
+      11.6
+     ],
+     [
+      0,
+      160.44,
+      180,
+      11.7
+     ],
+     [
+      0,
+      157.12,
+      180,
+      11.7
+     ],
+     [
+      0,
+      154.2,
+      180,
+      11.8
+     ],
+     [
+      0,
+      151.15,
+      180,
+      11.8
+     ],
+     [
+      0,
+      148.08,
+      180,
+      11.8
+     ],
+     [
+      0,
+      144.78,
+      180,
+      11.8
+     ],
+     [
+      0,
+      141.55,
+      180,
+      11.8
+     ],
+     [
+      0,
+      138.21,
+      180,
+      11.8
+     ],
+     [
+      0,
+      135.29,
+      180,
+      11.8
+     ]
+    ]
+   },
+   {
+    "label": "A",
+    "key": "KeyA",
+    "frames": 175,
+    "moved": 32.72,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -173,
+    "yawLagEndDeg": 7,
+    "distMin": 4.04,
+    "distMax": 11.65,
+    "distEnd": 4.04,
+    "camHeightEnd": 3.79,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.02,
+      132.96,
+      180,
+      11.6
+     ],
+     [
+      -1.13,
+      130.93,
+      180,
+      11.4
+     ],
+     [
+      -3.15,
+      129.96,
+      180,
+      11.2
+     ],
+     [
+      -5.75,
+      129.46,
+      180,
+      11.1
+     ],
+     [
+      -8.6,
+      129.21,
+      180,
+      11.1
+     ],
+     [
+      -11.77,
+      129.08,
+      180,
+      11
+     ],
+     [
+      -15.02,
+      129.02,
+      180,
+      11
+     ],
+     [
+      -18.09,
+      128.99,
+      180,
+      11
+     ],
+     [
+      -21.23,
+      128.98,
+      180,
+      11
+     ],
+     [
+      -24.9,
+      128.97,
+      180,
+      8.9
+     ],
+     [
+      -28.03,
+      128.97,
+      180,
+      6.4
+     ],
+     [
+      -31.09,
+      128.97,
+      180,
+      4.6
+     ]
+    ]
+   },
+   {
+    "label": "D",
+    "key": "KeyD",
+    "frames": 176,
+    "moved": 29.41,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 175.7,
+    "yawLagEndDeg": -4.3,
+    "distMin": 3.37,
+    "distMax": 11.01,
+    "distEnd": 11.01,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 5,
+    "settleMs": 73,
+    "path": [
+     [
+      -32.54,
+      128.4,
+      180,
+      4
+     ],
+     [
+      -33.03,
+      127.89,
+      180,
+      3.5
+     ],
+     [
+      -31.93,
+      127.89,
+      180,
+      3.5
+     ],
+     [
+      -29.81,
+      127.89,
+      180,
+      3.8
+     ],
+     [
+      -27.2,
+      127.89,
+      180,
+      4.7
+     ],
+     [
+      -23.98,
+      127.89,
+      180,
+      6.1
+     ],
+     [
+      -21,
+      127.89,
+      180,
+      8.1
+     ],
+     [
+      -17.89,
+      127.89,
+      180,
+      9.7
+     ],
+     [
+      -14.79,
+      127.89,
+      180,
+      10.5
+     ],
+     [
+      -11.8,
+      127.89,
+      180,
+      10.8
+     ],
+     [
+      -8.29,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -5.2,
+      127.89,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "idle",
+    "key": null,
+    "frames": 174,
+    "moved": 0,
+    "headingDeg": 90,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.98,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ],
+     [
+      -3.13,
+      127.89,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "A-from-rest",
+    "key": "KeyA",
+    "frames": 174,
+    "moved": 32.81,
+    "headingDeg": 270,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -176.4,
+    "yawLagEndDeg": 3.6,
+    "distMin": 10.99,
+    "distMax": 11.02,
+    "distEnd": 11.01,
+    "camHeightEnd": 6.14,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.01,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -1.04,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -3.11,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -6.08,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -8.95,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -11.97,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -15.11,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -18.31,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -21.66,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -24.65,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -27.74,
+      166.65,
+      180,
+      11
+     ],
+     [
+      -30.84,
+      166.65,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "S-from-rest",
+    "key": "KeyS",
+    "frames": 154,
+    "moved": 24.74,
+    "headingDeg": 0,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.19,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": null,
+    "settleMs": null,
+    "path": [
+     [
+      -0.18,
+      166.66,
+      180,
+      11
+     ],
+     [
+      -2.21,
+      167.69,
+      180,
+      10.6
+     ],
+     [
+      -3.26,
+      169.92,
+      180,
+      10.4
+     ],
+     [
+      -3.76,
+      172.72,
+      180,
+      10.3
+     ],
+     [
+      -4,
+      175.99,
+      180,
+      10.3
+     ],
+     [
+      -4.11,
+      179.19,
+      180,
+      10.2
+     ],
+     [
+      -4.16,
+      182.82,
+      180,
+      10.2
+     ],
+     [
+      -4.19,
+      186.64,
+      180,
+      10.2
+     ],
+     [
+      -4.2,
+      190.81,
+      180,
+      10.3
+     ],
+     [
+      -4.2,
+      191.07,
+      180,
+      11
+     ],
+     [
+      -4.2,
+      191.07,
+      180,
+      11
+     ]
+    ]
+   },
+   {
+    "label": "W-through-colliders",
+    "key": "KeyW",
+    "frames": 171,
+    "moved": 10.68,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": -180,
+    "yawLagEndDeg": 0,
+    "distMin": 6.31,
+    "distMax": 11.45,
+    "distEnd": 6.32,
+    "camHeightEnd": 4.56,
+    "pops": [
+     {
+      "frame": 128,
+      "from": 10.98,
+      "to": 6.98,
+      "at": [
+       388.31,
+       138.13
+      ]
+     }
+    ],
+    "popCount": 1,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      389.54,
+      148.74,
+      180,
+      8.3
+     ],
+     [
+      389.54,
+      146.66,
+      180,
+      8.7
+     ],
+     [
+      389.54,
+      144.05,
+      180,
+      9.9
+     ],
+     [
+      389.54,
+      141.29,
+      180,
+      11
+     ],
+     [
+      389.54,
+      138.39,
+      180,
+      11.4
+     ],
+     [
+      389.46,
+      138.39,
+      180,
+      10.9
+     ],
+     [
+      389.28,
+      138.38,
+      180,
+      11
+     ],
+     [
+      388.86,
+      138.32,
+      180,
+      11
+     ],
+     [
+      388.31,
+      138.13,
+      180,
+      11
+     ],
+     [
+      388.31,
+      138.14,
+      180,
+      6.4
+     ],
+     [
+      388.3,
+      138.15,
+      180,
+      6.3
+     ],
+     [
+      388.31,
+      138.13,
+      180,
+      6.3
+     ]
+    ],
+    "cluster": {
+     "at": [
+      389.5,
+      134.8
+     ],
+     "r": 1.6235530667764317,
+     "neighbours": 24
+    }
+   },
+   {
+    "label": "arrive-idle",
+    "key": null,
+    "frames": 165,
+    "moved": 0,
+    "headingDeg": 180,
+    "camYawStartDeg": 180,
+    "camYawEndDeg": 180,
+    "camYawDriftDeg": 0,
+    "camYawPathDeg": 0,
+    "maxYawStepDeg": 0,
+    "camYawActualEndDeg": 180,
+    "yawLagEndDeg": 0,
+    "distMin": 10.99,
+    "distMax": 10.99,
+    "distEnd": 10.99,
+    "camHeightEnd": 6,
+    "pops": [],
+    "popCount": 0,
+    "settleFrame": 0,
+    "settleMs": 0,
+    "path": [
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ],
+     [
+      0,
+      166.65,
+      180,
+      11
+     ]
+    ],
+    "distStart": 11
+   }
+  ]
+ }
+}
