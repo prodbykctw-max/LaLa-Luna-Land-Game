@@ -1,0 +1,2 @@
+[traversal] green: traps=0 pockets=0 camHits=36204 stalls=0 buried=0 fps~59.8
+rc=0
