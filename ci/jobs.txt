@@ -1,0 +1,7 @@
+node qa/treevariant.mjs hub
+node qa/treevariant.mjs green
+QX='ashw=1.12&ashls=1.35' node qa/treelineup.mjs stills C hub
+QX='ashw=1.12&ashls=1.35' node qa/treelineup.mjs stills C green
+QX='ashw=1.25&ashls=1.4' node qa/treelineup.mjs stills C hub
+QX='ashw=1.25&ashls=1.4' node qa/treelineup.mjs stills C green
+SETS='[[0.55,14,1,1.6,0.38],[0.4,14,1,1.6,0.38],[0.3,14,1,1.6,0.38]]' node qa/treetune.mjs hub
