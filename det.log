@@ -1,0 +1,5 @@
+[det] hub: seeded DIFFER (cf4e0576 / a743b248, 358 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] green: seeded MATCH (775cd3ff / 775cd3ff, 611 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] gr: seeded MATCH (cdb7b3c2 / cdb7b3c2, 405 meshes) · ?seed=random differs true · other seed differs true · creatures still drift false
+[det] sanity: seeded DIFFER (100891d5 / 7753b278, 414 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] town: seeded DIFFER (8f84eaa5 / aeb07c4c, 689 meshes) · ?seed=random differs true · other seed differs true · creatures still drift false
