@@ -1,0 +1,5 @@
+node qa/sanityperf_edge.mjs --tag=same --same=1 --islands=town --frames=100 --w=640 --h=360
+node qa/sanityperf_edge.mjs --tag=same --same=1 --islands=green --frames=100 --w=640 --h=360
+node qa/sanityperf_edge.mjs --tag=same --same=1 --islands=gr --frames=100 --w=640 --h=360
+node qa/sanityperf_edge.mjs --tag=same --same=1 --islands=sanity --frames=100 --w=640 --h=360
+node qa/sanityperf_edge.mjs --tag=same --same=1 --islands=hub --frames=100 --w=640 --h=360
