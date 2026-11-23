@@ -3,11 +3,12 @@
    posed vertices (SkinnedMesh.getVertexPosition), counts how many are inside the camera frustum ("truly on screen") and asks three's own cull test
    (frustum.intersectsObject, which uses the padded boundingSphere) whether the mesh would be culled. POP = culled while some posed vertex is on screen.
    Shots are kept (ring buffer, +-3 frames) around every on/off-screen crossing so OLD (?skincull=0) and NEW can be set side by side.
+   --same=1: same-frame OLD|NEW. After each pan step the frame is screenshotted with skinCull ON (what the game drew), then every skinCull'd mesh is flipped to frustumCulled=false, the SAME state is rendered again (composer.render, clock not advanced) and screenshotted: byte-identical JPEGs = zero pixel change, per frame, no sim drift between the two sides.
    node qa/sanityperf_edge.mjs --tag=new|old [--query=skincull=0] [--islands=town,green] [--frames=150]  -> qa/out/edge/<tag>/..., qa/out/sanityperf_edge_<tag>.json */
 import { open, OUT } from './_harness.mjs';
 import { writeFileSync, mkdirSync } from 'fs';
 const arg = (n, d) => { const a = process.argv.find(x => x.startsWith('--' + n + '=')); return a ? a.slice(n.length + 3) : d; };
-const query = arg('query', ''); const tag = arg('tag', 'new'), W = +arg('w', 960), Hh = +arg('h', 540), keys = arg('islands', 'town,green').split(','), NF = +arg('frames', 150);
+const SAME = arg('same', '0') === '1'; const query = arg('query', ''); const tag = arg('tag', 'new'), W = +arg('w', 960), Hh = +arg('h', 540), keys = arg('islands', 'town,green').split(','), NF = +arg('frames', 150);
 const STEPS = [17, 17, 16]; let _si = 0; const STEP = () => STEPS[_si++ % 3];
 const AB = process.env.AB_DIR || OUT; const dir = AB + '/edge/' + tag; mkdirSync(dir, { recursive: true });
 const report = { tag, query, islands: {} };
@@ -55,6 +56,7 @@ for (const key of keys) { try {
         const bs = m.boundingSphere, c = bs.center.clone().applyMatrix4(m.matrixWorld), sc = m.matrixWorld.getMaxScaleOnAxis(), r = bs.radius * sc;
         let inside = true, near = true;
         for (const p of pl) { const d = p[0] * c.x + p[1] * c.y + p[2] * c.z + p[3]; const len = Math.hypot(p[0], p[1], p[2]); if (d / len < -r) inside = false; if (d / len < -r * 3 - 2) near = false; }
+        if (m.frustumCulled && !m.userData.shadowProxy) (window.__skc = window.__skc || new Set()).add(m);
         const culledByThree = m.frustumCulled && !inside;          /* three's own test with the padded sphere */
         if (!near) return;                                         /* nowhere near the screen: skip the expensive skin */
         const pos = m.geometry.attributes.position, n = pos.count, stride = Math.max(1, Math.floor(n / 5000));
@@ -67,25 +69,32 @@ for (const key of keys) { try {
       return out;
     };
   });
-  const log = [], keep = new Map(), ring = []; let lastOn = new Map(), crossings = 0, pops = 0, maxPopFrac = 0; const popEvents = [];
+  const fs0 = (await import('fs')); const sameLog = [], oldRing = [], keepOld = new Map(); let sameDiff = 0; const log = [], keep = new Map(), ring = []; let lastOn = new Map(), crossings = 0, pops = 0, maxPopFrac = 0; const popEvents = [];
   for (let f = 0; f < NF; f++) {
     await page.evaluate(() => { window.__T.CUR.W.camYaw += .03; });
     await page.clock.runFor(STEP());
     const rows = await page.evaluate(() => window.__probe());
-    const shotBuf = await page.screenshot({ type: 'jpeg', quality: 92, timeout: 600000 });
+    const shotBuf = await page.screenshot({ type: 'jpeg', quality: SAME ? 95 : 92, timeout: 600000 });
+    if (SAME) {
+      const nSk = await page.evaluate(() => { const s = window.__skc ? [...window.__skc] : []; window.__skcOn = s.filter(m => m.frustumCulled); window.__skcOn.forEach(m => { m.frustumCulled = false; }); window.__T.composer.render(); return window.__skcOn.length; });
+      const oldBuf = await page.screenshot({ type: 'jpeg', quality: 95, timeout: 600000 });
+      await page.evaluate(() => { window.__skcOn.forEach(m => { m.frustumCulled = true; }); });
+      const same = Buffer.compare(shotBuf, oldBuf) === 0; sameLog.push({ f, same, nSkinCulled: nSk, culledNow: rows.filter(r => r.culled).length }); if (!same) { sameDiff++; fs0.writeFileSync(`${dir}/${key}_${String(f).padStart(3, '0')}_DIFF_new.jpg`, shotBuf); fs0.writeFileSync(`${dir}/${key}_${String(f).padStart(3, '0')}_DIFF_old.jpg`, oldBuf); }
+      oldRing.push([f, oldBuf]); if (oldRing.length > 4) oldRing.shift();
+    }
     ring.push([f, shotBuf]); if (ring.length > 4) ring.shift();
     let cross = false;
     for (const r of rows) { const was = lastOn.get(r.id), now = r.on > 0; if (was !== undefined && was !== now) { cross = true; crossings++; r.crossing = now ? 'enter' : 'leave'; }
       lastOn.set(r.id, now); if (r.culled && r.on > 0) { pops++; if (r.onFrac > maxPopFrac) maxPopFrac = r.onFrac; popEvents.push({ f, id: r.id, name: r.name, on: r.on, onFrac: r.onFrac, bbox: r.bbox }); } }
-    if (cross) for (const [ff, b] of ring) keep.set(ff, b);
+    if (cross) { for (const [ff, b] of ring) keep.set(ff, b); for (const [ff, b] of oldRing) keepOld.set(ff, b); }
     if (keep.size && keep.has(f - 0)) { /* already stored */ }
-    if (!cross) { /* also store the 3 frames after a crossing */ for (let k = 1; k <= 3; k++) if (log[f - k] && log[f - k].cross) { keep.set(f, shotBuf); break; } }
+    if (!cross) { /* also store the 3 frames after a crossing */ for (let k = 1; k <= 3; k++) if (log[f - k] && log[f - k].cross) { keep.set(f, shotBuf); if (SAME) keepOld.set(f, oldRing[oldRing.length - 1][1]); break; } }
     log.push({ f, cross, rows: rows.map(r => ({ id: r.id, name: r.name, culled: r.culled, on: r.on, onFrac: r.onFrac, bbox: r.bbox, crossing: r.crossing })) });
   }
   const { default: fs } = await import('fs');
-  for (const [ff, b] of keep) fs.writeFileSync(`${dir}/${key}_${String(ff).padStart(3, '0')}.jpg`, b);
+  let kept = 0; for (const [ff, b] of keep) { if (SAME && kept++ > 36) break; fs.writeFileSync(`${dir}/${key}_${String(ff).padStart(3, '0')}.jpg`, b); if (SAME && keepOld.has(ff)) fs.writeFileSync(`${dir}/${key}_${String(ff).padStart(3, '0')}_old.jpg`, keepOld.get(ff)); }
   writeFileSync(`${dir}/${key}_log.json`, JSON.stringify(log));
-  report.islands[key] = { frames: NF, crossings, pops, maxPopFrac, popEvents: popEvents.slice(0, 40), shotFrames: [...keep.keys()].sort((a, b) => a - b), meshesSeen: new Set(log.flatMap(l => l.rows.map(r => r.id))).size, errors: H.log.errors.slice(0, 5) };
+  report.islands[key] = { frames: NF, same: SAME ? { framesCompared: sameLog.length, byteIdentical: sameLog.filter(x => x.same).length, differing: sameDiff, maxSkinCulledMeshes: Math.max(0, ...sameLog.map(x => x.nSkinCulled)), framesWithMeshesCulled: sameLog.filter(x => x.culledNow > 0).length, log: sameLog } : undefined, crossings, pops, maxPopFrac, popEvents: popEvents.slice(0, 40), shotFrames: [...keep.keys()].sort((a, b) => a - b), meshesSeen: new Set(log.flatMap(l => l.rows.map(r => r.id))).size, errors: H.log.errors.slice(0, 5) };
   await H.close();
  } catch (e) { report.islands[key] = { error: String(e).slice(0, 400) }; console.log('FAILED', key, String(e).slice(0, 400)); }
 }
