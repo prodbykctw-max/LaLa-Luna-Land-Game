@@ -1,0 +1,8 @@
+node qa/treelineup.mjs stills A green
+node qa/treelineup.mjs stills C green
+QX='wtint=.85,.64,.40' node qa/treelineup.mjs stills C green
+QX='wtint=.80,.66,.46' node qa/treelineup.mjs stills C green
+QX='wtint=.78,.60,.34' node qa/treelineup.mjs stills C green
+QX='btint=.50,.66,.52' node qa/treelineup.mjs stills C green
+QX='btint=.66,.66,.46' node qa/treelineup.mjs stills C green
+QX='btint=.50,.58,.48' node qa/treelineup.mjs stills C green
