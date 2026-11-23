@@ -1,0 +1,2 @@
+{"island":"hub","pick":{"x":-12.194125812820642,"z":279.16918865989663,"sc":1.2954422091599553,"nb":59.67726073529801,"g":0,"spawn":[0,269.6215733333232],"n":114},"near":[],"count":{},"names":["tree Oak Large #1","tree Oak Large #2","tree Oak Large #3","tree Oak Medium #1","tree Oak Medium #7","tree Oak Medium #9","tree Oak Small #3","tree Oak Large #4","tree Ash Large #3","tree Ash Large #5","tree Ash Medium #5","tree Ash Medium #8"]}
+rc=0
