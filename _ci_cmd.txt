@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/codehealth.mjs > qa/out/codehealth.base.out 2> qa/out/codehealth.base.log; r=$?; tail -25 qa/out/codehealth.base.log; tail -25 qa/out/codehealth.base.out; exit $r
