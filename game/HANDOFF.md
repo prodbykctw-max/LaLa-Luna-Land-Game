@@ -2180,40 +2180,92 @@ killed it. That is C8 - good news and satisfying news both get the HIGHER eviden
 lower one - applied to a diagnosis instead of to a status.
 
 
-## Performance pass: sanity-perf branch (not merged, no BUILD bump)
+## Performance pass: sanity-perf branch (merged with main 2026-11-23a; not on main, no BUILD bump)
 
-All numbers are SwiftShader on the QA farm (qa/out/farm/sp1..sp3). Draw-call/triangle counts and pixel diffs transfer to a real GPU; absolute ms do not.
+Why: the client said the whole game lagged and Sanity loaded slowly. Rule for every change here: the picture must not change. Everything below is SwiftShader on the QA farm: draw-call/triangle counts, pixel diffs and traversal/regression results transfer to a real GPU; absolute ms do not.
 
-Default-ON (each has an off switch):
-- `?skincull=0` - non-Lala skinned meshes (NPCs, creatures) get a fixed padded boundingSphere and frustum culling.
-- `?lalashadow=0` - Lala's shadow is cast by a ~25k-triangle copy of her skinned mesh (assets/lala-shadow.idx, built by tools/lala_shadow_lod.mjs with meshoptimizer after welding vertices by position). The copy shares her position / skinIndex / skinWeight buffers and her Skeleton, is visible only while shadowMap.render runs (wrapped in index.html), and her full mesh stops casting once the copy exists. Rebuild the index file if assets/lala.glb changes.
-- `?basicmerge=0` - opaque, map-less MeshBasic meshes the island code holds no handle on are merged per material and 64-unit cell. Small effect.
-- `mergeStatics.bake()` uses pre-sized typed arrays.
-- Jump: walkerUpdate integrates vertical motion exactly (trapezoid) and JUMPV is 12.9833 (was 13.2), so the 60 fps apex stays the old 3.24 u and low frame rates no longer jump lower. Measured in the browser with walkerUpdate (qa/sanityperf_jump.mjs): OLD apex 3.025 / 3.133 / 3.242 / 3.133 at 20 / 30 / 60 fps / mixed; NEW 3.2416 at all four.
-Default-OFF: `?chunk=N` (island-sized bakes split into ground cells) - measured worse on Sanity (762 -> 1022 calls).
+### What ships default-ON (each has an off switch)
+| Change | Switch off | What it does |
+|---|---|---|
+| Skinned NPC/creature cull | `?skincull=0` | non-Lala skinned meshes get a fixed padded boundingSphere (1.5 r + 0.8 u) and frustum culling; Lala's own mesh is never culled |
+| Lala shadow copy | `?lalashadow=0` | her shadow is cast by a ~25k-triangle copy of her skinned mesh (assets/lala-shadow.idx, tools/lala_shadow_lod.mjs); shares her buffers and Skeleton; visible only while shadowMap.render runs. Rebuild the .idx if assets/lala.glb changes |
+| Far skinned LOD | `?farskin=0` (`?farskind=N`, default 120 u) | NPC/creature rigs beyond 120 u draw a simplified index list (assets/lod-skin.bin, `MESHOPT_DIR=<meshoptimizer> node tools/skin_far_lod.mjs 0.28`); only `mesh.geometry` is swapped. Rebuild if any rig GLB changes |
+| Far prop cull | `?farcull=0` | small static props beyond the fog-hidden range are hidden. Nearly inert, kept because it is free |
+| MeshBasic merge | `?basicmerge=0` | opaque, map-less MeshBasic meshes the island code holds no handle on are merged per material and 64 u cell (`basicBatch`) |
+| Typed-array bake | (none) | `mergeStatics.bake()` uses pre-sized typed arrays |
+| Frame-rate-independent jump | `?jump=old` | `walkerUpdate` integrates vertical motion exactly (trapezoid) and JUMPV is 12.9833 (was 13.2): the 60 fps apex is still 3.24 u, and low frame rates no longer jump lower. qa/sanityperf_jump.mjs: OLD apex 3.025 / 3.133 / 3.242 / 3.133 at 20 / 30 / 60 fps / mixed, NEW 3.2416 at all four |
+| Warm-path compile | `?warm=old` | before the warm draw, `renderer.compileAsync` runs per top-level piece against the same render-target format the real passes use. **Only where the browser has KHR_parallel_shader_compile** (a real GPU in Chrome/Edge/Firefox); without it nothing changes, because compileAsync would link on the main thread anyway and three logs a console warning. `?warm=force` runs it anyway (QA on SwiftShader only) |
 
-Measured (main-pass | shadow-pass, calls / triangles), old -> new:
-- hub 310/784k | 58/381k -> 308/784k | 46/207k
-- green 840/1.28M | 145/555k -> 840/1.28M | 130/357k
-- gr 433/1.17M | 95/687k -> 431/1.15M | 76/351k
-- sanity 657/1.61M | 108/496k -> 657/1.61M | 68/264k
-- town 1041/1.60M | 221/658k -> 1022/1.49M | 200/450k
-Lala is 149,752 triangles in main and (before) shadow; the shadow draw is now ~25k.
-Remaining main-pass cost on Sanity is draw calls (657) and the always-drawn skinned characters, not JS: JS per frame is 2-6 ms in every scene, no frame over 50 ms in a 20 s walk on any island.
+Default-OFF: `?chunk=N` (island-sized bakes split into ground cells): measured worse on Sanity (762 -> 1022 calls).
 
-Load finding (Sanity): the island BUILD is not the freeze (461 steps, max 79 ms, one step over 50 ms). The blocks are the WARM pass that draws everything once to compile shaders: 42 steps, 19 over 100 ms, worst 1.26 s under SwiftShader. Not changed here: the fix would be renderer.compileAsync (parallel shader compile) ahead of the warm loop, which has to be verified on a real GPU. Program count rose 209 -> 218 on Sanity with the shadow copy.
+New cost: +0.94 MB download per island (the two index files; qa/assets: hub 24.41 -> 25.35 MB, +2 requests).
 
-Pixel diffs (qa/sanityperf_ab.mjs, controlled clock 17/17/16 ms steps, seeded Math.random, game clock reset, title card dismissed): old vs new mean abs difference 0.60-0.69 on hub, green, gr, sanity, 1.50 on town, against 0.36-0.61 / 1.14 between two runs of the OLD build. That is run-to-run noise (rain, creature and NPC state). Do not compare captures made before the island title card was dismissed or before the game clock was reset: they measured a blurred card or a different wind phase.
+### Before / after (qa/framebudget at the spawn camera, renderer.info per frame = main + shadow pass; farm, base main 6be454a vs this head)
+| island | tris old -> new | calls old -> new |
+|---|---|---|
+| hub | 1,407,667 -> 1,197,069 (-15%) | 368 -> 353 |
+| green | 2,168,204 -> 1,763,184 (-19%) | 985 -> 970 |
+| gr | 2,075,410 -> 1,527,668 (-26%) | 523 -> 500 |
+| sanity | 2,393,617 -> 1,918,717 (-20%) | 738 -> 695 |
+| town | 2,563,982 -> 2,151,736 (-16%) | 1414 -> 1375 |
 
-Pitfall found: `?go=<island>` stays on the hub for islands not built at startup; the harness helpers use __prep.readyIsland + goIsland.
+Main-pass only, measured before the 23a merge (qa/sanityperf_census / _top): hub 781k -> 751k, green 1.213M -> 1.114M, gr 1.148M -> 1.000M, sanity 1.587M -> 1.368M, town 1.484M -> 1.409M; shadow pass roughly halved (Lala 149,752 tris was drawn twice, now ~25k in the shadow pass). Draw calls barely move: the remaining cost on Sanity is calls (about 700) and the always-drawn skinned characters, not JS (2-6 ms per frame everywhere, no frame over 50 ms in a 20 s walk). Largest call contributors (qa/sanityperf_top): Town `I.buildings` 284 separate meshes (+40), moons 42-70 per island, ShapeGeometry decals 64-160, `I.creatures` 138 on Green, quest carrots 70 on Green. Not cut: buildings, moons and flares fade or animate individually, and merging them would change the look or break their fades. That is the open work for calls.
 
-Round 2 (merged with main 2026-11-22a; flags below default ON, each has an off switch):
-- `?farskin=0` - non-Lala skinned rigs (NPCs, creatures) farther than 120 u (`?farskind=N`) draw a simplified index list (assets/lod-skin.bin, built by `MESHOPT_DIR=<meshoptimizer> node tools/skin_far_lod.mjs 0.28`). It shares the vertex buffers and Skeleton with the full mesh; only `mesh.geometry` is swapped, so visibility, culling and the crowd dissolve are untouched. Primitives under 120 triangles are skipped. UV-seam-heavy NPC meshes barely simplify (limit of the tool, not fixed). Rebuild the .bin if any rig GLB changes.
-- `?farcull=0` - small static props beyond the fog-hidden range are hidden. Nearly inert at spawn views (a few calls); kept because it is free, not because it helps. It does not reduce draw calls meaningfully.
-- `?warm=old` - restores the previous warm pass. Default warm now calls `renderer.compileAsync` against the same render target as the composer first (`warmCompile`, `warmRT` in index.html), then the old draw-everything pass. Under SwiftShader it halves the warm steps over 100 ms but compiles about 50 more programs; whether it removes the freeze on a real GPU is UNMEASURED and waits for Melvin's laptop. SwiftShader compiles on the CPU, so it can only show step counts, never driver stalls.
-- Main-pass totals old -> new (calls / tris, farm, same camera): hub 308 / 781k -> 308 / 751k; green 840 / 1.213M -> 840 / 1.114M; gr 431 / 1.148M -> 431 / 1.000M; sanity 654 / 1.587M -> 654 / 1.368M; town 1022 / 1.484M -> 1022 / 1.409M. Draw calls did not move.
-- Largest call contributors (qa/sanityperf_top.mjs): Town `I.buildings` 284 separate meshes (and 40 more), moons 42-70 per island, ShapeGeometry decals 64-160, `I.creatures` meshes 138 on Green, quest carrots 70 on Green. Not cut: buildings, moons and flares fade or animate individually, and merging them would change the look or break their fades. This is the open work for calls.
-- Pixel proof (controlled clock, qa/sanityperf_ab.mjs, qa/out/ab4): new vs new2 noise gr 0.64, green 0.62, hub 0.48, sanity 0.68, town 1.31. old (main) vs new: gr 0.73, green 0.60, hub 0.64, sanity 1.16, town 3.57. Sanity sits slightly above its noise; Town is well above it. Turning `farskin` or `farcull` off does NOT lower the Town figure (3.30 / 3.49 at frame 095 against 3.57), so the cause is not these two flags; the difference is concentrated on the horse, rider and sparkles (animation phase), not on static scenery. Unexplained; needs a bisect against main's crowd fade.
+Load (Sanity): the island BUILD is not the freeze (461 steps, max 79 ms). The blocks are the WARM pass that draws everything once to compile shaders: 42 steps, 19 over 100 ms, worst 1.26 s under SwiftShader. The compileAsync pre-pass is the fix for that; it can only be judged on a real GPU (below).
+
+### Pixel proof, and the Town/Sanity "unexplained diff" explained
+The old A/B harness (qa/sanityperf_ab.mjs) was not deterministic, and that, not a code change, was the 3.57 on Town and the 0.94-1.16 on Sanity:
+1. Wall clock: `page.clock.install()` started the fake clock at the real time, and the Sanity weather is `Date.now()/540 s` (clear vs "a squall coming in" vs storm), so two runs minutes apart show different skies. Main against main on Sanity measured 9.07 mean abs. Fixed: `install({time: 1700000000000})`.
+2. Sim phase: the postman's horse and rider and the town's wandering crowd start simulating at `goIsland`, and the harness only looked every 10 frames, so a run began 0-9 frames earlier or later, and a slower load path (the warm pass) shifted it more. NEW with `?warm=old` against NEW (same code, only the load path differs) measured Town 3.52 and Sanity 4.75 in the old harness, the same signature as the 3.57. Fixed: stand every run on exactly 120 frames after goIsland (a rAF counter), then reset the game clock and re-seed. Residual noise is that the crowd's build-time placement still differs run to run.
+Bisect (farm bis-3, Town / Sanity mean abs diff vs main run A; main run B = noise floor): main B 1.84 / 0.32 (floor); main `?lodfade=0` 1.13 / 0.47; NEW 1.30 / 0.63, NEW B 1.81 / 0.52; NEW `?lodfade=0` 1.59 / 0.61; `?warm=old` 1.33 / 0.57; `?jump=old` 1.17 / 0.44; `skincull=0&farskin=0&farcull=0` 1.51 / 0.54; `lalashadow=0&basicmerge=0` 1.42 / 0.48. Every flag is inside the main-vs-main floor on Town; Sanity sits 0.1-0.3 above its floor (jump-arc sub-frame differences and sparkle/firefly placement; `?jump=old` is the lowest).
+Final head vs main 6be454a (farm ab-6, mean abs / worst frame, all five islands, new-vs-new and old-vs-old are the noise floors):
+| island | main A vs B | new A vs B | main vs new (4 pairs) |
+|---|---|---|---|
+| hub | 0.58 / 0.90 | 0.38 / 0.87 | 0.49-0.68 / 0.9-1.2 |
+| green | 0.56 / 0.85 | 0.48 / 0.85 | 0.50-0.62 / 1.2 |
+| gr | 0.57 / 0.77 | 0.63 / 1.14 | 0.56-0.78 / 1.1 |
+| sanity | 0.44 / 0.76 | 0.36 / 0.74 | 0.43-0.64 / 1.3 |
+| town | 2.76 / 4.26 | 1.76 / 2.95 | 1.82-3.02 / 2.8-5.4 |
+Do not compare captures from before the harness fix, before the island title card was dismissed, or before the game clock was reset; and do not A/B against a main that has moved (ab-5 compared against 23a while the branch was still on 22a and measured the new sky light, 1.1-1.5 on hub/green/gr).
+
+### NPC edge pop (skinCull), proof
+qa/sanityperf_edge.mjs: Lala stands still and the camera pans 150 frames (camYaw += .03/frame, 8.6 rad of arc), so every skinned NPC and creature sweeps the screen edge. Every frame, for every skinned mesh near the frustum, it skins the real posed vertices (`SkinnedMesh.getVertexPosition`) and asks three's own test (the padded boundingSphere) whether the mesh would be culled. Pop = culled while any posed vertex is on screen.
+Result (farm edge-6, head d1ebcc8, 100 pan frames per island at 640x360, 172 degrees of arc; plus edge-1/edge-2 at 150 frames, 960x540):
+| island | skinned meshes seen | frames where NEW culled at least one | probe "pops" | pixels differing by > 32 between cull ON and OFF, 100 frames |
+|---|---|---|---|---|
+| town | 57 | 68 | 1 (one frame, 13 of ~1400 sampled vertices = a 3 x 1 px sliver on the very edge) | 0 |
+| green | 35 | 7 | 0 | 0 |
+| gr | 36 | 93 | 0 | 0 |
+| sanity | 46 | 62 | 0 | 0 |
+| hub | 23 | 95 | 64 events, all on two meshes (`Object_6/Object_105`, `/107`) whose 81 sampled vertices all project to one pixel: degenerate geometry that draws nothing | 0 |
+The pixel check is same-frame, no sim drift: after each pan step the frame is rendered with skinCull ON (what the game drew), again ON (the noise floor: a re-render of identical state differs by 0.0-0.8 mean, dithered AO/god-ray jitter), and again with every skinCull'd mesh forced to `frustumCulled = false` (OLD). Over 500 frames no pixel differs by more than 32 between OFF and ON (sum of `n32` 0, edge band 0; the ON/ON re-render noise itself has 1-11 such pixels per island), and the per-frame (OFF vs ON) minus (ON vs ON) mean difference averages -0.07 to +0.09 on a 0-255 scale. Crops: qa/proof/skincull_edge_gr.png (a creature leaving the right edge, frames 31-35, top row OLD all-drawn, bottom row NEW, max pixel difference 3-5) and qa/proof/skincull_edge_town.png. That creature's body mesh (id 8642 on gr), posed vertices on screen by frame: 28: 3956, 29: 2633, 30: 2146, 31: 1409, 32: 478, 33-36: 0, and three's cull test says drawn through frame 36 and culled from frame 37. The padded sphere is the margin: it is larger than the posed mesh by design, so culling lags the exit rather than leading it.
+Harness: `node qa/sanityperf_edge.mjs --same=1 --islands=<island> --frames=100 --w=640 --h=360`. Without `--same` it logs the per-frame probe only and keeps +-3 frame JPEG windows around every crossing (`--query=skincull=0` for the OLD run, but two runs do not share a sim, so crops from separate runs differ in NPC phase: use `--same`).
+
+### What remains for a real GPU (Melvin's laptop), UNMEASURED
+- Warm-path timing: does the compileAsync pre-pass remove the freeze on the Sanity load card? Compare `?warm=old` against default: time to first interactive frame, longest main-thread block during load (qa/sanityperf_load.mjs logs `window.__STEPLOG`; on a real browser, DevTools Performance long tasks). SwiftShader compiles on the CPU, so it only ever showed step counts.
+- Real frame times (ms per frame) and GPU time on Sanity and Town with and without the flags (`?skincull=0&farskin=0&farcull=0&lalashadow=0&basicmerge=0&jump=old&warm=old` is the all-old URL). Triangle and call counts are measured; whether they buy milliseconds on his GPU is not.
+- Far-skin and skin-cull on a phone-class GPU, and on Safari (KHR_parallel_shader_compile missing there: the warm path then behaves as before by design).
+- Download size +0.94 MB per island on a slow connection.
+
+### Full regression on the final head (farm; reg-new3 = this head d1ebcc8, reg-old3 = main 6be454a, every `qa/run_all.sh` suite, one farm line each, traversal split per island)
+| suite | NEW | OLD (main) |
+|---|---|---|
+| syntax | ok | ok |
+| determinism (3 repeats on the head with the QA fix, det-2) | hub / green / gr MATCH 3 of 3; sanity MATCH 2 of 3; town DIFFER (crowd) | hub MATCH 3 of 4 runs, green and gr 4 of 4 (det-1 plus reg-old3); sanity and town DIFFER every time |
+| codehealth | ran | ran |
+| console_load | 0 errors, 2 warnings, 0 failed, 0 http >= 400 on all five | same |
+| assets | 104 / 114 / 132 / 146 / 268 requests, 25.35 / 31.58 / 41.06 / 35.95 / 63.42 MB | 102 / 112 / 130 / 144 / 266, 24.41 / 30.64 / 40.12 / 35.01 / 62.48 MB (+0.94 MB, +2 requests) |
+| reach | 58 OK, Dee OK_OTHER_NPC_CLOSER (town) | identical |
+| traversal hub / green / gr / sanity / town | traps 0, pockets 0, stalls 0, buried 0 on all five; camHits 47008 / 36204 / 40344 / 27084 / 31076 | identical, including camHits |
+| camera | pops hub 2, gr 1, others 0 | identical |
+| framebudget | table above | table above |
+| mobile | 0 overlaps / 0 off-screen / 0 small, both orientations, all islands | identical |
+| float, scale | same characters floating (1 each on green, gr, sanity, town) | identical |
+| overhead | ok | exit 1 (a Playwright TimeoutError waiting for fonts, twice in a row: main's flake, not ours) |
+| vgeo | floating 0 on all islands, buried hub 1 / gr 2 / town 1 | sanity floating 1 (pre-existing), same buried |
+| vcheck, vmat, vaudit | errors 0, identical counts | identical |
+Two things the regression found and this branch fixed: (1) vgeo read each merged `basicBatch` (a union of many small meshes the audit used to skip one by one) as a floating object: it now skips `basicBatch`; (2) determinism read Lala's shadow copy, which attaches when assets/lala-shadow.idx arrives, as a layout difference between loads (hub and gr DIFFERed 2 of 3): it now skips `shadowProxy`. Neither is a game change. The warm pre-pass also logged "KHR_parallel_shader_compile extension not supported" on SwiftShader (3 console warnings instead of 2): it now only runs where the extension exists.
+
 ### 4.57 — Town crowd: far LOD swaps fade over 0.25 s instead of popping (build `2026-11-22a`)
 **Shipped 2026-11-22, approved by Melvin after the NOW|NEW clip ("Use NEW (blend)", then "Proceed with crowd fade").**
 - What: when a fan crosses the rig <-> proxy distance (far out > 46 u, back near < 44 u) or the ink-outline
