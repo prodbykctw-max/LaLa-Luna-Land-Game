@@ -1,0 +1,7 @@
+SETS='[[0.55,14,1,1.6,0.38,0.65,0.77,0.56],[0.55,14,1,1.6,0.1,0.78,0.86,0.74],[0.55,14,1,1.6,0.15,0.65,0.77,0.56],[0.55,14,1,1.6,0.2,0.60,0.75,0.52],[0.55,14,1,1.6,0.1,0.70,0.82,0.60]]' node qa/treetune.mjs green
+NBMIN=5 DMIN=6 OPT=A SETS='[[0.55,14,1,1.6]]' node qa/treetune.mjs gr
+NBMIN=5 DMIN=6 SETS='[[0.55,14,1,1.6,0.38]]' node qa/treetune.mjs gr
+NBMIN=4 DMIN=5 OPT=A SETS='[[0.55,14,1,1.6]]' node qa/treetune.mjs town
+NBMIN=4 DMIN=5 SETS='[[0.55,14,1,1.6,0.38]]' node qa/treetune.mjs town
+node qa/treelineup.mjs budget C green
+node qa/treelineup.mjs budget A green
