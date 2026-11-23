@@ -1,0 +1,5 @@
+[map] hub: radius 132  dock 0,292.6215733333232  boat 5.2,307.6  notes 5  npcs 2+0  colliders 519
+[map] green: radius 250  dock 0,752.8084799999815  boat 5.2,767.8  notes 3  npcs 7+0  colliders 834
+[map] gr: radius 161  dock 0,272.4152800000095  boat 5.2,287.4  notes 3  npcs 5+0  colliders 584
+[map] sanity: radius 167  dock 0,455.37487999999365  boat 5.2,470.4  notes 3  npcs 5+0  colliders 495
+[map] town: radius 203  dock 0,189.65269333333012  boat 5.2,204.7  notes 3  npcs 9+34  colliders 726
