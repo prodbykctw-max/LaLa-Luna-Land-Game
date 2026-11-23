@@ -1508,7 +1508,7 @@ function forestBuilder(P, night){
   };
   const BUSHPOS = [];
   const bush = (sc, x, y, z) => {
-    BUSHPOS.push({x, z});      /* QA: where the bushes stand, the same list for every look */
+    BUSHPOS.push({x, z, sc});      /* QA: where the bushes stand, the same list for every look */
     const m4 = new THREE.Matrix4().makeTranslation(x, y, z);
     const run = () => crownOf(new THREE.Vector3(0, .25*sc, 0), [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]], sc*1.05, 12, false, m4);
     if(TOPT !== "C") return run();
@@ -1717,14 +1717,69 @@ function bakeGeoC(){
            ["Oak Large", 4, 0, 1.3], ["Ash Large", 3, 1, 1.1], ["Ash Large", 5, 1, 1.1], ["Ash Medium", 5, 1, 1], ["Ash Medium", 8, 1, 1]].map(s => ({preset: s[0], seed: s[1], cell: s[2], w: s[3], radius: [2.7, 1.9, 1.5, 1.5], leafMul: 2.4, leafMax: 140,
              leafSize: s[2] === 1 ? ASH_LS : 1.35, wide: s[2] === 1 ? ASH_WIDE : 1, tint: s[2] === 1 ? ASHTINT : null})),      /* the ash sprig is a different green from the oak's: tinted to the oak's mean colour, and fitted wider (it came out 70% of A's crown) */
     willow: [1, 4, 6].map((sd, i) => ({preset: "Ash Large", seed: sd, cell: 1, w: 1, radius: [2.6, 1.3, .8, .5], leafMul: 2.2, leafMax: 130, leafSize: 1.35, tint: [.92, .74, .50], set: i === 2 ? {...WILLOW, "branch.force.strength": .2, "branch.length.0": 54, "branch.length.1": 20, "branch.length.2": 20, "branch.length.3": 18, "branch.angle.1": 45} : WILLOW})),
-    bush: [["Bush 1", 1, 1], ["Bush 1", 3, 1], ["Bush 1", 5, 2], ["Bush 2", 2, 2]].map(s => ({preset: s[0], seed: s[1], cell: s[2], w: 1, radius: [1.5, 1.2, 1, 1], leafMul: 2.5, leafMax: 200, leafSize: 1.2}))
+    bush: [{seed: 1, stems: 8, cell: 2, tint: [.60, .68, .50]}, {seed: 3, stems: 7, cell: 2, tint: [.60, .68, .50]}, {seed: 5, stems: 9, cell: 0, tint: [.80, .70, .54]}, {seed: 2, stems: 8, cell: 2, tint: [.60, .68, .50]}]
   };
   /* detail per level: the desktop near level is the full ez-tree mesh, the phone's is thinned (every 2nd sprig, 1.35x) */
   const NEAR = TREE_MOBILE ? {sectionStride:2, segmentFactor:.75, leafStride:2, leafScale:1.35} : {};
   const FARD = TREE_MOBILE ? {sectionStride:4, segmentFactor:.4, leafStride:4, leafScale:2.0, billboard:"single"} : {sectionStride:3, segmentFactor:.55, leafStride:3, leafScale:1.7, billboard:"single"};
+  /* BUSH (own builder, not an ez preset): several stems that fan up and out of one spot, side twigs, and sprig cards of a SIMPLE-leaved sprig (aspen, or oak)
+     laid along them, so the outline is made of separate leaves and there is depth (inner leaves darker, outer ones lighter, a skirt at the ground).
+     Own private generator per variant: nothing here draws from the shared streams. Units: world, per unit of bush scale; the box is HT 1.25 / HALFW 1.45. */
+  const BUSHTINT = QS.get("btint") ? QS.get("btint").split(",").map(Number) : null;
+  const bushGeoC = (sp, d) => {
+    const rg = mulberry32(seedOf("bushC:" + sp.seed)), stride = d.leafStride || 1, scl = d.leafScale || 1, far = !!d.billboard, rad = far ? 4 : 6, nseg = far ? 3 : 6;
+    const bp = [], bn = [], bu = [], bB = [], bi = [], pos = [], nor = [], uv = [], col = [], aB = [], aW = [], aEx = [], idx = [];
+    const tint = BUSHTINT || sp.tint, cell0 = sp.cell, HTb = 1.25, HWb = 1.45;
+    const tube = (pts, r0, r1, b0, b1) => { const base = bp.length / 3, n = pts.length;
+      for(let i = 0; i < n; i++){ const t = i / (n - 1), a = pts[Math.max(i - 1, 0)], b = pts[Math.min(i + 1, n - 1)];
+        const T = new THREE.Vector3().subVectors(b, a).normalize(), A = Math.abs(T.y) > .9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0), X = new THREE.Vector3().crossVectors(T, A).normalize(), Y = new THREE.Vector3().crossVectors(T, X), r = r0 + (r1 - r0) * t;
+        for(let k = 0; k <= rad; k++){ const ang = k / rad * Math.PI * 2, nx = Math.cos(ang), ny = Math.sin(ang);
+          const nv = new THREE.Vector3().addScaledVector(X, nx).addScaledVector(Y, ny);
+          bp.push(pts[i].x + nv.x * r, pts[i].y + nv.y * r, pts[i].z + nv.z * r); bn.push(nv.x, nv.y, nv.z); bu.push(k / rad, t * 1.2 * (n - 1) / 3); bB.push(b0 + (b1 - b0) * t); } }
+      for(let i = 0; i < n - 1; i++) for(let k = 0; k < rad; k++){ const a = base + i * (rad + 1) + k, b = a + rad + 1; bi.push(a, b, a + 1, a + 1, b, b + 1); } };
+    /* a sprig card at P along direction D (its tip), width side R, size s; lit with a normal that leans out of the bush's centre */
+    const card = (P, D, s, br, ex, w) => {
+      const R = new THREE.Vector3().crossVectors(D, new THREE.Vector3(rg() - .5, rg() - .5, rg() - .5)).normalize(); if(R.lengthSq() < .01) R.set(1, 0, 0);
+      const O = new THREE.Vector3(P.x, Math.max(0, P.y - .35), P.z).normalize(), Nn = new THREE.Vector3().copy(O).multiplyScalar(.9).addScaledVector(new THREE.Vector3(0, 1, 0), .5).addScaledVector(R, (rg() - .5) * .5).normalize();
+      const flip = rg() < .5, hue = (rg() - .5) * .10, L = .95 * s, Wd = .74 * s, b = pos.length / 3;
+      const cs = [[0, 1], [0, 0], [1, 0], [1, 1]];
+      for(const [cu, cv] of cs){ const x = P.x + D.x * cv * L + R.x * (cu - .5) * Wd * (cv ? .9 : 1), y = P.y + D.y * cv * L + R.y * (cu - .5) * Wd * (cv ? .9 : 1), z = P.z + D.z * cv * L + R.z * (cu - .5) * Wd * (cv ? .9 : 1);
+        pos.push(x, Math.max(y, -.04), z); nor.push(Nn.x, Nn.y, Nn.z); uv.push(((flip ? 1 - cu : cu) + cell0) / 3, cv * .5);
+        col.push(tint[0] * br * (1 + hue), tint[1] * br, tint[2] * br * (1 - hue)); aB.push(CLAMP01(.15 + .45 * (y / HTb)) * w); aW.push(.25 + .75 * cv); aEx.push(ex); }
+      idx.push(b, b + 1, b + 2, b, b + 2, b + 3); };
+    const ns = sp.stems, up = new THREE.Vector3(0, 1, 0), cards = [];
+    for(let i = 0; i < ns; i++){
+      const az = (i + rg() * .7) / ns * Math.PI * 2, tilt = .22 + rg() * .85, len = (.62 + rg() * .45) * (i % 3 === 0 ? 1.0 : .8), r0 = .03 + rg() * .012;
+      const dir = new THREE.Vector3(Math.sin(tilt) * Math.cos(az), Math.cos(tilt), Math.sin(tilt) * Math.sin(az)), org = new THREE.Vector3(Math.cos(az + 1.6) * .06 * rg(), -.05, Math.sin(az + 1.6) * .06 * rg());
+      const pts = [], N = 6; let cur = org.clone(), dd = dir.clone();
+      for(let k = 0; k <= N; k++){ pts.push(cur.clone()); dd.addScaledVector(up, -.05).normalize(); dd.x += (rg() - .5) * .08; dd.z += (rg() - .5) * .08; dd.normalize(); cur.addScaledVector(dd, len / N); }
+      const sp3 = k => pts[Math.min(N, Math.round(k * N))];
+      tube(pts.filter((_, k) => !far || k % 2 === 0 || k === N), r0, r0 * .3, .02, .45);
+      /* leaves along the outer 3/4 of the stem; the farther out, the lighter and the freer */
+      const nl = 8 + Math.floor(rg() * 3);
+      for(let k = 0; k < nl; k++){ const f = .22 + .78 * (k + rg() * .6) / nl, at = Math.min(f * N, N - .001), j = Math.floor(at), P = pts[j].clone().lerp(pts[j + 1], at - j);
+        const D = new THREE.Vector3().copy(dd).lerp(new THREE.Vector3(P.x, 0, P.z).normalize(), .45).add(new THREE.Vector3((rg() - .5) * .7, (rg() - .3) * .4, (rg() - .5) * .7)).normalize();
+        cards.push({P, D, s: (.55 + rg() * .35) * (1 - .25 * (1 - f)), br: .72 + .38 * f + (rg() - .5) * .16, ex: CLAMP01(f * 1.1 - .1), w: .6}); }
+      /* two side twigs, each with a few leaves */
+      for(let t2 = 0; t2 < 2; t2++){ const f = .35 + .4 * rg(), at = f * N, j = Math.floor(at), P0 = pts[j].clone().lerp(pts[j + 1], at - j);
+        const sd = new THREE.Vector3(rg() - .5, .35 + rg() * .3, rg() - .5).normalize().lerp(new THREE.Vector3(P0.x, 0, P0.z).normalize(), .5).normalize(), tl = .30 + rg() * .22, tp = [P0, P0.clone().addScaledVector(sd, tl * .5), P0.clone().addScaledVector(sd, tl).addScaledVector(up, -.05)];
+        tube(far ? [tp[0], tp[2]] : tp, r0 * .5, r0 * .2, .3, .6);
+        for(let k = 0; k < 3; k++){ const P = tp[k % 3 === 0 ? 1 : 2].clone().addScaledVector(sd, k * .05), D = sd.clone().add(new THREE.Vector3((rg() - .5) * .8, rg() * .3, (rg() - .5) * .8)).normalize();
+          cards.push({P, D, s: .5 + rg() * .3, br: .8 + rg() * .3, ex: CLAMP01(.3 + .6 * rg()), w: .7}); } } }
+    /* a skirt at the ground, so the mound meets the grass with leaves, not with a hard rim */
+    for(let k = 0; k < 11; k++){ const az = k / 11 * Math.PI * 2 + rg() * .5, rr = .38 + rg() * .55, P = new THREE.Vector3(Math.cos(az) * rr * .6, .02 + rg() * .12, Math.sin(az) * rr * .6),
+        D = new THREE.Vector3(Math.cos(az), .30 + rg() * .5, Math.sin(az)).normalize(); cards.push({P, D, s: .5 + rg() * .25, br: .62 + rg() * .25, ex: .15, w: .5}); }
+    cards.forEach((c, i) => { if(i % stride) return; card(c.P, c.D, c.s * scl, c.br, c.ex, c.w); });
+    const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute("normal", new THREE.Float32BufferAttribute(bn, 3)); bg.setAttribute("uv", new THREE.Float32BufferAttribute(bu, 2));
+    bg.setAttribute("aB", new THREE.Float32BufferAttribute(bB.map(v => v * .8), 1)); bg.setAttribute("aW", new THREE.Float32BufferAttribute(new Array(bB.length).fill(0), 1)); bg.setAttribute("aEx", new THREE.Float32BufferAttribute(new Array(bB.length).fill(0), 1)); bg.setIndex(new THREE.BufferAttribute(new Uint32Array(bi), 1)); bg.computeBoundingSphere();
+    const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); lg.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); lg.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    lg.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); lg.setAttribute("aB", new THREE.Float32BufferAttribute(aB, 1)); lg.setAttribute("aW", new THREE.Float32BufferAttribute(aW, 1)); lg.setAttribute("aEx", new THREE.Float32BufferAttribute(aEx, 1)); lg.setIndex(new THREE.BufferAttribute(new Uint32Array(idx), 1)); lg.computeBoundingSphere();
+    return {branches: bg, leaves: lg}; };
   const out = {};
   for(const kind of ["tree", "willow", "bush"]){
     const K = KIND[kind];
+    if(kind === "bush"){ out.bush = specs.bush.map(sp => { const lods = [NEAR, FARD].map(d => bushGeoC(sp, d));
+        return {name: "bush #" + sp.seed, w: 1, rad: K.HALFW, H: K.HT, parts: [{leaf: false, geos: lods.map(l => l.branches)}, {leaf: true, geos: lods.map(l => l.leaves)}]}; }); continue; }
     out[kind] = specs[kind].map(sp => {
       const t = new EZ.Tree(); t.options.copy(EZ.TreePreset[sp.preset]); t.options.seed = sp.seed;
       const o = t.options; for(const k in o.branch.radius) o.branch.radius[k] *= sp.radius[+k] ?? 1.5;
@@ -1770,6 +1825,7 @@ function bakeGeoC(){
             const u = flip ? 1 - ua.getX(i0 + k) : ua.getX(i0 + k); ua.setX(i0 + k, (u + cell0) / N3);
             const ci = (i0 + k) * 3; col[ci] = tint[0] * br * (1 + hue); col[ci + 1] = tint[1] * br; col[ci + 2] = tint[2] * br * (1 - hue);
             aB[i0 + k] = cw; aW[i0 + k] = Math.max(0, ua.getY(i0 + k)) * .9; aEx[i0 + k] = ex;
+            ua.setY(i0 + k, ua.getY(i0 + k) * .5);      /* the atlas has two rows now: the oak | ash | aspen row is the bottom half, the willow sprig the top */
           }
           /* the shading normals: scale like a position would, so the crown's rounding survives the fit */
           for(let k = 0; k < 4; k++){ v.fromBufferAttribute(nra, i0 + k); v.set(v.x / kxz, v.y / Math.max(dy, .2 * kxz), v.z / kxz).normalize(); nra.setXYZ(i0 + k, v.x, v.y, v.z); }
@@ -1799,37 +1855,49 @@ function bakeGeoC(){
         /* anchors sit ON the limbs: random points of the near level's branch mesh, outside the trunk and above the strands' reach, the outer limbs favoured,
            no two within .55 u of each other */
         if(!ANCH){ const bp = l.branches.attributes.position, nb = bp.count, anchors = [];
-          for(let t = 0; t < 9000 && anchors.length < 210; t++){ const i = Math.floor(wr() * nb), x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), r = Math.hypot(x, z);
+          for(let t = 0; t < 14000 && anchors.length < 330; t++){ const i = Math.floor(wr() * nb), x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), r = Math.hypot(x, z);
             if(y < 4.0 || y > HT * 1.01 || r < 1.1 || wr() > .15 + r / K.HALFW) continue;
-            let ok = true; for(const a of anchors){ const dx = a[0] - x, dy = a[1] - y, dz = a[2] - z; if(dx * dx + dy * dy + dz * dz < .3){ ok = false; break; } }
+            let ok = true; for(const a of anchors){ const dx = a[0] - x, dy = a[1] - y, dz = a[2] - z; if(dx * dx + dy * dy + dz * dz < .2){ ok = false; break; } }
             if(ok) anchors.push([x, y, z, r]); }
           ANCH = anchors; }
         const anchorsL = ANCH;      /* chosen once from the near level's sprigs; every level hangs the same strands (the far ones every 3rd or 4th) */
         const pos = [], nor = [], uv = [], col = [], aB = [], aW = [], aEx = [], idx = [];
         const pushKept = q => { const i0 = q * 4, b = pos.length / 3; for(let k = 0; k < 4; k++){ pos.push(pa.getX(i0 + k), pa.getY(i0 + k), pa.getZ(i0 + k)); nor.push(na.getX(i0 + k), na.getY(i0 + k), na.getZ(i0 + k)); uv.push(ua.getX(i0 + k), ua.getY(i0 + k));
           col.push(cr.getX(i0 + k), cr.getY(i0 + k), cr.getZ(i0 + k)); aB.push(aB0.getX(i0 + k)); aW.push(aW0.getX(i0 + k)); aEx.push(aE0.getX(i0 + k)); } idx.push(b, b + 1, b + 2, b, b + 2, b + 3); };
-        keep.forEach(pushKept);
-        const V = new THREE.Vector3(), Dk = new THREE.Vector3(), O = new THREE.Vector3(), R = new THREE.Vector3(), P = new THREE.Vector3(), UPv = new THREE.Vector3(0, 1, 0), Nn = new THREE.Vector3();
-        anchorsL.forEach((an, ai) => { if(ai % stride) return; const wr = mulberry32(seedOf('wc:' + sp.seed + ':' + ai));      /* per strand: the same in every level */
-          const floorY = HT * (.29 + .07 * wr()), ph = wr() * 6.28, sz = (.85 + wr() * .4) * scl, rl = wr() * 6.28;
-          O.set(an[0], 0, an[2]); if(O.lengthSq() < .01) O.set(Math.cos(rl), 0, Math.sin(rl)); O.normalize();
-          P.set(an[0], an[1], an[2]); const total = Math.max(.1, an[1] - floorY); let k = 0, travelled = 0;
-          while(P.y > floorY && k < 22){
+        const pa0k = pa, WTINT = QS.get('wtint') ? QS.get('wtint').split(',').map(Number) : [.92, .74, .50];
+        const V = new THREE.Vector3(), Dk = new THREE.Vector3(), O = new THREE.Vector3(), O0 = new THREE.Vector3(), P0 = new THREE.Vector3(), R = new THREE.Vector3(), P = new THREE.Vector3(), UPv = new THREE.Vector3(0, 1, 0), Nn = new THREE.Vector3();
+        /* one hanging chain of willow-sprig cards from a point P0, falling to floorY. Card: WCW x WCL world units (the proportions the sprig was drawn in, so its
+           leaves stay about 9:1), the sprig's base at the top of the chain, its tip hanging down. Overlap 38%. */
+        const WCW = .88, WCL = 2.2;
+        const chain = (P0, O0, wr, floorY, sz, wm, dome) => {
+          const ph = wr() * 6.28; O.copy(O0); P.copy(P0); const total = Math.max(.1, P0.y - floorY); let k = 0, travelled = 0;
+          while(P.y > floorY && k < 12){
             const t0 = Math.min(1, travelled / total), lat = Math.sin(k * 1.3 + ph) * .13;
-            Dk.set(O.x * .10 * (1 - t0) + (-O.z) * lat, -1, O.z * .10 * (1 - t0) + O.x * lat).normalize();
-            const Lc = 1.25 * sz, w = .66 * sz, step = Lc * .60;
+            Dk.set(O.x * (dome ? .30 : .10) * (1 - t0) + (-O.z) * lat, -1, O.z * (dome ? .30 : .10) * (1 - t0) + O.x * lat).normalize();
+            const Lc = WCL * sz, w = WCW * sz * wm, step = Lc * .62;
             R.crossVectors(Dk, O); if(R.lengthSq() < 1e-4) R.set(1, 0, 0); R.normalize();
-            R.applyAxisAngle(Dk, ((k & 1) ? 1.25 : 0) + (wr() - .5) * .8);
+            R.applyAxisAngle(Dk, ((k & 1) ? 1.25 : 0) + (wr() - .5) * .9);
             const flip = wr() < .5, br = .80 + wr() * .26, hue = (wr() - .5) * .10, t1 = Math.min(1, (travelled + Lc) / total);
             const b = pos.length / 3; Nn.copy(O).multiplyScalar(.75).addScaledVector(UPv, .30).addScaledVector(R, (wr() - .5) * .4).normalize();
             const cs = [[0, 1], [0, 0], [1, 0], [1, 1]];        /* tip-left, base-left, base-right, tip-right: the sprig's base is v = 0, its tip v = 1, which here points down */
             for(const [cu, cv] of cs){ V.copy(P).addScaledVector(Dk, cv * Lc).addScaledVector(R, (cu - .5) * w * (cv ? .85 : 1)); if(V.y < .05) V.y = .05;
-              pos.push(V.x, V.y, V.z); nor.push(Nn.x, Nn.y, Nn.z); uv.push(((flip ? 1 - cu : cu) + cell0) / N3, cv);
-              col.push(tint[0] * br * (1 + hue), tint[1] * br, tint[2] * br * (1 - hue));
+              pos.push(V.x, V.y, V.z); nor.push(Nn.x, Nn.y, Nn.z); uv.push((flip ? 1 - cu : cu) / N3, .5 + cv * .5);        /* the willow sprig: the top row of the atlas, first cell */
+              col.push(WTINT[0] * br * (1 + hue), WTINT[1] * br, WTINT[2] * br * (1 - hue));
               const tt = t0 + (t1 - t0) * cv; aB.push(CLAMP01(.30 + .80 * tt)); aW.push(.25 + .75 * tt * cv); aEx.push(wE(V.x, V.y, V.z)); }
             idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
             P.addScaledVector(Dk, step); travelled += step; k++; }
-        });
+        };
+        /* the strands that hang from the limbs: varied length (most reach the grass, some stop short), card width and size */
+        anchorsL.forEach((an, ai) => { if(ai % stride) return; const wr = mulberry32(seedOf('wc:' + sp.seed + ':' + ai));      /* per strand: the same in every level */
+          const lenR = wr(), floorY = HT * (lenR < .72 ? .27 + .08 * wr() : .38 + .30 * wr()), sz = (.80 + wr() * .40) * scl, wm = .85 + wr() * .45, rl = wr() * 6.28;
+          O0.set(an[0], 0, an[2]); if(O0.lengthSq() < .01) O0.set(Math.cos(rl), 0, Math.sin(rl)); O0.normalize();
+          chain(P0.set(an[0], an[1], an[2]), O0, wr, floorY, sz, wm, false); });
+        /* the dome: the old leaf quads of the crown's top are replaced by short drooping chains from the same places (the sun-lit pale clumps were those quads),
+           and these also cover the limbs that showed through */
+        keep.forEach((q, qi) => { if(qi % stride) return; const wr = mulberry32(seedOf('wd:' + sp.seed + ':' + qi)), i0 = q * 4;
+          P0.set((pa0k.getX(i0 + 1) + pa0k.getX(i0 + 2)) / 2, (pa0k.getY(i0 + 1) + pa0k.getY(i0 + 2)) / 2, (pa0k.getZ(i0 + 1) + pa0k.getZ(i0 + 2)) / 2);
+          O0.set(P0.x, 0, P0.z); if(O0.lengthSq() < .01) O0.set(1, 0, 0); O0.normalize();
+          chain(P0, O0, wr, Math.max(P0.y - (1.6 + wr() * 1.9), HT * .30), (.62 + wr() * .30) * scl, .9 + wr() * .3, true); });
         /* the bare limbs that droop all the way to the grass (ez-tree's gravity) read as rods once the strands carry the leaves: cut them where the strands start */
         { const bg = l.branches, bpp = bg.attributes.position, bi = bg.index, ni = [];
           for(let t = 0; t < bi.count; t += 3){ const a = bi.getX(t), b = bi.getX(t + 1), c = bi.getX(t + 2);

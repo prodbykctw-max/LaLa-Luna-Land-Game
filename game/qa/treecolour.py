@@ -12,7 +12,7 @@ def find(n):
         if g: return g[0]
     return None
 rows = {}
-for island, shots in (('hub', ['close', 'follow', 'backlit']), ('green', ['follow'])):
+for island, shots in (('hub', ['close', 'follow', 'backlit']), ('green', ['follow', 'willow', 'bush_close'])):
     for c in 'AC':
         jf = find(f'tl_{c}_{island}_stills.json')
         if not jf: continue

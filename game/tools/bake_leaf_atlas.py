@@ -28,6 +28,70 @@ def to_green(rgba):
     i = np.floor(h * 6).astype(int) % 6; f = h * 6 - np.floor(h * 6); p = v * (1 - s); q = v * (1 - f * s); t = v * (1 - (1 - f) * s)
     r = np.choose(i, [v, q, p, p, t, v]); g = np.choose(i, [t, v, v, q, p, p]); b = np.choose(i, [p, p, t, v, v, q])
     out = rgba.copy(); out[..., :3] = (np.stack([r, g, b], 2) * 255).astype(np.uint8); return out
+
+# ---- WILLOW sprig (procedural, no outside source): python3 tools/bake_leaf_atlas.py --willow
+# A thin hanging twig with long lance-shaped leaves (about 9:1), alternate, pointing toward the tip and drooping. Drawn in the card's WORLD units
+# (the card is WILLOW_CARD_W x WILLOW_CARD_L world units, base at the bottom of the image, tip at the top: the strand hangs tip-down), so the leaf
+# comes out 9:1 on screen whatever the card's aspect. It goes in the top row of a 2-row atlas; the oak | ash | aspen row is read back from the
+# current atlas and kept byte-for-byte (lossless save), so those sprigs and their mip chain do not change.
+WILLOW_CARD_W, WILLOW_CARD_L = 0.80, 2.00
+def willow_cell(S=768, SS=4, seed=11):
+    import random, math
+    from PIL import ImageDraw
+    rnd = random.Random(seed); W = S * SS
+    im = Image.new('RGBA', (W, W), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    px = lambda x, y: (x / WILLOW_CARD_W * W, W - y / WILLOW_CARD_L * W)
+    # the twig: nearly straight, a slow wander, thin; it ends before the card does
+    tw = []
+    for i in range(41):
+        t = i / 40; y = 0.02 + t * 1.80; tw.append((0.40 + 0.035 * math.sin(t * 5.1) + 0.02 * t, y))
+    def twig_x(y):
+        t = (y - .02) / 1.8; return .40 + .035 * math.sin(t * 5.1) + .02 * t
+    d.line([px(*p) for p in tw], fill=(92, 84, 40, 255), width=int(0.017 / WILLOW_CARD_W * W))
+    HL = []
+    def leaf(x0, y0, ang, L, wd, tone):
+        # axis from (x0, y0) at angle ang (0 = straight toward the tip = up the image), curling down-slope with t^2
+        n = 18; ax = []
+        for i in range(n + 1):
+            t = i / n; a = ang * (1 - .30 * t); ax.append((x0 + math.sin(a) * L * t, y0 + math.cos(a) * L * t))
+        left = []; right = []
+        for i, (x, y) in enumerate(ax):
+            t = i / n; h = wd * 0.5 * (t ** .55) * ((1 - t) ** .85) / (0.38 ** .55 * 0.62 ** .85)       # widest at about 38% of the length
+            j = min(i + 1, n); k = max(i - 1, 0); dx = ax[j][0] - ax[k][0]; dy = ax[j][1] - ax[k][1]; m = math.hypot(dx, dy) or 1; nx, ny = -dy / m, dx / m
+            left.append((x + nx * h, y + ny * h)); right.append((x - nx * h, y - ny * h))
+        poly = left + right[::-1]
+        d.polygon([px(*p) for p in poly], fill=tone + (255,))
+        # lighter band down the middle half, a darker edge falls out of the base colour: reads as a folded, glossy-topped leaf
+        inner = [((x + lx) / 2, (y + ly) / 2) for (x, y), (lx, ly) in zip(ax, left)]
+        hl = tuple(min(255, int(c * 1.22 + 10)) for c in tone)
+        HL.append(([px(*p) for p in inner + [((x + rx) / 2, (y + ry) / 2) for (x, y), (rx, ry) in zip(ax, right)][::-1]], hl))
+        d.line([px(*p) for p in ax[:-1]], fill=tuple(int(c * .72) for c in tone) + (255,), width=max(2, int(.006 / WILLOW_CARD_W * W)))
+    k = 0; y = 0.09
+    while y < 1.72:
+        for side in (-1, 1):
+            yy = y + (0.09 if side > 0 else 0.0); tx = twig_x(yy)
+            L = (0.50 + 0.22 * rnd.random()) * (1 - .30 * max(0, (yy - 1.2) / .6)) ; wd = L / (9.5 + rnd.random() * 2.0)
+            ang = side * (math.radians(30 + rnd.random() * 22))
+            g = rnd.random(); tone = (int(70 + 22 * g), int(120 + 26 * g), int(46 + 14 * g))
+            leaf(tx, yy, ang, L, wd, tone)
+        y += 0.21 + 0.03 * rnd.random(); k += 1
+    leaf(twig_x(1.84), 1.84, 0.05, 0.34, 0.04, (88, 142, 58))
+    from PIL import ImageFilter
+    hl = Image.new('RGBA', (W, W), (0, 0, 0, 0)); hd = ImageDraw.Draw(hl)
+    for poly, c in HL: hd.polygon(poly, fill=c + (255,))
+    hl = hl.filter(ImageFilter.GaussianBlur(W * .004)); a = im.split()[3]
+    hl.putalpha(Image.fromarray((np.minimum(np.array(a), np.array(hl.split()[3])))))
+    im = Image.alpha_composite(im, hl)
+    return im.resize((S, S), Image.LANCZOS)
+if sys.argv[1] == '--willow':
+    cur = np.array(Image.open('assets/trees/ez/leaf_atlas.webp').convert('RGBA'))
+    base = cur[CELL:] if cur.shape[0] == 2 * CELL else cur
+    cell = bleed(np.array(willow_cell(CELL)), iters=60)
+    far = (cell[..., 3] == 0) & (cell[..., :3].sum(2) == 0); cell[far, :3] = (78, 128, 50)       # beyond the bleed: a leaf green, never black, so mips do not darken
+    top = np.concatenate([cell, np.zeros_like(cell), np.zeros_like(cell)], axis=1)
+    A = np.concatenate([top, base], axis=0)
+    Image.fromarray(A, 'RGBA').save('assets/trees/ez/leaf_atlas.webp', lossless=True, quality=100, method=6, exact=True)
+    print(A.shape); sys.exit(0)
 srcs = sys.argv[1:4]; cells = []
 for k, f in enumerate(srcs):
     im = Image.open(f).convert('RGBA').resize((CELL, CELL), Image.LANCZOS); a = np.array(im)

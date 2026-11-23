@@ -75,6 +75,12 @@ if (mode === 'stills') {
     res.willow = wv;
     if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 36 - wv.uz * 10, wv.g + 8, wv.z + wv.uz * 36 + wv.ux * 10], t: [wv.x, wv.g + 4.4, wv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_willow.jpg`);
+      res.rect.willow = await H.page.evaluate(({ x, y, z, sc }) => { const T = window.__T, c = T.camera; c.updateMatrixWorld(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+        for (const [dx, dy, dz] of [[-5, 0, -5], [5, 0, -5], [-5, 0, 5], [5, 0, 5], [-5, 9, -5], [5, 9, -5], [-5, 9, 5], [5, 9, 5]]) { const v = new THREE.Vector3(x + dx * sc, y + dy * sc, z + dz * sc).project(c);
+          const X = (v.x + 1) / 2 * innerWidth, Y = (1 - v.y) / 2 * innerHeight; x0 = Math.min(x0, X); x1 = Math.max(x1, X); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y); }
+        return [Math.max(0, Math.round(x0)), Math.max(0, Math.round(y0)), Math.min(innerWidth, Math.round(x1)), Math.min(innerHeight, Math.round(y1))]; }, { x: wv.x, y: wv.g, z: wv.z, sc: wv.sc });
+      await H.page.evaluate(() => { window.__NOTREES = true; (window.__T.CUR.forest || []).forEach(m => { m.visible = false; }); }); await H.tick(); await H.tick(); await shot(H, `${base}_willow_bare.jpg`);
+      await H.page.evaluate(() => { window.__NOTREES = false; (window.__T.CUR.forest || []).forEach(m => { m.visible = true; }); }); await H.tick(); await H.tick();
       /* 5b. willow close-up: the most isolated willow (colliders are identical in every look), the camera 12-16 u from it on the side nearest the spawn that has a clear line of sight (no other crown between), the whole willow in frame, Lala beside it */
       const wc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")), ws = all.filter(c => c.kind === "willow"); let best = null, bs = -1e9;
         for(const c of ws) { let nb = 1e9; for(const o of all) if(o !== c) nb = Math.min(nb, Math.hypot(o.x - c.x, o.z - c.z)); const sc = c.r / .55, d = Math.hypot(c.x - sp[0], c.z - sp[1]); const sco = Math.min(nb, 16) - .04 * d; if(sco > bs) { bs = sco; best = { c, sc, nb }; } }
@@ -94,6 +100,20 @@ if (mode === 'stills') {
     res.bush = bv;
     if(bv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bv.x + bv.ux * 1.2 - bv.uz * 1.6, bv.z + bv.uz * 1.2 + bv.ux * 1.6], e: [bv.x + bv.ux * 5.2 - bv.uz * 1.2, bv.g + 3.0, bv.z + bv.uz * 5.2 + bv.ux * 1.2], t: [bv.x, bv.g + .4, bv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_bush.jpg`); }
+    /* 7. bush_close: the biggest bush within 45 u of the spawn is the subject, camera 7 u off and 2.6 u up looking slightly down (so the grass does not hide it), Lala beside it */
+    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = I.bushPos || []; let best = null, bs = -1;
+      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 45) continue; if(b.sc > bs) { bs = b.sc; best = b; } } if(!best) return null;
+      const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, sc: best.sc, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z) }; });
+    res.bushClose = bc;
+    if(bc) { const e = [bc.x + bc.ux * 7 - bc.uz * 1.5, bc.g + 2.6, bc.z + bc.uz * 7 + bc.ux * 1.5];
+      await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bc.x + bc.ux * 2.6 + bc.uz * 1.6, bc.z + bc.uz * 2.6 - bc.ux * 1.6], e, t: [bc.x, bc.g + .45, bc.z] })})`);
+      await settle(H, 60); await shot(H, `${base}_bush_close.jpg`);
+      res.rect.bush_close = await H.page.evaluate(({ x, y, z, sc }) => { const T = window.__T, c = T.camera; c.updateMatrixWorld(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+        for (const [dx, dy, dz] of [[-1.6, 0, -1.6], [1.6, 0, -1.6], [-1.6, 0, 1.6], [1.6, 0, 1.6], [-1.6, 1.5, -1.6], [1.6, 1.5, -1.6], [-1.6, 1.5, 1.6], [1.6, 1.5, 1.6]]) { const v = new THREE.Vector3(x + dx * sc, y + dy * sc, z + dz * sc).project(c);
+          const X = (v.x + 1) / 2 * innerWidth, Y = (1 - v.y) / 2 * innerHeight; x0 = Math.min(x0, X); x1 = Math.max(x1, X); y0 = Math.min(y0, Y); y1 = Math.max(y1, Y); }
+        return [Math.max(0, Math.round(x0)), Math.max(0, Math.round(y0)), Math.min(innerWidth, Math.round(x1)), Math.min(innerHeight, Math.round(y1))]; }, { x: bc.x, y: bc.g, z: bc.z, sc: bc.sc });
+      await H.page.evaluate(() => { window.__NOTREES = true; (window.__T.CUR.forest || []).forEach(m => { m.visible = false; }); }); await H.tick(); await H.tick(); await shot(H, `${base}_bush_close_bare.jpg`);
+      await H.page.evaluate(() => { window.__NOTREES = false; (window.__T.CUR.forest || []).forEach(m => { m.visible = true; }); }); await H.tick(); await H.tick(); }
   }
   res.errors = [...new Set(H.log.errors)].slice(0, 10); writeFileSync(`${base}_stills.json`, JSON.stringify(res, null, 1));
   console.error('[done]', opt, island, 'errors', H.log.errors.length); await H.close(); process.exit(0);
