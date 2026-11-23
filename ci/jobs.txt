@@ -1,0 +1,4 @@
+node qa/sanityperf_edge.mjs --tag=new --islands=town,green --frames=150
+node qa/sanityperf_edge.mjs --tag=old --query=skincull=0 --islands=town,green --frames=150
+node qa/sanityperf_edge.mjs --tag=new --islands=gr,sanity --frames=150
+node qa/sanityperf_edge.mjs --tag=old --query=skincull=0 --islands=gr,sanity --frames=150
