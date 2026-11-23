@@ -1,0 +1,1 @@
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofs --islands=green --query=farskin=0
