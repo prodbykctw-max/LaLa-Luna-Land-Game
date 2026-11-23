@@ -68,12 +68,17 @@ if (mode === 'stills') {
     await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [gv.x, gv.z], e: [gv.x + gv.ux * 27, gv.g + 9, gv.z + gv.uz * 27], t: [gv.x, gv.g + 3.2, gv.z] })})`);
     await settle(H, 60); await shot(H, `${base}_grove.jpg`);
     /* 5. willow: the nearest willow to the spawn that stands clear, the game's pose: camera 16 u off, Lala beside it */
-    const wv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, all = I.colliders.filter(c => c.camR > 1), ws = all.filter(c => c.kind === "willow"); let best = null, bd = 1e9;
-      for(const c of ws) { let nb = 1e9; for(const o of all) if(o !== c) nb = Math.min(nb, Math.hypot(o.x - c.x, o.z - c.z)); const d = Math.hypot(c.x - sp[0], c.z - sp[1]); if(nb < 9 || d < 8) continue; if(d < bd) { bd = d; best = c; } }
-      if(!best) for(const c of ws) { const d = Math.hypot(c.x - sp[0], c.z - sp[1]); if(d > 8 && d < bd) { bd = d; best = c; } } if(!best) return null;
-      const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z), sc: best.r / .55 }; });
+    /* the 36 u willow shot: the most isolated willow, seen from the side (nearest the spawn) whose 36 u line of sight has no other crown or bush on it, so the willow is the subject */
+    const wv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")), ws = all.filter(c => c.kind === "willow"); let best = null, bs = -1e9;
+      for(const c of ws) { let nb = 1e9; for(const o of all) if(o !== c) nb = Math.min(nb, Math.hypot(o.x - c.x, o.z - c.z)); const d = Math.hypot(c.x - sp[0], c.z - sp[1]); const sco = Math.min(nb, 16) - .04 * d; if(sco > bs) { bs = sco; best = c; } }
+      if(!best) return null; const c = best, a0 = Math.atan2(sp[1] - c.z, sp[0] - c.x); let pick = null, pc = -1e9;
+      for(const k of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8]) { const a = a0 + k * Math.PI / 8, ex = c.x + Math.cos(a) * 36, ez = c.z + Math.sin(a) * 36; let clr = 1e9;
+        for(const o of all) { if(o === c) continue; const osc = o.r / .55; for(let f = .05; f <= .8; f += .05) { const px = ex + (c.x - ex) * f, pz = ez + (c.z - ez) * f; clr = Math.min(clr, Math.hypot(o.x - px, o.z - pz) - (4.6 * osc + .6)); } }
+        for(const b of (I.bushPos || [])) { for(let f = .05; f <= .8; f += .05) { const px = ex + (c.x - ex) * f, pz = ez + (c.z - ez) * f; clr = Math.min(clr, Math.hypot(b.x - px, b.z - pz) - 2); } }
+        if(clr > 0) { pick = { a, clr }; break; } if(clr > pc) { pc = clr; pick = { a, clr }; } }
+      return { x: c.x, z: c.z, ux: Math.cos(pick.a), uz: Math.sin(pick.a), g: I.height(c.x, c.z), sc: c.r / .55, clr: pick.clr }; });
     res.willow = wv;
-    if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 36 - wv.uz * 10, wv.g + 8, wv.z + wv.uz * 36 + wv.ux * 10], t: [wv.x, wv.g + 4.4, wv.z] })})`);
+    if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 36 - wv.uz * 10, wv.g + 8, wv.z + wv.uz * 36 + wv.ux * 4], t: [wv.x, wv.g + 4.4, wv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_willow.jpg`);
       res.rect.willow = await H.page.evaluate(({ x, y, z, sc }) => { const T = window.__T, c = T.camera; c.updateMatrixWorld(); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
         for (const [dx, dy, dz] of [[-5, 0, -5], [5, 0, -5], [-5, 0, 5], [5, 0, 5], [-5, 9, -5], [5, 9, -5], [-5, 9, 5], [5, 9, 5]]) { const v = new THREE.Vector3(x + dx * sc, y + dy * sc, z + dz * sc).project(c);
@@ -92,17 +97,25 @@ if (mode === 'stills') {
         return { x: c.x, z: c.z, g: I.height(c.x, c.z), sc, wd, a: pick.a, clr: pick.clr, nb: best.nb }; });
       res.willowClose = wc; const wux = Math.cos(wc.a), wuz = Math.sin(wc.a);
       await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wc.x + wux * 4.2 - wuz * 1.4, wc.z + wuz * 4.2 + wux * 1.4], e: [wc.x + wux * wc.wd, wc.g + 3.0, wc.z + wuz * wc.wd], t: [wc.x, wc.g + 4.3 * Math.max(1, wc.sc * .9), wc.z] })})`);
-      await settle(H, 60); await shot(H, `${base}_willow_close.jpg`); }
+      await settle(H, 60); await shot(H, `${base}_willow_close.jpg`);
+      /* what stands near the camera in this frame: a ray per grid cell against every instanced mesh; hits nearer than 11 u are listed with the baked variant they come from (C only) */
+      res.nearHits = await H.page.evaluate(() => { const T = window.__T, I = T.CUR, cam = T.camera, rc = new THREE.Raycaster(), G = window.__TREEGEO, out = {}; cam.updateMatrixWorld();
+        const ms = []; I.scene.traverse(o => { if(o.isInstancedMesh && o.visible && o.count) ms.push(o); });
+        const nameOf = g => { if(!G) return '?'; for(const k of ['tree', 'willow', 'bush']) (G[k] || []).forEach((V, vi) => V.parts.forEach(pt => pt.geos.forEach((geo, li) => { if(geo === g) out.__n = k + '#' + vi + ' ' + (pt.leaf ? 'leaf' : 'bark') + ' lod' + li; }))); const r = out.__n; out.__n = null; return r || '?'; };
+        for(let iy = 0; iy < 24; iy++) for(let ix = 0; ix < 40; ix++){ rc.setFromCamera(new THREE.Vector2((ix + .5) / 40 * 2 - 1, 1 - (iy + .5) / 24 * 2), cam);
+          for(const h of rc.intersectObjects(ms, false)){ if(h.distance > 11) break; const m = new THREE.Matrix4(); h.object.getMatrixAt(h.instanceId, m); const e = m.elements, key = nameOf(h.object.geometry) + ' @' + e[12].toFixed(1) + ',' + e[14].toFixed(1);
+            (out[key] = out[key] || { n: 0, cells: [], dist: +h.distance.toFixed(1), scale: +Math.hypot(e[0], e[1], e[2]).toFixed(2) }).n++; if(out[key].cells.length < 6) out[key].cells.push([ix, iy]); break; } }
+        delete out.__n; return out; }); }
     /* 6. bush: a bush (C publishes its instances; the game's own list of where bushes stand, identical for every look) */
     const bv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = I.bushPos || [];
-      if(!its.length) return null; let best = null, bd = 1e9; for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d > 7 && d < bd) { bd = d; best = b; } } if(!best) return null;
+      if(!its.length) return null; let best = null, bd = 1e9; for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d > 7 && d < 130 && d < bd) { bd = d; best = b; } } if(!best) return null;
       const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z) }; });
     res.bush = bv;
     if(bv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bv.x + bv.ux * 1.2 - bv.uz * 1.6, bv.z + bv.uz * 1.2 + bv.ux * 1.6], e: [bv.x + bv.ux * 5.2 - bv.uz * 1.2, bv.g + 3.0, bv.z + bv.uz * 5.2 + bv.ux * 1.2], t: [bv.x, bv.g + .4, bv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_bush.jpg`); }
-    /* 7. bush_close: the biggest bush within 45 u of the spawn is the subject, camera 7 u off and 2.6 u up looking slightly down (so the grass does not hide it), Lala beside it */
+    /* 7. bush_close: the biggest bush within 130 u (bushPos holds every island built so far, so the radius keeps it on this island) of the spawn is the subject, camera 7 u off and 2.6 u up looking slightly down (so the grass does not hide it), Lala beside it */
     const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = I.bushPos || []; let best = null, bs = -1;
-      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 45) continue; if(b.sc > bs) { bs = b.sc; best = b; } } if(!best) return null;
+      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 130) continue; if(b.sc > bs) { bs = b.sc; best = b; } } if(!best) return null;
       const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, sc: best.sc, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z) }; });
     res.bushClose = bc;
     if(bc) { const e = [bc.x + bc.ux * 7 - bc.uz * 1.5, bc.g + 2.6, bc.z + bc.uz * 7 + bc.ux * 1.5];

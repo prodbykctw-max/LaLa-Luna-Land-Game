@@ -1855,9 +1855,9 @@ function bakeGeoC(){
         /* anchors sit ON the limbs: random points of the near level's branch mesh, outside the trunk and above the strands' reach, the outer limbs favoured,
            no two within .55 u of each other */
         if(!ANCH){ const bp = l.branches.attributes.position, nb = bp.count, anchors = [];
-          for(let t = 0; t < 14000 && anchors.length < 330; t++){ const i = Math.floor(wr() * nb), x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), r = Math.hypot(x, z);
-            if(y < 4.0 || y > HT * 1.01 || r < 1.1 || wr() > .15 + r / K.HALFW) continue;
-            let ok = true; for(const a of anchors){ const dx = a[0] - x, dy = a[1] - y, dz = a[2] - z; if(dx * dx + dy * dy + dz * dz < .2){ ok = false; break; } }
+          for(let t = 0; t < 30000 && anchors.length < 520; t++){ const i = Math.floor(wr() * nb), x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), r = Math.hypot(x, z);
+            if(y < 3.6 || y > HT * 1.01 || r < .5 || wr() > (.2 + r / K.HALFW) * (.35 + .65 * Math.min(1, y / (HT * .8)))) continue;
+            let ok = true; for(const a of anchors){ const dx = a[0] - x, dy = a[1] - y, dz = a[2] - z; if(dx * dx + dy * dy + dz * dz < .13){ ok = false; break; } }
             if(ok) anchors.push([x, y, z, r]); }
           ANCH = anchors; }
         const anchorsL = ANCH;      /* chosen once from the near level's sprigs; every level hangs the same strands (the far ones every 3rd or 4th) */
