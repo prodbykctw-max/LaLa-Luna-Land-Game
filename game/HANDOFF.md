@@ -2161,40 +2161,51 @@ lower one - applied to a diagnosis instead of to a status.
 
 # Tree realism: options tried, Melvin's pick, state of `?trees=C` (branch `trees-realism`)
 
-**Status: C is behind `?trees=C`. A (today's trees) is still the default. Not merged, not deployed, BUILD not bumped. Awaiting Melvin's approval.**
+**Status: C is behind `?trees=C`. A (today's trees) is still the default. Not merged, not deployed, BUILD not bumped. Awaiting Melvin's approval.** Based on main dcc5d72; main has moved (crowd fade, PR #11), not merged yet.
 
 ## Options tried
-- **A** current trees (unchanged, default).
-- **B** shading-only changes to A. Dropped (Melvin picked C).
-- **C** ez-tree (MIT) procedural broadleaf, instanced. **Picked: "C, made full-size".**
-- **D** scanned glTF (Poly Haven island_tree). Dropped (Melvin picked C). Code, flag, `assets/trees/d/`, `tools/bake_tree_d.mjs` and credits removed in the drop commit.
-- Earlier rejected attempt (collaged leaf atlas): Melvin said it looked like blobs and patterns. C uses real leaf sprigs on real branches instead.
+- **A** current trees (unchanged, default). **B** shading-only on A, dropped. **D** scanned glTF, dropped. **C** ez-tree (MIT) procedural broadleaf, instanced: Melvin's pick.
+- Earlier rejected attempt (collaged leaf atlas): "blobs, patterns". C uses real sprigs on real branches.
 
 ## How C works
-- Flag `?trees=C` only. The ez-tree bundle (`vendor/eztree.min.js`, 32 KB, rebuild with `vendor/build-eztree.sh`) loads via `document.write` only for that flag.
-- In `forestBuilder` the shipped crown code (`treeA`) still runs for every tree so the seeded `Math.random` stream, placements, colliders and seeds stay identical; its geometry is thrown away and an instance of one of 12 baked variants is added instead (`treeField`, "TREE OPTION C" block). All C object creation runs under `withFreeRandom` so no uuid draws disturb the stream. Willows and bushes stay A.
-- Per instance: random yaw, scale jitter about +/-15%, per-tree tint, per-leaf hue/value variation, non-uniform scaling to A's crown (height 8.0, half-width 4.5). Near/far LOD (40 u desktop, 22 u phone near; far to 230 u), frustum and distance culling, wind sway, leaf shadows through a custom depth material.
-- Colliders now carry a `kind` field (behaviour neutral); the QA lineup uses it to pick a real tree, not a willow.
+- Flag `?trees=C` only. `vendor/eztree.min.js` (rebuild: `PATH=<esbuild dir>:$PATH sh vendor/build-eztree.sh`) loads via `document.write` only for that flag. **ez-tree is locally modified** (bark v runs with branch length; 32-bit indices) - see CREDITS.
+- `forestBuilder`: the shipped crown code (`treeA`, `crownOf` for bushes) still runs for every tree, willow and bush so the seeded `Math.random` stream, placements, colliders and seeds are identical; its geometry is cut back out (`cutBack`) and an instance of a baked variant is added instead, one `treeField` per kind (`tree`, `willow`, `bush`). Everything that makes an object runs under `withFreeRandom`; variation comes from private generators.
+- Bake (`bakeGeoC`, once per page, material-free; materials per day/night): 12 tree variants (7 oak, 5 ash), 3 weeping willows (Ash Large with downward `branch.force`, 50 ez units of trunk so the strands end at the grass), 4 many-stem bushes (Bush 1/2). Each is fitted to A's box (tree 8.0 high, 4.5 half width, crown starting at 1.6; willow 9.0 / 5.0; bush 1.25 / 1.45) with a piecewise height map and a crown width taken from the 92nd percentile of the sprigs (not the outliers).
+- Leaves: one sprig atlas `assets/trees/ez/leaf_atlas.webp` (oak | ash | aspen, `tools/bake_leaf_atlas.py`). Per sprig: in-plane spin +/-1.1 rad, mirror, size (skewed to small), shade and hue, per-species tint in vertex colour; sprigs at the crown's rim are 20% smaller (less fringe).
+- Backlight: leaf fragment shader adds light through the leaf when the camera looks toward the sun (`uSun` from `I.sunDir`, weighted by `aEx`, 0 inside the crown). Not on night islands.
+- Wind: one field for leaves, bark and both depth materials (`TREE_SWAY`, `aB` per-vertex branch weight, `aW` flutter), so shadows move with what casts them; amplitude about 3x the first version (tip about 0.3 u at full gust).
+- Depth materials now carry the alpha cut and the sway.
+- Bark: Bark001, v by length (no stretch), tint (.50,.40,.31), small emissive so shade is brown not black; trunk radius x2.7, limbs x1.9.
+- QA hooks: colliders carry `kind`; `I.bushPos` lists bush positions; `I.cItems` lists C instances; `window.__NOTREES` hides trees for the area diff.
 
-## Budgets (hub spawn, farm run tl5, main pass and shadow pass counted separately)
-| view | A main | C main | A with shadow | C with shadow | C shadow only |
-|---|---|---|---|---|---|
-| desktop tris | 976,713 | 1,014,741 | 1,407,653 | 1,483,709 | 468,968 |
-| phone tris | 768,581 | 729,933 | 1,149,495 | 1,072,199 | 342,266 |
-| phone draw calls | 288 | 296 | 345 | 361 | 65 |
-Phone C is 0.95x A (limit was 1.5x). Console errors: 0 on hub, green, gr, sanity, town for A and C. Tree counts and colliders identical.
-Crown screen area vs A (same frames, trees-hidden diff): hub follow 102%, green follow 103%, hub close 90%.
+## Budgets (hub spawn, farm run it5; main pass and shadow pass separate, A from tl5)
+| view | A main | C main | A shadow only | C shadow only | A total | C total |
+|---|---|---|---|---|---|---|
+| desktop tris | 976,713 | 1,090,816 (1.12x) | 430,940 | 533,892 | 1,407,653 | 1,624,708 |
+| phone tris | 768,581 | 746,545 (0.97x) | 380,914 | 359,931 | 1,149,495 | 1,106,476 |
+| desktop draw calls | 296 | 320 | 58 | 82 | 354 | 402 |
+| phone draw calls | 288 | 299 | 57 | 71 | 345 | 370 |
+Limit was phone main <= 1.5x A: 0.97x.
+Console errors, hub / green / gr / sanity / town: 0 for A and C; tree counts identical (160 / 258 / 72 / 121 / 10).
 
-## Proof (qa/out/treelineup, gitignored; regenerate with farm job + `python3 qa/treecompose.py <farm dir> <out dir>`)
-lineup_hub_{close,follow,wide,crop,backlit}.jpg, lineup_green_{follow,wide,grove}.jpg, lineup_hub_wind.mp4.
+## Colour, A vs C, same frames (qa/treecolour.py: green pixels that differ from the tree-hidden frame)
+| frame | A H / S / V | C H / S / V |
+|---|---|---|
+| hub close | 87.3 / .480 / .428 | 92.9 / .466 / .424 |
+| hub follow | 87.5 / .503 / .446 | 81.1 / .493 / .546 |
+| green follow | 84.0 / .492 / .447 | 76.9 / .402 / .521 |
+Before this round C was H 91 / S .49 / V .505 (hub close) and 86 / .45 / .566 (green follow). Away from the sun C now sits in A's range; facing the sun (hub follow, backlit) and the ash tree on green are still lighter and yellower than A.
+
+## Proof (qa/out/treelineup, gitignored; regenerate with farm jobs + `python3 qa/treecompose.py <farm dirs, comma separated> <out dir>`)
+lineup_hub_{close,follow,wide,crop,backlit}.jpg, lineup_green_{follow,wide,grove,willow,bush}.jpg, lineup_hub_wind.mp4. Crown screen area vs A: hub close 104%, hub follow 113%, green follow 70%.
 
 ## What still looks off in C (seen, not fixed)
-- C is brighter and more lime/mint than A's darker green; ash crowns read bluish-mint in the Green grove shot.
-- Trunk is short and stout, bark texture stretches vertically; in the wind frames C's trunk is thinner than A's.
-- Crown silhouette is spiky/fringed at the edges and sprig repetition is visible at 400 px crop; limbs inside are dark but few.
-- No backlit translucency: against the sun C leaves stay opaque and flat.
-- C is smaller than A in hub close (90%) and lacks A's low drooping lobes, so the wide shot shows more bare trunk.
-- Wind sway is subtle in the clip; willows and bushes next to C trees are still A-style, so mixed groves look inconsistent (grove shot).
+- Facing the sun C is a lighter, yellow-lime green than A; the backlight glow is subtle at the crown top, not a clear glowing-leaf look.
+- The ash tree on green is yellower and narrower than A (crown area 70%).
+- The willow does not read clearly as weeping in the willow shot; the strands show mostly at the lower edge.
+- Sprig edge is less spiky but the repeat is still visible in the 400 px crop; edge is stair-stepped by the alpha cut.
+- Oak limbs inside the crown are visible but few; trunk leans oddly on some variants.
+- The bush shot is mostly grass and flowers; the bush is a dark mound, A's is a bluish one.
 
 ## Licences
-See `CREDITS.md`: ez-tree and its leaf sprites MIT, Bark001 CC0. No Sketchfab model used; no token stored anywhere.
+See `CREDITS.md`. No Sketchfab model; no token stored anywhere.
