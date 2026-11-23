@@ -74,14 +74,25 @@ for (const key of keys) { try {
     await page.evaluate(() => { window.__T.CUR.W.camYaw += .03; });
     await page.clock.runFor(STEP());
     const rows = await page.evaluate(() => window.__probe());
-    if (SAME) await page.evaluate(() => { window.__seed(24681357); window.__T.composer.render(); });   /* the grain/dither draws Math.random per render: the same seed before both renders makes them comparable */
-    const shotBuf = await page.screenshot({ type: 'jpeg', quality: SAME ? 95 : 92, timeout: 600000 });
+    const shotBuf = await page.screenshot({ type: SAME ? 'png' : 'jpeg', quality: 92, timeout: 600000 });   /* A: the frame the game drew, skinCull ON */
     if (SAME) {
-      const nSk = await page.evaluate(() => { const s = window.__skc ? [...window.__skc] : []; window.__skcOn = s.filter(m => m.frustumCulled); window.__skcOn.forEach(m => { m.frustumCulled = false; }); window.__seed(24681357); window.__T.composer.render(); return window.__skcOn.length; });
-      const oldBuf = await page.screenshot({ type: 'jpeg', quality: 95, timeout: 600000 });
+      /* The frame is not bit-for-bit repeatable (a second render of identical state differs by ~1.4 mean from the first: dithered AO / god-ray jitter), so the comparison
+         is three renders of the SAME state: B = ON again (the noise floor), C = every skinCull'd mesh forced to frustumCulled=false (OLD). A pop shows as C differing from B by MORE
+         than B differs from A, in a localised blob. Metrics: whole-frame mean abs diff, count of pixels differing by more than 32, same for a 48 px band round the screen edge. */
+      const nSk = await page.evaluate(() => { const s = window.__skc ? [...window.__skc] : []; window.__skcOn = s.filter(m => m.frustumCulled); window.__T.composer.render(); return window.__skcOn.length; });
+      const bufB = await page.screenshot({ type: 'png', timeout: 600000 });
+      await page.evaluate(() => { window.__skcOn.forEach(m => { m.frustumCulled = false; }); window.__T.composer.render(); });
+      const bufC = await page.screenshot({ type: 'png', timeout: 600000 });
       await page.evaluate(() => { window.__skcOn.forEach(m => { m.frustumCulled = true; }); });
-      const same = Buffer.compare(shotBuf, oldBuf) === 0; sameLog.push({ f, same, nSkinCulled: nSk, culledNow: rows.filter(r => r.culled).length }); if (!same) { sameDiff++; fs0.writeFileSync(`${dir}/${key}_${String(f).padStart(3, '0')}_DIFF_new.jpg`, shotBuf); fs0.writeFileSync(`${dir}/${key}_${String(f).padStart(3, '0')}_DIFF_old.jpg`, oldBuf); }
-      oldRing.push([f, oldBuf]); if (oldRing.length > 4) oldRing.shift();
+      const cmp = (x, y) => page.evaluate(async ([x, y]) => { const dec = async b => { const bm = await createImageBitmap(await (await fetch('data:image/png;base64,' + b)).blob()); const c = new OffscreenCanvas(bm.width, bm.height), g = c.getContext('2d'); g.drawImage(bm, 0, 0); return g.getImageData(0, 0, bm.width, bm.height); };
+        const A = await dec(x), B = await dec(y), w = A.width, h = A.height; let sum = 0, n32 = 0, es = 0, en = 0, e32 = 0, bx0 = w, by0 = h, bx1 = -1, by1 = -1;
+        for (let p = 0; p < w * h; p++) { const i = p * 4, d = (Math.abs(A.data[i] - B.data[i]) + Math.abs(A.data[i + 1] - B.data[i + 1]) + Math.abs(A.data[i + 2] - B.data[i + 2])) / 3; sum += d; const px = p % w, py = (p / w) | 0, edge = px < 48 || py < 48 || px >= w - 48 || py >= h - 48; if (edge) { es += d; en++; }
+          if (d > 32) { n32++; if (edge) e32++; if (px < bx0) bx0 = px; if (px > bx1) bx1 = px; if (py < by0) by0 = py; if (py > by1) by1 = py; } }
+        return { mean: +(sum / (w * h)).toFixed(3), n32, edgeMean: +(es / en).toFixed(3), edge32: e32, bbox32: n32 ? [bx0, by0, bx1, by1] : null }; }, [x.toString('base64'), y.toString('base64')]);
+      const noise = await cmp(shotBuf, bufB), toggle = await cmp(bufB, bufC);
+      sameLog.push({ f, nSkinCulled: nSk, culledNow: rows.filter(r => r.culled).length, noise, toggle });
+      if (toggle.n32 > noise.n32 * 1.5 + 20 || toggle.mean > noise.mean * 1.3 + .2) { sameDiff++; fs0.writeFileSync(`${dir}/${key}_${String(f).padStart(3, '0')}_DIFF_on.png`, bufB); fs0.writeFileSync(`${dir}/${key}_${String(f).padStart(3, '0')}_DIFF_off.png`, bufC); }
+      oldRing.push([f, bufC]); if (oldRing.length > 4) oldRing.shift();
     }
     ring.push([f, shotBuf]); if (ring.length > 4) ring.shift();
     let cross = false;
@@ -93,9 +104,9 @@ for (const key of keys) { try {
     log.push({ f, cross, rows: rows.map(r => ({ id: r.id, name: r.name, culled: r.culled, on: r.on, onFrac: r.onFrac, bbox: r.bbox, crossing: r.crossing })) });
   }
   const { default: fs } = await import('fs');
-  let kept = 0; for (const [ff, b] of keep) { if (SAME && kept++ > 36) break; fs.writeFileSync(`${dir}/${key}_${String(ff).padStart(3, '0')}.jpg`, b); if (SAME && keepOld.has(ff)) fs.writeFileSync(`${dir}/${key}_${String(ff).padStart(3, '0')}_old.jpg`, keepOld.get(ff)); }
+  let kept = 0; for (const [ff, b] of keep) { if (SAME && kept++ > 36) break; fs.writeFileSync(`${dir}/${key}_${String(ff).padStart(3, '0')}.${SAME ? 'png' : 'jpg'}`, b); if (SAME && keepOld.has(ff)) fs.writeFileSync(`${dir}/${key}_${String(ff).padStart(3, '0')}_off.png`, keepOld.get(ff)); }
   writeFileSync(`${dir}/${key}_log.json`, JSON.stringify(log));
-  report.islands[key] = { frames: NF, same: SAME ? { framesCompared: sameLog.length, byteIdentical: sameLog.filter(x => x.same).length, differing: sameDiff, maxSkinCulledMeshes: Math.max(0, ...sameLog.map(x => x.nSkinCulled)), framesWithMeshesCulled: sameLog.filter(x => x.culledNow > 0).length, log: sameLog } : undefined, crossings, pops, maxPopFrac, popEvents: popEvents.slice(0, 40), shotFrames: [...keep.keys()].sort((a, b) => a - b), meshesSeen: new Set(log.flatMap(l => l.rows.map(r => r.id))).size, errors: H.log.errors.slice(0, 5) };
+  report.islands[key] = { frames: NF, same: SAME ? { framesCompared: sameLog.length, flagged: sameDiff, worstToggleMean: Math.max(0, ...sameLog.map(x => x.toggle.mean)), worstNoiseMean: Math.max(0, ...sameLog.map(x => x.noise.mean)), worstToggleN32: Math.max(0, ...sameLog.map(x => x.toggle.n32)), worstNoiseN32: Math.max(0, ...sameLog.map(x => x.noise.n32)), maxSkinCulledMeshes: Math.max(0, ...sameLog.map(x => x.nSkinCulled)), framesWithMeshesCulled: sameLog.filter(x => x.culledNow > 0).length, log: sameLog } : undefined, crossings, pops, maxPopFrac, popEvents: popEvents.slice(0, 40), shotFrames: [...keep.keys()].sort((a, b) => a - b), meshesSeen: new Set(log.flatMap(l => l.rows.map(r => r.id))).size, errors: H.log.errors.slice(0, 5) };
   await H.close();
  } catch (e) { report.islands[key] = { error: String(e).slice(0, 400) }; console.log('FAILED', key, String(e).slice(0, 400)); }
 }
