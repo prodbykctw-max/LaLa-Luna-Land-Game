@@ -1,0 +1,114 @@
+{
+ "town": [
+  {
+   "label": "Rafa",
+   "h": 3.38,
+   "w": 3.59,
+   "d": 1.71,
+   "footY": 2.47,
+   "rig": "dock",
+   "scale": 1.04
+  },
+  {
+   "label": "Ollie the postman",
+   "h": 3.23,
+   "w": 2.37,
+   "d": 3.3,
+   "footY": 3.52,
+   "rig": "dock",
+   "scale": 0.99
+  },
+  {
+   "label": "Theo",
+   "h": 3.11,
+   "w": 2.96,
+   "d": 1.8,
+   "footY": 4.79,
+   "rig": "green",
+   "scale": 1.04
+  },
+  {
+   "label": "Cass",
+   "h": 3.09,
+   "w": 2.87,
+   "d": 1.12,
+   "footY": 5.65,
+   "rig": "fan",
+   "scale": 1.05
+  },
+  {
+   "label": "creature:cow",
+   "h": 3.04,
+   "w": 2.84,
+   "d": 5.26,
+   "footY": 4.41
+  },
+  {
+   "label": "creature:cow",
+   "h": 3.02,
+   "w": 5.07,
+   "d": 2.2,
+   "footY": 3.12
+  },
+  {
+   "label": "Lala (player)",
+   "h": 3,
+   "w": 2.67,
+   "d": 1.21,
+   "footY": 2.25,
+   "rig": "lala"
+  },
+  {
+   "label": "Neri",
+   "h": 2.97,
+   "w": 2.77,
+   "d": 2.03,
+   "footY": 5.13,
+   "rig": "fan",
+   "scale": 1.01
+  },
+  {
+   "label": "Dee",
+   "h": 2.97,
+   "w": 2.83,
+   "d": 1.75,
+   "footY": -0.05,
+   "rig": "crowd",
+   "scale": 0.98
+  },
+  {
+   "label": "Bea",
+   "h": 2.85,
+   "w": 1.09,
+   "d": 2.68,
+   "footY": 0.2,
+   "rig": "fan",
+   "scale": 0.96
+  },
+  {
+   "label": "Marisol",
+   "h": 2.81,
+   "w": 1.24,
+   "d": 2.69,
+   "footY": 2.53,
+   "rig": "fan",
+   "scale": 0.95
+  },
+  {
+   "label": "creature:cow",
+   "h": 2.8,
+   "w": 2.49,
+   "d": 3.77,
+   "footY": 4.73
+  },
+  {
+   "label": "Nan",
+   "h": 2.74,
+   "w": 2.62,
+   "d": 1.19,
+   "footY": 1.76,
+   "rig": "fan",
+   "scale": 0.93
+  }
+ ]
+}
