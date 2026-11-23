@@ -1,0 +1,1 @@
+mkdir -p qa/out; node qa/determinism.mjs > qa/out/det.out 2> qa/out/det.log
