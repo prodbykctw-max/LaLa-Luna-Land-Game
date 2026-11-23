@@ -2161,7 +2161,7 @@ lower one - applied to a diagnosis instead of to a status.
 
 # Tree realism: options tried, Melvin's pick, state of `?trees=C` (branch `trees-realism`)
 
-**Status: C is behind `?trees=C`. A (today's trees) is still the default. Not merged, not deployed, BUILD not bumped. Awaiting Melvin's approval.** Based on main dcc5d72; main has moved (crowd fade, PR #11), not merged yet.
+**Status: C is behind `?trees=C`. A (today's trees) is still the default. Not merged, not deployed, BUILD not bumped. Awaiting Melvin's approval. Round 3 (backlit wash, ash, willow curtains, leaf edge) below.** Based on main dcc5d72; main has moved (crowd fade, PR #11), not merged yet.
 
 ## Options tried
 - **A** current trees (unchanged, default). **B** shading-only on A, dropped. **D** scanned glTF, dropped. **C** ez-tree (MIT) procedural broadleaf, instanced: Melvin's pick.
@@ -2178,34 +2178,45 @@ lower one - applied to a diagnosis instead of to a status.
 - Bark: Bark001, v by length (no stretch), tint (.50,.40,.31), small emissive so shade is brown not black; trunk radius x2.7, limbs x1.9.
 - QA hooks: colliders carry `kind`; `I.bushPos` lists bush positions; `I.cItems` lists C instances; `window.__NOTREES` hides trees for the area diff.
 
-## Budgets (hub spawn, farm run it5; main pass and shadow pass separate, A from tl5)
+## Round 3 changes (what, and the cause found)
+- **Backlit / sun-facing wash: cause = the light-through-leaf term.** It was `pow(max(0,-dot(L,V)),3) * 1.5` (a lobe 70 degrees wide, so any view within ~50 degrees of the sun was washed, and its tint was yellow). Measured by sweeping it (`qa/treetune.mjs`): hub follow V .599 / H 73.5 and backlit V .665 / H 70.6 with the old term, .49 / 85.6 and .52 / 79.6 now. Fog, LOD colour and bark emissive were not involved (LOD is the near level at 9.5 u). Now `uTK` (window.__TWIND.uTK): x strength .30, y power 14 (a lobe about 15 degrees wide, a warm glow only on leaves facing the sun), z base fill 1, w edge dither 1.6. Backlight colour (1.0,.88,.40).
+- **Green island lightening was NOT translucency** (green follow is not sun-facing: the old term made no difference there). The same sprig reads lighter, yellower and less saturated under green's light, and the sky reflection (envMapIntensity .38) adds a white veil. Fixed with a per-island table `TREE_ISL_TINT` (leaf colour multiplier + envMapIntensity), set per frame from `I.cfg.key`: green = (.78,.86,.74), env .10; every other island = (1,1,1), .38. Measured by a 12-point sweep; gr / town / sanity were not measured (the pick found no clear tree there), so they use the default.
+- **Leaf edge:** the composer has no MSAA (alpha-to-coverage unavailable), so the alpha cut is dithered by the alpha's own slope (interleaved gradient noise, `uTK.w`). Only edge pixels go partial; the staircase is now a soft rim. Visible as fine speckle at `dpr=0.5` (the wind clip), invisible at native size.
+- **Ash:** tinted to the oak sprig's mean colour (`ASHTINT` .93/.725/.56; the old tint was yellower). Width/leaf size kept at the approved 1.12 / 1.35: **the hub-close tree is an Ash Large #3**, and widening ash (1.38 / 1.5, tried) took it from 103% to 141% of A. `?ashw=` and `?ashls=` set them for tests. The "narrow tree on green" (crown 70% of A) is **Oak Large #1**, not an ash (found with `qa/treevariant.mjs`): its bounding box is as wide as A's (364 vs 382 px) and 90% as tall, the area is lower because the crown is more open. Not changed (Oak Large #1 is also the commonest variant on every island).
+- **Willow:** bare-branch dome plus curtains. The ez limbs are kept; the leaf quads below .48 of the height are dropped and replaced by up to 210 hanging strands, each a chain of sprig cards (ash sprig, willow tint) starting at a random point ON a limb (random vertices of the branch mesh, outer limbs favoured, 0.55 u apart) and falling to .29-.36 of the height above the grass. The drooping bare limbs (rods) below 4.3 u are cut. Strand sway grows toward the tip (`aB`, `aW`). One strand list per variant, shared by both LODs (far: every 3rd, 1.7x cards). Own seeded generator (`seedOf("wc:"+seed+":"+i)`), so the bush variation and the Math.random stream are unchanged.
+- **QA:** `qa/_treepose.mjs` (shared pick + poses), `qa/treetune.mjs` (+ `.py`: knob sweeps with mean foliage H/S/V), `qa/treevariant.mjs`, `qa/willowtry.mjs`. `lineup_green_willow_close`: the most isolated willow, camera 12-16 u away on the side nearest the spawn with a clear line (colliders and bush positions checked).
+- Farm recipe used: `jobs.txt` lines like `SETS='[[0.30,14,1,1.6,0.38]]' node qa/treetune.mjs hub` (JSON numbers need a leading 0; `.55` is invalid JSON). `QX='ashw=1.2' node qa/treelineup.mjs stills C hub` adds a URL param.
+
+## Budgets (farm run t8/t5; main pass and shadow pass separate; A from t5)
 | view | A main | C main | A shadow only | C shadow only | A total | C total |
 |---|---|---|---|---|---|---|
-| desktop tris | 976,713 | 1,090,816 (1.12x) | 430,940 | 533,892 | 1,407,653 | 1,624,708 |
-| phone tris | 768,581 | 746,545 (0.97x) | 380,914 | 359,931 | 1,149,495 | 1,106,476 |
-| desktop draw calls | 296 | 320 | 58 | 82 | 354 | 402 |
-| phone draw calls | 288 | 299 | 57 | 71 | 345 | 370 |
-Limit was phone main <= 1.5x A: 0.97x.
-Console errors, hub / green / gr / sanity / town: 0 for A and C; tree counts identical (160 / 258 / 72 / 121 / 10).
+| hub desktop tris | 976,713 | 1,077,664 (1.10x) | 430,940 | 527,206 | 1,407,653 | 1,604,870 |
+| hub phone tris | 768,581 | 741,398 (0.965x) | 380,902 | 354,794 | 1,149,483 | 1,096,192 |
+| hub desktop / phone draw calls (main) | 296 / 288 | 320 / 299 | | | | |
+| green desktop tris (willows in view) | 1,518,044 | 1,984,777 (1.31x) | 646,918 | 1,114,495 | 2,164,962 | 3,099,272 |
+| green phone tris | 1,245,618 | 1,337,349 (1.07x) | 555,120 | 647,010 | 1,800,738 | 1,984,359 |
+Limit: phone main <= 1.5x A. Hub 0.965x, green 1.07x. Console errors, hub / green / gr / sanity / town: 0 for A and C; tree counts identical (160 / 258 / 72 / 121 / 10).
 
-## Colour, A vs C, same frames (qa/treecolour.py: green pixels that differ from the tree-hidden frame)
-| frame | A H / S / V | C H / S / V |
-|---|---|---|
-| hub close | 87.3 / .480 / .428 | 92.9 / .466 / .424 |
-| hub follow | 87.5 / .503 / .446 | 81.1 / .493 / .546 |
-| green follow | 84.0 / .492 / .447 | 76.9 / .402 / .521 |
-Before this round C was H 91 / S .49 / V .505 (hub close) and 86 / .45 / .566 (green follow). Away from the sun C now sits in A's range; facing the sun (hub follow, backlit) and the ash tree on green are still lighter and yellower than A.
+## Colour, A vs C, same frames (qa/treecolour.py: green pixels that differ from the tree-hidden frame; target: hue +-3 deg, value +-.04 of A)
+| frame | A H / S / V | C H / S / V | dH / dV |
+|---|---|---|---|
+| hub close | 87.3 / .481 / .427 | 90.0 / .444 / .448 | +2.7 / +.021 ok |
+| hub follow | 87.4 / .503 / .447 | 86.3 / .413 / .472 | -1.1 / +.025 ok |
+| hub backlit | 80.8 / .412 / .477 | 79.6 / .351 / .522 | -1.2 / +.045 (.005 over) |
+| green follow | 84.2 / .493 / .446 | 84.3 / .388 / .459 | +0.1 / +.013 ok |
+Saturation is still .06-.10 below A in every frame (A's toon-lit foliage is more saturated); hue and value are the asked-for targets. Before round 3: hub follow 81.1 / .493 / .546, green follow 76.9 / .402 / .521.
+Crown screen area vs A (same frames): hub close 103%, hub follow 113%, green follow 71% (Oak Large #1, see above).
 
 ## Proof (qa/out/treelineup, gitignored; regenerate with farm jobs + `python3 qa/treecompose.py <farm dirs, comma separated> <out dir>`)
-lineup_hub_{close,follow,wide,crop,backlit}.jpg, lineup_green_{follow,wide,grove,willow,bush}.jpg, lineup_hub_wind.mp4. Crown screen area vs A: hub close 104%, hub follow 113%, green follow 70%.
+lineup_hub_{close,follow,wide,crop,backlit}.jpg, lineup_green_{follow,wide,grove,willow,willow_close,bush}.jpg, lineup_hub_wind.mp4. Latest C frames: farm t9 (hub stills) and t8 (green stills, wind); A frames: t5 / tl5.
 
 ## What still looks off in C (seen, not fixed)
-- Facing the sun C is a lighter, yellow-lime green than A; the backlight glow is subtle at the crown top, not a clear glowing-leaf look.
-- The ash tree on green is yellower and narrower than A (crown area 70%).
-- The willow does not read clearly as weeping in the willow shot; the strands show mostly at the lower edge.
-- Sprig edge is less spiky but the repeat is still visible in the 400 px crop; edge is stair-stepped by the alpha cut.
-- Oak limbs inside the crown are visible but few; trunk leans oddly on some variants.
-- The bush shot is mostly grass and flowers; the bush is a dark mound, A's is a bluish one.
+- Willow at the shot's 36 u distance still reads as a drooping dome with pale cream clumps on top; the strands are only clearly separate in the close-up (12-16 u). Strands are fairly thin and uniform; the bare limbs show through the dome top; no willow-leaf shape (the ash sprig hangs, it is not a narrow lanceolate leaf).
+- willow_close: a neighbouring plant's big pale leaves intrude at the right frame edge (the pose avoids colliders and bushes, not every instance).
+- The dither shows as light speckle on crown edges at low resolution (wind clip, dpr 0.5).
+- Backlit value is +.045 vs A (limit .04); saturation low in all frames.
+- Oak Large #1 (green follow) is a more open crown than A's tree there; oak limbs inside crowns are visible but few; trunks lean oddly on some variants; the bush is still a dark mound, A's is bluish.
+- Green desktop shadow pass is 1.7x A (1.11M tris); main pass 1.31x.
 
 ## Licences
 See `CREDITS.md`. No Sketchfab model; no token stored anywhere.
