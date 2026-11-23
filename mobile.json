@@ -1,0 +1,1262 @@
+{
+ "hub": {
+  "portrait": {
+   "vw": 390,
+   "vh": 844,
+   "bodyClass": "walk touch",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 658,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 286,
+     "y": 616,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 268,
+     "y": 708,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 97,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 97,
+     "h": 25,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 66,
+     "w": 97,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 248,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 248,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 248,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 100,
+     "y": 96,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 200,
+     "y": 96,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 20,
+     "y": 186,
+     "w": 351,
+     "h": 61,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_hub_portrait.png"
+  },
+  "landscape": {
+   "vw": 844,
+   "vh": 390,
+   "bodyClass": "walk touch",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 204,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 740,
+     "y": 162,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 722,
+     "y": 254,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 97,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 97,
+     "h": 30,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 71,
+     "w": 97,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 702,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 702,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 702,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 327,
+     "y": 16,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 427,
+     "y": 16,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 253,
+     "y": 74,
+     "w": 338,
+     "h": 46,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_hub_landscape.png"
+  }
+ },
+ "green": {
+  "portrait": {
+   "vw": 390,
+   "vh": 844,
+   "bodyClass": "walk touch",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 658,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 286,
+     "y": 616,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 268,
+     "y": 708,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 141,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 141,
+     "h": 25,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 66,
+     "w": 141,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 248,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 248,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 248,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 100,
+     "y": 96,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 200,
+     "y": 96,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 20,
+     "y": 186,
+     "w": 351,
+     "h": 61,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_green_portrait.png"
+  },
+  "landscape": {
+   "vw": 844,
+   "vh": 390,
+   "bodyClass": "walk touch",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 204,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 740,
+     "y": 162,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 722,
+     "y": 254,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 141,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 141,
+     "h": 30,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 71,
+     "w": 141,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 702,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 702,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 702,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 327,
+     "y": 16,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 427,
+     "y": 16,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 253,
+     "y": 74,
+     "w": 338,
+     "h": 46,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_green_landscape.png"
+  }
+ },
+ "gr": {
+  "portrait": {
+   "vw": 390,
+   "vh": 844,
+   "bodyClass": "walk touch",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 658,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 286,
+     "y": 616,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 268,
+     "y": 708,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 214,
+     "h": 26,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 48,
+     "w": 214,
+     "h": 25,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 79,
+     "w": 214,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 248,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 248,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 248,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 100,
+     "y": 96,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 200,
+     "y": 96,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 20,
+     "y": 186,
+     "w": 351,
+     "h": 61,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_gr_portrait.png"
+  },
+  "landscape": {
+   "vw": 844,
+   "vh": 390,
+   "bodyClass": "walk touch",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 204,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 740,
+     "y": 162,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 722,
+     "y": 254,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 220,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 220,
+     "h": 30,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 71,
+     "w": 220,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 702,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 702,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 702,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 327,
+     "y": 16,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 427,
+     "y": 16,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 253,
+     "y": 74,
+     "w": 338,
+     "h": 46,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_gr_landscape.png"
+  }
+ },
+ "sanity": {
+  "portrait": {
+   "vw": 390,
+   "vh": 844,
+   "bodyClass": "walk touch dark",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 658,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 286,
+     "y": 616,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 268,
+     "y": 708,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 197,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 197,
+     "h": 25,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 66,
+     "w": 197,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 248,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 248,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 248,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 100,
+     "y": 96,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 200,
+     "y": 96,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 20,
+     "y": 186,
+     "w": 351,
+     "h": 61,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_sanity_portrait.png"
+  },
+  "landscape": {
+   "vw": 844,
+   "vh": 390,
+   "bodyClass": "walk touch dark",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 204,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 740,
+     "y": 162,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 722,
+     "y": 254,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 197,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 197,
+     "h": 30,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 71,
+     "w": 197,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 702,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 702,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 702,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 327,
+     "y": 16,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 427,
+     "y": 16,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 253,
+     "y": 74,
+     "w": 338,
+     "h": 46,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_sanity_landscape.png"
+  }
+ },
+ "town": {
+  "portrait": {
+   "vw": 390,
+   "vh": 844,
+   "bodyClass": "walk touch",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 658,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 286,
+     "y": 616,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 268,
+     "y": 708,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 202,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 202,
+     "h": 25,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 66,
+     "w": 202,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 248,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 248,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 248,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 100,
+     "y": 96,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 200,
+     "y": 96,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 20,
+     "y": 186,
+     "w": 351,
+     "h": 61,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_town_portrait.png"
+  },
+  "landscape": {
+   "vw": 844,
+   "vh": 390,
+   "bodyClass": "walk touch",
+   "promptKey": "",
+   "box": {
+    "stick": {
+     "x": 22,
+     "y": 204,
+     "w": 156,
+     "h": 156,
+     "display": "block",
+     "visible": true
+    },
+    "act": {
+     "x": 740,
+     "y": 162,
+     "w": 78,
+     "h": 78,
+     "display": "grid",
+     "visible": true
+    },
+    "jmp": {
+     "x": 722,
+     "y": 254,
+     "w": 96,
+     "h": 96,
+     "display": "grid",
+     "visible": true
+    },
+    "prompt": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    },
+    "lblL": {
+     "x": 20,
+     "y": 18,
+     "w": 202,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "valL": {
+     "x": 20,
+     "y": 35,
+     "w": 202,
+     "h": 30,
+     "display": "block",
+     "visible": true
+    },
+    "weather": {
+     "x": 20,
+     "y": 71,
+     "w": 202,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "letters": {
+     "x": 702,
+     "y": 18,
+     "w": 122,
+     "h": 30,
+     "display": "flex",
+     "visible": true
+    },
+    "sub": {
+     "x": 702,
+     "y": 56,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "moonsub": {
+     "x": 702,
+     "y": 77,
+     "w": 122,
+     "h": 13,
+     "display": "block",
+     "visible": true
+    },
+    "mute": {
+     "x": 327,
+     "y": 16,
+     "w": 90,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "secretsBtn": {
+     "x": 427,
+     "y": 16,
+     "w": 82,
+     "h": 44,
+     "display": "block",
+     "visible": true
+    },
+    "toast": {
+     "x": 253,
+     "y": 74,
+     "w": 338,
+     "h": 46,
+     "display": "block",
+     "visible": false
+    },
+    "khint": {
+     "x": 0,
+     "y": 0,
+     "w": 0,
+     "h": 0,
+     "display": "none",
+     "visible": false
+    }
+   },
+   "overlaps": [],
+   "offscreen": [],
+   "small": [],
+   "elementsInsideJoystickZone": [],
+   "screenshot": "/home/runner/work/LaLa-Luna-Land-Game/LaLa-Luna-Land-Game/game/qa/out/mobile_town_landscape.png"
+  }
+ }
+}
