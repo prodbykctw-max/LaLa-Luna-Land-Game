@@ -14266,10 +14266,11 @@ function warmRange(I, a, b){
    its own threads. It is called per top-level piece, a few at a time per frame, against the same render-target format the real passes use
    (WARM_RT), so the programs it makes are the ones the frame will ask for; the warm draw then only uploads. The draw loop itself is unchanged.
    ?warm=old skips this and restores the old warm loop. Where the extension is missing compileAsync resolves at once and nothing is lost. */
-const WARM_OLD = QS.get("warm") === "old";
+const WARM_OLD = QS.get("warm") === "old", WARM_FORCE = QS.get("warm") === "force";   /* ?warm=force runs the compile pre-pass even without KHR_parallel_shader_compile (QA on SwiftShader only) */
 function warmRT(){ if(!WARM_RT){ const src = composer.renderTarget1.texture; WARM_RT = new THREE.WebGLRenderTarget(8, 8, {type: src.type, format: src.format}); WARM_RT.texture.colorSpace = src.colorSpace; } return WARM_RT; }
 async function warmCompile(I, prog){
-  if(WARM_OLD || !renderer.compileAsync) return;
+  let par = false; try { par = !!(renderer.extensions && renderer.extensions.has("KHR_parallel_shader_compile")); } catch(e){}
+  if(WARM_OLD || !renderer.compileAsync || (!par && !WARM_FORCE)) return;     /* without the extension compileAsync would link on this thread anyway (and three logs a warning): the warm draw below does it, as before */
   const t0 = performance.now(), kids = I.scene.children.slice(), pend = [], prev = renderer.getRenderTarget(), p0 = renderer.info.programs ? renderer.info.programs.length : 0;
   let slice = performance.now();
   try{
