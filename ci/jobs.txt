@@ -1,0 +1,8 @@
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mA --islands=hub,green,gr
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mB --islands=hub,green,gr
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mA --islands=town,sanity
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mB --islands=town,sanity
+node qa/sanityperf_ab.mjs --tag=nA --islands=hub,green,gr
+node qa/sanityperf_ab.mjs --tag=nB --islands=hub,green,gr
+node qa/sanityperf_ab.mjs --tag=nA --islands=town,sanity
+node qa/sanityperf_ab.mjs --tag=nB --islands=town,sanity
