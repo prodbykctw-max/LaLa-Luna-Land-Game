@@ -2178,3 +2178,41 @@ genuinely-should-be-lit count is in the teens per island, not the hundreds.
 confirmed something he had been saying, and it went out without the one extra look that would have
 killed it. That is C8 - good news and satisfying news both get the HIGHER evidence bar, not the
 lower one - applied to a diagnosis instead of to a status.
+
+### 4.57 — Town crowd: far LOD swaps fade over 0.25 s instead of popping (build `2026-11-22a`)
+**Shipped 2026-11-22, approved by Melvin after the NOW|NEW clip ("Use NEW (blend)", then "Proceed with crowd fade").**
+- What: when a fan crosses the rig <-> proxy distance (far out > 46 u, back near < 44 u) or the ink-outline
+  distance (off > 26 u, on < 24 u; ink exists only under `?art=toon`), the two versions cross-fade over a fixed
+  0.25 s with complementary screen-space dither (same interleaved-gradient noise as CF_GLSL). No alpha blending.
+- Where: the "crowd LOD CROSS-FADE" block next to `CROWD_FAR` in index.html. Progress comes from one game-clock
+  uniform `uLodT` set once per tick; per-fan state is (t0, p0, dir), so a mid-fade reversal continues from p.
+  Proxy side: per-instance `iFade`; rig side: per-member cloned ink twin materials + patched `onBeforeRender`,
+  wired through `lodFadeWrap` (chained like `camFadeWrap`). Old swap kept as `crowdLODSwap`.
+- Flags: `?lodfade=0` = the exact old one-frame swap. Debug counter: `window.__LODFADE`.
+- Cost (Town walk, 150 frames): draw calls 1015.7 -> 1021.8 (+0.6%), triangles +10.9% but only during the 0.25 s
+  window; fans drawn twice max 18 / mean 5.53.
+- Proof: qa/crowdfade.mjs + crowdfade_report.py (strips + mp4). No holes at p=.5 (silhouette ratio .99-1.01),
+  outgoing version never drawn after the fade, opposite fades at once correct, nothing stuck half-faded.
+- Regression (QA farm job crowdreg-1, every suite on this branch AND on main): syntax, determinism, codehealth,
+  console_load (0 errors), assets, reach, camera, framebudget, mobile, float, overhead, scale, vgeo, vcheck, vmat
+  all match main within run-to-run noise. traversal and vaudit had not reported on either side when this shipped.
+  Pre-existing on main too: seeded runs differ (determinism), Ollie the postman floats while walking (float).
+- Not yet done: the real-GPU check on Melvin's laptop (it was not linked to the session). Do it next time it is.
+- Harness: `_harness.mjs` now enters non-hub islands itself (`enterIsland`). Before this, `?go=<island>` stayed on
+  the hub, so older non-hub QA numbers may have measured the hub.
+- The QA farm (GitHub runners, branch-triggered, never deploys) is how heavy runs are done now: push a
+  `qa-job/<name>` branch with `.github/workflows/qa-farm.yml` + `ci/jobs.txt`; results come back on
+  `qa-out/<name>/<line>`. The helper lives outside the repo (session box: /home/claude/scripts/qafarm.sh).
+
+### 4.58 — Sky light, STRONGER: shade pools under trees and at wall bases (build `2026-11-23a`)
+**Melvin's pick 2026-11-23 from the NOW | FIRST | STRONGER sheets (Home, Green, Town): "STRONGER".**
+- Per island, a baked open-sky visibility map (see the Sky light flag notes in section 2) now darkens both the indirect
+  light and the two shadowless fill lights (bounce .38, rim .42), never the shadow-casting key:
+  `skySo = 1 - clamp((0.97 - occ)/0.50, 0, 1) * 0.85 * uSkyK`, computed once per fragment before `lights_fragment_begin`.
+  The fill-light dimming edits the r187 lights chunk (`#if (UNROLLED_LOOP_INDEX >= NUM_DIR_LIGHT_SHADOWS)`); if a future
+  three.js changes that chunk's shape it logs a console warning and falls back to indirect-only.
+- Measured (qa/sky3ab.mjs + qa/sky3metrics.py, mean luma in the pool region vs OLD): under trees hub -26.6%, green -23.0%,
+  gr -22.3%, sanity (night) -11.9%, town -17.4%; open meadow within +-0.34% (noise). Lala is a skinned mesh and is excluded.
+- Flags: `?skylight=old` = off, `?skylight=v1` = FIRST version, `?skylight=0..1` = strength.
+- Known QA gap: the close shot of Lala inside a shade pool was not usable (leaves cover her), so "does she look muddy in
+  shade" is unproven; Lala's own shading is unchanged by the patch.
