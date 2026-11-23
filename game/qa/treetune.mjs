@@ -20,7 +20,7 @@ const views = [['follow', async () => { await H.page.evaluate(({ x, z, yaw }) =>
 if (island === 'hub') { views.push(['close', async () => { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(P.close)})`); await settle(H, 120); }]); views.push(['backlit', async () => { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(P.back)})`); await settle(H, 90); }]); }
 for (const [name, go] of views) {
   await go(); res.rect[name] = await rect();
-  for (let i = 0; i < SETS.length; i++) { await H.page.evaluate(s => window.__TWIND.uTK.value.set(s[0], s[1], s[2], s[3]), SETS[i]); await H.tick(); await H.tick(); await shot(`${OUT}/tune${process.env.OPT || 'C'}_${island}_${name}_${i}.jpg`); }
+  for (let i = 0; i < SETS.length; i++) { await H.page.evaluate(s => { window.__TWIND.uTK.value.set(s[0], s[1], s[2], s[3]); for (const k in window.__TREEMATS) { const m = window.__TREEMATS[k].leaf; if (k === '0') { m.envMapIntensity = s[4] ?? .38; m.color.setRGB(s[5] ?? 1, s[6] ?? 1, s[7] ?? 1); } } }, SETS[i]); await H.tick(); await H.tick(); await shot(`${OUT}/tune${process.env.OPT || 'C'}_${island}_${name}_${i}.jpg`); }
   await H.page.evaluate(() => { window.__NOTREES = true; (window.__T.CUR.forest || []).forEach(m => { m.visible = false; }); }); await H.tick(); await H.tick(); await shot(`${OUT}/tune${process.env.OPT || 'C'}_${island}_${name}_bare.jpg`);
   await H.page.evaluate(() => { window.__NOTREES = false; (window.__T.CUR.forest || []).forEach(m => { m.visible = true; }); }); await H.tick(); await H.tick();
 }

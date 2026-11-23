@@ -75,9 +75,16 @@ if (mode === 'stills') {
     res.willow = wv;
     if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 36 - wv.uz * 10, wv.g + 8, wv.z + wv.uz * 36 + wv.ux * 10], t: [wv.x, wv.g + 4.4, wv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_willow.jpg`);
-      /* 5b. willow close-up: camera 12-16 u from the tree (by its size), the whole willow in frame, Lala beside it */
-      const wd = Math.max(12, Math.min(16, 4 + 1.15 * 9 * wv.sc)); res.willowClose = { dist: wd, sc: wv.sc };
-      await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.2 - wv.uz * 1.2, wv.z + wv.uz * 4.2 + wv.ux * 1.2], e: [wv.x + wv.ux * wd - wv.uz * 3, wv.g + 2.6, wv.z + wv.uz * wd + wv.ux * 3], t: [wv.x, wv.g + 4.3 * Math.max(1, wv.sc * .9), wv.z] })})`);
+      /* 5b. willow close-up: the most isolated willow (colliders are identical in every look), the camera 12-16 u from it on the side nearest the spawn that has a clear line of sight (no other crown between), the whole willow in frame, Lala beside it */
+      const wc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")), ws = all.filter(c => c.kind === "willow"); let best = null, bs = -1e9;
+        for(const c of ws) { let nb = 1e9; for(const o of all) if(o !== c) nb = Math.min(nb, Math.hypot(o.x - c.x, o.z - c.z)); const sc = c.r / .55, d = Math.hypot(c.x - sp[0], c.z - sp[1]); const sco = Math.min(nb, 16) - .04 * d; if(sco > bs) { bs = sco; best = { c, sc, nb }; } }
+        const c = best.c, sc = best.sc, wd = Math.max(12, Math.min(16, 4 + 1.15 * 9 * sc)), a0 = Math.atan2(sp[1] - c.z, sp[0] - c.x); let pick = null, pc = -1e9;
+        for(const k of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8]) { const a = a0 + k * Math.PI / 8, ex = c.x + Math.cos(a) * wd, ez = c.z + Math.sin(a) * wd; let clr = 1e9;
+          for(const o of all) { if(o === c) continue; const osc = o.r / .55; for(let f = .1; f <= 1.0; f += .15) { const px = ex + (c.x - ex) * f, pz = ez + (c.z - ez) * f; if(f > .55) continue; clr = Math.min(clr, Math.hypot(o.x - px, o.z - pz) - (4.6 * osc + .6)); } }
+          if(clr > 0) { pick = { a, clr }; break; } if(clr > pc) { pc = clr; pick = { a, clr }; } }
+        return { x: c.x, z: c.z, g: I.height(c.x, c.z), sc, wd, a: pick.a, clr: pick.clr, nb: best.nb }; });
+      res.willowClose = wc; const wux = Math.cos(wc.a), wuz = Math.sin(wc.a);
+      await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wc.x + wux * 4.2 - wuz * 1.4, wc.z + wuz * 4.2 + wux * 1.4], e: [wc.x + wux * wc.wd, wc.g + 3.0, wc.z + wuz * wc.wd], t: [wc.x, wc.g + 4.3 * Math.max(1, wc.sc * .9), wc.z] })})`);
       await settle(H, 60); await shot(H, `${base}_willow_close.jpg`); }
     /* 6. bush: a bush (C publishes its instances; the game's own list of where bushes stand, identical for every look) */
     const bv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = I.bushPos || [];
