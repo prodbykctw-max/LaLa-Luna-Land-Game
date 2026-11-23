@@ -1,0 +1,2527 @@
+{
+ "tag": "same",
+ "query": "",
+ "islands": {
+  "hub": {
+   "frames": 100,
+   "same": {
+    "framesCompared": 100,
+    "flagged": 11,
+    "worstToggleMean": 0.851,
+    "worstNoiseMean": 0.852,
+    "worstToggleN32": 0,
+    "worstNoiseN32": 3,
+    "maxSkinCulledMeshes": 15,
+    "framesWithMeshesCulled": 95,
+    "log": [
+     {
+      "f": 0,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.606,
+       "n32": 0,
+       "edgeMean": 0.634,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.85,
+       "n32": 0,
+       "edgeMean": 0.888,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 1,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.852,
+       "n32": 0,
+       "edgeMean": 0.894,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.838,
+       "n32": 0,
+       "edgeMean": 0.882,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 2,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.587,
+       "n32": 0,
+       "edgeMean": 0.62,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.61,
+       "n32": 0,
+       "edgeMean": 0.643,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 3,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.61,
+       "n32": 0,
+       "edgeMean": 0.642,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.564,
+       "n32": 0,
+       "edgeMean": 0.595,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 4,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.839,
+       "n32": 0,
+       "edgeMean": 0.881,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.563,
+       "n32": 0,
+       "edgeMean": 0.592,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 5,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.608,
+       "n32": 0,
+       "edgeMean": 0.636,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.851,
+       "n32": 0,
+       "edgeMean": 0.887,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 6,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.836,
+       "n32": 0,
+       "edgeMean": 0.871,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.585,
+       "n32": 0,
+       "edgeMean": 0.608,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 7,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.605,
+       "n32": 0,
+       "edgeMean": 0.63,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.848,
+       "n32": 0,
+       "edgeMean": 0.88,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 8,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.559,
+       "n32": 0,
+       "edgeMean": 0.582,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.582,
+       "n32": 0,
+       "edgeMean": 0.604,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 9,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.582,
+       "n32": 0,
+       "edgeMean": 0.606,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.604,
+       "n32": 0,
+       "edgeMean": 0.628,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 10,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.604,
+       "n32": 0,
+       "edgeMean": 0.626,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.845,
+       "n32": 0,
+       "edgeMean": 0.874,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 11,
+      "nSkinCulled": 15,
+      "culledNow": 5,
+      "noise": {
+       "mean": 0.558,
+       "n32": 0,
+       "edgeMean": 0.578,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.581,
+       "n32": 0,
+       "edgeMean": 0.602,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 12,
+      "nSkinCulled": 15,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.579,
+       "n32": 0,
+       "edgeMean": 0.598,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.601,
+       "n32": 0,
+       "edgeMean": 0.619,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 13,
+      "nSkinCulled": 15,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.599,
+       "n32": 0,
+       "edgeMean": 0.614,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.839,
+       "n32": 0,
+       "edgeMean": 0.855,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 14,
+      "nSkinCulled": 15,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.847,
+       "n32": 0,
+       "edgeMean": 0.862,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.597,
+       "n32": 0,
+       "edgeMean": 0.611,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 15,
+      "nSkinCulled": 15,
+      "culledNow": 5,
+      "noise": {
+       "mean": 0.552,
+       "n32": 0,
+       "edgeMean": 0.564,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 16,
+      "nSkinCulled": 15,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.843,
+       "n32": 0,
+       "edgeMean": 0.853,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.595,
+       "n32": 0,
+       "edgeMean": 0.605,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 17,
+      "nSkinCulled": 15,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.594,
+       "n32": 0,
+       "edgeMean": 0.605,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.831,
+       "n32": 0,
+       "edgeMean": 0.841,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 18,
+      "nSkinCulled": 15,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.817,
+       "n32": 0,
+       "edgeMean": 0.832,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.572,
+       "n32": 0,
+       "edgeMean": 0.586,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 19,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.571,
+       "n32": 0,
+       "edgeMean": 0.587,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.593,
+       "n32": 0,
+       "edgeMean": 0.609,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 20,
+      "nSkinCulled": 15,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.593,
+       "n32": 0,
+       "edgeMean": 0.611,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.831,
+       "n32": 0,
+       "edgeMean": 0.851,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 21,
+      "nSkinCulled": 15,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.593,
+       "n32": 0,
+       "edgeMean": 0.613,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.832,
+       "n32": 0,
+       "edgeMean": 0.853,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 22,
+      "nSkinCulled": 15,
+      "culledNow": 5,
+      "noise": {
+       "mean": 0.832,
+       "n32": 0,
+       "edgeMean": 0.856,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.82,
+       "n32": 0,
+       "edgeMean": 0.848,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 23,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.821,
+       "n32": 0,
+       "edgeMean": 0.85,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 24,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.572,
+       "n32": 0,
+       "edgeMean": 0.595,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 25,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.595,
+       "n32": 0,
+       "edgeMean": 0.62,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.836,
+       "n32": 0,
+       "edgeMean": 0.865,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 26,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.838,
+       "n32": 0,
+       "edgeMean": 0.867,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.824,
+       "n32": 0,
+       "edgeMean": 0.858,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 27,
+      "nSkinCulled": 15,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0.823,
+       "n32": 0,
+       "edgeMean": 0.859,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.574,
+       "n32": 0,
+       "edgeMean": 0.6,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 28,
+      "nSkinCulled": 15,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0.572,
+       "n32": 0,
+       "edgeMean": 0.6,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.594,
+       "n32": 0,
+       "edgeMean": 0.622,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 29,
+      "nSkinCulled": 15,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0.846,
+       "n32": 0,
+       "edgeMean": 0.881,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 30,
+      "nSkinCulled": 15,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0.821,
+       "n32": 0,
+       "edgeMean": 0.858,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.571,
+       "n32": 0,
+       "edgeMean": 0.6,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 31,
+      "nSkinCulled": 15,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0.842,
+       "n32": 0,
+       "edgeMean": 0.875,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.818,
+       "n32": 0,
+       "edgeMean": 0.853,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 32,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.839,
+       "n32": 0,
+       "edgeMean": 0.868,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.59,
+       "n32": 0,
+       "edgeMean": 0.615,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 33,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.825,
+       "n32": 0,
+       "edgeMean": 0.851,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.812,
+       "n32": 0,
+       "edgeMean": 0.841,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 34,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.541,
+       "n32": 0,
+       "edgeMean": 0.564,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.822,
+       "n32": 0,
+       "edgeMean": 0.849,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 35,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.805,
+       "n32": 0,
+       "edgeMean": 0.832,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.561,
+       "n32": 0,
+       "edgeMean": 0.581,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 36,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.824,
+       "n32": 0,
+       "edgeMean": 0.847,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.801,
+       "n32": 0,
+       "edgeMean": 0.825,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 37,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.822,
+       "n32": 0,
+       "edgeMean": 0.842,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.576,
+       "n32": 0,
+       "edgeMean": 0.591,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 38,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.532,
+       "n32": 0,
+       "edgeMean": 0.547,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.554,
+       "n32": 0,
+       "edgeMean": 0.569,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 39,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.819,
+       "n32": 0,
+       "edgeMean": 0.839,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.796,
+       "n32": 0,
+       "edgeMean": 0.817,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 40,
+      "nSkinCulled": 15,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.795,
+       "n32": 0,
+       "edgeMean": 0.82,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.553,
+       "n32": 0,
+       "edgeMean": 0.57,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 41,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.573,
+       "n32": 0,
+       "edgeMean": 0.593,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.529,
+       "n32": 0,
+       "edgeMean": 0.548,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 42,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.552,
+       "n32": 0,
+       "edgeMean": 0.575,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.819,
+       "n32": 0,
+       "edgeMean": 0.851,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 43,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.817,
+       "n32": 0,
+       "edgeMean": 0.854,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.572,
+       "n32": 0,
+       "edgeMean": 0.6,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 44,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.528,
+       "n32": 0,
+       "edgeMean": 0.556,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.528,
+       "n32": 0,
+       "edgeMean": 0.556,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 45,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.527,
+       "n32": 0,
+       "edgeMean": 0.557,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.55,
+       "n32": 0,
+       "edgeMean": 0.58,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 46,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.527,
+       "n32": 0,
+       "edgeMean": 0.56,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.55,
+       "n32": 0,
+       "edgeMean": 0.583,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 47,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.813,
+       "n32": 0,
+       "edgeMean": 0.865,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.813,
+       "n32": 0,
+       "edgeMean": 0.865,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 48,
+      "nSkinCulled": 15,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.526,
+       "n32": 0,
+       "edgeMean": 0.566,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.549,
+       "n32": 0,
+       "edgeMean": 0.589,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 49,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.526,
+       "n32": 0,
+       "edgeMean": 0.567,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.548,
+       "n32": 0,
+       "edgeMean": 0.59,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 50,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.526,
+       "n32": 0,
+       "edgeMean": 0.569,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.526,
+       "n32": 0,
+       "edgeMean": 0.569,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 51,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.525,
+       "n32": 0,
+       "edgeMean": 0.57,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.525,
+       "n32": 0,
+       "edgeMean": 0.57,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 52,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.525,
+       "n32": 0,
+       "edgeMean": 0.572,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.525,
+       "n32": 0,
+       "edgeMean": 0.572,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 53,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.788,
+       "n32": 0,
+       "edgeMean": 0.853,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.525,
+       "n32": 0,
+       "edgeMean": 0.572,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 54,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.809,
+       "n32": 0,
+       "edgeMean": 0.878,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.809,
+       "n32": 0,
+       "edgeMean": 0.878,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 55,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.523,
+       "n32": 0,
+       "edgeMean": 0.572,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.523,
+       "n32": 0,
+       "edgeMean": 0.572,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 56,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.805,
+       "n32": 0,
+       "edgeMean": 0.873,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.805,
+       "n32": 0,
+       "edgeMean": 0.873,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 57,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.521,
+       "n32": 1,
+       "edgeMean": 0.569,
+       "edge32": 0,
+       "bbox32": [
+        179,
+        156,
+        179,
+        156
+       ]
+      },
+      "toggle": {
+       "mean": 0.521,
+       "n32": 0,
+       "edgeMean": 0.569,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 58,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.804,
+       "n32": 0,
+       "edgeMean": 0.87,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.804,
+       "n32": 0,
+       "edgeMean": 0.87,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 59,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.521,
+       "n32": 0,
+       "edgeMean": 0.57,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.521,
+       "n32": 0,
+       "edgeMean": 0.57,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 60,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.805,
+       "n32": 0,
+       "edgeMean": 0.875,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.805,
+       "n32": 0,
+       "edgeMean": 0.875,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 61,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.522,
+       "n32": 0,
+       "edgeMean": 0.576,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.782,
+       "n32": 0,
+       "edgeMean": 0.856,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 62,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.522,
+       "n32": 0,
+       "edgeMean": 0.578,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.522,
+       "n32": 0,
+       "edgeMean": 0.578,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 63,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.522,
+       "n32": 0,
+       "edgeMean": 0.579,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.522,
+       "n32": 0,
+       "edgeMean": 0.579,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 64,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.801,
+       "n32": 0,
+       "edgeMean": 0.877,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.801,
+       "n32": 0,
+       "edgeMean": 0.877,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 65,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.799,
+       "n32": 0,
+       "edgeMean": 0.874,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.799,
+       "n32": 0,
+       "edgeMean": 0.874,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 66,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.797,
+       "n32": 0,
+       "edgeMean": 0.87,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.539,
+       "n32": 0,
+       "edgeMean": 0.595,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 67,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.773,
+       "n32": 0,
+       "edgeMean": 0.845,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.794,
+       "n32": 0,
+       "edgeMean": 0.865,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 68,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.557,
+       "n32": 0,
+       "edgeMean": 0.61,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.792,
+       "n32": 0,
+       "edgeMean": 0.862,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 69,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.768,
+       "n32": 0,
+       "edgeMean": 0.836,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.79,
+       "n32": 0,
+       "edgeMean": 0.856,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 70,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.555,
+       "n32": 0,
+       "edgeMean": 0.607,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.788,
+       "n32": 0,
+       "edgeMean": 0.854,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 71,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.767,
+       "n32": 1,
+       "edgeMean": 0.833,
+       "edge32": 1,
+       "bbox32": [
+        8,
+        279,
+        8,
+        279
+       ]
+      },
+      "toggle": {
+       "mean": 0.789,
+       "n32": 0,
+       "edgeMean": 0.853,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 72,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.789,
+       "n32": 0,
+       "edgeMean": 0.853,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.534,
+       "n32": 0,
+       "edgeMean": 0.584,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 73,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.788,
+       "n32": 0,
+       "edgeMean": 0.853,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 74,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.536,
+       "n32": 0,
+       "edgeMean": 0.587,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.769,
+       "n32": 0,
+       "edgeMean": 0.837,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 75,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.772,
+       "n32": 0,
+       "edgeMean": 0.846,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.783,
+       "n32": 0,
+       "edgeMean": 0.855,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 76,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.773,
+       "n32": 0,
+       "edgeMean": 0.852,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.785,
+       "n32": 0,
+       "edgeMean": 0.862,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 77,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.774,
+       "n32": 0,
+       "edgeMean": 0.855,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.786,
+       "n32": 0,
+       "edgeMean": 0.865,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 78,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.773,
+       "n32": 0,
+       "edgeMean": 0.856,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 79,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.538,
+       "n32": 0,
+       "edgeMean": 0.598,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.772,
+       "n32": 0,
+       "edgeMean": 0.855,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 80,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.537,
+       "n32": 0,
+       "edgeMean": 0.598,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.771,
+       "n32": 0,
+       "edgeMean": 0.855,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 81,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.537,
+       "n32": 0,
+       "edgeMean": 0.598,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.77,
+       "n32": 0,
+       "edgeMean": 0.854,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 82,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.556,
+       "n32": 1,
+       "edgeMean": 0.621,
+       "edge32": 1,
+       "bbox32": [
+        26,
+        237,
+        26,
+        237
+       ]
+      },
+      "toggle": {
+       "mean": 0.791,
+       "n32": 0,
+       "edgeMean": 0.875,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 83,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.535,
+       "n32": 0,
+       "edgeMean": 0.597,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 84,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.001,
+       "n32": 2,
+       "edgeMean": 0.001,
+       "edge32": 1,
+       "bbox32": [
+        34,
+        208,
+        71,
+        233
+       ]
+      },
+      "toggle": {
+       "mean": 0.555,
+       "n32": 0,
+       "edgeMean": 0.622,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 85,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.779,
+       "n32": 0,
+       "edgeMean": 0.868,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 86,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.765,
+       "n32": 2,
+       "edgeMean": 0.856,
+       "edge32": 1,
+       "bbox32": [
+        38,
+        220,
+        49,
+        223
+       ]
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 87,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.53,
+       "n32": 0,
+       "edgeMean": 0.597,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.762,
+       "n32": 0,
+       "edgeMean": 0.855,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 88,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.549,
+       "n32": 0,
+       "edgeMean": 0.62,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 89,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.772,
+       "n32": 0,
+       "edgeMean": 0.865,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 90,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.758,
+       "n32": 0,
+       "edgeMean": 0.853,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 91,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.527,
+       "n32": 0,
+       "edgeMean": 0.598,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 92,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.546,
+       "n32": 0,
+       "edgeMean": 0.621,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 93,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.768,
+       "n32": 0,
+       "edgeMean": 0.867,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 94,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.754,
+       "n32": 0,
+       "edgeMean": 0.855,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 95,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.545,
+       "n32": 1,
+       "edgeMean": 0.621,
+       "edge32": 0,
+       "bbox32": [
+        48,
+        186,
+        48,
+        186
+       ]
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 96,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.765,
+       "n32": 0,
+       "edgeMean": 0.864,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 97,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.524,
+       "n32": 0,
+       "edgeMean": 0.596,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 98,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 99,
+      "nSkinCulled": 15,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0.001,
+       "n32": 3,
+       "edgeMean": 0.002,
+       "edge32": 3,
+       "bbox32": [
+        17,
+        194,
+        26,
+        199
+       ]
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     }
+    ]
+   },
+   "crossings": 18,
+   "pops": 64,
+   "maxPopFrac": 1,
+   "popEvents": [
+    {
+     "f": 0,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      283,
+      50,
+      284,
+      50
+     ]
+    },
+    {
+     "f": 0,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      284,
+      50,
+      284,
+      50
+     ]
+    },
+    {
+     "f": 1,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      294,
+      50,
+      294,
+      50
+     ]
+    },
+    {
+     "f": 1,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      294,
+      50,
+      294,
+      50
+     ]
+    },
+    {
+     "f": 2,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      305,
+      50,
+      305,
+      50
+     ]
+    },
+    {
+     "f": 2,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      305,
+      50,
+      305,
+      50
+     ]
+    },
+    {
+     "f": 3,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      315,
+      50,
+      315,
+      50
+     ]
+    },
+    {
+     "f": 3,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      315,
+      50,
+      315,
+      50
+     ]
+    },
+    {
+     "f": 4,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      326,
+      50,
+      326,
+      50
+     ]
+    },
+    {
+     "f": 4,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      326,
+      50,
+      326,
+      50
+     ]
+    },
+    {
+     "f": 5,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      336,
+      50,
+      337,
+      50
+     ]
+    },
+    {
+     "f": 5,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      337,
+      50,
+      337,
+      50
+     ]
+    },
+    {
+     "f": 6,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      347,
+      50,
+      347,
+      50
+     ]
+    },
+    {
+     "f": 6,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      347,
+      50,
+      347,
+      50
+     ]
+    },
+    {
+     "f": 7,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      358,
+      50,
+      358,
+      50
+     ]
+    },
+    {
+     "f": 7,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      358,
+      50,
+      358,
+      50
+     ]
+    },
+    {
+     "f": 8,
+     "id": 3035,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      451,
+      60,
+      451,
+      60
+     ]
+    },
+    {
+     "f": 8,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      369,
+      50,
+      369,
+      50
+     ]
+    },
+    {
+     "f": 8,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      369,
+      50,
+      369,
+      50
+     ]
+    },
+    {
+     "f": 9,
+     "id": 3035,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      463,
+      60,
+      463,
+      60
+     ]
+    },
+    {
+     "f": 9,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      379,
+      50,
+      379,
+      50
+     ]
+    },
+    {
+     "f": 9,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      379,
+      50,
+      379,
+      50
+     ]
+    },
+    {
+     "f": 10,
+     "id": 3035,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      475,
+      60,
+      475,
+      60
+     ]
+    },
+    {
+     "f": 10,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      390,
+      49,
+      390,
+      49
+     ]
+    },
+    {
+     "f": 10,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      390,
+      49,
+      390,
+      49
+     ]
+    },
+    {
+     "f": 11,
+     "id": 3035,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      488,
+      60,
+      488,
+      60
+     ]
+    },
+    {
+     "f": 11,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      401,
+      49,
+      401,
+      49
+     ]
+    },
+    {
+     "f": 11,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      401,
+      49,
+      401,
+      49
+     ]
+    },
+    {
+     "f": 12,
+     "id": 3034,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      501,
+      59,
+      501,
+      59
+     ]
+    },
+    {
+     "f": 12,
+     "id": 3035,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      501,
+      59,
+      501,
+      59
+     ]
+    },
+    {
+     "f": 12,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      413,
+      49,
+      413,
+      49
+     ]
+    },
+    {
+     "f": 12,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      413,
+      49,
+      413,
+      49
+     ]
+    },
+    {
+     "f": 13,
+     "id": 3034,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      514,
+      59,
+      514,
+      59
+     ]
+    },
+    {
+     "f": 13,
+     "id": 3035,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      514,
+      59,
+      514,
+      59
+     ]
+    },
+    {
+     "f": 13,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      424,
+      49,
+      424,
+      49
+     ]
+    },
+    {
+     "f": 13,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      424,
+      49,
+      424,
+      49
+     ]
+    },
+    {
+     "f": 14,
+     "id": 3034,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      528,
+      59,
+      528,
+      59
+     ]
+    },
+    {
+     "f": 14,
+     "id": 3035,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      528,
+      59,
+      528,
+      59
+     ]
+    },
+    {
+     "f": 14,
+     "id": 3139,
+     "name": "Object_6/Object_105",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      436,
+      49,
+      436,
+      49
+     ]
+    },
+    {
+     "f": 14,
+     "id": 3140,
+     "name": "Object_6/Object_107",
+     "on": 81,
+     "onFrac": 1,
+     "bbox": [
+      436,
+      49,
+      436,
+      49
+     ]
+    }
+   ],
+   "shotFrames": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44
+   ],
+   "meshesSeen": 23,
+   "errors": []
+  }
+ }
+}

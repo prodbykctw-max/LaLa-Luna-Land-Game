@@ -1,0 +1,1 @@
+node qa/sanityperf_edge.mjs --tag=same --same=1 --islands=hub --frames=100 --w=640 --h=360
