@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mA --islands=town,sanity
