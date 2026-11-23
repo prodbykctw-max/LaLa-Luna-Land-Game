@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/traversal.mjs sanity > qa/out/trav_sanity.base.out 2> qa/out/trav_sanity.base.log; r=$?; tail -8 qa/out/trav_sanity.base.log; exit $r

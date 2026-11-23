@@ -1,0 +1,2 @@
+[traversal] sanity: traps=0 pockets=0 camHits=27084 stalls=0 buried=0 fps~59.9
+rc=0
