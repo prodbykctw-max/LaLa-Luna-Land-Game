@@ -5,9 +5,12 @@
 import sys, glob, json, colorsys
 import numpy as np
 from PIL import Image
-farm = sys.argv[1]
+farms = sys.argv[1].split(','); farm = farms[0]
 def find(n):
-    g = glob.glob(f'{farm}/*/{n}'); return g[0] if g else None
+    for fm in farms:
+        g = glob.glob(f'{fm}/*/{n}')
+        if g: return g[0]
+    return None
 rows = {}
 for island, shots in (('hub', ['close', 'follow']), ('green', ['follow'])):
     for c in 'AC':

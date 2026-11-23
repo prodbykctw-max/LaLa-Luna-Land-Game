@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Compose the tree lineup panels (A | B | C | D, labelled with the letter only) from the farm's per-line folders.
-   python3 qa/treecompose.py <farm dir> <out dir>      e.g. qa/out/farm/tl2 qa/out/treelineup
+   python3 qa/treecompose.py <farm dir[,farm dir...]> <out dir>      (earlier dirs win) e.g. qa/out/farm/tl2 qa/out/treelineup
    Looks under <farm dir>/*/ for tl_<L>_<island>_<shot>.jpg and tw_<L>/NNNN.jpg."""
 import sys, glob, os, subprocess
 from PIL import Image, ImageDraw, ImageFont
 LET = 'AC'
-farm, out = sys.argv[1], sys.argv[2]; os.makedirs(out, exist_ok=True)
+farms, out = sys.argv[1].split(','), sys.argv[2]; farm = farms[0]; os.makedirs(out, exist_ok=True)
 try: FONT = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 40)
 except Exception: FONT = ImageFont.load_default()
 def find(name):
-    g = glob.glob(f'{farm}/*/{name}'); return g[0] if g else None
+    for fm in farms:
+        g = glob.glob(f'{fm}/*/{name}')
+        if g: return g[0]
+    return None
 def label(im, ch):
     d = ImageDraw.Draw(im); d.rectangle((0, 0, 58, 58), fill=(0, 0, 0)); d.text((14, 6), ch, fill=(255, 255, 255), font=FONT); return im
 def panel(files, width):
@@ -21,13 +24,13 @@ def panel(files, width):
     for im in ims: S.paste(im, (x, 0)); x += im.width + 6
     return S
 made = []
-for island, shots in (('hub', ['close', 'follow', 'wide', 'crop', 'backlit']), ('green', ['follow', 'wide', 'grove'])):
+for island, shots in (('hub', ['close', 'follow', 'wide', 'crop', 'backlit']), ('green', ['follow', 'wide', 'grove', 'willow', 'bush'])):
     for sh in shots:
         fs = [find(f'tl_{c}_{island}_{sh}.jpg') for c in LET]
         if not any(fs): continue
         p = panel(fs, 520 if sh == 'crop' else 1000); fn = f'{out}/lineup_{island}_{sh}.jpg'; p.save(fn, quality=90); made.append(fn)
 # wind clip
-dirs = [glob.glob(f'{farm}/*/tw_{c}') for c in LET]
+dirs = [[g for fm in farms for g in glob.glob(f'{fm}/*/tw_{c}')][:1] for c in LET]
 if all(dirs):
     dirs = [d[0] for d in dirs]; n = min(len(glob.glob(d + '/*.jpg')) for d in dirs); tmp = f'{out}/_wind'; os.makedirs(tmp, exist_ok=True)
     for i in range(n):

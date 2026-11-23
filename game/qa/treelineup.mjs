@@ -90,18 +90,19 @@ if (mode === 'stills') {
     await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [gv.x, gv.z], e: [gv.x + gv.ux * 27, gv.g + 9, gv.z + gv.uz * 27], t: [gv.x, gv.g + 3.2, gv.z] })})`);
     await settle(H, 60); await shot(H, `${base}_grove.jpg`);
     /* 5. willow: the nearest willow to the spawn that stands clear, the game's pose: camera 16 u off, Lala beside it */
-    const wv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, ws = I.colliders.filter(c => c.kind === "willow"); let best = null, bd = 1e9;
-      for(const c of ws) { const d = Math.hypot(c.x - sp[0], c.z - sp[1]); if(d > 8 && d < bd) { bd = d; best = c; } } if(!best) return null;
+    const wv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, all = I.colliders.filter(c => c.camR > 1), ws = all.filter(c => c.kind === "willow"); let best = null, bd = 1e9;
+      for(const c of ws) { let nb = 1e9; for(const o of all) if(o !== c) nb = Math.min(nb, Math.hypot(o.x - c.x, o.z - c.z)); const d = Math.hypot(c.x - sp[0], c.z - sp[1]); if(nb < 9 || d < 8) continue; if(d < bd) { bd = d; best = c; } }
+      if(!best) for(const c of ws) { const d = Math.hypot(c.x - sp[0], c.z - sp[1]); if(d > 8 && d < bd) { bd = d; best = c; } } if(!best) return null;
       const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z), sc: best.r / .55 }; });
     res.willow = wv;
-    if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 17 - wv.uz * 5, wv.g + 4.5, wv.z + wv.uz * 17 + wv.ux * 5], t: [wv.x, wv.g + 3.8, wv.z] })})`);
+    if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 24 - wv.uz * 7, wv.g + 5.5, wv.z + wv.uz * 24 + wv.ux * 7], t: [wv.x, wv.g + 4.2, wv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_willow.jpg`); }
     /* 6. bush: a bush (C publishes its instances; the game's own list of where bushes stand, identical for every look) */
     const bv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = I.bushPos || [];
       if(!its.length) return null; let best = null, bd = 1e9; for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d > 7 && d < bd) { bd = d; best = b; } } if(!best) return null;
       const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z) }; });
     res.bush = bv;
-    if(bv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bv.x + bv.ux * 2.2, bv.z + bv.uz * 2.2], e: [bv.x + bv.ux * 7.5 - bv.uz * 2, bv.g + 2.4, bv.z + bv.uz * 7.5 + bv.ux * 2], t: [bv.x, bv.g + .7, bv.z] })})`);
+    if(bv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bv.x + bv.ux * 1.2 - bv.uz * 1.6, bv.z + bv.uz * 1.2 + bv.ux * 1.6], e: [bv.x + bv.ux * 4.6 - bv.uz * 1.2, bv.g + 1.7, bv.z + bv.uz * 4.6 + bv.ux * 1.2], t: [bv.x, bv.g + .5, bv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_bush.jpg`); }
   }
   res.errors = [...new Set(H.log.errors)].slice(0, 10); writeFileSync(`${base}_stills.json`, JSON.stringify(res, null, 1));
