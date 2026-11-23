@@ -1,0 +1,1 @@
+node qa/traversal.mjs gr > qa/out/trav_gr.out 2> qa/out/trav_gr.log; r=$?; tail -8 qa/out/trav_gr.log; exit $r
