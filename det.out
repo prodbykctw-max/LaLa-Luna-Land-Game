@@ -1,0 +1,62 @@
+{
+ "hub": {
+  "seeded": {
+   "runA": "afa9450d",
+   "runB": "afa9450d",
+   "meshesA": 358,
+   "meshesB": 358,
+   "MATCH": true
+  },
+  "unseededDiffers": true,
+  "otherSeedDiffers": true,
+  "creatureDrift": true
+ },
+ "green": {
+  "seeded": {
+   "runA": "775cd3ff",
+   "runB": "775cd3ff",
+   "meshesA": 611,
+   "meshesB": 611,
+   "MATCH": true
+  },
+  "unseededDiffers": true,
+  "otherSeedDiffers": true,
+  "creatureDrift": true
+ },
+ "gr": {
+  "seeded": {
+   "runA": "cdb7b3c2",
+   "runB": "cdb7b3c2",
+   "meshesA": 405,
+   "meshesB": 405,
+   "MATCH": true
+  },
+  "unseededDiffers": true,
+  "otherSeedDiffers": true,
+  "creatureDrift": false
+ },
+ "sanity": {
+  "seeded": {
+   "runA": "f2bbbfbf",
+   "runB": "1a5eb2a1",
+   "meshesA": 409,
+   "meshesB": 412,
+   "MATCH": false
+  },
+  "unseededDiffers": true,
+  "otherSeedDiffers": true,
+  "creatureDrift": true
+ },
+ "town": {
+  "seeded": {
+   "runA": "a687463",
+   "runB": "88961df9",
+   "meshesA": 671,
+   "meshesB": 685,
+   "MATCH": false
+  },
+  "unseededDiffers": true,
+  "otherSeedDiffers": true,
+  "creatureDrift": true
+ }
+}
