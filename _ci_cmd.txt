@@ -1,0 +1,1 @@
+node qa/scale.mjs > qa/out/scale.out 2> qa/out/scale.log; r=$?; tail -25 qa/out/scale.log; tail -25 qa/out/scale.out; exit $r
