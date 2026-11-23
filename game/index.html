@@ -512,7 +512,7 @@ if(LEGACY_LIGHTS){
   C.lights_pars_begin = t;
 }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-11-22a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-11-23a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -754,7 +754,31 @@ function applyLookMix(m){
   document.body.classList.toggle("dark", m > .5);
   LOOK_MIX = m; LOOK_NOW = m > .5 ? "dark" : "day";
 }
+/* ===================  SKY LIGHT  (?skylight=old restores the old lighting; ?skylight=0..1 sets how strong)  ===================
+   (?sky=old was already taken: it is the old gradient sky dome, see A REAL SKY. This is a different thing, hence the longer name.)
+   The state every patched material reads. ONE shared set of uniforms: present() points it at whichever scene is about
+   to be drawn, so a material that two islands share can never carry the wrong island's map, and a scene with no bake
+   (the crossing, the keep, ?skylight=old) gets uSkyK = 0, which makes the patch cost one branch and change nothing.
+   The bake itself, and the reasons for it, are in the SKY LIGHT block above buildIslandSteps. */
+const SLQ = REAL && QS.get("skylight") !== "old";
+/* ?skylight=v1 is the FIRST version (the raw visibility, strength .85, indirect light only): kept so QA can photograph the old and new strengths from one build. */
+const SLV1 = QS.get("skylight") === "v1";
+const SLK = (() => { if(SLV1) return .85; const v = parseFloat(QS.get("skylight")); return isNaN(v) ? 1 : Math.max(0, Math.min(1, v)); })();
+const SL_U = {
+  uSkyMap: {value: (() => { const t = new THREE.DataTexture(new Uint8Array([255, 0, 0, 0]), 1, 1); t.needsUpdate = true; return t; })()},
+  uSkyBox: {value: new THREE.Vector4(0, 0, 1, 1)},     /* minX, minZ, 1/sizeX, 1/sizeZ */
+  uSkyH:   {value: new THREE.Vector2(0, 1)},           /* ground height = x + g*y */
+  uSkyK:   {value: 0},
+  uSkyDbg: {value: QS.get("skydbg") ? 1 : 0}            /* ?skydbg=1: every standard surface shows only the sky light it was given (white = open sky), for looking at the bake itself */
+};
+function skyPresent(scene){
+  const L = SLQ ? scene.userData.skyLight : null;
+  if(!L){ SL_U.uSkyK.value = 0; return; }
+  SL_U.uSkyMap.value = L.rt.texture; SL_U.uSkyBox.value.set(L.box[0], L.box[1], 1/L.box[2], 1/L.box[3]);
+  SL_U.uSkyH.value.set(L.yMin, L.yRange); SL_U.uSkyK.value = SLK;
+}
 function present(scene){
+  skyPresent(scene);
   const want = scene.userData.lookMix != null ? scene.userData.lookMix : (scene.userData.darkLook ? 1 : 0);
   if(LOOK_MIX < 0 || Math.abs(want - LOOK_MIX) > .004) applyLookMix(want);
   if(LIGHTQ) lightFrame(scene);   /* LIGHTQ hook */
@@ -9883,6 +9907,340 @@ function buildIsland(cfg){
   finally { Math.random = real; }     /* finally, so a throw mid-build cannot leave the game deterministic */
 }
 function buildIslandBody(cfg){ const g = buildIslandSteps(cfg); let r; while(!(r = g.next()).done){} return r.value; }
+/* ===================  SKY LIGHT: BAKED OPEN-SKY SHADE  (?skylight=old restores, ?skylight=0..1 sets the strength)  ===================
+   WHY. The sun is live (it moves with Sanity's weather) and the shadow map handles it, so direct light stays exactly as it
+   was. What was missing is the OTHER light: the hemisphere and the sky environment reach every surface equally, so the
+   ground under a canopy, at the foot of a wall, a trunk or a rock, or in the gap between two houses, was lit exactly like an
+   open meadow. Real ground there sees a sliver of sky and is dim - and that dimness is most of what makes a thing look like
+   it stands IN a place rather than on it.
+   WHAT. Once per island, after it is built, ask every spot of the ground how much open sky it can see. The island's solid
+   things are drawn as depth from N sky directions (cosine-weighted, so overhead counts most); every cell of a top-down map
+   checks its own point against each depth picture and the answers are averaged. The result is ONE small texture: R is the
+   visibility (0 shut in .. 1 open), G is the ground's own height, so a wall can tell how far above that ground it is.
+   Every standard material then multiplies ONLY its indirect light (hemisphere + environment) by it - the sun, the key light
+   and the shadow map are untouched.
+   RULES it keeps, each learned somewhere else in this file:
+   - Judge the MESH, never the material class (HANDOFF 4.29): occluders are found by what they are (opaque, drawn, static),
+     and the pass says out loud what it matched, and shouts when it matched nothing.
+   - Nothing visible changes while it runs. Each step swaps materials, draws into its own targets and puts everything back
+     before it yields, so a frame drawn between two steps (another island on screen) never sees the swap. Layers 6 and 7
+     pick what the bake cameras draw; no object's visibility is ever toggled.
+   - It runs at the END of the island's build, as steps, behind the loading card, and BEFORE the warm pass, so the patched
+     shaders are the ones that get compiled once.
+   - A model that lands after the build (the town's house models) marks the island dirty; it is baked again once, when
+     they have all arrived. (?skylight=old: none of this runs.) */
+const SL_OCC = 7, SL_GND = 6;
+const SLN = Math.max(4, Math.min(256, parseInt(QS.get("skyn")) || 64));
+const SLG = {dm:new Map()};
+const SL_DONE = new WeakSet();
+function skyGL(){
+  if(SLG.ok) return SLG;
+  const RES = Math.max(256, Math.min(4096, parseInt(QS.get("skyres")) || 1024)); SLG.res = RES;
+  const nearest = {minFilter:THREE.NearestFilter, magFilter:THREE.NearestFilter, generateMipmaps:false};
+  SLG.depthRT = new THREE.WebGLRenderTarget(RES, RES, Object.assign({type:THREE.UnsignedByteType, format:THREE.RGBAFormat, depthBuffer:true}, nearest));
+  SLG.half = QS.get("skyacc") !== "8" && (renderer.extensions.has("EXT_color_buffer_float") || renderer.extensions.has("EXT_color_buffer_half_float"));
+  SLG.nearest = nearest;
+  SLG.fsCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); SLG.fsScene = new THREE.Scene();
+  SLG.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), null); SLG.quad.frustumCulled = false; SLG.fsScene.add(SLG.quad);
+  const VS = "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }";
+  const GROUND = `
+    uniform sampler2D tGround; uniform vec3 uGnd;
+    float gY(vec2 uv, out float ok){ float d = unpackRGBAToDepth(texture2D(tGround, vec2(uv.x, 1.0 - uv.y))); ok = d < .9995 ? 1.0 : 0.0; return uGnd.x - d*uGnd.y; }`;
+  /* 8-bit accumulator: each sum is a 16-bit number split over two channels (hi, lo) */
+  const PACK = `
+    vec2 skyEnc(float v){ float s = floor(clamp(v, 0.0, 1.0)*65535.0 + .5), hi = floor(s/256.0); return vec2(hi, s - hi*256.0)/255.0; }
+    float skyDec(vec2 c){ return (floor(c.x*255.0 + .5)*256.0 + floor(c.y*255.0 + .5))/65535.0; }`;
+  const defs = SLG.half ? {} : {ACC8:1};
+  SLG.gather = new THREE.ShaderMaterial({vertexShader:VS, defines:defs, depthTest:false, depthWrite:false, uniforms:{
+    tPrev:{value:null}, tGround:{value:null}, tDepth:{value:null}, uGnd:{value:new THREE.Vector3()}, uBox:{value:new THREE.Vector4()}, uMap:{value:new THREE.Vector2()},
+    uVP:{value:new THREE.Matrix4()}, uDir:{value:new THREE.Vector3()}, uInvRange:{value:1}, uTexel:{value:1}, uNorm:{value:1}},
+    fragmentShader:`#include <packing>\n${GROUND}\n${PACK}
+    uniform sampler2D tPrev, tDepth; uniform vec4 uBox; uniform vec2 uMap; uniform mat4 uVP; uniform vec3 uDir; uniform float uInvRange, uTexel, uNorm;
+    varying vec2 vUv;
+    void main(){
+      vec4 pv = texture2D(tPrev, vUv); float sv, sw;
+      #ifdef ACC8
+        sv = skyDec(pv.rg); sw = skyDec(pv.ba);
+      #else
+        sv = pv.r; sw = pv.g;
+      #endif
+      float ok0; float h0 = gY(vUv, ok0);
+      if(ok0 > .5){
+        vec2 px = 1.0/uMap; float o1, o2, o3, o4;
+        float hl = gY(vUv - vec2(px.x, 0.0), o1), hr = gY(vUv + vec2(px.x, 0.0), o2), hd = gY(vUv - vec2(0.0, px.y), o3), hu = gY(vUv + vec2(0.0, px.y), o4);
+        if(o1 < .5) hl = h0; if(o2 < .5) hr = h0; if(o3 < .5) hd = h0; if(o4 < .5) hu = h0;
+        float tx = uBox.z/uMap.x, tz = uBox.w/uMap.y;
+        vec3 n = normalize(vec3((hl - hr)/(2.0*tx), 1.0, (hd - hu)/(2.0*tz)));
+        float nd = dot(n, uDir), w = clamp(max(nd, 0.0)/max(uDir.y, .05), 0.0, 4.0);
+        if(w > 0.0){
+          vec3 P = vec3(uBox.x + vUv.x*uBox.z, h0, uBox.y + vUv.y*uBox.w) + n*.25;
+          vec4 c = uVP*vec4(P, 1.0); vec3 q = c.xyz/c.w; float V = 1.0;
+          if(abs(q.x) < 1.0 && abs(q.y) < 1.0){
+            /* the depth picture is one texel per uTexel metres: a surface tilted away from the view differs by tan(angle) texels
+               across one texel, so the allowed slop grows with the tilt or the open ground shades itself in stripes */
+            float cs = clamp(nd, .05, 1.0), tn = sqrt(1.0 - cs*cs)/cs;
+            float bias = uTexel*(1.5 + min(tn, 6.0))*uInvRange;
+            float sd = unpackRGBAToDepth(texture2D(tDepth, q.xy*.5 + .5));
+            V = (sd < q.z*.5 + .5 - bias) ? 0.0 : 1.0;
+          }
+          sv += V*w*uNorm; sw += w*uNorm;
+        }
+      }
+      #ifdef ACC8
+        gl_FragColor = vec4(skyEnc(sv), skyEnc(sw));
+      #else
+        gl_FragColor = vec4(sv, sw, 0.0, 1.0);
+      #endif
+    }`});
+  SLG.resolve = new THREE.ShaderMaterial({vertexShader:VS, defines:defs, depthTest:false, depthWrite:false, uniforms:{
+    tAcc:{value:null}, tGround:{value:null}, uGnd:{value:new THREE.Vector3()}, uMap:{value:new THREE.Vector2()}, uH:{value:new THREE.Vector2()}},
+    fragmentShader:`#include <packing>\n${GROUND}\n${PACK}
+    uniform sampler2D tAcc; uniform vec2 uMap, uH; varying vec2 vUv;
+    float vis(vec2 uv){ vec4 a = texture2D(tAcc, uv); float sv, sw;
+      #ifdef ACC8
+        sv = skyDec(a.rg); sw = skyDec(a.ba);
+      #else
+        sv = a.r; sw = a.g;
+      #endif
+      return sw > 1e-5 ? clamp(sv/sw, 0.0, 1.0) : 1.0; }
+    void main(){
+      float ok0; float h0 = gY(vUv, ok0);
+      if(ok0 < .5){ gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0); return; }
+      /* 3x3 tent over the cells that have ground: 64 directions leave a little per-cell grain, this takes it out without smearing the shade */
+      vec2 px = 1.0/uMap; float s = 0.0, ws = 0.0;
+      for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
+        vec2 uv = vUv + vec2(float(i), float(j))*px; float o; gY(uv, o);
+        float k = (i == 0 ? 2.0 : 1.0)*(j == 0 ? 2.0 : 1.0)*o; s += vis(uv)*k; ws += k; }
+      gl_FragColor = vec4(s/max(ws, 1e-4), clamp((h0 - uH.x)/uH.y, 0.0, 1.0), 0.0, 1.0);
+    }`});
+  SLG.ok = true; return SLG;
+}
+/* a depth-only stand-in for a mesh's own material; leaf cards keep their cut-out so a tree is not a solid lollipop */
+function skyDepthMat(m){
+  const at = m.alphaTest > 0 ? m.alphaTest : 0, key = (at && m.map ? m.map.uuid : "") + "|" + (at && m.alphaMap ? m.alphaMap.uuid : "") + "|" + at + "|" + m.side;
+  let d = SLG.dm.get(key);
+  if(!d){ d = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, side:m.side}); if(at){ d.map = m.map || null; d.alphaMap = m.alphaMap || null; d.alphaTest = at; } SLG.dm.set(key, d); }
+  return d;
+}
+/* Run fn with the renderer and the scene exactly as the game left them, and put them back after - fn is one synchronous
+   step, never spans a yield, so whatever is on screen between two steps is drawn from untouched state. */
+function skyRS(scene, fn){
+  const r = renderer, rt = r.getRenderTarget(), ac = r.autoClear, au = r.shadowMap.autoUpdate, ca = r.getClearAlpha(), cc = r.getClearColor(new THREE.Color()),
+        bg = scene.background, ov = scene.overrideMaterial, mw = scene.matrixWorldAutoUpdate;
+  r.shadowMap.autoUpdate = false; r.autoClear = true; scene.background = null; scene.overrideMaterial = null; scene.matrixWorldAutoUpdate = false;
+  try{ fn(); }
+  finally{ r.setRenderTarget(rt); r.autoClear = ac; r.shadowMap.autoUpdate = au; r.setClearColor(cc, ca); scene.background = bg; scene.overrideMaterial = ov; scene.matrixWorldAutoUpdate = mw; }
+}
+/* draw the layer `layer` of the scene as packed depth into rt; `list` are the meshes on that layer (their materials are
+   swapped for depth ones for the length of the draw and restored in the finally) */
+function skyDepthDraw(scene, cam, layer, list, rt){
+  const saved = new Array(list.length);
+  for(let i = 0; i < list.length; i++){ const o = list[i], m = o.material; saved[i] = m;
+    o.material = Array.isArray(m) ? m.map(skyDepthMat) : skyDepthMat(m); }
+  cam.layers.set(layer);
+  skyRS(scene, () => { renderer.setRenderTarget(rt); renderer.setClearColor(0xffffff, 1); renderer.render(scene, cam); });
+  for(let i = 0; i < list.length; i++) list[i].material = saved[i];
+}
+/* who occludes and who is ground. Mirrors mergeStatics' list of things that move or are taken: those are not scenery. */
+function skyCollect(I){
+  const scene = I.scene; scene.updateMatrixWorld(true);
+  (I._skyOcc || []).forEach(o => { o.layers.disable(SL_OCC); o.layers.disable(SL_GND); });
+  const skip = new Set([I.pickup, I.letterMesh, I.letterBeam, I.boat, I.door, I.W && I.W.group, I.sea, I.seaBed, I.moon, I.rain, I.bow, I.beam && I.beam.target, I.sky && I.sky.mesh,
+                        I.quest && I.quest.horse].filter(Boolean));
+  if(I.quest) for(const v of Object.values(I.quest)) (Array.isArray(v) ? v : [v]).forEach(o => { if(o && o.isObject3D) skip.add(o); });
+  [I.litter, I.fleet, I.gateMeshes, I.moons, I.creatures, I.npcs, I.props, I.notes, I.mist].forEach(a => (a || []).forEach(o => o && o.isObject3D && skip.add(o)));
+  (I.stones || []).forEach(s => s && s.mesh && skip.add(s.mesh));
+  for(const [k, v] of Object.entries(I.fx || {})){ if(k === "canopies" || k === "bushes") continue;   /* trees stand still: they are scenery */
+    const arr = Array.isArray(v) ? v : (v && Array.isArray(v.list) ? v.list : null); if(arr) arr.forEach(o => { if(o && o.isObject3D) skip.add(o); }); else if(v && v.isObject3D) skip.add(v); }
+  const occ = [], gnd = [], why = {skinned:0, fx:0, unlit:0, small:0, hidden:0}; const gbox = new THREE.Box3(), obox = new THREE.Box3(), b = new THREE.Box3();
+  const walk = (o, skipped) => {
+    if(!o.visible){ why.hidden++; return; }
+    if(skip.has(o)) skipped = true;
+    if(o.isMesh && o.geometry){
+      if(o.isSkinnedMesh) why.skinned++;
+      else if(skipped) why.fx++;
+      else{
+        const ms = Array.isArray(o.material) ? o.material : [o.material], m = ms[0];
+        const solid = m && (m.isMeshStandardMaterial || m.isMeshToonMaterial || m.isMeshLambertMaterial || m.isMeshPhongMaterial);
+        if(!solid || ms.some(x => (x.transparent && !(x.alphaTest > 0)) || x.depthWrite === false || x.colorWrite === false)) why.unlit++;
+        else if(o.isInstancedMesh && (o.geometry.boundingSphere || o.geometry.computeBoundingSphere() || o.geometry.boundingSphere).radius < .6) why.small++;
+        else{
+          o.layers.enable(SL_OCC); occ.push(o); b.setFromObject(o); if(!b.isEmpty()) obox.union(b);
+          if(o === I.terrainMesh || (o.userData.ground && m.isMeshStandardMaterial)){ o.layers.enable(SL_GND); gnd.push(o); if(!b.isEmpty()) gbox.union(b); }
+        }
+      }
+    }
+    for(let i = 0; i < o.children.length; i++) walk(o.children[i], skipped);
+  };
+  walk(scene, false);
+  I._skyOcc = occ;
+  return {occ, gnd, gbox, obox, why};
+}
+/* every MeshStandardMaterial in the island, characters' skins excepted, learns to dim its indirect light by the map */
+function skyPatchAll(scene){
+  const seen = new Set(); let fresh = 0, had = 0;
+  scene.traverse(o => { if(!o.isMesh || o.isSkinnedMesh) return;
+    for(const m of (Array.isArray(o.material) ? o.material : [o.material])){
+      if(!m || !m.isMeshStandardMaterial || seen.has(m)) continue; seen.add(m);
+      if(skyPatch(m)) fresh++; else had++; } });
+  return {total:seen.size, fresh, had};
+}
+const SL_VTX = `{ vec4 skw = vec4(transformed, 1.0); mat3 skn = mat3(modelMatrix);
+#ifdef USE_INSTANCING
+  skw = instanceMatrix*skw; skn = skn*mat3(instanceMatrix);
+#endif
+  vSkyW = (modelMatrix*skw).xyz; vSkyN = skn*objectNormal; }`;
+const SL_FRAG_PARS = `varying vec3 vSkyW; varying vec3 vSkyN; uniform sampler2D uSkyMap; uniform vec4 uSkyBox; uniform vec2 uSkyH; uniform float uSkyK, uSkyDbg;
+float skyOcc(){
+  float nl = length(vSkyN); vec3 n = nl > 1e-4 ? vSkyN/nl : vec3(0.0, 1.0, 0.0);
+  /* sample the ground just OUTSIDE a wall, not the cell the wall stands in */
+  vec2 uv = (vSkyW.xz + n.xz*.6 - uSkyBox.xy)*uSkyBox.zw;
+  if(uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return 1.0;
+  vec4 t = texture2D(uSkyMap, uv);
+  if(t.a < .5) return 1.0;
+  float h = vSkyW.y - (uSkyH.x + t.g*uSkyH.y);
+  return mix(t.r, 1.0, smoothstep(.4, 3.0, h));      /* the shade lies on the ground; a roof ten metres up sees the sky */
+}`;
+/* THE SHADE FACTOR, once per fragment, before the lights run (it is declared ahead of lights_fragment_begin so the fill lights can use it too).
+   The baked visibility is mild (an open meadow reads .98-1, the deepest pool under a crown .7-.9), so it is REMAPPED: anything at or above .97 is open
+   sky and stays exactly 1.0, and the rest is stretched over the .47 below it, to at most 85% darker. v1 keeps the first version's plain mix(1, vis, K). */
+const SL_SO_DECL = SLV1 ? `float skySo = 1.0; if(uSkyK > 0.0) skySo = mix(1.0, skyOcc(), uSkyK);`
+  : `float skySo = 1.0; if(uSkyK > 0.0) skySo = 1.0 - clamp((0.97 - skyOcc())/0.50, 0.0, 1.0)*0.85*uSkyK;`;
+const SL_FRAG = `if(uSkyK > 0.0){ reflectedLight.indirectDiffuse *= skySo; reflectedLight.indirectSpecular *= skySo;
+  if(uSkyDbg > .5){ reflectedLight.directDiffuse = vec3(0.0); reflectedLight.directSpecular = vec3(0.0); reflectedLight.indirectSpecular = vec3(0.0); reflectedLight.indirectDiffuse = vec3(skySo*.3); totalEmissiveRadiance = vec3(0.0); } }`;
+/* THE FILL LIGHTS.  The bounce and the rim are shadowless directional lights, so under a crown they lit the ground at full strength and the shade read weak.
+   Three sorts the shadow-casting lights FIRST (the key always has castShadow, so it is always index 0 of NUM_DIR_LIGHT_SHADOWS); every directional light past
+   that count is a fill, and only those are multiplied. Gated on the count alone, not on USE_SHADOWMAP: with the shadow map off (low quality) the key is
+   still counted as a caster and still never darkened. The chunk text is edited here, once, and checked for the shape we rely on; if a three update
+   changes it, SL_LIGHTS stays null and the fills are simply left alone (indirect only), and the bake says so in the console. */
+const SL_LIGHTS = (() => {
+  if(SLV1) return null;
+  const c = THREE.ShaderChunk.lights_fragment_begin || "", a = c.indexOf("getDirectionalLightInfo( directionalLight, directLight );");
+  const b = a < 0 ? -1 : c.indexOf("RE_Direct( directLight,", a), e = a < 0 ? -1 : c.indexOf("#pragma unroll_loop_end", a);
+  if(a < 0 || b < 0 || e < 0 || b > e){ console.warn("SKYLIGHT: lights_fragment_begin has a new shape, the fill lights are not dimmed"); return null; }
+  return c.slice(0, b) + "#if ( UNROLLED_LOOP_INDEX >= NUM_DIR_LIGHT_SHADOWS )\n\t\tdirectLight.color *= skySo;\n\t\t#endif\n\t\t" + c.slice(b);
+})();
+function skyPatch(m){
+  if(SL_DONE.has(m)) return false; SL_DONE.add(m);
+  /* wrap, never replace: the material keeps every patch it already has (wind, detail, camera fade, relief...) */
+  const prev = m.onBeforeCompile, own = Object.prototype.hasOwnProperty.call(m, "customProgramCacheKey") ? m.customProgramCacheKey : null, prevText = String(prev);
+  m.onBeforeCompile = function(sh, r){
+    if(prev) prev.call(this, sh, r);
+    /* a patch that rewrote the chunks we hang on would leave our varyings unwritten: then do nothing at all */
+    if(!sh.vertexShader.includes("#include <project_vertex>") || !sh.fragmentShader.includes("#include <aomap_fragment>")) return;
+    for(const k in SL_U) sh.uniforms[k] = SL_U[k];
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vSkyW; varying vec3 vSkyN;")
+      .replace("#include <project_vertex>", "#include <project_vertex>\n" + SL_VTX);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + SL_FRAG_PARS);
+    /* skySo is declared right before the lights so the fills can use it; a material that lost that chunk gets it declared at the indirect step instead */
+    const hasLights = sh.fragmentShader.includes("#include <lights_fragment_begin>");
+    if(hasLights) sh.fragmentShader = sh.fragmentShader.replace("#include <lights_fragment_begin>", SL_SO_DECL + "\n" + (SL_LIGHTS || "#include <lights_fragment_begin>"));
+    sh.fragmentShader = sh.fragmentShader.replace("#include <aomap_fragment>", (hasLights ? "" : SL_SO_DECL + "\n") + SL_FRAG + "\n#include <aomap_fragment>");
+  };
+  /* the default key is the TEXT of onBeforeCompile, which is now the same wrapper for everybody: keep the old text as the key */
+  m.customProgramCacheKey = () => (own ? own.call(m) : prevText) + "_sky";
+  if(renderer.properties.has(m)) m.needsUpdate = true;     /* already compiled somewhere: build the new variant on its next use */
+  return true;
+}
+function skyPct(px, n){
+  const v = []; for(let i = 0; i < n; i++) if(px[i*4 + 3] > 127) v.push(px[i*4]);
+  if(!v.length) return null; v.sort((a, b) => a - b);
+  const q = f => +(v[Math.min(v.length - 1, Math.floor(f*v.length))]/255).toFixed(2); return {p5:q(.05), p50:q(.5), p95:q(.95), cells:v.length};
+}
+function* skyBakeSteps(I){
+  if(I.skyBusy) return;
+  const key = I.cfg.key, scene = I.scene, N = SLN;
+  let ms = 0, s0 = performance.now(); const lap = () => { ms += performance.now() - s0; };
+  let groundRT = null, accA = null, accB = null, finalRT = null;
+  I.skyBusy = true;
+  try{
+    /* the town's houses arrive a moment after the build; baking without them would bake an empty street, then bake again */
+    if(I.bldPending > 0){ I.skyDirty = true; DBG("SKYBAKE", key, "deferred: " + I.bldPending + " house model(s) still arriving, baked once they are here"); return; }
+    I.skyDirty = false;
+    const G = skyGL(), C = skyCollect(I), P = skyPatchAll(scene);
+    if(!C.occ.length || !C.gnd.length || C.gbox.isEmpty() || C.gbox.max.x - C.gbox.min.x > 6000 || C.gbox.max.z - C.gbox.min.z > 6000){
+      DBG("SKYBAKE NOTHING TO BAKE", key, "occluders", C.occ.length, "ground meshes", C.gnd.length, "ground box", C.gbox.isEmpty() ? "empty" : C.gbox.min.toArray().map(Math.round) + " .. " + C.gbox.max.toArray().map(Math.round), "left out", JSON.stringify(C.why)); return; }
+    /* the map: ~0.35 u per cell, never more than 1024 on the long side */
+    const gb = C.gbox, sx0 = gb.max.x - gb.min.x, sz0 = gb.max.z - gb.min.z, texel = Math.max(.35, Math.max(sx0, sz0)/1024);
+    const W = Math.max(8, Math.ceil(sx0/texel)), H = Math.max(8, Math.ceil(sz0/texel)), sx = W*texel, sz = H*texel, minX = gb.min.x, minZ = gb.min.z;
+    const top = gb.max.y + 1, bottom = Math.max(gb.min.y, SEA_Y - 3), yRange = Math.max(1, top - bottom);
+    const rtOpt = (type, filt) => ({type, format:THREE.RGBAFormat, minFilter:filt, magFilter:filt, generateMipmaps:false, depthBuffer:false});
+    groundRT = new THREE.WebGLRenderTarget(W, H, Object.assign({type:THREE.UnsignedByteType, format:THREE.RGBAFormat, depthBuffer:true}, G.nearest));
+    const accT = G.half ? THREE.HalfFloatType : THREE.UnsignedByteType;
+    accA = new THREE.WebGLRenderTarget(W, H, rtOpt(accT, THREE.NearestFilter)); accB = new THREE.WebGLRenderTarget(W, H, rtOpt(accT, THREE.NearestFilter));
+    lap(); yield; s0 = performance.now();
+
+    /* 1. the ground, straight down: its height in every cell (and where there is none) */
+    const gc = new THREE.OrthographicCamera(-sx/2, sx/2, sz/2, -sz/2, 0, yRange);
+    gc.position.set(minX + sx/2, top, minZ + sz/2); gc.up.set(0, 0, -1); gc.lookAt(minX + sx/2, top - 1, minZ + sz/2); gc.updateMatrixWorld();
+    skyDepthDraw(scene, gc, SL_GND, C.gnd, groundRT);
+    G.quad.material = G.gather; const gu = G.gather.uniforms;
+    gu.tGround.value = groundRT.texture; gu.tDepth.value = G.depthRT.texture; gu.uGnd.value.set(top, yRange, 0); gu.uBox.value.set(minX, minZ, sx, sz); gu.uMap.value.set(W, H); gu.uNorm.value = 1/(4*N);
+    skyRS(scene, () => { for(const t of [accA, accB]){ renderer.setRenderTarget(t); renderer.setClearColor(0x000000, 0); renderer.clear(); } });
+    lap(); yield; s0 = performance.now();
+
+    /* 2. N directions. The box the depth camera must cover is the occluders' own, cut to a little beyond the ground (no stray far mesh may spend the resolution) */
+    const ob = C.obox.clone(); ob.min.x = Math.max(ob.min.x, gb.min.x - 40); ob.max.x = Math.min(ob.max.x, gb.max.x + 40); ob.min.z = Math.max(ob.min.z, gb.min.z - 40); ob.max.z = Math.min(ob.max.z, gb.max.z + 40);
+    ob.max.y = Math.min(ob.max.y, gb.max.y + 60); ob.min.y = Math.min(ob.min.y, bottom); ob.expandByScalar(1);
+    const ctr = ob.getCenter(new THREE.Vector3()), rad = ob.getSize(new THREE.Vector3()).length(), dc = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 100);
+    const corner = new THREE.Vector3(), d = new THREE.Vector3(), GA = Math.PI*(3 - Math.sqrt(5));
+    let rd = accA, wr = accB;
+    for(let i = 0; i < N; i++){
+      const cy = Math.sqrt(1 - (i + .5)/N), sy = Math.sqrt(1 - cy*cy), ph = i*GA;
+      d.set(sy*Math.cos(ph), cy, sy*Math.sin(ph));
+      dc.position.copy(ctr).addScaledVector(d, rad); dc.up.set(0, 1, 0); dc.lookAt(ctr); dc.updateMatrixWorld(); dc.matrixWorldInverse.copy(dc.matrixWorld).invert();
+      let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
+      for(let c = 0; c < 8; c++){ corner.set(c & 1 ? ob.max.x : ob.min.x, c & 2 ? ob.max.y : ob.min.y, c & 4 ? ob.max.z : ob.min.z).applyMatrix4(dc.matrixWorldInverse);
+        x0 = Math.min(x0, corner.x); x1 = Math.max(x1, corner.x); y0 = Math.min(y0, corner.y); y1 = Math.max(y1, corner.y); z0 = Math.min(z0, corner.z); z1 = Math.max(z1, corner.z); }
+      dc.left = x0; dc.right = x1; dc.bottom = y0; dc.top = y1; dc.near = Math.max(.01, -z1 - 1); dc.far = -z0 + 1; dc.updateProjectionMatrix();
+      skyDepthDraw(scene, dc, SL_OCC, C.occ, G.depthRT);
+      gu.uVP.value.multiplyMatrices(dc.projectionMatrix, dc.matrixWorldInverse); gu.uDir.value.copy(d);
+      gu.uInvRange.value = 1/(dc.far - dc.near); gu.uTexel.value = Math.max((x1 - x0)/G.res, (y1 - y0)/G.res); gu.tPrev.value = rd.texture;
+      skyRS(scene, () => { renderer.setRenderTarget(wr); renderer.render(G.fsScene, G.fsCam); });
+      const t = rd; rd = wr; wr = t;
+      lap(); yield; s0 = performance.now();
+    }
+
+    /* 3. resolve: visibility, ground height, ground-exists - into the map the materials read */
+    finalRT = new THREE.WebGLRenderTarget(W, H, {type:THREE.UnsignedByteType, format:THREE.RGBAFormat, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter, generateMipmaps:false, depthBuffer:false});
+    G.quad.material = G.resolve; const ru = G.resolve.uniforms;
+    ru.tAcc.value = rd.texture; ru.tGround.value = groundRT.texture; ru.uGnd.value.set(top, yRange, 0); ru.uMap.value.set(W, H); ru.uH.value.set(bottom, yRange);
+    skyRS(scene, () => { renderer.setRenderTarget(finalRT); renderer.render(G.fsScene, G.fsCam); });
+    const px = new Uint8Array(W*H*4); renderer.readRenderTargetPixels(finalRT, 0, 0, W, H, px);     /* also the point the GPU has finished all of it */
+    const pc = skyPct(px, W*H);
+    const old = I.skyLight; I.skyLight = {rt:finalRT, box:[minX, minZ, sx, sz], yMin:bottom, yRange, n:N, w:W, h:H}; scene.userData.skyLight = I.skyLight; finalRT = null;
+    if(old) old.rt.dispose();
+    renderer.shadowMap.needsUpdate = true;
+    lap();
+    I.skyMs = (I.skyMs || 0) + ms;
+    DBG("SKYBAKE", key, "N", N, "map", W + "x" + H, "@" + texel.toFixed(2) + " u/cell", G.half ? "half-float" : "rgba8", "occluders", C.occ.length, "ground", C.gnd.length,
+        "left out", JSON.stringify(C.why), "materials", P.total, "(" + P.fresh + " patched now)", Math.round(ms) + " ms", pc ? "visibility p5/p50/p95 " + pc.p5 + "/" + pc.p50 + "/" + pc.p95 + " over " + pc.cells + " cells" : "NO GROUND CELLS IN THE MAP");
+  }catch(e){ DBG("SKYBAKE failed", key, e && e.message, e && e.stack && e.stack.split("\n")[1]); }
+  finally{
+    [groundRT, accA, accB, finalRT].forEach(t => t && t.dispose());
+    I.skyBusy = false;
+  }
+}
+/* Drive a bake from the frame loop for an island that is already built (late models, the debounce below). Resolves when done. */
+function skyRun(I){
+  return new Promise(res => { const g = skyBakeSteps(I);
+    const tick = () => { const t = performance.now();
+      try{ for(;;){ if(g.next().done){ res(); return; } if(performance.now() - t > (LOADING ? 30 : 8)) break; } }
+      catch(e){ DBG("SKYBAKE failed", e && e.message); res(); return; }
+      requestAnimationFrame(tick); };
+    tick(); });
+}
+/* A model that joined the island after the build (the town's houses): bake once, a moment after the last one has landed. */
+function skyLate(I){
+  if(!SLQ || !I) return; I.skyDirty = true; clearTimeout(I.skyT);
+  I.skyT = setTimeout(() => skyRefresh(I), 900);
+}
+function skyRefresh(I){
+  clearTimeout(I.skyT);
+  if(!SLQ || !I.skyDirty || I.skyBusy || I.bldPending > 0) return;
+  if(ASSET_PENDING > 0 || LOADING){ I.skyT = setTimeout(() => skyRefresh(I), 800); return; }   /* readyIsland does it itself, behind its card */
+  skyRun(I);
+}
 function* buildIslandSteps(cfg){   /* the island build, one top-level step per yield: run straight through it is the old build exactly, stepped it can happen while the boat is at sea */
   scaleCfg(cfg); VCOUNT = {};
   /* The quest anchors are derived, not authored, so they can never be hand-placed into the sea and
@@ -11122,7 +11480,8 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
         placed.push({x, z, rot, B, key});
         (I.buildings = I.buildings || []).push(g);
         const paint = PASTELQ && B.paint ? PASTELS[(_pastelI++) % PASTELS.length] : null;   /* chosen in placement order, so every load paints the same house the same colour */
-        bldProto(key).then(p => { if(!p) return; const c = p.clone(); if(paint != null) paintHouse(c, paint); g.add(c); });
+        I.bldPending = (I.bldPending || 0) + 1;      /* SKY LIGHT waits for the houses: they are most of what shades a street */
+        bldProto(key).then(p => { if(p){ const c = p.clone(); if(paint != null) paintHouse(c, paint); g.add(c); } I.bldPending--; skyLate(I); });
       };
       /* 1. THE WATERFRONT: the gable houses stand in one row along the harbour shore, fronts to the water, a quay's
          width back from it - Willemstad's Handelskade, the first thing she sees from the boat. The row runs both ways
@@ -11842,6 +12201,8 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     { const br = I.foam.find(f => f && f.isMesh && f.material && f.material.uniforms && f.material.uniforms.uAmp);
       if(br){ const parts = chunkMesh(br, scene, 4.5); parts.forEach(m => { m.frustumCulled = true; }); I.foam[I.foam.indexOf(br)] = parts[0]; yield; } }   /* the breakers' ring: only the surf in view */
   }
+  if(SLQ) yield* skyBakeSteps(I);   /* SKY LIGHT: last, after everything solid is in the scene and before the warm pass compiles the shaders */
+  yield;
   return I;
 }
 
@@ -14312,6 +14673,7 @@ async function readyIsland(key, prog){
     while(ASSET_PENDING > 0){
       if(performance.now() - t0 > 75000){ rigNames(I).forEach(rigGiveUp); if(performance.now() - t0 > 90000) break; }
       n0 = Math.max(n0, ASSET_PENDING); prog(.5 + .3*(1 - ASSET_PENDING/n0)); await nextFrame(); preloadRigs(I); }
+    if(SLQ && I.skyDirty && !I.skyBusy && !(I.bldPending > 0)){ prog(.8); await skyRun(I); }     /* SKY LIGHT: the late models are in; bake (once) before the shaders are compiled */
     PREP[key] = {i:0, done:false, ms:0};         /* everything that arrived is in the scene now: draw it all once */
     await warmCompile(I);
     while(!warmStep(I, 40)){ prog(.8 + .2*PREP[key].i/Math.max(1, I.scene.children.length)); await nextFrame(); }

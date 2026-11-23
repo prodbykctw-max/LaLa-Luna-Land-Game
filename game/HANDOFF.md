@@ -327,10 +327,32 @@ NPCs, beach, grotto, stones, **and now places**.
   the button centres, a note card's origin lands on the note's screen point, no copy left behind,
   rapid open/close ends in a clean state. Not yet looked at on a phone.
 
+- **Sky light (branch `skylight`; `?skylight=old` restores - `?sky=old` is the older gradient sky dome).** A baked open-sky map per island. At the end of
+  `buildIslandSteps` (`skyBakeSteps`, in the SKY LIGHT block above it) the island's solid, static things are drawn as depth
+  from N=64 cosine-weighted sky directions (layer 7; the ground alone on layer 6, straight down), and every cell of a
+  top-down map (~0.35 u, at most 1024 on the long side) tests its own point against each one. Result: one RGBA8 texture,
+  R = how much sky that spot sees, G = the ground's height there. Every standard material (stdMat and GLB, grass included,
+  skins excepted) is wrapped with the `sky` patch (`skyPatch`) and multiplies ONLY its indirect diffuse/specular (hemisphere +
+  environment) by it, fading to 1 above ~3 u of ground. The sun, the key light and the shadow map are untouched. The uniforms
+  are one shared object (`SL_U`) that `present()` points at the scene being drawn (`scene.userData.skyLight`); a scene with no
+  bake gets `uSkyK = 0`. The island's own record is `I.skyLight` (NOT `I.sky`: that is the sky dome). `?skylight=0..1` sets the
+  strength (default 1; `?skylight=v1` is the FIRST version, kept for QA: raw visibility, .85, indirect light only), `?skyn=` the direction count, `?skyres=` the depth picture size, `?skyacc=8` forces the 8-bit
+  accumulator (the half-float one is used where the GPU can render to it). The town's house models arrive after the build:
+  the bake waits for them (`I.bldPending`), `readyIsland` runs it once they are in (`I.skyDirty`), and a debounced
+  `skyLate` does the same for an island that is already being played. Log line: `SKYBAKE` (a bake that matches nothing says
+  `NOTHING TO BAKE`). Suite: `qa/skylightab.mjs`.
+  **Stronger shade (second pass).** The factor is remapped so open ground stays EXACTLY 1.0: `s = clamp((0.97 - occ)/0.50, 0, 1)`,
+  `skySo = 1 - s*0.85*uSkyK` (visibility .98 -> 1.0, .89 -> ~.86, .75 -> ~.63), computed once per fragment ahead of
+  `lights_fragment_begin`. It also multiplies the SHADOWLESS directional fills (bounce, rim): the shader chunk text is edited once
+  (`SL_LIGHTS`) so every directional light past `NUM_DIR_LIGHT_SHADOWS` gets `directLight.color *= skySo`. Three sorts shadow
+  casters first and the key always has `castShadow`, so the key/sun is never touched, with the shadow map on or off. If a three
+  update changes the chunk, `SL_LIGHTS` is null (console warning) and only the indirect light is dimmed. Suite: `qa/sky3ab.mjs`
+  (OLD | FIRST | STRONGER, same spots) + `qa/sky3metrics.py`.
+
 ## 2.7 URL flags
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)
-`?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=`
+`?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=` `?skylight=old|v1|0..1` `?skyn=` `?skyres=` `?skyacc=8`
 
 ## 2.8 Commit history this session (newest first)
 
@@ -2216,3 +2238,16 @@ Round 2 (merged with main 2026-11-22a; flags below default ON, each has an off s
 - The QA farm (GitHub runners, branch-triggered, never deploys) is how heavy runs are done now: push a
   `qa-job/<name>` branch with `.github/workflows/qa-farm.yml` + `ci/jobs.txt`; results come back on
   `qa-out/<name>/<line>`. The helper lives outside the repo (session box: /home/claude/scripts/qafarm.sh).
+
+### 4.58 — Sky light, STRONGER: shade pools under trees and at wall bases (build `2026-11-23a`)
+**Melvin's pick 2026-11-23 from the NOW | FIRST | STRONGER sheets (Home, Green, Town): "STRONGER".**
+- Per island, a baked open-sky visibility map (see the Sky light flag notes in section 2) now darkens both the indirect
+  light and the two shadowless fill lights (bounce .38, rim .42), never the shadow-casting key:
+  `skySo = 1 - clamp((0.97 - occ)/0.50, 0, 1) * 0.85 * uSkyK`, computed once per fragment before `lights_fragment_begin`.
+  The fill-light dimming edits the r187 lights chunk (`#if (UNROLLED_LOOP_INDEX >= NUM_DIR_LIGHT_SHADOWS)`); if a future
+  three.js changes that chunk's shape it logs a console warning and falls back to indirect-only.
+- Measured (qa/sky3ab.mjs + qa/sky3metrics.py, mean luma in the pool region vs OLD): under trees hub -26.6%, green -23.0%,
+  gr -22.3%, sanity (night) -11.9%, town -17.4%; open meadow within +-0.34% (noise). Lala is a skinned mesh and is excluded.
+- Flags: `?skylight=old` = off, `?skylight=v1` = FIRST version, `?skylight=0..1` = strength.
+- Known QA gap: the close shot of Lala inside a shade pool was not usable (leaves cover her), so "does she look muddy in
+  shade" is unproven; Lala's own shading is unchanged by the patch.
