@@ -1,0 +1,532 @@
+{
+ "town": {
+  "island": "town",
+  "grid": {
+   "spacing": 3,
+   "cells": 15611,
+   "standable": 15539,
+   "traps": 0,
+   "pockets": 0,
+   "trapList": [],
+   "pocketList": []
+  },
+  "camera": {
+   "samples": 31222,
+   "samplesWithHit": 31076,
+   "byKind": {
+    "other": 31076
+   },
+   "nonCanopy": [
+    {
+     "x": -313.7,
+     "z": -310.7,
+     "yaw": 0,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -310.7,
+     "yaw": 1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -310.7,
+     "yaw": 3.14,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -310.7,
+     "yaw": -1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -304.7,
+     "yaw": 0,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -304.7,
+     "yaw": 1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -304.7,
+     "yaw": 3.14,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -304.7,
+     "yaw": -1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -298.7,
+     "yaw": 0,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -298.7,
+     "yaw": 1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -298.7,
+     "yaw": 3.14,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -298.7,
+     "yaw": -1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -292.7,
+     "yaw": 0,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -292.7,
+     "yaw": 1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -292.7,
+     "yaw": 3.14,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -292.7,
+     "yaw": -1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -286.7,
+     "yaw": 0,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -286.7,
+     "yaw": 1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -286.7,
+     "yaw": 3.14,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -286.7,
+     "yaw": -1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -280.7,
+     "yaw": 0,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -280.7,
+     "yaw": 1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -280.7,
+     "yaw": 3.14,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -280.7,
+     "yaw": -1.57,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    },
+    {
+     "x": -313.7,
+     "z": -274.7,
+     "yaw": 0,
+     "d": null,
+     "camD": 11.7,
+     "hitY": null,
+     "kind": "other",
+     "col": "ffffff",
+     "obj": "SphereGeometry",
+     "mat": "MeshBasicMaterial",
+     "verts": 35,
+     "objPos": [
+      -303.4,
+      11.8,
+      -133.4
+     ],
+     "parents": [],
+     "colliderNear": false
+    }
+   ]
+  },
+  "real": {
+   "tests": 20,
+   "wallSeconds": 36.2,
+   "approxFps": 60.1,
+   "stalls": [],
+   "buried": [],
+   "outside": []
+  },
+  "pageErrors": []
+ }
+}
