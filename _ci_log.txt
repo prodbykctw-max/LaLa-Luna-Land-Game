@@ -1,0 +1,2 @@
+[traversal] hub: traps=0 pockets=0 camHits=47008 stalls=0 buried=0 fps~59.5
+rc=0
