@@ -12,8 +12,8 @@ const SAME = arg('same', '0') === '1'; const query = arg('query', ''); const tag
 const STEPS = [17, 17, 16]; let _si = 0; const STEP = () => STEPS[_si++ % 3];
 const AB = process.env.AB_DIR || OUT; const dir = AB + '/edge/' + tag; mkdirSync(dir, { recursive: true });
 const report = { tag, query, islands: {} };
-for (const key of keys) { try {
-  const H = await open({ navigate: false, query, viewport: { width: W, height: Hh }, init: `window.__fc = 0; (function fc(){ window.__fc++; requestAnimationFrame(fc); })(); (function(){ let s = 123456789; window.__seed = v => { s = v; }; Math.random = function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();` });
+for (const key of keys) { let H; try {
+  H = await open({ navigate: false, query, viewport: { width: W, height: Hh }, init: `window.__fc = 0; (function fc(){ window.__fc++; requestAnimationFrame(fc); })(); (function(){ let s = 123456789; window.__seed = v => { s = v; }; Math.random = function(){ s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();` });
   const { page } = H;
   await page.clock.install({ time: 1700000000000 });   /* fixed wall clock: Date.now() drives the Sanity weather cycle and the hour of day */
   await page.goto(H.url, { waitUntil: 'domcontentloaded', timeout: 120000 });
@@ -74,7 +74,7 @@ for (const key of keys) { try {
     await page.evaluate(() => { window.__T.CUR.W.camYaw += .03; });
     await page.clock.runFor(STEP());
     const rows = await page.evaluate(() => window.__probe());
-    const shotBuf = await page.screenshot({ type: SAME ? 'png' : 'jpeg', quality: 92, timeout: 600000 });   /* A: the frame the game drew, skinCull ON */
+    const shotBuf = await page.screenshot(SAME ? { type: 'png', timeout: 600000 } : { type: 'jpeg', quality: 92, timeout: 600000 });   /* A: the frame the game drew, skinCull ON */
     if (SAME) {
       /* The frame is not bit-for-bit repeatable (a second render of identical state differs by ~1.4 mean from the first: dithered AO / god-ray jitter), so the comparison
          is three renders of the SAME state: B = ON again (the noise floor), C = every skinCull'd mesh forced to frustumCulled=false (OLD). A pop shows as C differing from B by MORE
@@ -108,7 +108,7 @@ for (const key of keys) { try {
   writeFileSync(`${dir}/${key}_log.json`, JSON.stringify(log));
   report.islands[key] = { frames: NF, same: SAME ? { framesCompared: sameLog.length, flagged: sameDiff, worstToggleMean: Math.max(0, ...sameLog.map(x => x.toggle.mean)), worstNoiseMean: Math.max(0, ...sameLog.map(x => x.noise.mean)), worstToggleN32: Math.max(0, ...sameLog.map(x => x.toggle.n32)), worstNoiseN32: Math.max(0, ...sameLog.map(x => x.noise.n32)), maxSkinCulledMeshes: Math.max(0, ...sameLog.map(x => x.nSkinCulled)), framesWithMeshesCulled: sameLog.filter(x => x.culledNow > 0).length, log: sameLog } : undefined, crossings, pops, maxPopFrac, popEvents: popEvents.slice(0, 40), shotFrames: [...keep.keys()].sort((a, b) => a - b), meshesSeen: new Set(log.flatMap(l => l.rows.map(r => r.id))).size, errors: H.log.errors.slice(0, 5) };
   await H.close();
- } catch (e) { report.islands[key] = { error: String(e).slice(0, 400) }; console.log('FAILED', key, String(e).slice(0, 400)); }
+ } catch (e) { try { if (H) await H.close(); } catch {} report.islands[key] = { error: String(e).slice(0, 400) }; console.log('FAILED', key, String(e).slice(0, 400)); }
 }
 writeFileSync(AB + '/sanityperf_edge_' + tag + '.json', JSON.stringify(report, null, 1));
 console.log(JSON.stringify(report).slice(0, 4000));
