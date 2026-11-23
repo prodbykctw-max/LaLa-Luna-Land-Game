@@ -1493,21 +1493,24 @@ function forestBuilder(P, night){
     crownOf(center, lobes, R, willow ? LEAF_CARDS*1.3 : LEAF_CARDS, willow, m4);
     return {r: 2.0*sc, h};
   };
-  /* C / D: the trees that stand in the open are instances of baked variants. The shipped crown still runs (it spends exactly the
-     draws it always did, so every later placement is unmoved) and its geometry is cut back out. Willows stay as shipped. */
-  let INST = null;
+  /* C: trees, willows and bushes are instances of baked variants. The shipped crown still runs (it spends exactly the draws it always did,
+     so every later placement is unmoved) and its geometry is cut back out. One field per kind. */
+  const FIELDS = {};
+  const fieldOf = (kind, x, z) => FIELDS[kind] || (FIELDS[kind] = treeField(bakeTreesC(night)[kind], TOPT + ":" + kind + ":" + x.toFixed(2) + ":" + z.toFixed(2)));
+  const cutBack = fn => { const keep = [TR, LF].map(B => ({B, n: Object.fromEntries(Object.keys(B).map(k => [k, B[k].length]))}));
+    const r = fn(); for(const {B, n} of keep) for(const k in n) B[k].length = n[k]; return r; };
   const tree = (sc, kind, x, y, z, rotY) => {
-    if(TOPT !== "C" || kind === "willow") return treeA(sc, kind, x, y, z, rotY);
-    if(!INST) INST = treeField(bakeTreesC(night), TOPT + ":" + x.toFixed(2) + ":" + z.toFixed(2));
-    const keep = [TR, LF].map(B => ({B, n: Object.fromEntries(Object.keys(B).map(k => [k, B[k].length]))}));
-    const r = treeA(sc, kind, x, y, z, rotY);
-    for(const {B, n} of keep) for(const k in n) B[k].length = n[k];
-    INST.add(sc, x, y, z, rotY);
+    if(TOPT !== "C") return treeA(sc, kind, x, y, z, rotY);
+    const F = fieldOf(kind === "willow" ? "willow" : "tree", x, z);
+    const r = cutBack(() => treeA(sc, kind, x, y, z, rotY));
+    F.add(sc, x, y, z, rotY);
     return r;
   };
   const bush = (sc, x, y, z) => {
     const m4 = new THREE.Matrix4().makeTranslation(x, y, z);
-    crownOf(new THREE.Vector3(0, .25*sc, 0), [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]], sc*1.05, 12, false, m4);
+    const run = () => crownOf(new THREE.Vector3(0, .25*sc, 0), [[0,0,0,1.0],[.7,-.1,.4,.75],[-.6,-.05,.5,.7],[.1,-.1,-.7,.72]], sc*1.05, 12, false, m4);
+    if(TOPT !== "C") return run();
+    const F = fieldOf("bush", x, z); cutBack(run); F.add(sc, x, y, z, null);
   };
   /* ---- palms (Good Riddance, Town Square) ----
      A ringed, curving trunk in photo palm bark, and a crown of arching fronds: each frond is a strip
@@ -1553,7 +1556,7 @@ function forestBuilder(P, night){
   };
   const finish = (scene, I) => {
     const out = [];
-    if(INST) out.push(...INST.finish(scene, I));
+    for(const k in FIELDS) out.push(...FIELDS[k].finish(scene, I));
     const geoOf = B => { const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(B.pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(B.nor, 3));
       g.setAttribute("uv", new THREE.Float32BufferAttribute(B.uv, 2)); g.setAttribute("color", new THREE.Float32BufferAttribute(B.col, 3));
@@ -1604,122 +1607,194 @@ function forestBuilder(P, night){
 }
 /* ===================  TREE OPTION C: INSTANCED REALISTIC TREES  ===================
    ?trees=C: ez-tree (vendor/ez-tree, MIT, Daniel Greenheck) grows real branches and twigs with its own leaf sprigs and bark.
-   A handful of variants is baked ONCE per page (two levels of detail each), then every tree the island placed is an
-   INSTANCE of one of them, at the same position, scale and heading forestBuilder was given. The original crown code
-   still runs for every tree (its draws keep the seeded stream where it was, so no rock, creature or bush moves) and its
-   output is thrown away. Willows and bushes stay as shipped. Nothing here may touch the seeded Math.random: everything
-   that makes an object (a uuid is a draw) runs under withFreeRandom, and variation comes from a private generator. */
+   A handful of variants is baked ONCE per page (two levels of detail each) for three kinds, tree, willow and bush, then every
+   one the island placed is an INSTANCE of one of them, at the same position, scale and heading forestBuilder was given. The
+   original crown code still runs for every tree, willow and bush (its draws keep the seeded stream where it was, so no rock,
+   creature or bush moves) and its output is thrown away. Nothing here may touch the seeded Math.random: everything that makes
+   an object (a uuid is a draw) runs under withFreeRandom, and variation comes from a private generator. */
 const TREE_MOBILE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
-const TWIND = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}, uGust:{value:1}};
+const TWIND = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}, uGust:{value:1}, uSun:{value:new THREE.Vector3(0, 1, 0)}};
 const withFreeRandom = fn => { const r0 = Math.random; Math.random = FREE_RANDOM; try { return fn(); } finally { Math.random = r0; } };
 const TREE_NEAR = TREE_MOBILE ? 22 : 40, TREE_FAR = 230;        /* world units from the camera: full detail inside NEAR, the cheap level to FAR */
-let TREE_C_CACHE = null;
-const treeSwayInst = `#include <begin_vertex>
+let TREE_C_GEO = null, TREE_C_TEX = null; const TREE_C_MATS = {};
+/* wind, shared by the leaf, the bark and both depth materials so a shadow moves exactly with what casts it.
+   aB: how far this point rides the branch's sway (0 at the trunk foot, 1 at a twig tip), baked per vertex; aW: the leaf's own flutter. */
+const TREE_SWAY = `#include <begin_vertex>
   { vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
     float ph = ip.x*.21 + ip.z*.17;
     float gust = sin(uTime*.9 + ph*.4)*.5 + .5;
-    float w = aW * uGust;
-    transformed.x += (sin(uTime*1.3 + ph + position.y*.4) * .11 + sin(uTime*5.7 + ph*3.1 + position.x*2.3) * .03) * w * (.5 + gust);
-    transformed.z += (cos(uTime*1.1 + ph*1.3 + position.y*.3) * .09 + cos(uTime*6.3 + ph*2.3 + position.z*2.1) * .025) * w * (.5 + gust);
-    transformed.y += sin(uTime*4.9 + ph*2.7 + position.x*3.0) * .02 * w; }`;
-/* a leaf material for instanced geometry: wind on the leaf's own weight (aW), both faces lit with the card's own rounded normal */
-function treeLeafMat(map, night, tint){
+    float k = uGust*(.55 + gust), b = aB*k, w = aW*uGust*(.6 + gust);
+    transformed.x += (sin(uTime*1.25 + ph)*.30 + sin(uTime*2.3 + ph*1.7)*.09)*b;
+    transformed.z += (cos(uTime*1.05 + ph*1.3)*.25 + cos(uTime*2.0 + ph*.9)*.07)*b;
+    transformed.y += sin(uTime*1.7 + ph)*.05*b;
+    transformed.x += sin(uTime*5.7 + ph*3.1 + position.x*2.3 + position.y*1.7)*.07*w;
+    transformed.z += cos(uTime*6.3 + ph*2.3 + position.z*2.1 + position.y*1.3)*.06*w;
+    transformed.y += sin(uTime*4.9 + ph*2.7 + position.x*3.0)*.035*w; }`;
+const TREE_SWAY_DECL = "attribute float aB; attribute float aW; attribute float aEx; uniform float uTime; uniform float uGust;";
+/* leaf material: a sprig atlas (oak | ash | aspen), vertex colour carries the per-leaf, per-species tint, both faces lit with the card's own rounded normal,
+   and light THROUGH the leaf: against the sun a leaf glows (aEx keeps the inside of the crown, which the sun does not reach, dark) */
+function treeLeafMat(map, night){
   const lm = new THREE.MeshStandardMaterial({map, alphaTest:.45, side:THREE.DoubleSide, roughness:.78, metalness:0, envMapIntensity:.38, vertexColors:true});
-  lm.color.copy(tint || new THREE.Color(1, 1, 1)); if(night) lm.color.multiplyScalar(.40);
-  lm.onBeforeCompile = sh => { sh.uniforms.uTime = TWIND.uTime; sh.uniforms.uGust = TWIND.uGust;
-    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aW; uniform float uTime; uniform float uGust;").replace("#include <begin_vertex>", treeSwayInst);
-    sh.fragmentShader = sh.fragmentShader.replace("#include <normal_fragment_begin>",
-        "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;")
-      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05) * " + (night ? ".25" : "1.0") + ";"); };
-  lm.customProgramCacheKey = () => "treeInstLeaf";
+  if(night) lm.color.multiplyScalar(.40);
+  lm.onBeforeCompile = sh => { sh.uniforms.uTime = TWIND.uTime; sh.uniforms.uGust = TWIND.uGust; sh.uniforms.uSun = TWIND.uSun;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + TREE_SWAY_DECL + "\nvarying float vEx;").replace("#include <begin_vertex>", TREE_SWAY + "\nvEx = aEx;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vEx; uniform vec3 uSun;")
+      .replace("#include <normal_fragment_begin>", "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;")
+      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05) * " + (night ? ".25" : "1.0") + ";" + (night ? "" : `
+ { vec3 Lv = normalize((viewMatrix*vec4(uSun, 0.0)).xyz); vec3 Vv = normalize(vViewPosition);
+   float bk = pow(max(0.0, -dot(Lv, Vv)), 2.2);
+   totalEmissiveRadiance += pow(diffuseColor.rgb, vec3(.75)) * vec3(1.10, 1.0, .38) * bk * vEx * 1.5; }`)); };
+  lm.customProgramCacheKey = () => "treeInstLeaf2" + (night ? "n" : "d");
   camFadeWrap(lm);
   return lm;
 }
 function treeBarkMat(map, nor, night, tint){
   const m = new THREE.MeshStandardMaterial({map, normalMap:nor, roughness:.94, metalness:0, envMapIntensity:.30});
-  m.color.copy(tint || new THREE.Color(1, 1, 1)).multiplyScalar(night ? .45 : .92);
+  m.color.copy(tint).multiplyScalar(night ? .45 : .92);
+  m.onBeforeCompile = sh => { sh.uniforms.uTime = TWIND.uTime; sh.uniforms.uGust = TWIND.uGust;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + TREE_SWAY_DECL).replace("#include <begin_vertex>", TREE_SWAY); };
+  m.customProgramCacheKey = () => "treeInstBark2";
   camFadeWrap(m); return m;
 }
-const treeTexLoad = (url, srgb, wrap, rep) => { const t = new THREE.TextureLoader().load(url); t.wrapS = t.wrapT = wrap ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-  t.anisotropy = 4; if(srgb) t.colorSpace = THREE.SRGBColorSpace; if(rep) t.repeat.set(rep[0], rep[1]); return t; };
-/* add the aW leaf weight to a geometry from a per-vertex function */
-function treeSetW(g, fn){ const pa = g.attributes.position, a = new Float32Array(pa.count); for(let i=0;i<pa.count;i++) a[i] = fn(i, pa); g.setAttribute("aW", new THREE.BufferAttribute(a, 1)); }
+/* depth material for the shadow pass: same alpha cut, same sway */
+function treeDepthMat(map){
+  const d = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, map, alphaTest:map ? .45 : 0});
+  d.onBeforeCompile = sh => { sh.uniforms.uTime = TWIND.uTime; sh.uniforms.uGust = TWIND.uGust;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + TREE_SWAY_DECL).replace("#include <begin_vertex>", TREE_SWAY); };
+  d.customProgramCacheKey = () => "treeInstDepth2" + (map ? "L" : "B");
+  return d;
+}
+const treeTexLoad = (url, srgb, wrap) => { const t = new THREE.TextureLoader().load(url); t.wrapS = t.wrapT = wrap ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+  t.anisotropy = 4; if(srgb) t.colorSpace = THREE.SRGBColorSpace; return t; };
+const CLAMP01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
 /* ---- C: bake ez-tree variants (once per page) ---- */
 function bakeTreesC(night){
-  if(TREE_C_CACHE) return TREE_C_CACHE;
   const EZ = window.EZTREE; if(!EZ) throw new Error("vendor/eztree.min.js did not load");
-  return TREE_C_CACHE = withFreeRandom(() => {
-    /* TARGET: A's own crown at the same spot, per unit of tree scale sc: top at 8.0 sc, crown ~7.6 sc across, clear trunk to ~1.8 sc.
-       (A's crown: lobes out to +-4.2 sc, top lobe at ~8 sc.) Each variant is scaled in y to the height and in x/z to the width. */
-    const HT = 8.0, HALFW = 4.5;
-    const tex = {
-      oakLeaf: treeTexLoad("assets/trees/ez/oak_leaf.webp", true, false), ashLeaf: treeTexLoad("assets/trees/ez/ash_leaf.webp", true, false),
-      b1: treeTexLoad("assets/trees/ez/bark001_diff.jpg", true, true, [1, .1]), b1n: treeTexLoad("assets/trees/ez/bark001_nor.jpg", false, true, [1, .1])
-    };
-    /* the presets scale the bark's v differently (oak 10, ash 5): one material each, the texture cloned for its own repeat; tinted dark brown */
-    const bark = (rep) => { const c = tex.b1.clone(), n = tex.b1n.clone(); c.repeat.set(1, rep); n.repeat.set(1, rep); c.needsUpdate = n.needsUpdate = true; return treeBarkMat(c, n, night, new THREE.Color(.50, .42, .35)); };
-    const mats = { oakLeaf: treeLeafMat(tex.oakLeaf, night, new THREE.Color(.92, .98, .86)), ashLeaf: treeLeafMat(tex.ashLeaf, night, new THREE.Color(1, .98, .74)), oakBark: bark(.1), ashBark: bark(.2) };
-    /* detail per level: the desktop near level is the full ez-tree mesh, the phone's is thinned (every 2nd sprig, 1.35x) */
-    const NEAR = TREE_MOBILE ? {sectionStride:2, segmentFactor:.75, leafStride:2, leafScale:1.35} : {};
-    const FARD = TREE_MOBILE ? {sectionStride:4, segmentFactor:.4, leafStride:4, leafScale:2.0, billboard:"single"} : {sectionStride:3, segmentFactor:.55, leafStride:3, leafScale:1.7, billboard:"single"};
-    /* twelve variants: five presets, several seeds each, so no two neighbours are the same tree */
-    const specs = [["Oak Large", 1, "oakLeaf", 1.3], ["Oak Large", 2, "oakLeaf", 1.3], ["Oak Large", 3, "oakLeaf", 1.3], ["Oak Large", 4, "oakLeaf", 1.3],
-                   ["Oak Medium", 1, "oakLeaf", 1], ["Oak Medium", 7, "oakLeaf", 1], ["Oak Medium", 9, "oakLeaf", 1], ["Oak Small", 3, "oakLeaf", .6],
-                   ["Ash Large", 3, "ashLeaf", 1.1], ["Ash Large", 5, "ashLeaf", 1.1], ["Ash Medium", 5, "ashLeaf", 1], ["Ash Medium", 8, "ashLeaf", 1]];
-    const vr = mulberry32(seedOf("treeC-variation"));
-    /* per-leaf variation so a sprig never tiles: mirror it, spin it in its own plane, jitter size and shade (vertex colour) */
-    const varyLeaves = g => {
-      const pa = g.attributes.position, ua = g.attributes.uv, n = pa.count / 4, col = new Float32Array(pa.count * 3);
-      const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), nm = new THREE.Vector3(), base = new THREE.Vector3(), q = new THREE.Quaternion(), v = new THREE.Vector3();
-      for(let i = 0; i < n; i++){ const i0 = i*4;
-        a.fromBufferAttribute(pa, i0 + 1); b.fromBufferAttribute(pa, i0 + 2); c.fromBufferAttribute(pa, i0);
-        base.copy(a).add(b).multiplyScalar(.5); nm.crossVectors(b.sub(a), c.sub(a)).normalize();
-        q.setFromAxisAngle(nm, (vr() - .5) * 1.1); const sz = .82 + vr() * .4, flip = vr() < .5, br = .80 + vr() * .30, hue = (vr() - .5) * .10;
-        for(let k = 0; k < 4; k++){ v.fromBufferAttribute(pa, i0 + k).sub(base).applyQuaternion(q).multiplyScalar(sz).add(base); pa.setXYZ(i0 + k, v.x, v.y, v.z);
-          if(flip) ua.setX(i0 + k, 1 - ua.getX(i0 + k));
-          col[(i0 + k)*3] = br * (1 + hue); col[(i0 + k)*3 + 1] = br; col[(i0 + k)*3 + 2] = br * (1 - hue); } }
-      g.setAttribute("color", new THREE.BufferAttribute(col, 3)); pa.needsUpdate = ua.needsUpdate = true;
-    };
-    return specs.map(([name, seed, leaf, w]) => {
-      const t = new EZ.Tree(); t.options.copy(EZ.TreePreset[name]); t.options.seed = seed;
-      /* a mature broadleaf: heavy trunk and limbs, a full crown of sprigs */
-      const o = t.options; for(const k in o.branch.radius) o.branch.radius[k] *= (+k <= 1 ? 2.0 : 1.5); o.leaves.size *= 1.35; o.leaves.count = Math.min(Math.round(o.leaves.count * 2.2), 130);
-      let lods = [NEAR, FARD].map(d => t.createGeometry(d));
-      /* ez-tree indexes with 16 bits: if the fuller crown overflows that, thin the sprig count and grow the tree again */
-      for(let tries = 0; lods[0].leaves.attributes.position.count > 62000 && tries < 6; tries++){ const t2 = new EZ.Tree(); t2.options.copy(t.options); t2.options.leaves.count = Math.floor(t.options.leaves.count * .85); t2.options.seed = seed; t.options.leaves.count = t2.options.leaves.count; lods = [NEAR, FARD].map(d => t2.createGeometry(d)); }
-      lods[1].leaves.computeBoundingBox(); lods[0].leaves.computeBoundingBox(); const bb = lods[0].leaves.boundingBox;
-      const top = bb.max.y, hw = Math.max(bb.max.x, -bb.min.x, bb.max.z, -bb.min.z) * .86, ky = HT / top, kxz = HALFW / hw;
-      const parts = [{mat:mats[leaf === "oakLeaf" ? "oakBark" : "ashBark"], geos:lods.map(l => l.branches)}, {mat:mats[leaf], leaf:true, vcol:true, geos:lods.map(l => l.leaves)}];
-      for(const pt of parts) pt.geos.forEach(g => { if(pt.leaf) varyLeaves(g); g.scale(kxz, ky, kxz);
-        if(pt.leaf) treeSetW(g, (i) => Math.max(0, g.attributes.uv.getY(i)) * .9);
-        g.computeBoundingSphere(); });
-      return {name: name + " #" + seed, w, parts, rad: hw * kxz, H: HT};
-    });
+  return withFreeRandom(() => {
+    if(!TREE_C_TEX) TREE_C_TEX = {atlas: treeTexLoad("assets/trees/ez/leaf_atlas.webp", true, false), bark: treeTexLoad("assets/trees/ez/bark001_diff.jpg", true, true), barkN: treeTexLoad("assets/trees/ez/bark001_nor.jpg", false, true)};
+    const T = TREE_C_TEX, nk = night ? 1 : 0;
+    if(!TREE_C_MATS[nk]) TREE_C_MATS[nk] = {leaf: treeLeafMat(T.atlas, night), bark: treeBarkMat(T.bark, T.barkN, night, new THREE.Color(.36, .30, .25)),
+      leafDepth: treeDepthMat(T.atlas), barkDepth: treeDepthMat(null)};
+    const M = TREE_C_MATS[nk];
+    if(!TREE_C_GEO) TREE_C_GEO = bakeGeoC();
+    const dress = list => list.map(V => ({...V, parts: V.parts.map(p => ({...p, mat: p.leaf ? M.leaf : M.bark, depth: p.leaf ? M.leafDepth : M.barkDepth}))}));
+    return {tree: dress(TREE_C_GEO.tree), willow: dress(TREE_C_GEO.willow), bush: dress(TREE_C_GEO.bush)};
   });
+}
+/* the geometry, once: material free. cell: which sprig of the atlas (0 oak, 1 ash, 2 aspen) */
+function bakeGeoC(){
+  const EZ = window.EZTREE;
+  const LEAFTINT = [[.80, .83, .66], [.82, .78, .52], [.82, .84, .62]];       /* oak, ash, aspen: multiplied into the sprig (the sprigs are brighter and bluer than the island's greens) */
+  const vr = mulberry32(seedOf("treeC-variation"));
+  /* kinds: HT/HALFW is the box the baked tree is fitted to (world units per unit of tree scale sc). knots: ez height -> world height, piecewise linear,
+     so the clear trunk can be shortened to A's while the crown keeps its shape. */
+  const KIND = {
+    tree:   {HT: 8.0,  HALFW: 4.5,  ybot: 1.25, floorTo: null},
+    willow: {HT: 9.0,  HALFW: 5.0,  ybot: null, floorTo: .06},
+    bush:   {HT: 1.25, HALFW: 1.45, ybot: .14,  floorTo: null}
+  };
+  const WILLOW = {"branch.force.direction": {x:0, y:-1, z:0}, "branch.force.strength": .16, "branch.length.0": 34, "branch.length.1": 22, "branch.length.2": 22, "branch.length.3": 20, "branch.angle.1": 50};
+  const specs = {
+    tree: [["Oak Large", 1, 0, 1.3], ["Oak Large", 2, 0, 1.3], ["Oak Large", 3, 0, 1.3], ["Oak Medium", 1, 0, 1], ["Oak Medium", 7, 0, 1], ["Oak Medium", 9, 0, 1], ["Oak Small", 3, 0, .6],
+           ["Ash Large", 3, 1, 1.1], ["Ash Large", 5, 1, 1.1], ["Ash Medium", 5, 1, 1], ["Aspen Large", 2, 2, .8], ["Aspen Medium", 4, 2, .8]].map(s => ({preset: s[0], seed: s[1], cell: s[2], w: s[3], radius: [2.7, 1.9, 1.5, 1.5], leafMul: 2.4, leafMax: 140, leafSize: 1.35})),
+    willow: [1, 4, 6].map((sd, i) => ({preset: "Ash Large", seed: sd, cell: 1, w: 1, radius: [2.6, 1.3, .8, .5], leafMul: 2.2, leafMax: 130, leafSize: 1.35, set: i === 2 ? {...WILLOW, "branch.force.strength": .2, "branch.length.0": 38, "branch.angle.1": 45} : WILLOW})),
+    bush: [["Bush 1", 1, 1], ["Bush 1", 3, 1], ["Bush 1", 5, 2], ["Bush 2", 2, 2]].map(s => ({preset: s[0], seed: s[1], cell: s[2], w: 1, radius: [1.5, 1.2, 1, 1], leafMul: 2.5, leafMax: 200, leafSize: 1.2}))
+  };
+  /* detail per level: the desktop near level is the full ez-tree mesh, the phone's is thinned (every 2nd sprig, 1.35x) */
+  const NEAR = TREE_MOBILE ? {sectionStride:2, segmentFactor:.75, leafStride:2, leafScale:1.35} : {};
+  const FARD = TREE_MOBILE ? {sectionStride:4, segmentFactor:.4, leafStride:4, leafScale:2.0, billboard:"single"} : {sectionStride:3, segmentFactor:.55, leafStride:3, leafScale:1.7, billboard:"single"};
+  const out = {};
+  for(const kind of ["tree", "willow", "bush"]){
+    const K = KIND[kind];
+    out[kind] = specs[kind].map(sp => {
+      const t = new EZ.Tree(); t.options.copy(EZ.TreePreset[sp.preset]); t.options.seed = sp.seed;
+      const o = t.options; for(const k in o.branch.radius) o.branch.radius[k] *= sp.radius[+k] ?? 1.5;
+      o.leaves.size *= sp.leafSize; o.leaves.count = Math.min(Math.round(o.leaves.count * sp.leafMul), sp.leafMax);
+      for(const [path, val] of Object.entries(sp.set || {})){ const p = path.split("."); let c = o; for(let i = 0; i < p.length - 1; i++) c = c[p[i]]; c[p[p.length - 1]] = val; }
+      const lods = [NEAR, FARD].map(d => t.createGeometry(d));
+      const L0 = lods[0].leaves, pa0 = L0.attributes.position;
+      /* where the crown's mass is: the leaf base heights, lowest tenth to the top */
+      const ys = []; for(let i = 0; i < pa0.count; i += 4) ys.push((pa0.getY(i + 1) + pa0.getY(i + 2)) / 2); ys.sort((a, b) => a - b);
+      const top = ys[ys.length - 1], q10 = ys[Math.floor(ys.length * .10)], ymin = ys[0];
+      L0.computeBoundingBox(); const bb = L0.boundingBox;
+      const hw = Math.max(bb.max.x, -bb.min.x, bb.max.z, -bb.min.z) * .86, kxz = K.HALFW / hw, ctop = bb.max.y;
+      /* knots: ez height -> world height. Trees and bushes: the bare trunk is shortened so the crown starts where A's does. Willows: strands that hang below the
+         ground line are squashed toward it instead of going under the grass. */
+      let kn;
+      if(K.ybot != null) kn = [[0, 0], [Math.max(q10, 1), K.ybot], [ctop, K.HT]];
+      else { const s = K.HT / ctop; kn = [[-80, .02], [0, .06], [3, 3 * s * .6 + .06], [ctop, K.HT]]; }
+      const ymap = y => { let i = 0; while(i < kn.length - 2 && y > kn[i + 1][0]) i++; const a = kn[i], b = kn[i + 1]; return a[1] + (y - a[0]) * (b[1] - a[1]) / (b[0] - a[0]); };
+      const dmap = y => { let i = 0; while(i < kn.length - 2 && y > kn[i + 1][0]) i++; const a = kn[i], b = kn[i + 1]; return (b[1] - a[1]) / (b[0] - a[0]); };
+      const HT = K.HT, wB = (x, y, z) => { const r = CLAMP01(Math.hypot(x, z) / K.HALFW), h = CLAMP01(y / HT);
+        if(kind === "tree") return Math.pow(CLAMP01((h - .2) / .8), 1.3) * (.3 + .7 * r);
+        if(kind === "willow") return CLAMP01(.15 + .55 * r + .45 * (1 - h)) * (r < .1 && h < .45 ? .25 : 1);
+        return CLAMP01(h) * .75 * (.4 + .6 * r); };
+      const wE = (x, y, z) => { const dy = (y - .58 * HT) * (kind === "willow" ? .4 : .9), o = CLAMP01(Math.hypot(x, dy, z) / (K.HALFW * 1.05)); return o * o * (3 - 2 * o) * CLAMP01((o - .3) / .3 + .15); };
+      const tint = LEAFTINT[sp.cell], cell0 = sp.cell, N3 = 3;
+      const doLeaves = g => {
+        const pa = g.attributes.position, ua = g.attributes.uv, n = pa.count / 4, col = new Float32Array(pa.count * 3), aB = new Float32Array(pa.count), aW = new Float32Array(pa.count), aEx = new Float32Array(pa.count);
+        const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), nm = new THREE.Vector3(), base = new THREE.Vector3(), q = new THREE.Quaternion(), v = new THREE.Vector3(), nb = new THREE.Vector3();
+        const nra = g.attributes.normal;
+        for(let i = 0; i < n; i++){ const i0 = i * 4;
+          a.fromBufferAttribute(pa, i0 + 1); b.fromBufferAttribute(pa, i0 + 2); c.fromBufferAttribute(pa, i0);
+          base.copy(a).add(b).multiplyScalar(.5); nm.crossVectors(b.clone().sub(a), c.clone().sub(a)).normalize();
+          /* each sprig: spun in its own plane (wide, so no common direction reads as a fringe), mirrored, sized and shaded on its own */
+          const spin = (vr() - .5) * 2.2, flip = vr() < .5, szr = vr(), sz = (.72 + szr * szr * .70), br = .82 + vr() * .26, hue = (vr() - .5) * .10;
+          q.setFromAxisAngle(nm, spin);
+          nb.set(base.x * kxz, ymap(base.y), base.z * kxz);
+          const ex = wE(nb.x, nb.y, nb.z), dy = dmap(base.y), us = Math.max(.35 * kxz, Math.min(1.5 * kxz, Math.sqrt(kxz * Math.max(dy, .2 * kxz)))), edge = 1 - .22 * CLAMP01((ex - .8) / .2);
+          const cw = wB(nb.x, nb.y, nb.z);
+          for(let k = 0; k < 4; k++){ v.fromBufferAttribute(pa, i0 + k).sub(base).applyQuaternion(q);
+            /* width across the sprig and its length scale apart, in the leaf's own frame: x of the quad is the width */
+            v.multiplyScalar(sz * edge * us); pa.setXYZ(i0 + k, nb.x + v.x, nb.y + v.y, nb.z + v.z);
+            const u = flip ? 1 - ua.getX(i0 + k) : ua.getX(i0 + k); ua.setX(i0 + k, (u + cell0) / N3);
+            const ci = (i0 + k) * 3; col[ci] = tint[0] * br * (1 + hue); col[ci + 1] = tint[1] * br; col[ci + 2] = tint[2] * br * (1 - hue);
+            aB[i0 + k] = cw; aW[i0 + k] = Math.max(0, ua.getY(i0 + k)) * .9; aEx[i0 + k] = ex;
+          }
+          /* the shading normals: scale like a position would, so the crown's rounding survives the fit */
+          for(let k = 0; k < 4; k++){ v.fromBufferAttribute(nra, i0 + k); v.set(v.x / kxz, v.y / Math.max(dy, .2 * kxz), v.z / kxz).normalize(); nra.setXYZ(i0 + k, v.x, v.y, v.z); }
+        }
+        g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.setAttribute("aB", new THREE.BufferAttribute(aB, 1)); g.setAttribute("aW", new THREE.BufferAttribute(aW, 1)); g.setAttribute("aEx", new THREE.BufferAttribute(aEx, 1));
+        pa.needsUpdate = ua.needsUpdate = nra.needsUpdate = true; g.computeBoundingSphere();
+      };
+      const doBranches = g => {
+        const pa = g.attributes.position, ua = g.attributes.uv, na = g.attributes.normal, n = pa.count, aB = new Float32Array(n), aW = new Float32Array(n), aEx = new Float32Array(n), v = new THREE.Vector3();
+        for(let i = 0; i < n; i++){ const y0 = pa.getY(i), dy = Math.max(dmap(y0), .2 * kxz), x = pa.getX(i) * kxz, z = pa.getZ(i) * kxz, y = ymap(y0);
+          pa.setXYZ(i, x, y, z); ua.setY(i, ua.getY(i) * dy / kxz);
+          v.fromBufferAttribute(na, i); v.set(v.x / kxz, v.y / dy, v.z / kxz).normalize(); na.setXYZ(i, v.x, v.y, v.z);
+          aB[i] = wB(x, y, z); }
+        g.setAttribute("aB", new THREE.BufferAttribute(aB, 1)); g.setAttribute("aW", new THREE.BufferAttribute(aW, 1)); g.setAttribute("aEx", new THREE.BufferAttribute(aEx, 1));
+        pa.needsUpdate = ua.needsUpdate = na.needsUpdate = true; g.computeBoundingSphere();
+      };
+      lods.forEach(l => { doBranches(l.branches); doLeaves(l.leaves); });
+      return {name: kind + " " + sp.preset + " #" + sp.seed, w: sp.w, rad: K.HALFW, H: K.HT,
+        parts: [{leaf: false, geos: lods.map(l => l.branches)}, {leaf: true, geos: lods.map(l => l.leaves)}]};
+    });
+  }
+  return out;
 }
 /* ---- the instanced field: placements in, InstancedMeshes out, level of detail per frame ---- */
 function treeField(variants, tag){
   const items = [], rnd = mulberry32(seedOf("treefield:" + tag));
   const tw = variants.reduce((a, V) => a + (V.w || 1), 0);
-  const add = (sc, x, y, z, ry) => { let r = rnd() * tw, v = 0; while(v < variants.length - 1 && r >= (variants[v].w || 1)){ r -= variants[v].w || 1; v++; } const j = .85 + rnd()*.30;
+  const add = (sc, x, y, z, ry) => { let r = rnd() * tw, v = 0; while(v < variants.length - 1 && r >= (variants[v].w || 1)){ r -= variants[v].w || 1; v++; } const j = .85 + rnd()*.30; if(ry == null) ry = rnd() * Math.PI * 2;
     items.push({v, sc: sc * j, x, y, z, ry, tint: new THREE.Color(1, 1, 1).multiplyScalar(.88 + rnd()*.2).offsetHSL((rnd()-.5)*.035, (rnd()-.5)*.1, 0)}); };
   const finish = (scene, I) => withFreeRandom(() => {
     const groups = variants.map((V, vi) => { const own = items.filter(it => it.v === vi); if(!own.length) return null;
       const lv = [0, 1].map(l => V.parts.map(pt => { const m = new THREE.InstancedMesh(pt.geos[l], pt.mat, own.length);
         m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.setColorAt(0, new THREE.Color(1, 1, 1)); m.instanceColor.setUsage(THREE.DynamicDrawUsage);
         m.frustumCulled = false; m.castShadow = true; m.receiveShadow = true; m.userData.dyn = 1; m.count = 0; m.visible = false;
-        if(pt.leaf){ m.customDepthMaterial = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, map:pt.mat.map, alphaTest:.45}); }
+        m.customDepthMaterial = pt.depth;
         scene.add(m); return m; }));
       return {V, own, lv, list:[[], []]}; }).filter(Boolean);
-    const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), Sv = new THREE.Vector3(), P = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0), PM = new THREE.Matrix4(), FR = new THREE.Frustum(), SP = new THREE.Sphere();
+    const Mx = new THREE.Matrix4(), Q = new THREE.Quaternion(), Sv = new THREE.Vector3(), P = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0), PM = new THREE.Matrix4(), FR = new THREE.Frustum(), SP = new THREE.Sphere();
     for(const g of groups) g.own.forEach(it => { Q.setFromAxisAngle(UP, it.ry); it.m = new THREE.Matrix4().compose(P.set(it.x, it.y, it.z), Q, Sv.set(it.sc, it.sc, it.sc)); });
-    let stamp = -1;
     const update = cam => {
       if(window.__NOTREES){ for(const g of groups) for(const l of g.lv) for(const m of l) m.visible = false; return; }   /* QA: a frame without the trees, to measure their screen area */
       PM.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); FR.setFromProjectionMatrix(PM);
       const cx = cam.position.x, cy = cam.position.y, cz = cam.position.z;
       for(const g of groups){ g.list[0].length = 0; g.list[1].length = 0;
-        for(const it of g.own){ const r = g.V.H * it.sc * .62, dx = it.x - cx, dz = it.z - cz, dy = it.y + g.V.H*it.sc*.45 - cy, d = Math.sqrt(dx*dx + dy*dy + dz*dz) - r;
+        for(const it of g.own){ const r = g.V.H * it.sc * .62 + (g.V.H < 3 ? g.V.rad * it.sc * .5 : 0), dx = it.x - cx, dy = it.y + g.V.H*it.sc*.45 - cy, dz = it.z - cz, d = Math.sqrt(dx*dx + dy*dy + dz*dz) - r;
           if(d > TREE_FAR) continue;
           SP.center.set(it.x, it.y + g.V.H*it.sc*.5, it.z); SP.radius = r + 14;      /* the margin keeps the shadow of a tree just off screen */
           if(!FR.intersectsSphere(SP)) continue;
@@ -1730,7 +1805,7 @@ function treeField(variants, tag){
             m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; } } }
     };
     (I.treeLods || (I.treeLods = [])).push(update);
-    (I.treeWinds || (I.treeWinds = [])).push(TWIND);
+    if(!(I.treeWinds || (I.treeWinds = [])).includes(TWIND)) I.treeWinds.push(TWIND);
     DBG("tree field", tag, items.length, "instances", groups.length, "variants");
     return groups.flatMap(g => g.lv.flat());
   });
@@ -13020,7 +13095,7 @@ function islandUpdate(I, dt, t){
   if(RAINQ && (I.wetScanT = (I.wetScanT == null ? 1 : I.wetScanT) - dt) <= 0){ I.wetScanT = 3; wetAll(I.scene); }
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
   if(LIGHTQ) lightKey(I);   /* LIGHTQ hook */
-  if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); }
+  if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); if(u.uSun && I.sunDir) u.uSun.value.copy(I.sunDir); }
   if(I.treeLods) for(const f of I.treeLods) f(camera);
   if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });

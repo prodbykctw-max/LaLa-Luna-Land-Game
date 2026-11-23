@@ -779,8 +779,15 @@ export class Tree extends THREE.Group {
     // Used later for geometry index generation
     const indexOffset = buffers.verts.length / 3;
 
+    // LOCAL CHANGE (LaLa Luna Land): v runs with the branch's own LENGTH, one texture tile per
+    // (circumference / wraps), so bark keeps its aspect instead of stretching along the branch.
+    // Upstream alternates v between 0 and 1 per ring and relies on bark.textureScale.y.
+    const tileH = Math.max(1e-4, (2.0 * Math.PI * baseRadius) / wrapsX);
+    let vAcc = 0;
+
     for (let k = 0; k < sampled.length; k++) {
       const section = sampled[k];
+      if (k > 0) vAcc += section.origin.distanceTo(sampled[k - 1].origin);
 
       // Create the segments that make up this section.
       let first;
@@ -801,7 +808,7 @@ export class Tree extends THREE.Group {
         // section index, so section skipping keeps the 0/1 tiling pattern.
         const uv = new THREE.Vector2(
           (j / segments) * wrapsX,
-          (k % 2 === 0) ? 0 : 1,
+          vAcc / tileH,
         );
 
         buffers.verts.push(...Object.values(vertex));
@@ -856,7 +863,7 @@ export class Tree extends THREE.Group {
       new THREE.BufferAttribute(new Float32Array(buffers.uvs), 2),
     );
     g.setIndex(
-      new THREE.BufferAttribute(new Uint16Array(buffers.indices), 1),
+      new THREE.BufferAttribute(new Uint32Array(buffers.indices), 1),
     );
     g.computeBoundingSphere();
     return g;
