@@ -1,0 +1,10 @@
+SETS='[[0.40,14,1,1.6,0.38]]' node qa/treetune.mjs hub
+SETS='[[0.40,14,1,1.6,0.38]]' node qa/treetune.mjs green
+node qa/treelineup.mjs stills C hub
+node qa/treelineup.mjs stills C green
+DPR=0.5 node qa/treelineup.mjs wind C hub
+node qa/treelineup.mjs console C all
+node qa/treelineup.mjs budget C hub
+node qa/treelineup.mjs budget C green
+node qa/treevariant.mjs hub
+node qa/treevariant.mjs green
