@@ -1,0 +1,1 @@
+node qa/traversal.mjs town > qa/out/trav_town.out 2> qa/out/trav_town.log; r=$?; tail -8 qa/out/trav_town.log; exit $r

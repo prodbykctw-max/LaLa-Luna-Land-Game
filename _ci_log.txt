@@ -1,0 +1,2 @@
+[traversal] town: traps=0 pockets=0 camHits=31076 stalls=0 buried=0 fps~60.1
+rc=0
