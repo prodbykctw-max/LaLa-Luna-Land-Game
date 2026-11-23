@@ -1,0 +1,1 @@
+mkdir -p qa/out $BASE/qa/out; timeout 3300 node qa/float.mjs > qa/out/float.out 2> qa/out/float.log; echo "float rc=$?" >> qa/out/rc.txt ; timeout 3300 node qa/overhead.mjs > qa/out/overhead.out 2> qa/out/overhead.log; echo "overhead rc=$?" >> qa/out/rc.txt ; timeout 3300 node qa/scale.mjs > qa/out/scale.out 2> qa/out/scale.log; echo "scale rc=$?" >> qa/out/rc.txt
