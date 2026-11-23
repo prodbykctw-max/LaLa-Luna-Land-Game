@@ -1,0 +1,4 @@
+node qa/treelineup.mjs stills C hub
+node qa/treelineup.mjs stills C green
+node qa/treelineup.mjs stills A green
+node qa/treelineup.mjs budget C hub
