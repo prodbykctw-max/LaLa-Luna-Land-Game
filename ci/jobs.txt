@@ -1,0 +1,10 @@
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mA --islands=town,sanity
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mB --islands=town,sanity
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mNF --islands=town,sanity --query=lodfade=0
+node qa/sanityperf_ab.mjs --tag=nA --islands=town,sanity
+node qa/sanityperf_ab.mjs --tag=nB --islands=town,sanity
+node qa/sanityperf_ab.mjs --tag=nNF --islands=town,sanity --query=lodfade=0
+node qa/sanityperf_ab.mjs --tag=nWO --islands=town,sanity --query=warm=old
+node qa/sanityperf_ab.mjs --tag=nJO --islands=town,sanity --query=jump=old
+node qa/sanityperf_ab.mjs --tag=nSK --islands=town,sanity --query="skincull=0&farskin=0&farcull=0"
+node qa/sanityperf_ab.mjs --tag=nLB --islands=town,sanity --query="lalashadow=0&basicmerge=0"
