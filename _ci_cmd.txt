@@ -1,0 +1,1 @@
+mkdir -p qa/out $BASE/qa/out; QA_ROOT=$BASE timeout 3300 node qa/vmat.mjs > $BASE/qa/out/vmat.out 2> $BASE/qa/out/vmat.log; echo "vmat rc=$?" >> qa/out/rc.txt ; mkdir -p qa/out/base; cp -r $BASE/qa/out/. qa/out/base/
