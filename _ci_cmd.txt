@@ -1,0 +1,1 @@
+node qa/sanityperf_ab.mjs --tag=nB --islands=hub,green,gr
