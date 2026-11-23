@@ -1,0 +1,1 @@
+mkdir -p qa/out $BASE/qa/out; QA_ROOT=$BASE timeout 3300 node qa/mobile.mjs > $BASE/qa/out/mobile.out 2> $BASE/qa/out/mobile.log; echo "mobile rc=$?" >> qa/out/rc.txt ; mkdir -p qa/out/base; cp -r $BASE/qa/out/. qa/out/base/
