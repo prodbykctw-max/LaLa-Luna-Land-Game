@@ -1,0 +1,167 @@
+{
+ "hub": {
+  "key": "hub",
+  "floating": [
+   {
+    "name": "basicBatch",
+    "x": 0,
+    "z": 6.9,
+    "gap": 7.94,
+    "h": 3.3
+   }
+  ],
+  "floatCount": 1,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 292.6,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 4,
+   "unlit": 4,
+   "mats": [
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.94,
+   "minWorld": 0.44,
+   "mean": 0.66,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ },
+ "green": {
+  "key": "green",
+  "floating": [],
+  "floatCount": 0,
+  "buried": [],
+  "buriedCount": 0,
+  "globes": {
+   "total": 1,
+   "unlit": 1,
+   "mats": [
+    "MeshStandardMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.94,
+   "minWorld": 0.46,
+   "mean": 0.68,
+   "live": 94,
+   "count": 94
+  },
+  "landmarks": {}
+ },
+ "gr": {
+  "key": "gr",
+  "floating": [],
+  "floatCount": 0,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 272.4,
+    "gap": -0.5,
+    "h": 0.5
+   },
+   {
+    "name": "group",
+    "x": -14.4,
+    "z": 121.9,
+    "gap": -34.74,
+    "h": 7.4
+   }
+  ],
+  "buriedCount": 2,
+  "globes": {
+   "total": 12,
+   "unlit": 12,
+   "mats": [
+    "MeshStandardMaterial",
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.88,
+   "minWorld": 0.43,
+   "mean": 0.67,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ },
+ "sanity": {
+  "key": "sanity",
+  "floating": [
+   {
+    "name": "basicBatch",
+    "x": -120,
+    "z": -100,
+    "gap": 11.45,
+    "h": 0.9
+   }
+  ],
+  "floatCount": 1,
+  "buried": [],
+  "buriedCount": 0,
+  "globes": {
+   "total": 6,
+   "unlit": 6,
+   "mats": [
+    "MeshStandardMaterial",
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 1,
+   "maxWorld": 1.1,
+   "minWorld": 0.55,
+   "mean": 0.83,
+   "live": 571,
+   "count": 571
+  },
+  "landmarks": {}
+ },
+ "town": {
+  "key": "town",
+  "floating": [],
+  "floatCount": 0,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 189.7,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 16,
+   "unlit": 16,
+   "mats": [
+    "MeshStandardMaterial",
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.88,
+   "minWorld": 0.44,
+   "mean": 0.66,
+   "live": 69,
+   "count": 69
+  },
+  "landmarks": {}
+ }
+}
