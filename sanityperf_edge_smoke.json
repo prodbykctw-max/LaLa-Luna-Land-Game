@@ -1,0 +1,12 @@
+{
+ "tag": "smoke",
+ "query": "",
+ "islands": {
+  "green": {
+   "error": "Error: page.screenshot: options.quality is unsupported for the png screenshots"
+  }
+ },
+ "simFrames": {
+  "green": 120
+ }
+}
