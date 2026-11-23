@@ -15,7 +15,7 @@ const STRIDE = +process.env.STRIDE || 2, FR = +process.env.FRAMES || 240;
 /* the one tree every look is shot at: the tree nearest the spawn that stands clear of its neighbours (colliders are identical in all four looks) */
 const PICK = `(() => {
   const T = window.__T, I = T.CUR, sp = I.cfg.spawn, hgt = (x, z) => I.height(x, z);
-  const ts = I.colliders.filter(c => c.camR && c.camR > 1 && c.r > .4);
+  const ts = I.colliders.filter(c => c.camR && c.camR > 1 && c.r > .4 && c.kind === "tree");
   let best = null, bs = 1e9;
   for (const c of ts) { let nb = 1e9; for (const o of ts) if (o !== c) nb = Math.min(nb, Math.hypot(o.x - c.x, o.z - c.z)); if (nb < 11) continue;
     const d = Math.hypot(c.x - sp[0], c.z - sp[1]); if (d < 9) continue; if (d < bs) { bs = d; best = { x: c.x, z: c.z, sc: c.r / .55, nb }; } }
@@ -82,7 +82,7 @@ if (mode === 'stills') {
   await settle(H, 60); await shot(H, `${base}_wide.jpg`);
   if (island === 'green') {
     /* 4. grove: the spot with the most trees within 15 u, seen from the spawn side: the repetition check */
-    const gv = await H.page.evaluate(() => { const I = window.__T.CUR, ts = I.colliders.filter(c => c.camR > 1 && c.r > .4), sp = I.cfg.spawn; let best = null, bn = -1;
+    const gv = await H.page.evaluate(() => { const I = window.__T.CUR, ts = I.colliders.filter(c => c.camR > 1 && c.r > .4 && c.kind === "tree"), sp = I.cfg.spawn; let best = null, bn = -1;
       for (const c of ts) { let n = 0; for (const o of ts) if (Math.hypot(o.x - c.x, o.z - c.z) < 15) n++; if (n > bn) { bn = n; best = c; } }
       const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, n: bn, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z) }; });
     res.grove = gv;
