@@ -1,0 +1,1 @@
+mkdir -p qa/out $BASE/qa/out; QA_ROOT=$BASE timeout 3500 node qa/traversal.mjs town > $BASE/qa/out/traversal_town.out 2> $BASE/qa/out/traversal_town.log; echo "traversal town rc=$?" >> qa/out/rc.txt ; mkdir -p qa/out/base; cp -r $BASE/qa/out/. qa/out/base/
