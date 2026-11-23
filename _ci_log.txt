@@ -1,0 +1,2 @@
+FAILED green Error: page.evaluate: Execution context was destroyed, most likely because of a navigation
+{"video":false,"tag":"new","clockSteps":{},"errors":{"green":["SCRIPT: Error: page.evaluate: Execution context was destroyed, most likely because of a navigation"]},"shots":{}}
