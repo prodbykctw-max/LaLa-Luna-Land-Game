@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/assets.mjs > qa/out/assets.base.out 2> qa/out/assets.base.log; r=$?; tail -25 qa/out/assets.base.log; tail -25 qa/out/assets.base.out; exit $r
