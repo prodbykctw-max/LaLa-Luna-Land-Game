@@ -1,0 +1,73 @@
+{
+ "opt": "C",
+ "island": "hub",
+ "curKey": "hub",
+ "errors": [],
+ "failed": [],
+ "bad": [],
+ "warnings": [
+  "[.WebGL-0x26c40017ae00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+ ],
+ "requests": 106,
+ "bytes": 26271595,
+ "treeAssets": [
+  {
+   "url": "vendor/eztree.min.js",
+   "len": 32384
+  },
+  {
+   "url": "trees/foliage_diff.jpg",
+   "len": 72108
+  },
+  {
+   "url": "trees/foliage_alpha.jpg",
+   "len": 41679
+  },
+  {
+   "url": "trees/bark_diff.jpg",
+   "len": 95505
+  },
+  {
+   "url": "trees/bark_nor.jpg",
+   "len": 117595
+  },
+  {
+   "url": "trees/palm_diff.jpg",
+   "len": 46817
+  },
+  {
+   "url": "trees/palm_nor.jpg",
+   "len": 105133
+  },
+  {
+   "url": "trees/frond_diff.jpg",
+   "len": 94178
+  },
+  {
+   "url": "trees/frond_alpha.jpg",
+   "len": 114203
+  },
+  {
+   "url": "trees/flowers_diff.jpg",
+   "len": 54250
+  },
+  {
+   "url": "trees/flowers_alpha.jpg",
+   "len": 49414
+  },
+  {
+   "url": "ez/leaf_atlas.webp",
+   "len": 441530
+  },
+  {
+   "url": "ez/bark001_diff.jpg",
+   "len": 104057
+  },
+  {
+   "url": "ez/bark001_nor.jpg",
+   "len": 110737
+  }
+ ],
+ "trees": 160,
+ "instanced": 78
+}
