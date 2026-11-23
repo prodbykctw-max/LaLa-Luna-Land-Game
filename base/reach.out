@@ -1,0 +1,1336 @@
+{
+ "hub": {
+  "island": "hub",
+  "rows": [
+   {
+    "kind": "note",
+    "label": "Pinned to the keep door",
+    "at": [
+     0,
+     48
+    ],
+    "targetY": 27.52,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     48,
+     25.56
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 1.96
+   },
+   {
+    "kind": "note",
+    "label": "Folded under a stone",
+    "at": [
+     -104,
+     -56
+    ],
+    "targetY": 46.75,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -102.8,
+     -56,
+     44.08
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.66
+   },
+   {
+    "kind": "note",
+    "label": "Tucked in a lantern",
+    "at": [
+     76,
+     -88
+    ],
+    "targetY": 11.53,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     77.2,
+     -88,
+     9.12
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.41
+   },
+   {
+    "kind": "note",
+    "label": "Left at the tree line",
+    "at": [
+     -56,
+     104
+    ],
+    "targetY": 12.35,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -54.8,
+     104,
+     10.16
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.19
+   },
+   {
+    "kind": "note",
+    "label": "Nailed to the dock post",
+    "at": [
+     6.4,
+     208
+    ],
+    "targetY": 3,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     7.6,
+     208,
+     0.58
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.42
+   },
+   {
+    "kind": "npc",
+    "label": "Moss",
+    "at": [
+     24,
+     192
+    ],
+    "targetY": 0.49,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     25.2,
+     192,
+     0.49
+    ],
+    "nearest": "npc:Talk to Moss",
+    "result": "OK",
+    "dyFromGround": 0.01
+   },
+   {
+    "kind": "npc",
+    "label": "Pip",
+    "at": [
+     -64,
+     -32
+    ],
+    "targetY": 47.29,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -62.8,
+     -32,
+     47.27
+    ],
+    "nearest": "npc:Talk to Pip",
+    "result": "OK",
+    "dyFromGround": 0.02
+   },
+   {
+    "kind": "dock",
+    "label": "dock",
+    "at": [
+     0,
+     292.6
+    ],
+    "targetY": 0.75,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     292.6,
+     0.75
+    ],
+    "nearest": "dock:Take the boat",
+    "result": "OK",
+    "dyFromGround": 0
+   },
+   {
+    "kind": "castle",
+    "label": "keep doors",
+    "at": [
+     0,
+     9
+    ],
+    "targetY": 36.19,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     0.9,
+     11.2,
+     36.19
+    ],
+    "nearest": "castle:Try the doors",
+    "result": "OK",
+    "dyFromGround": 0
+   }
+  ],
+  "npcNoteOverlaps": [
+   {
+    "npc": "Moss",
+    "home": [
+     24,
+     192
+    ],
+    "wander": 22.5,
+    "note": 4,
+    "noteAt": [
+     6.4,
+     208
+    ],
+    "dist": 23.8
+   }
+  ],
+  "pageErrors": []
+ },
+ "green": {
+  "island": "green",
+  "rows": [
+   {
+    "kind": "note",
+    "label": "Under the arch",
+    "at": [
+     44,
+     64
+    ],
+    "targetY": 5.15,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     45.2,
+     64,
+     2.73
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.42
+   },
+   {
+    "kind": "note",
+    "label": "On Horse Hill",
+    "at": [
+     -96,
+     -64
+    ],
+    "targetY": 30.82,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -94.8,
+     -64,
+     27.7
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 3.12
+   },
+   {
+    "kind": "note",
+    "label": "By the stream",
+    "at": [
+     -24,
+     152
+    ],
+    "targetY": 4.25,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -22.8,
+     152,
+     2.06
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.18
+   },
+   {
+    "kind": "ability",
+    "label": "Her fans",
+    "at": [
+     28,
+     24
+    ],
+    "targetY": 5.12,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     29.2,
+     24,
+     2.83
+    ],
+    "nearest": "ability:Take her fans",
+    "result": "OK",
+    "dyFromGround": 2.29
+   },
+   {
+    "kind": "letter",
+    "label": "Letter L",
+    "at": [
+     88,
+     -136
+    ],
+    "targetY": 8.5,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     89.2,
+     -136,
+     17.21
+    ],
+    "nearest": "letter:Take the paper",
+    "result": "OK",
+    "dyFromGround": -8.71
+   },
+   {
+    "kind": "npc",
+    "label": "Wren",
+    "at": [
+     -36,
+     136
+    ],
+    "targetY": 2.26,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -34.8,
+     136,
+     2.23
+    ],
+    "nearest": "npc:Talk to Wren",
+    "result": "OK",
+    "dyFromGround": 0.02
+   },
+   {
+    "kind": "npc",
+    "label": "Juno",
+    "at": [
+     56,
+     80
+    ],
+    "targetY": 2.54,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     57.2,
+     80,
+     2.52
+    ],
+    "nearest": "npc:Talk to Juno",
+    "result": "OK",
+    "dyFromGround": 0.01
+   },
+   {
+    "kind": "npc",
+    "label": "Marisol",
+    "at": [
+     -7,
+     256
+    ],
+    "targetY": 3.09,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -5.8,
+     256,
+     2.92
+    ],
+    "nearest": "npc:Talk to Marisol",
+    "result": "OK",
+    "dyFromGround": 0.17
+   },
+   {
+    "kind": "npc",
+    "label": "Dee",
+    "at": [
+     -106,
+     -64
+    ],
+    "targetY": 29.72,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -104.8,
+     -64,
+     29.52
+    ],
+    "nearest": "npc:Talk to Dee",
+    "result": "OK",
+    "dyFromGround": 0.2
+   },
+   {
+    "kind": "npc",
+    "label": "Theo",
+    "at": [
+     81,
+     -144
+    ],
+    "targetY": 17,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     82.2,
+     -144,
+     17.04
+    ],
+    "nearest": "npc:Talk to Theo",
+    "result": "OK",
+    "dyFromGround": -0.04
+   },
+   {
+    "kind": "npc",
+    "label": "Nan",
+    "at": [
+     39,
+     24
+    ],
+    "targetY": 2.77,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     40.2,
+     24,
+     2.79
+    ],
+    "nearest": "npc:Talk to Nan",
+    "result": "OK",
+    "dyFromGround": -0.03
+   },
+   {
+    "kind": "npc",
+    "label": "Ollie the postman",
+    "at": [
+     0,
+     248
+    ],
+    "targetY": 4.78,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     248,
+     2.66
+    ],
+    "nearest": "npc:Talk to Ollie the postman",
+    "result": "OK",
+    "dyFromGround": 2.12
+   },
+   {
+    "kind": "dock",
+    "label": "dock",
+    "at": [
+     0,
+     752.8
+    ],
+    "targetY": 0.75,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     752.8,
+     0.75
+    ],
+    "nearest": "dock:Take the boat",
+    "result": "OK",
+    "dyFromGround": 0
+   }
+  ],
+  "npcNoteOverlaps": [
+   {
+    "npc": "Wren",
+    "home": [
+     -36,
+     136
+    ],
+    "wander": 25,
+    "note": 2,
+    "noteAt": [
+     -24,
+     152
+    ],
+    "dist": 20
+   },
+   {
+    "npc": "Juno",
+    "home": [
+     56,
+     80
+    ],
+    "wander": 20,
+    "note": 0,
+    "noteAt": [
+     44,
+     64
+    ],
+    "dist": 20
+   },
+   {
+    "npc": "Dee",
+    "home": [
+     -106,
+     -64
+    ],
+    "wander": 28,
+    "note": 1,
+    "noteAt": [
+     -96,
+     -64
+    ],
+    "dist": 10
+   }
+  ],
+  "pageErrors": []
+ },
+ "gr": {
+  "island": "gr",
+  "rows": [
+   {
+    "kind": "note",
+    "label": "Wedged in a fossil",
+    "at": [
+     -120,
+     120
+    ],
+    "targetY": 2.86,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -118.8,
+     120,
+     0.49
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.36
+   },
+   {
+    "kind": "note",
+    "label": "At the foot of the caldera",
+    "at": [
+     32,
+     -32
+    ],
+    "targetY": 38.39,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     33.2,
+     -32,
+     36.68
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 1.71
+   },
+   {
+    "kind": "note",
+    "label": "Below the ledge",
+    "at": [
+     120,
+     96
+    ],
+    "targetY": 4.9,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     121.2,
+     96,
+     2.33
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.57
+   },
+   {
+    "kind": "ability",
+    "label": "Her boots",
+    "at": [
+     -88,
+     104
+    ],
+    "targetY": 8.16,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -86.8,
+     104,
+     6.1
+    ],
+    "nearest": "ability:Take her boots",
+    "result": "OK",
+    "dyFromGround": 2.06
+   },
+   {
+    "kind": "letter",
+    "label": "Letter U",
+    "at": [
+     160,
+     48
+    ],
+    "targetY": 5.6,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     161.2,
+     48,
+     17
+    ],
+    "nearest": "letter:Take the paper",
+    "result": "OK",
+    "dyFromGround": -11.4
+   },
+   {
+    "kind": "npc",
+    "label": "Marisol",
+    "at": [
+     -7,
+     232
+    ],
+    "targetY": 0.42,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -5.8,
+     232,
+     0.33
+    ],
+    "nearest": "npc:Talk to Marisol",
+    "result": "OK",
+    "dyFromGround": 0.09
+   },
+   {
+    "kind": "npc",
+    "label": "Dee",
+    "at": [
+     7,
+     -92
+    ],
+    "targetY": 17.52,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     8.2,
+     -92,
+     18.02
+    ],
+    "nearest": "npc:Talk to Dee",
+    "result": "OK",
+    "dyFromGround": -0.5
+   },
+   {
+    "kind": "npc",
+    "label": "Theo",
+    "at": [
+     -127,
+     112
+    ],
+    "targetY": 0.32,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -125.8,
+     112,
+     0.34
+    ],
+    "nearest": "npc:Talk to Theo",
+    "result": "OK",
+    "dyFromGround": -0.02
+   },
+   {
+    "kind": "npc",
+    "label": "Nan",
+    "at": [
+     167,
+     40
+    ],
+    "targetY": 17.15,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     168.2,
+     40,
+     17.14
+    ],
+    "nearest": "npc:Talk to Nan",
+    "result": "OK",
+    "dyFromGround": 0.02
+   },
+   {
+    "kind": "npc",
+    "label": "Ollie the postman",
+    "at": [
+     0,
+     224
+    ],
+    "targetY": 2.38,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     224,
+     0.37
+    ],
+    "nearest": "npc:Talk to Ollie the postman",
+    "result": "OK",
+    "dyFromGround": 2
+   },
+   {
+    "kind": "dock",
+    "label": "dock",
+    "at": [
+     0,
+     272.4
+    ],
+    "targetY": 0.75,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     272.4,
+     0.75
+    ],
+    "nearest": "dock:Take the boat",
+    "result": "OK",
+    "dyFromGround": 0
+   }
+  ],
+  "npcNoteOverlaps": [
+   {
+    "npc": "Theo",
+    "home": [
+     -127,
+     112
+    ],
+    "wander": 28,
+    "note": 0,
+    "noteAt": [
+     -120,
+     120
+    ],
+    "dist": 10.6
+   }
+  ],
+  "pageErrors": []
+ },
+ "sanity": {
+  "island": "sanity",
+  "rows": [
+   {
+    "kind": "note",
+    "label": "In a tide pool",
+    "at": [
+     85.1,
+     72.6
+    ],
+    "targetY": 2.4,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     86.3,
+     72.6,
+     0
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.4
+   },
+   {
+    "kind": "note",
+    "label": "At the foot of the lighthouse",
+    "at": [
+     -125.4,
+     -114.3
+    ],
+    "targetY": 5.22,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -124.2,
+     -114.3,
+     4.26
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 0.95
+   },
+   {
+    "kind": "note",
+    "label": "On the sea stack",
+    "at": [
+     270,
+     -36
+    ],
+    "targetY": 10.23,
+    "standableFresh": false,
+    "granted": "lantern",
+    "stand": [
+     271.2,
+     -36,
+     7.8
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.43
+   },
+   {
+    "kind": "ability",
+    "label": "Her lantern",
+    "at": [
+     -106.4,
+     -84.8
+    ],
+    "targetY": 15.03,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -105.2,
+     -84.8,
+     12.08
+    ],
+    "nearest": "ability:Take her lantern",
+    "result": "OK",
+    "dyFromGround": 2.95
+   },
+   {
+    "kind": "letter",
+    "label": "Letter N",
+    "at": [
+     256,
+     -48
+    ],
+    "targetY": 4,
+    "standableFresh": false,
+    "granted": "lantern",
+    "stand": [
+     257.2,
+     -48,
+     8.08
+    ],
+    "nearest": "letter:Take the paper",
+    "result": "OK",
+    "dyFromGround": -4.08
+   },
+   {
+    "kind": "npc",
+    "label": "Marisol",
+    "at": [
+     -7,
+     208
+    ],
+    "targetY": 0.47,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -5.8,
+     208,
+     0.45
+    ],
+    "nearest": "npc:Talk to Marisol",
+    "result": "OK",
+    "dyFromGround": 0.02
+   },
+   {
+    "kind": "npc",
+    "label": "Dee",
+    "at": [
+     118.1,
+     -78.6
+    ],
+    "targetY": 0,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     119.3,
+     -78.6,
+     0
+    ],
+    "nearest": "npc:Talk to Dee",
+    "result": "OK",
+    "dyFromGround": 0
+   },
+   {
+    "kind": "npc",
+    "label": "Theo",
+    "at": [
+     -125.7,
+     -105.3
+    ],
+    "targetY": 4.16,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -124.5,
+     -105.3,
+     5.76
+    ],
+    "nearest": "npc:Talk to Theo",
+    "result": "OK",
+    "dyFromGround": -1.61
+   },
+   {
+    "kind": "npc",
+    "label": "Nan",
+    "at": [
+     104.2,
+     -18.4
+    ],
+    "targetY": 0,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     105.4,
+     -18.4,
+     0
+    ],
+    "nearest": "npc:Talk to Nan",
+    "result": "OK",
+    "dyFromGround": 0
+   },
+   {
+    "kind": "npc",
+    "label": "Ollie the postman",
+    "at": [
+     0,
+     200
+    ],
+    "targetY": 2.44,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     200,
+     0.44
+    ],
+    "nearest": "npc:Talk to Ollie the postman",
+    "result": "OK",
+    "dyFromGround": 2
+   },
+   {
+    "kind": "dock",
+    "label": "dock",
+    "at": [
+     0,
+     455.4
+    ],
+    "targetY": 0.75,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     455.4,
+     0.75
+    ],
+    "nearest": "dock:Take the boat",
+    "result": "OK",
+    "dyFromGround": 0
+   }
+  ],
+  "npcNoteOverlaps": [
+   {
+    "npc": "Theo",
+    "home": [
+     -125.7,
+     -105.3
+    ],
+    "wander": 28,
+    "note": 1,
+    "noteAt": [
+     -125.4,
+     -114.3
+    ],
+    "dist": 9
+   }
+  ],
+  "pageErrors": []
+ },
+ "town": {
+  "island": "town",
+  "rows": [
+   {
+    "kind": "note",
+    "label": "Pinned to a beach umbrella",
+    "at": [
+     -102.9,
+     61.4
+    ],
+    "targetY": 3.31,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -101.7,
+     61.4,
+     1.28
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.04
+   },
+   {
+    "kind": "note",
+    "label": "By the fountain",
+    "at": [
+     16,
+     24
+    ],
+    "targetY": 5.78,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     17.2,
+     24,
+     3.34
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.44
+   },
+   {
+    "kind": "note",
+    "label": "At the gate",
+    "at": [
+     67.6,
+     10.7
+    ],
+    "targetY": 2.68,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     68.8,
+     10.7,
+     0.26
+    ],
+    "nearest": "note:Read the note",
+    "result": "OK",
+    "dyFromGround": 2.42
+   },
+   {
+    "kind": "ability",
+    "label": "Her crown",
+    "at": [
+     0,
+     0
+    ],
+    "targetY": 4.86,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     0,
+     1.8
+    ],
+    "nearest": "ability:Take her crown",
+    "result": "OK",
+    "dyFromGround": 3.06
+   },
+   {
+    "kind": "letter",
+    "label": "Letter A",
+    "at": [
+     197,
+     41
+    ],
+    "targetY": 3.85,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     198.2,
+     41,
+     3.66
+    ],
+    "nearest": "letter:Take the paper",
+    "result": "OK",
+    "dyFromGround": 0.19
+   },
+   {
+    "kind": "npc",
+    "label": "Bea",
+    "at": [
+     71.8,
+     11.1
+    ],
+    "targetY": 0.2,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     73,
+     11.1,
+     0.18
+    ],
+    "nearest": "npc:Talk to Bea",
+    "result": "OK",
+    "dyFromGround": 0.02
+   },
+   {
+    "kind": "npc",
+    "label": "Neri",
+    "at": [
+     32,
+     88
+    ],
+    "targetY": 5.13,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     33.2,
+     88,
+     5.26
+    ],
+    "nearest": "npc:Talk to Neri",
+    "result": "OK",
+    "dyFromGround": -0.13
+   },
+   {
+    "kind": "npc",
+    "label": "Cass",
+    "at": [
+     -76,
+     56
+    ],
+    "targetY": 6.28,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -74.8,
+     56,
+     6.43
+    ],
+    "nearest": "npc:Talk to Cass",
+    "result": "OK",
+    "dyFromGround": -0.15
+   },
+   {
+    "kind": "npc",
+    "label": "Rafa",
+    "at": [
+     -98.9,
+     67
+    ],
+    "targetY": 1.12,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -97.7,
+     67,
+     1.46
+    ],
+    "nearest": "npc:Talk to Rafa",
+    "result": "OK",
+    "dyFromGround": -0.33
+   },
+   {
+    "kind": "npc",
+    "label": "Marisol",
+    "at": [
+     15.2,
+     181.5
+    ],
+    "targetY": 1.45,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     16.4,
+     181.5,
+     1.74
+    ],
+    "nearest": "npc:Talk to Marisol",
+    "result": "OK",
+    "dyFromGround": -0.3
+   },
+   {
+    "kind": "npc",
+    "label": "Dee",
+    "at": [
+     -100,
+     67
+    ],
+    "targetY": 0.81,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     -98.8,
+     67,
+     1.15
+    ],
+    "nearest": "npc:Talk to Rafa",
+    "result": "OK_OTHER_NPC_CLOSER",
+    "dyFromGround": -0.34,
+    "reachableFrom": 167,
+    "reachableSample": [
+     [
+      -99,
+      67
+     ],
+     [
+      -99.1,
+      67.3
+     ],
+     [
+      -99.2,
+      67.5
+     ],
+     [
+      -99.3,
+      67.7
+     ]
+    ]
+   },
+   {
+    "kind": "npc",
+    "label": "Theo",
+    "at": [
+     205.9,
+     42.6
+    ],
+    "targetY": 3.33,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     207.1,
+     42.6,
+     3.14
+    ],
+    "nearest": "npc:Talk to Theo",
+    "result": "OK",
+    "dyFromGround": 0.19
+   },
+   {
+    "kind": "npc",
+    "label": "Nan",
+    "at": [
+     7,
+     -8
+    ],
+    "targetY": 1.76,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     8.2,
+     -8,
+     1.76
+    ],
+    "nearest": "npc:Talk to Nan",
+    "result": "OK",
+    "dyFromGround": 0
+   },
+   {
+    "kind": "npc",
+    "label": "Ollie the postman",
+    "at": [
+     11.3,
+     178.7
+    ],
+    "targetY": 3.52,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     12.5,
+     178.7,
+     1.76
+    ],
+    "nearest": "npc:Talk to Ollie the postman",
+    "result": "OK",
+    "dyFromGround": 1.76
+   },
+   {
+    "kind": "dock",
+    "label": "dock",
+    "at": [
+     0,
+     189.7
+    ],
+    "targetY": 0.75,
+    "standableFresh": true,
+    "granted": null,
+    "stand": [
+     1.2,
+     189.7,
+     0.75
+    ],
+    "nearest": "dock:Take the boat",
+    "result": "OK",
+    "dyFromGround": 0
+   }
+  ],
+  "npcNoteOverlaps": [
+   {
+    "npc": "Bea",
+    "home": [
+     71.8,
+     11.1
+    ],
+    "wander": 22.5,
+    "note": 2,
+    "noteAt": [
+     67.6,
+     10.7
+    ],
+    "dist": 4.2
+   },
+   {
+    "npc": "Cass",
+    "home": [
+     -76,
+     56
+    ],
+    "wander": 22.5,
+    "note": 0,
+    "noteAt": [
+     -102.9,
+     61.4
+    ],
+    "dist": 27.4
+   },
+   {
+    "npc": "Rafa",
+    "home": [
+     -99,
+     67
+    ],
+    "wander": 20,
+    "note": 0,
+    "noteAt": [
+     -102.9,
+     61.4
+    ],
+    "dist": 6.8
+   },
+   {
+    "npc": "Dee",
+    "home": [
+     -100,
+     67
+    ],
+    "wander": 28,
+    "note": 0,
+    "noteAt": [
+     -102.9,
+     61.4
+    ],
+    "dist": 6.3
+   },
+   {
+    "npc": "Nan",
+    "home": [
+     7,
+     -8
+    ],
+    "wander": 28,
+    "note": 1,
+    "noteAt": [
+     16,
+     24
+    ],
+    "dist": 33.2
+   }
+  ],
+  "pageErrors": []
+ }
+}
