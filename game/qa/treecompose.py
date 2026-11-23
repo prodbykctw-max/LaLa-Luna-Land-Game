@@ -24,7 +24,7 @@ def panel(files, width):
     for im in ims: S.paste(im, (x, 0)); x += im.width + 6
     return S
 made = []
-for island, shots in (('hub', ['close', 'follow', 'wide', 'crop', 'backlit']), ('green', ['follow', 'wide', 'grove', 'willow', 'bush'])):
+for island, shots in (('hub', ['close', 'follow', 'wide', 'crop', 'backlit']), ('green', ['follow', 'wide', 'grove', 'willow', 'willow_close', 'bush'])):
     for sh in shots:
         fs = [find(f'tl_{c}_{island}_{sh}.jpg') for c in LET]
         if not any(fs): continue

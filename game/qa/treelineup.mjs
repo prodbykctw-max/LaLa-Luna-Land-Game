@@ -12,29 +12,7 @@ import { mkdirSync, writeFileSync } from 'fs';
 const [mode, opt, island = 'hub'] = process.argv.slice(2);
 const STRIDE = +process.env.STRIDE || 2, FR = +process.env.FRAMES || 240;
 
-/* the one tree every look is shot at: the tree nearest the spawn that stands clear of its neighbours (colliders are identical in all four looks) */
-const PICK = `(() => {
-  const T = window.__T, I = T.CUR, sp = I.cfg.spawn, hgt = (x, z) => I.height(x, z);
-  const ts = I.colliders.filter(c => c.camR && c.camR > 1 && c.r > .4 && c.kind === "tree");
-  let best = null, bs = 1e9;
-  for (const c of ts) { let nb = 1e9; for (const o of ts) if (o !== c) nb = Math.min(nb, Math.hypot(o.x - c.x, o.z - c.z)); if (nb < 11) continue;
-    const d = Math.hypot(c.x - sp[0], c.z - sp[1]); if (d < 9) continue; if (d < bs) { bs = d; best = { x: c.x, z: c.z, sc: c.r / .55, nb }; } }
-  if (!best) return null;
-  best.g = hgt(best.x, best.z); best.spawn = sp; best.n = ts.length; return best;
-})()`;
-/* poses: all are derived from the picked tree + the spawn side, identical for every look */
-let BL = [0, 1];   /* horizontal direction toward the sun, set from the page */
-const poses = p => {
-  const dx = p.spawn[0] - p.x, dz = p.spawn[1] - p.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, px = -uz, pz = ux;
-  const lx = p.x + ux * 2.3 * p.sc, lz = p.z + uz * 2.3 * p.sc;          /* Lala stands beside the trunk, on the spawn side */
-  return {
-    close: { at: [lx, lz], e: [(p.x + lx) / 2 + px * 15.5, p.g + 3.4, (p.z + lz) / 2 + pz * 15.5], t: [(p.x + lx) / 2, p.g + 3.9, (p.z + lz) / 2] },
-    wide:  { at: [lx, lz], e: [p.x + ux * 30 + px * 12, p.g + 13, p.z + uz * 30 + pz * 12], t: [p.x - ux * 3, p.g + 3.4, p.z - uz * 3] },
-    follow: { x: p.x + ux * 9.5, z: p.z + uz * 9.5, yaw: Math.atan2(p.x - (p.x + ux * 9.5), p.z - (p.z + uz * 9.5)) },
-    back: { at: [lx, lz], e: [p.x - (BL[0]) * 15, p.g + 2.6, p.z - (BL[1]) * 15], t: [p.x + BL[0] * 2, p.g + 6.2 * p.sc, p.z + BL[1] * 2] },
-    crop: [p.x + px * 2.4 * p.sc, p.g + 6.1 * p.sc, p.z + pz * 2.4 * p.sc]
-  };
-};
+import { PICK, BL, poses } from './_treepose.mjs';
 const settle = async (H, n, render = false) => {
   await H.page.evaluate(() => { window.__NORENDER = true; });
   for (let i = 0; i < n; i++) await H.tick();
@@ -50,7 +28,7 @@ if (mode === 'stills') {
   const p = await H.page.evaluate(PICK); if (!p) throw new Error('no clear tree on ' + island);
   console.error('[pick]', JSON.stringify(p));
   const sun = await H.page.evaluate(() => { const d = window.__T.CUR.sunDir; const l = Math.hypot(d.x, d.z) || 1; return [d.x / l, d.z / l, d.y]; });
-  BL = [sun[0], sun[1]];
+  BL[0] = sun[0]; BL[1] = sun[1];
   const P = poses(p), res = { opt, island, curKey: await H.page.evaluate(() => window.__T.CUR.cfg.key), pick: p, sun, trees: await H.page.evaluate(() => window.__T.CUR.colliders.filter(c => c.camR > 1).length) };
   const base = `${OUT}/tl_${opt}_${island}`; mkdirSync(OUT, { recursive: true });
   /* the screen rectangle the picked tree should fill, and a frame of the same view with every tree hidden: their difference is the tree's screen area */
@@ -75,7 +53,7 @@ if (mode === 'stills') {
     await shot(H, `${base}_crop.jpg`, { x: cx, y: cy, width: cw, height: ch }); res.crop = { q, cx, cy };
     /* 2c. backlit: the camera behind the tree, looking toward the sun */
     await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(P.back)})`);
-    await settle(H, 90); await shot(H, `${base}_backlit.jpg`);
+    await settle(H, 90); await shot(H, `${base}_backlit.jpg`); await bare('backlit');
   }
   /* 3. wide */
   await H.page.evaluate(`${POSE_SRC}(${JSON.stringify(P.wide)})`);
@@ -96,7 +74,11 @@ if (mode === 'stills') {
       const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z), sc: best.r / .55 }; });
     res.willow = wv;
     if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 36 - wv.uz * 10, wv.g + 8, wv.z + wv.uz * 36 + wv.ux * 10], t: [wv.x, wv.g + 4.4, wv.z] })})`);
-      await settle(H, 60); await shot(H, `${base}_willow.jpg`); }
+      await settle(H, 60); await shot(H, `${base}_willow.jpg`);
+      /* 5b. willow close-up: camera 12-16 u from the tree (by its size), the whole willow in frame, Lala beside it */
+      const wd = Math.max(12, Math.min(16, 4 + 1.15 * 9 * wv.sc)); res.willowClose = { dist: wd, sc: wv.sc };
+      await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.2 - wv.uz * 1.2, wv.z + wv.uz * 4.2 + wv.ux * 1.2], e: [wv.x + wv.ux * wd - wv.uz * 3, wv.g + 2.6, wv.z + wv.uz * wd + wv.ux * 3], t: [wv.x, wv.g + 4.3 * Math.max(1, wv.sc * .9), wv.z] })})`);
+      await settle(H, 60); await shot(H, `${base}_willow_close.jpg`); }
     /* 6. bush: a bush (C publishes its instances; the game's own list of where bushes stand, identical for every look) */
     const bv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = I.bushPos || [];
       if(!its.length) return null; let best = null, bd = 1e9; for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d > 7 && d < bd) { bd = d; best = b; } } if(!best) return null;
