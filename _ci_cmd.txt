@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/syntax.mjs > qa/out/syntax.base.out 2> qa/out/syntax.base.log; r=$?; tail -25 qa/out/syntax.base.log; tail -25 qa/out/syntax.base.out; exit $r
