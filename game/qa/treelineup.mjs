@@ -80,7 +80,7 @@ if (mode === 'stills') {
         for(const c of ws) { let nb = 1e9; for(const o of all) if(o !== c) nb = Math.min(nb, Math.hypot(o.x - c.x, o.z - c.z)); const sc = c.r / .55, d = Math.hypot(c.x - sp[0], c.z - sp[1]); const sco = Math.min(nb, 16) - .04 * d; if(sco > bs) { bs = sco; best = { c, sc, nb }; } }
         const c = best.c, sc = best.sc, wd = Math.max(12, Math.min(16, 4 + 1.15 * 9 * sc)), a0 = Math.atan2(sp[1] - c.z, sp[0] - c.x); let pick = null, pc = -1e9;
         for(const k of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8]) { const a = a0 + k * Math.PI / 8, ex = c.x + Math.cos(a) * wd, ez = c.z + Math.sin(a) * wd; let clr = 1e9;
-          for(const o of all) { if(o === c) continue; const osc = o.r / .55; for(let f = .1; f <= 1.0; f += .15) { const px = ex + (c.x - ex) * f, pz = ez + (c.z - ez) * f; if(f > .55) continue; clr = Math.min(clr, Math.hypot(o.x - px, o.z - pz) - (4.6 * osc + .6)); } }
+          for(const o of all) { if(o === c) continue; const osc = o.r / .55; for(let f = 0; f <= 1.0; f += .12) { const px = ex + (c.x - ex) * f, pz = ez + (c.z - ez) * f; if(f > .55) continue; clr = Math.min(clr, Math.hypot(o.x - px, o.z - pz) - (4.6 * osc + .6)); } }
           if(clr > 0) { pick = { a, clr }; break; } if(clr > pc) { pc = clr; pick = { a, clr }; } }
         return { x: c.x, z: c.z, g: I.height(c.x, c.z), sc, wd, a: pick.a, clr: pick.clr, nb: best.nb }; });
       res.willowClose = wc; const wux = Math.cos(wc.a), wuz = Math.sin(wc.a);

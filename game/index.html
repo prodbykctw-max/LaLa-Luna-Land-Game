@@ -1616,8 +1616,10 @@ function forestBuilder(P, night){
    an object (a uuid is a draw) runs under withFreeRandom, and variation comes from a private generator. */
 const TREE_MOBILE = matchMedia("(pointer:coarse)").matches || innerWidth < 820;
 const TWIND = {uTime:{value:0}, uPlayer:{value:new THREE.Vector3()}, uGust:{value:1}, uSun:{value:new THREE.Vector3(0, 1, 0)},
-  uTK:{value:new THREE.Vector4(.55, 14, 1, 1.6)}};      /* leaf look knobs: x light-through-leaf strength, y its sharpness (power), z base fill, w edge dither width; QA sweeps them through window.__TWIND */
+  uTK:{value:new THREE.Vector4(.55, 14, 1, 1.6)}, uCol:{value:new THREE.Vector3(1, 1, 1)}};      /* leaf look knobs: x light-through-leaf strength, y its sharpness (power), z base fill, w edge dither width; QA sweeps them through window.__TWIND */
 window.__TWIND = TWIND;
+/* the same sprig reads lighter and yellower under some islands' light than A's trees do (measured, A vs C mean foliage H/S/V in the follow shot): a per-island multiplier on the leaf colour */
+const TREE_ISL_TINT = {_: [1, 1, 1], green: [.78, .86, .74]};
 const withFreeRandom = fn => { const r0 = Math.random; Math.random = FREE_RANDOM; try { return fn(); } finally { Math.random = r0; } };
 const TREE_NEAR = TREE_MOBILE ? 22 : 40, TREE_FAR = 230;        /* world units from the camera: full detail inside NEAR, the cheap level to FAR */
 let TREE_C_GEO = null, TREE_C_TEX = null; const TREE_C_MATS = {};
@@ -1641,9 +1643,10 @@ const TREE_SWAY_DECL = "attribute float aB; attribute float aW; attribute float 
 function treeLeafMat(map, night){
   const lm = new THREE.MeshStandardMaterial({map, alphaTest:.45, side:THREE.DoubleSide, roughness:.78, metalness:0, envMapIntensity:.38, vertexColors:true});
   if(night) lm.color.multiplyScalar(.40);
-  lm.onBeforeCompile = sh => { sh.uniforms.uTime = TWIND.uTime; sh.uniforms.uGust = TWIND.uGust; sh.uniforms.uSun = TWIND.uSun; sh.uniforms.uTK = TWIND.uTK;
+  lm.onBeforeCompile = sh => { sh.uniforms.uTime = TWIND.uTime; sh.uniforms.uGust = TWIND.uGust; sh.uniforms.uSun = TWIND.uSun; sh.uniforms.uTK = TWIND.uTK; sh.uniforms.uCol = TWIND.uCol;
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + TREE_SWAY_DECL + "\nvarying float vEx;").replace("#include <begin_vertex>", TREE_SWAY + "\nvEx = aEx;");
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vEx; uniform vec3 uSun; uniform vec4 uTK;")
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vEx; uniform vec3 uSun; uniform vec4 uTK; uniform vec3 uCol;")
+      .replace("#include <color_fragment>", "#include <color_fragment>\n diffuseColor.rgb *= uCol;")
       /* the cut edge: no MSAA on the composer's targets, so a hard alpha test leaves a one-pixel staircase. The threshold is dithered by the alpha's own slope
          (interleaved gradient noise), so only the pixels ON the edge go partial: it reads as a soft rim instead of a stair */
       .replace("#include <alphatest_fragment>", `
@@ -1790,7 +1793,7 @@ function bakeGeoC(){
       if(kind === "willow") lods.forEach((l, li) => {
         const d = [NEAR, FARD][li], stride = d.leafStride || 1, scl = d.leafScale || 1, g = l.leaves, pa = g.attributes.position, ua = g.attributes.uv, na = g.attributes.normal;
         const cr = g.attributes.color, aB0 = g.attributes.aB, aW0 = g.attributes.aW, aE0 = g.attributes.aEx, nq = pa.count / 4, wr = mulberry32(seedOf("willow-curtain:" + sp.seed));
-        const domeY = .60 * HT, keep = [], cand = [];
+        const domeY = .48 * HT, keep = [], cand = [];
         for(let q = 0; q < nq; q++){ const i0 = q * 4; if((pa.getY(i0 + 1) + pa.getY(i0 + 2)) / 2 >= domeY) keep.push(q); }
         /* anchors sit ON the limbs: random points of the near level's branch mesh, outside the trunk and above the strands' reach, the outer limbs favoured,
            no two within .55 u of each other */
@@ -13167,7 +13170,7 @@ function islandUpdate(I, dt, t){
   if(RAINQ && (I.wetScanT = (I.wetScanT == null ? 1 : I.wetScanT) - dt) <= 0){ I.wetScanT = 3; wetAll(I.scene); }
   if(I.sun){ const so = I.sunOff || [-25,40,15]; I.sun.position.set(W.x+so[0], W.y+so[1], W.z+so[2]); I.sun.target.position.set(W.x, W.y, W.z); }
   if(LIGHTQ) lightKey(I);   /* LIGHTQ hook */
-  if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); if(u.uSun && I.sunDir) u.uSun.value.copy(I.sunDir); }
+  if(I.treeWinds) for(const u of I.treeWinds){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); if(u.uSun && I.sunDir) u.uSun.value.copy(I.sunDir); if(u.uCol && !window.__TCOLQA){ const tc = TREE_ISL_TINT[I.cfg.key] || TREE_ISL_TINT._; u.uCol.value.set(tc[0], tc[1], tc[2]); } }
   if(I.treeLods) for(const f of I.treeLods) f(camera);
   if(I.windMats) I.windMats.forEach(m => { const u = m.uniforms || m.userData.uniforms; if(u){ u.uTime.value = t; u.uPlayer.value.set(W.x, W.y, W.z); } });
   if(I.mist) I.mist.forEach(m => { m.position.x = m.userData.x0 + Math.sin(t*.25+m.userData.ph)*2.5; m.rotation.y = Math.atan2(camera.position.x-m.position.x, camera.position.z-m.position.z); });
