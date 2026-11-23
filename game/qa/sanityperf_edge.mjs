@@ -74,9 +74,10 @@ for (const key of keys) { try {
     await page.evaluate(() => { window.__T.CUR.W.camYaw += .03; });
     await page.clock.runFor(STEP());
     const rows = await page.evaluate(() => window.__probe());
+    if (SAME) await page.evaluate(() => { window.__seed(24681357); window.__T.composer.render(); });   /* the grain/dither draws Math.random per render: the same seed before both renders makes them comparable */
     const shotBuf = await page.screenshot({ type: 'jpeg', quality: SAME ? 95 : 92, timeout: 600000 });
     if (SAME) {
-      const nSk = await page.evaluate(() => { const s = window.__skc ? [...window.__skc] : []; window.__skcOn = s.filter(m => m.frustumCulled); window.__skcOn.forEach(m => { m.frustumCulled = false; }); window.__T.composer.render(); return window.__skcOn.length; });
+      const nSk = await page.evaluate(() => { const s = window.__skc ? [...window.__skc] : []; window.__skcOn = s.filter(m => m.frustumCulled); window.__skcOn.forEach(m => { m.frustumCulled = false; }); window.__seed(24681357); window.__T.composer.render(); return window.__skcOn.length; });
       const oldBuf = await page.screenshot({ type: 'jpeg', quality: 95, timeout: 600000 });
       await page.evaluate(() => { window.__skcOn.forEach(m => { m.frustumCulled = true; }); });
       const same = Buffer.compare(shotBuf, oldBuf) === 0; sameLog.push({ f, same, nSkinCulled: nSk, culledNow: rows.filter(r => r.culled).length }); if (!same) { sameDiff++; fs0.writeFileSync(`${dir}/${key}_${String(f).padStart(3, '0')}_DIFF_new.jpg`, shotBuf); fs0.writeFileSync(`${dir}/${key}_${String(f).padStart(3, '0')}_DIFF_old.jpg`, oldBuf); }
