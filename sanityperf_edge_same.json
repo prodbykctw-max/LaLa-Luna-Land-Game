@@ -1,0 +1,2003 @@
+{
+ "tag": "same",
+ "query": "",
+ "islands": {
+  "gr": {
+   "frames": 100,
+   "same": {
+    "framesCompared": 100,
+    "flagged": 7,
+    "worstToggleMean": 0.754,
+    "worstNoiseMean": 0.754,
+    "worstToggleN32": 0,
+    "worstNoiseN32": 1,
+    "maxSkinCulledMeshes": 29,
+    "framesWithMeshesCulled": 93,
+    "log": [
+     {
+      "f": 0,
+      "nSkinCulled": 29,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 1,
+      "nSkinCulled": 29,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 2,
+      "nSkinCulled": 29,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0.493,
+       "n32": 0,
+       "edgeMean": 0.481,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 3,
+      "nSkinCulled": 29,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.708,
+       "n32": 0,
+       "edgeMean": 0.695,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 4,
+      "nSkinCulled": 29,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0.001,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 5,
+      "nSkinCulled": 29,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0.001,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 6,
+      "nSkinCulled": 29,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0,
+       "n32": 1,
+       "edgeMean": 0.001,
+       "edge32": 1,
+       "bbox32": [
+        620,
+        267,
+        620,
+        267
+       ]
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 7,
+      "nSkinCulled": 29,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0.001,
+       "n32": 0,
+       "edgeMean": 0.002,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 8,
+      "nSkinCulled": 29,
+      "culledNow": 0,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 9,
+      "nSkinCulled": 29,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.001,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 10,
+      "nSkinCulled": 29,
+      "culledNow": 1,
+      "noise": {
+       "mean": 0.706,
+       "n32": 0,
+       "edgeMean": 0.684,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 11,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.001,
+       "n32": 1,
+       "edgeMean": 0.002,
+       "edge32": 0,
+       "bbox32": [
+        583,
+        244,
+        583,
+        244
+       ]
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 12,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.001,
+       "n32": 0,
+       "edgeMean": 0.002,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 13,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 14,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0.001,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 15,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.715,
+       "n32": 0,
+       "edgeMean": 0.693,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 16,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 17,
+      "nSkinCulled": 29,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.505,
+       "n32": 0,
+       "edgeMean": 0.491,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 18,
+      "nSkinCulled": 29,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 19,
+      "nSkinCulled": 29,
+      "culledNow": 3,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 20,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.702,
+       "n32": 0,
+       "edgeMean": 0.687,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 21,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0.701,
+       "n32": 0,
+       "edgeMean": 0.684,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 22,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.7,
+       "n32": 0,
+       "edgeMean": 0.679,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 23,
+      "nSkinCulled": 29,
+      "culledNow": 2,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 24,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.713,
+       "n32": 0,
+       "edgeMean": 0.682,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 25,
+      "nSkinCulled": 29,
+      "culledNow": 5,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.7,
+       "n32": 0,
+       "edgeMean": 0.672,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 26,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.703,
+       "n32": 0,
+       "edgeMean": 0.675,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 27,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.705,
+       "n32": 0,
+       "edgeMean": 0.681,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 28,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.709,
+       "n32": 0,
+       "edgeMean": 0.69,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 29,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.492,
+       "n32": 0,
+       "edgeMean": 0.479,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 30,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.494,
+       "n32": 0,
+       "edgeMean": 0.484,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 31,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.515,
+       "n32": 0,
+       "edgeMean": 0.506,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 32,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.516,
+       "n32": 0,
+       "edgeMean": 0.509,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.73,
+       "n32": 0,
+       "edgeMean": 0.724,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 33,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.729,
+       "n32": 0,
+       "edgeMean": 0.722,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.717,
+       "n32": 0,
+       "edgeMean": 0.713,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 34,
+      "nSkinCulled": 29,
+      "culledNow": 5,
+      "noise": {
+       "mean": 0.715,
+       "n32": 0,
+       "edgeMean": 0.709,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.493,
+       "n32": 0,
+       "edgeMean": 0.485,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 35,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.492,
+       "n32": 0,
+       "edgeMean": 0.482,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.512,
+       "n32": 0,
+       "edgeMean": 0.501,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 36,
+      "nSkinCulled": 29,
+      "culledNow": 5,
+      "noise": {
+       "mean": 0.509,
+       "n32": 0,
+       "edgeMean": 0.498,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.722,
+       "n32": 0,
+       "edgeMean": 0.709,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 37,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.509,
+       "n32": 0,
+       "edgeMean": 0.498,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 38,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.509,
+       "n32": 0,
+       "edgeMean": 0.503,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 39,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.722,
+       "n32": 0,
+       "edgeMean": 0.726,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.71,
+       "n32": 0,
+       "edgeMean": 0.716,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 40,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.51,
+       "n32": 0,
+       "edgeMean": 0.514,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.723,
+       "n32": 0,
+       "edgeMean": 0.732,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 41,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.724,
+       "n32": 0,
+       "edgeMean": 0.735,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 42,
+      "nSkinCulled": 29,
+      "culledNow": 5,
+      "noise": {
+       "mean": 0.724,
+       "n32": 0,
+       "edgeMean": 0.736,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 43,
+      "nSkinCulled": 29,
+      "culledNow": 5,
+      "noise": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.714,
+       "n32": 0,
+       "edgeMean": 0.728,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 44,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.715,
+       "n32": 0,
+       "edgeMean": 0.731,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.494,
+       "n32": 0,
+       "edgeMean": 0.5,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 45,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.495,
+       "n32": 0,
+       "edgeMean": 0.503,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.514,
+       "n32": 0,
+       "edgeMean": 0.524,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 46,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.736,
+       "n32": 0,
+       "edgeMean": 0.756,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 47,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.727,
+       "n32": 0,
+       "edgeMean": 0.746,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.715,
+       "n32": 0,
+       "edgeMean": 0.737,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 48,
+      "nSkinCulled": 29,
+      "culledNow": 4,
+      "noise": {
+       "mean": 0.495,
+       "n32": 0,
+       "edgeMean": 0.506,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 49,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.513,
+       "n32": 0,
+       "edgeMean": 0.526,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.726,
+       "n32": 0,
+       "edgeMean": 0.747,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 50,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.725,
+       "n32": 0,
+       "edgeMean": 0.746,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.714,
+       "n32": 0,
+       "edgeMean": 0.739,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 51,
+      "nSkinCulled": 29,
+      "culledNow": 7,
+      "noise": {
+       "mean": 0.712,
+       "n32": 0,
+       "edgeMean": 0.737,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.492,
+       "n32": 0,
+       "edgeMean": 0.505,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 52,
+      "nSkinCulled": 29,
+      "culledNow": 7,
+      "noise": {
+       "mean": 0.511,
+       "n32": 0,
+       "edgeMean": 0.524,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 53,
+      "nSkinCulled": 29,
+      "culledNow": 7,
+      "noise": {
+       "mean": 0.511,
+       "n32": 0,
+       "edgeMean": 0.526,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.723,
+       "n32": 0,
+       "edgeMean": 0.748,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 54,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.711,
+       "n32": 0,
+       "edgeMean": 0.741,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.491,
+       "n32": 0,
+       "edgeMean": 0.507,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 55,
+      "nSkinCulled": 29,
+      "culledNow": 6,
+      "noise": {
+       "mean": 0.492,
+       "n32": 0,
+       "edgeMean": 0.509,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.511,
+       "n32": 0,
+       "edgeMean": 0.53,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 56,
+      "nSkinCulled": 29,
+      "culledNow": 7,
+      "noise": {
+       "mean": 0.734,
+       "n32": 0,
+       "edgeMean": 0.764,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 57,
+      "nSkinCulled": 29,
+      "culledNow": 7,
+      "noise": {
+       "mean": 0.734,
+       "n32": 0,
+       "edgeMean": 0.764,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 58,
+      "nSkinCulled": 29,
+      "culledNow": 7,
+      "noise": {
+       "mean": 0.511,
+       "n32": 0,
+       "edgeMean": 0.53,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.725,
+       "n32": 0,
+       "edgeMean": 0.753,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 59,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.713,
+       "n32": 0,
+       "edgeMean": 0.743,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.491,
+       "n32": 0,
+       "edgeMean": 0.508,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 60,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.512,
+       "n32": 0,
+       "edgeMean": 0.531,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.725,
+       "n32": 0,
+       "edgeMean": 0.754,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 61,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.491,
+       "n32": 0,
+       "edgeMean": 0.51,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.511,
+       "n32": 0,
+       "edgeMean": 0.53,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 62,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.471,
+       "n32": 0,
+       "edgeMean": 0.489,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0,
+       "n32": 0,
+       "edgeMean": 0,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 63,
+      "nSkinCulled": 29,
+      "culledNow": 7,
+      "noise": {
+       "mean": 0.729,
+       "n32": 0,
+       "edgeMean": 0.763,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.709,
+       "n32": 0,
+       "edgeMean": 0.742,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 64,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.467,
+       "n32": 0,
+       "edgeMean": 0.486,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.487,
+       "n32": 0,
+       "edgeMean": 0.506,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 65,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.509,
+       "n32": 0,
+       "edgeMean": 0.531,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.721,
+       "n32": 0,
+       "edgeMean": 0.754,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 66,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.731,
+       "n32": 0,
+       "edgeMean": 0.769,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.51,
+       "n32": 0,
+       "edgeMean": 0.533,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 67,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.47,
+       "n32": 0,
+       "edgeMean": 0.491,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.49,
+       "n32": 0,
+       "edgeMean": 0.512,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 68,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.729,
+       "n32": 0,
+       "edgeMean": 0.769,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.71,
+       "n32": 0,
+       "edgeMean": 0.749,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 69,
+      "nSkinCulled": 29,
+      "culledNow": 8,
+      "noise": {
+       "mean": 0.469,
+       "n32": 0,
+       "edgeMean": 0.492,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.721,
+       "n32": 0,
+       "edgeMean": 0.759,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 70,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.729,
+       "n32": 0,
+       "edgeMean": 0.769,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.508,
+       "n32": 0,
+       "edgeMean": 0.533,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 71,
+      "nSkinCulled": 29,
+      "culledNow": 10,
+      "noise": {
+       "mean": 0.47,
+       "n32": 0,
+       "edgeMean": 0.491,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.489,
+       "n32": 0,
+       "edgeMean": 0.512,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 72,
+      "nSkinCulled": 29,
+      "culledNow": 10,
+      "noise": {
+       "mean": 0.728,
+       "n32": 0,
+       "edgeMean": 0.768,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.708,
+       "n32": 0,
+       "edgeMean": 0.749,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 73,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.729,
+       "n32": 0,
+       "edgeMean": 0.769,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.508,
+       "n32": 0,
+       "edgeMean": 0.533,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 74,
+      "nSkinCulled": 29,
+      "culledNow": 10,
+      "noise": {
+       "mean": 0.47,
+       "n32": 0,
+       "edgeMean": 0.493,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.49,
+       "n32": 0,
+       "edgeMean": 0.513,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 75,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.472,
+       "n32": 0,
+       "edgeMean": 0.496,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.724,
+       "n32": 0,
+       "edgeMean": 0.766,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 76,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.713,
+       "n32": 0,
+       "edgeMean": 0.756,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.491,
+       "n32": 0,
+       "edgeMean": 0.517,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 77,
+      "nSkinCulled": 29,
+      "culledNow": 10,
+      "noise": {
+       "mean": 0.491,
+       "n32": 0,
+       "edgeMean": 0.515,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.733,
+       "n32": 0,
+       "edgeMean": 0.774,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 78,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.734,
+       "n32": 0,
+       "edgeMean": 0.772,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.511,
+       "n32": 0,
+       "edgeMean": 0.535,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 79,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.715,
+       "n32": 0,
+       "edgeMean": 0.751,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.493,
+       "n32": 0,
+       "edgeMean": 0.512,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 80,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.729,
+       "n32": 0,
+       "edgeMean": 0.762,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.737,
+       "n32": 0,
+       "edgeMean": 0.771,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 81,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.738,
+       "n32": 0,
+       "edgeMean": 0.771,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.718,
+       "n32": 0,
+       "edgeMean": 0.751,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 82,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.475,
+       "n32": 0,
+       "edgeMean": 0.491,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.475,
+       "n32": 0,
+       "edgeMean": 0.491,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 83,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.477,
+       "n32": 0,
+       "edgeMean": 0.493,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.733,
+       "n32": 0,
+       "edgeMean": 0.762,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 84,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.743,
+       "n32": 0,
+       "edgeMean": 0.776,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.743,
+       "n32": 0,
+       "edgeMean": 0.776,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 85,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.478,
+       "n32": 0,
+       "edgeMean": 0.498,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.736,
+       "n32": 0,
+       "edgeMean": 0.769,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 86,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.48,
+       "n32": 0,
+       "edgeMean": 0.501,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.738,
+       "n32": 0,
+       "edgeMean": 0.772,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 87,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.727,
+       "n32": 0,
+       "edgeMean": 0.766,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.727,
+       "n32": 0,
+       "edgeMean": 0.765,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 88,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.739,
+       "n32": 0,
+       "edgeMean": 0.774,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.739,
+       "n32": 0,
+       "edgeMean": 0.774,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 89,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.479,
+       "n32": 0,
+       "edgeMean": 0.501,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.479,
+       "n32": 0,
+       "edgeMean": 0.501,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 90,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.747,
+       "n32": 0,
+       "edgeMean": 0.785,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.747,
+       "n32": 0,
+       "edgeMean": 0.785,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 91,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.502,
+       "n32": 0,
+       "edgeMean": 0.526,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.502,
+       "n32": 0,
+       "edgeMean": 0.526,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 92,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.524,
+       "n32": 0,
+       "edgeMean": 0.549,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.524,
+       "n32": 0,
+       "edgeMean": 0.549,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 93,
+      "nSkinCulled": 29,
+      "culledNow": 9,
+      "noise": {
+       "mean": 0.754,
+       "n32": 0,
+       "edgeMean": 0.796,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.754,
+       "n32": 0,
+       "edgeMean": 0.796,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 94,
+      "nSkinCulled": 29,
+      "culledNow": 10,
+      "noise": {
+       "mean": 0.485,
+       "n32": 0,
+       "edgeMean": 0.511,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.745,
+       "n32": 0,
+       "edgeMean": 0.787,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 95,
+      "nSkinCulled": 29,
+      "culledNow": 10,
+      "noise": {
+       "mean": 0.733,
+       "n32": 0,
+       "edgeMean": 0.778,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.733,
+       "n32": 0,
+       "edgeMean": 0.778,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 96,
+      "nSkinCulled": 29,
+      "culledNow": 11,
+      "noise": {
+       "mean": 0.506,
+       "n32": 0,
+       "edgeMean": 0.532,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.506,
+       "n32": 0,
+       "edgeMean": 0.532,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 97,
+      "nSkinCulled": 29,
+      "culledNow": 11,
+      "noise": {
+       "mean": 0.526,
+       "n32": 1,
+       "edgeMean": 0.556,
+       "edge32": 1,
+       "bbox32": [
+        44,
+        264,
+        44,
+        264
+       ]
+      },
+      "toggle": {
+       "mean": 0.525,
+       "n32": 0,
+       "edgeMean": 0.554,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 98,
+      "nSkinCulled": 29,
+      "culledNow": 11,
+      "noise": {
+       "mean": 0.744,
+       "n32": 0,
+       "edgeMean": 0.791,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.744,
+       "n32": 0,
+       "edgeMean": 0.791,
+       "edge32": 0,
+       "bbox32": null
+      }
+     },
+     {
+      "f": 99,
+      "nSkinCulled": 29,
+      "culledNow": 10,
+      "noise": {
+       "mean": 0.731,
+       "n32": 0,
+       "edgeMean": 0.781,
+       "edge32": 0,
+       "bbox32": null
+      },
+      "toggle": {
+       "mean": 0.752,
+       "n32": 0,
+       "edgeMean": 0.803,
+       "edge32": 0,
+       "bbox32": null
+      }
+     }
+    ]
+   },
+   "crossings": 32,
+   "pops": 0,
+   "maxPopFrac": 0,
+   "popEvents": [],
+   "shotFrames": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58
+   ],
+   "meshesSeen": 36,
+   "errors": []
+  }
+ },
+ "simFrames": {
+  "gr": 120
+ }
+}
