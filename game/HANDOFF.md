@@ -2156,3 +2156,45 @@ genuinely-should-be-lit count is in the teens per island, not the hundreds.
 confirmed something he had been saying, and it went out without the one extra look that would have
 killed it. That is C8 - good news and satisfying news both get the HIGHER evidence bar, not the
 lower one - applied to a diagnosis instead of to a status.
+
+---
+
+# Tree realism: options tried, Melvin's pick, state of `?trees=C` (branch `trees-realism`)
+
+**Status: C is behind `?trees=C`. A (today's trees) is still the default. Not merged, not deployed, BUILD not bumped. Awaiting Melvin's approval.**
+
+## Options tried
+- **A** current trees (unchanged, default).
+- **B** shading-only changes to A. Dropped (Melvin picked C).
+- **C** ez-tree (MIT) procedural broadleaf, instanced. **Picked: "C, made full-size".**
+- **D** scanned glTF (Poly Haven island_tree). Dropped (Melvin picked C). Code, flag, `assets/trees/d/`, `tools/bake_tree_d.mjs` and credits removed in the drop commit.
+- Earlier rejected attempt (collaged leaf atlas): Melvin said it looked like blobs and patterns. C uses real leaf sprigs on real branches instead.
+
+## How C works
+- Flag `?trees=C` only. The ez-tree bundle (`vendor/eztree.min.js`, 32 KB, rebuild with `vendor/build-eztree.sh`) loads via `document.write` only for that flag.
+- In `forestBuilder` the shipped crown code (`treeA`) still runs for every tree so the seeded `Math.random` stream, placements, colliders and seeds stay identical; its geometry is thrown away and an instance of one of 12 baked variants is added instead (`treeField`, "TREE OPTION C" block). All C object creation runs under `withFreeRandom` so no uuid draws disturb the stream. Willows and bushes stay A.
+- Per instance: random yaw, scale jitter about +/-15%, per-tree tint, per-leaf hue/value variation, non-uniform scaling to A's crown (height 8.0, half-width 4.5). Near/far LOD (40 u desktop, 22 u phone near; far to 230 u), frustum and distance culling, wind sway, leaf shadows through a custom depth material.
+- Colliders now carry a `kind` field (behaviour neutral); the QA lineup uses it to pick a real tree, not a willow.
+
+## Budgets (hub spawn, farm run tl5, main pass and shadow pass counted separately)
+| view | A main | C main | A with shadow | C with shadow | C shadow only |
+|---|---|---|---|---|---|
+| desktop tris | 976,713 | 1,014,741 | 1,407,653 | 1,483,709 | 468,968 |
+| phone tris | 768,581 | 729,933 | 1,149,495 | 1,072,199 | 342,266 |
+| phone draw calls | 288 | 296 | 345 | 361 | 65 |
+Phone C is 0.95x A (limit was 1.5x). Console errors: 0 on hub, green, gr, sanity, town for A and C. Tree counts and colliders identical.
+Crown screen area vs A (same frames, trees-hidden diff): hub follow 102%, green follow 103%, hub close 90%.
+
+## Proof (qa/out/treelineup, gitignored; regenerate with farm job + `python3 qa/treecompose.py <farm dir> <out dir>`)
+lineup_hub_{close,follow,wide,crop,backlit}.jpg, lineup_green_{follow,wide,grove}.jpg, lineup_hub_wind.mp4.
+
+## What still looks off in C (seen, not fixed)
+- C is brighter and more lime/mint than A's darker green; ash crowns read bluish-mint in the Green grove shot.
+- Trunk is short and stout, bark texture stretches vertically; in the wind frames C's trunk is thinner than A's.
+- Crown silhouette is spiky/fringed at the edges and sprig repetition is visible at 400 px crop; limbs inside are dark but few.
+- No backlit translucency: against the sun C leaves stay opaque and flat.
+- C is smaller than A in hub close (90%) and lacks A's low drooping lobes, so the wide shot shows more bare trunk.
+- Wind sway is subtle in the clip; willows and bushes next to C trees are still A-style, so mixed groves look inconsistent (grove shot).
+
+## Licences
+See `CREDITS.md`: ez-tree and its leaf sprites MIT, Bark001 CC0. No Sketchfab model used; no token stored anywhere.
