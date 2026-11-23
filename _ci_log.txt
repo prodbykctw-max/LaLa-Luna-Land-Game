@@ -1,0 +1,4 @@
+[clock C] performance.now x5 = 6013.00, 6030.00, 6047.00, 6063.00, 6080.00, 6097.00, 6113.00  deltas 17, 17, 16, 17, 17, 16 ms
+[island] hub
+[done] C wind errors 0
+rc=0
