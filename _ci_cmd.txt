@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/console_load.mjs > qa/out/console_load.base.out 2> qa/out/console_load.base.log; r=$?; tail -25 qa/out/console_load.base.log; tail -25 qa/out/console_load.base.out; exit $r
