@@ -1,0 +1,1 @@
+AB_DIR=$PWD/qa/out node qa/sanityperf_ab.mjs --tag=nofc --islands=sanity --query=farcull=0
