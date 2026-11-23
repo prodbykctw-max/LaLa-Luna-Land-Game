@@ -31,7 +31,8 @@ for (const island of argIslands()) {
     /* the one shared rule - see AIRBORNE_SRC in qa/_harness.mjs */
     const airborne = eval(AIR_SRC)(I, S);
     const supported = eval(SUP_SRC)(I, S);
-    const skipName = /^(sky|moon|rain|bow|beam|foam|star|cloud|bird|mote)/i;
+    /* basicBatch = the merged MeshBasic cells (index.html, ?basicmerge). A cell is the union of many small separate meshes that this audit used to skip one by one (size/footprint filters), so its box reads as a big floating object. */
+    const skipName = /^(sky|moon|rain|bow|beam|foam|star|cloud|bird|mote|basicBatch)/i;
     for (const o of S.children) {
       if (!o.visible || o.isLight || o.isCamera) continue;
       if (o.userData.ground || o.userData.dyn) continue;

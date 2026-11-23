@@ -33,7 +33,7 @@ for (const isl of argIslands(['hub', 'green', 'gr', 'sanity', 'town', 'moon'])) 
     const baked = I.bakedAt || [];
     /* the static batch's own vertices, hashed on a 2 u grid: works on any build, with or without bakedAt */
     const hash = new Map();
-    for (const m of [I.staticMesh, I.staticInk].filter(Boolean)) { const P = m.geometry.attributes.position.array;
+    for (const m of [...(I.staticMeshes || [I.staticMesh]), ...(I.staticInks || [I.staticInk])].filter(Boolean)) { const P = m.geometry.attributes.position.array;
       for (let i = 0; i < P.length; i += 3) { const k = Math.floor(P[i] / 2) + ',' + Math.floor(P[i + 2] / 2); let a = hash.get(k); if (!a) hash.set(k, a = []); a.push(P[i], P[i + 1], P[i + 2]); } }
     const vertsIn = (B) => { let n = 0; for (let gx = Math.floor(B.min.x / 2); gx <= Math.floor(B.max.x / 2); gx++) for (let gz = Math.floor(B.min.z / 2); gz <= Math.floor(B.max.z / 2); gz++) {
       const a = hash.get(gx + ',' + gz); if (!a) continue; for (let i = 0; i < a.length; i += 3) if (B.containsPoint(new THREE.Vector3(a[i], a[i + 1], a[i + 2]))) n++; } return n; };
@@ -59,7 +59,7 @@ for (const isl of argIslands(['hub', 'green', 'gr', 'sanity', 'town', 'moon'])) 
     const B = new THREE.Box3(), sz = new THREE.Vector3(), c = new THREE.Vector3();
     for (const o of S.children) {
       if (skip.has(o) || !o.visible || o.userData.ground || o.isLight || o.userData.dyn || o.userData.yb != null) continue;   /* yb: a butterfly, which may cross the water */
-      if (o === I.staticMesh || o === I.staticInk) continue;
+      if ((I.staticMeshes || [I.staticMesh]).includes(o) || (I.staticInks || [I.staticInk]).includes(o)) continue;
       B.setFromObject(o); if (B.isEmpty()) continue; B.getSize(sz); B.getCenter(c);
       if (sz.x > 30 || sz.z > 30) continue;                       /* ground, sea, sky, big fx */
       if (nearDock(c.x, c.z)) continue;
