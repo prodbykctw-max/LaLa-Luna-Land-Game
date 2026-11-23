@@ -1,0 +1,1 @@
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/sanityperf_ab.mjs --tag=mNF --islands=town,sanity --query=lodfade=0
