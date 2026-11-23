@@ -1,0 +1,1 @@
+node qa/vmat.mjs > qa/out/vmat.out 2> qa/out/vmat.log; r=$?; tail -25 qa/out/vmat.log; tail -25 qa/out/vmat.out; exit $r
