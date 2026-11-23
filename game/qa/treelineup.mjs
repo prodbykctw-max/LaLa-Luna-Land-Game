@@ -95,14 +95,14 @@ if (mode === 'stills') {
       if(!best) for(const c of ws) { const d = Math.hypot(c.x - sp[0], c.z - sp[1]); if(d > 8 && d < bd) { bd = d; best = c; } } if(!best) return null;
       const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z), sc: best.r / .55 }; });
     res.willow = wv;
-    if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 24 - wv.uz * 7, wv.g + 5.5, wv.z + wv.uz * 24 + wv.ux * 7], t: [wv.x, wv.g + 4.2, wv.z] })})`);
+    if(wv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [wv.x + wv.ux * 4.5, wv.z + wv.uz * 4.5], e: [wv.x + wv.ux * 36 - wv.uz * 10, wv.g + 8, wv.z + wv.uz * 36 + wv.ux * 10], t: [wv.x, wv.g + 4.4, wv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_willow.jpg`); }
     /* 6. bush: a bush (C publishes its instances; the game's own list of where bushes stand, identical for every look) */
     const bv = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = I.bushPos || [];
       if(!its.length) return null; let best = null, bd = 1e9; for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d > 7 && d < bd) { bd = d; best = b; } } if(!best) return null;
       const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z) }; });
     res.bush = bv;
-    if(bv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bv.x + bv.ux * 1.2 - bv.uz * 1.6, bv.z + bv.uz * 1.2 + bv.ux * 1.6], e: [bv.x + bv.ux * 4.6 - bv.uz * 1.2, bv.g + 1.7, bv.z + bv.uz * 4.6 + bv.ux * 1.2], t: [bv.x, bv.g + .5, bv.z] })})`);
+    if(bv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bv.x + bv.ux * 1.2 - bv.uz * 1.6, bv.z + bv.uz * 1.2 + bv.ux * 1.6], e: [bv.x + bv.ux * 5.2 - bv.uz * 1.2, bv.g + 3.0, bv.z + bv.uz * 5.2 + bv.ux * 1.2], t: [bv.x, bv.g + .4, bv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_bush.jpg`); }
   }
   res.errors = [...new Set(H.log.errors)].slice(0, 10); writeFileSync(`${base}_stills.json`, JSON.stringify(res, null, 1));

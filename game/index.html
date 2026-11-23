@@ -1644,15 +1644,15 @@ function treeLeafMat(map, night){
       .replace("#include <normal_fragment_begin>", "float faceDirection = gl_FrontFacing ? 1.0 : - 1.0; vec3 normal = normalize( vNormal ); vec3 nonPerturbedNormal = normal;")
       .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * vec3(.10,.14,.05) * " + (night ? ".25" : "1.0") + ";" + (night ? "" : `
  { vec3 Lv = normalize((viewMatrix*vec4(uSun, 0.0)).xyz); vec3 Vv = normalize(vViewPosition);
-   float bk = pow(max(0.0, -dot(Lv, Vv)), 1.7);
-   totalEmissiveRadiance += pow(diffuseColor.rgb, vec3(.75)) * vec3(1.10, 1.0, .34) * bk * vEx * 2.6; }`)); };
+   float bk = pow(max(0.0, -dot(Lv, Vv)), 3.0);
+   totalEmissiveRadiance += pow(diffuseColor.rgb, vec3(.75)) * vec3(1.05, 1.0, .45) * bk * vEx * .9; }`)); };
   lm.customProgramCacheKey = () => "treeInstLeaf2" + (night ? "n" : "d");
   camFadeWrap(lm);
   return lm;
 }
 function treeBarkMat(map, nor, night, tint){
   const m = new THREE.MeshStandardMaterial({map, normalMap:nor, roughness:.94, metalness:0, envMapIntensity:.30});
-  m.color.copy(tint).multiplyScalar(night ? .45 : .92);
+  m.color.copy(tint).multiplyScalar(night ? .45 : .92); m.emissive.setRGB(.05, .04, .03).multiplyScalar(night ? .3 : 1);     /* shade is brown, not black */
   m.onBeforeCompile = sh => { sh.uniforms.uTime = TWIND.uTime; sh.uniforms.uGust = TWIND.uGust;
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + TREE_SWAY_DECL).replace("#include <begin_vertex>", TREE_SWAY); };
   m.customProgramCacheKey = () => "treeInstBark2";
@@ -1686,12 +1686,12 @@ function bakeTreesC(night){
 /* the geometry, once: material free. cell: which sprig of the atlas (0 oak, 1 ash, 2 aspen) */
 function bakeGeoC(){
   const EZ = window.EZTREE;
-  const LEAFTINT = [[.76, .73, .58], [.66, .66, .40], [.58, .66, .46]];       /* oak, ash, aspen: multiplied into the sprig (the sprigs are brighter and bluer than the island's greens) */
+  const LEAFTINT = [[.78, .72, .55], [.57, .58, .30], [.58, .66, .46]];       /* oak, ash, aspen: multiplied into the sprig (the sprigs are brighter and bluer than the island's greens) */
   const vr = mulberry32(seedOf("treeC-variation"));
   /* kinds: HT/HALFW is the box the baked tree is fitted to (world units per unit of tree scale sc). knots: ez height -> world height, piecewise linear,
      so the clear trunk can be shortened to A's while the crown keeps its shape. */
   const KIND = {
-    tree:   {HT: 8.0,  HALFW: 4.5,  ybot: 1.25, floorTo: null},
+    tree:   {HT: 8.0,  HALFW: 4.5,  ybot: 1.6,  floorTo: null},
     willow: {HT: 9.0,  HALFW: 5.0,  ybot: null, floorTo: .06},
     bush:   {HT: 1.25, HALFW: 1.45, ybot: .14,  floorTo: null}
   };
@@ -1720,7 +1720,7 @@ function bakeGeoC(){
       const top = ys[ys.length - 1], q10 = ys[Math.floor(ys.length * .10)], ymin = ys[0];
       L0.computeBoundingBox(); const bb = L0.boundingBox;
       const rs = []; for(let i = 0; i < pa0.count; i += 4) rs.push(Math.hypot((pa0.getX(i + 1) + pa0.getX(i + 2)) / 2, (pa0.getZ(i + 1) + pa0.getZ(i + 2)) / 2)); rs.sort((a, b) => a - b);
-      const hw = rs[Math.floor(rs.length * .92)] * 1.08, kxz = K.HALFW / hw, ctop = bb.max.y;
+      const hw = rs[Math.floor(rs.length * .92)] * 1.2, kxz = K.HALFW / hw, ctop = bb.max.y;
       /* knots: ez height -> world height. Trees and bushes: the bare trunk is shortened so the crown starts where A's does. Willows: strands that hang below the
          ground line are squashed toward it instead of going under the grass. */
       let kn;
