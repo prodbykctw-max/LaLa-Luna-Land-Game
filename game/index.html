@@ -52,7 +52,7 @@ body.dark #grain{opacity:.16}
 #letters{display:flex;gap:6px;justify-content:flex-end}
 .glyph{width:26px;height:30px;display:grid;place-items:center;border-radius:3px;
  font-family:"Instrument Serif",serif;font-style:italic;font-size:19px;
- border:1px solid rgba(247,241,230,.2);color:rgba(247,241,230,.22);transition:.4s}
+ border:1px solid rgba(247,241,230,.2);color:rgba(247,241,230,.22);transition:background-color .4s,color .4s,border-color .4s,box-shadow .4s}
 .glyph.on{background:var(--moon);color:var(--ink);border-color:var(--moon);box-shadow:0 0 20px rgba(255,246,214,.45)}
 .sub{font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.4;margin-top:8px;text-align:right}
 #weather{font-size:10px;letter-spacing:.22em;text-transform:uppercase;opacity:.42;margin-top:6px}
@@ -91,7 +91,7 @@ body.touch #prompt{display:none}
    qa/uicenter.mjs measures all of this and fails past 1.5px. */
 .rbtn{position:fixed;right:26px;border-radius:50%;z-index:7;display:none;margin:0;padding:0;
  place-items:center;font-family:"DM Mono",monospace;letter-spacing:.16em;text-transform:uppercase;
- transition:.2s;cursor:pointer}
+ transition:opacity .2s,color .2s,background-color .2s,border-color .2s,text-shadow .2s,box-shadow .2s,transform .2s;cursor:pointer}
 .rbtn > span,.rbtn > .albl{grid-area:1/1;text-indent:.16em}
 #act{bottom:150px;width:78px;height:78px;font-size:10px;position:fixed;
  border:2px solid rgba(255,246,214,.55);background:rgba(18,16,28,.42);color:var(--moon);opacity:.45}
@@ -201,14 +201,16 @@ h1 span{display:block;font-style:normal;font-size:.2em;letter-spacing:.28em;
 button{pointer-events:auto;margin-top:26px;font-family:"DM Mono",monospace;font-size:11px;
  letter-spacing:.2em;text-transform:uppercase;padding:14px 32px;min-height:44px;border-radius:999px;border:0;
  cursor:pointer;background:var(--moon);color:var(--ink);transition:transform .18s}
-button:hover{transform:translateY(-2px)}
+@media (hover:hover) and (pointer:fine){button:hover{transform:translateY(-2px)}}
 button:focus-visible{outline:2px solid var(--coral);outline-offset:4px}
 button.ghost{background:transparent;color:var(--bone);border:1px solid rgba(247,241,230,.28);margin-left:8px}
 .isles{display:grid;gap:10px;margin-top:24px;text-align:left}
 @media(min-width:620px){.isles{grid-template-columns:1fr 1fr}}
 .pick{border:1px solid rgba(247,241,230,.14);border-radius:4px;padding:17px 19px;
- cursor:pointer;transition:.3s;background:rgba(255,255,255,.015)}
-.pick:hover{border-color:var(--acc);transform:translateY(-2px)}
+ cursor:pointer;transition:border-color .3s,transform .3s,background-color .3s,opacity .3s;background:rgba(255,255,255,.015)}
+@media (hover:hover) and (pointer:fine){.pick:hover{border-color:var(--acc);transform:translateY(-2px)}}
+.pick:focus-visible,.isle[role=button]:focus-visible{outline:2px solid var(--coral);outline-offset:4px}
+.isle[role=button]{cursor:pointer}
 .pick h3{font-family:"Instrument Serif",serif;font-style:italic;font-size:21px;color:var(--acc);font-weight:400}
 .pick .s{font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.5;margin-top:5px}
 .pick .st{font-size:10px;letter-spacing:.16em;text-transform:uppercase;margin-top:11px;opacity:.55}
@@ -298,6 +300,7 @@ body.sail #khint{display:block}
 body.talking #stick,body.talking #cstick,body.talking #act,body.talking #jmp,body.talking #recenter,body.talking #khint,body.talking #prompt,
 body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;pointer-events:none!important;transition:opacity .4s}
 @media(prefers-reduced-motion:reduce){#talk .tbar,#tkBox,#tkSkip{transition:none}#tkBox.pop,#tkBox.done #tkMore{animation:none}}
+@media(prefers-reduced-motion:reduce){.lbar::after{animation:none}.cbar{transition:none}#cutT,#cutS{transform:none;transition:opacity .3s}}
 #toast{position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:8;text-align:center;
  opacity:0;transition:opacity .6s;pointer-events:none;width:90%}
 #toast.on{opacity:1}
@@ -319,10 +322,10 @@ body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;p
       <div class="lbl" id="lblL">Home Island</div>
       <div class="place" id="valL"></div>
       <div id="weather"></div>
-      <div id="questLine"></div>
+      <div id="questLine" aria-live="polite"></div>
     </div>
     <div style="text-align:right">
-      <div id="letters">
+      <div id="letters" role="img" aria-label="0 of 4 letters found">
         <div class="glyph">L</div><div class="glyph">U</div><div class="glyph">N</div><div class="glyph">A</div>
       </div>
       <div class="sub" id="sub"></div>
@@ -336,7 +339,7 @@ body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;p
 <div id="stick"><div id="nub"></div></div>
 <div id="cstick"><div id="cnub"></div></div>
 <div id="build"></div>
-<button id="recenter" class="rbtn" title="Put the camera behind Lala">⟲</button>
+<button id="recenter" class="rbtn" title="Put the camera behind Lala" aria-label="Put the camera behind Lala">⟲</button>
 <div id="khint">WASD / arrows — walk · Q/E turn camera · R/F tilt · C recenter<br>Mouse drag — look · wheel — zoom<br>Space — jump (hold to glide) · E — interact</div>
 <button id="act" class="rbtn"><span class="albl">Interact</span></button>
 <button id="jmp" class="rbtn">Jump</button>
@@ -345,18 +348,18 @@ body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;p
 <button id="travelBtn" class="topbtn">Travel</button>
 <div id="cap"><div class="q" id="capq"></div></div>
 <div id="sailhud"><div class="route">OPEN OCEAN ROUTE</div><div class="dest" id="sailDest">Luna Land</div><div class="help">STEER WITH THE LEFT STICK · WASD / ARROWS</div></div>
-<div id="toast"><div class="t1" id="toast1"></div><div class="t2" id="toast2"></div></div>
+<div id="toast" role="status" aria-live="polite"><div class="t1" id="toast1"></div><div class="t2" id="toast2"></div></div>
 
-<div class="ov hide" id="ovTravel"><div class="card">
+<div class="ov hide" id="ovTravel" role="dialog" aria-modal="true" aria-labelledby="ovTravelH"><div class="card">
   <div class="eyebrow">Somewhere you have already been</div>
-  <h1 style="font-size:38px">Travel</h1>
+  <h1 id="ovTravelH" style="font-size:38px">Travel</h1>
   <div class="isles" id="travelList"></div>
   <button class="ghost" id="bTravel">Stay here</button>
 </div></div>
 
-<div class="ov" id="ovTitle"><div class="card">
+<div class="ov" id="ovTitle" role="dialog" aria-modal="true" aria-labelledby="ovTitleH"><div class="card">
   <div class="eyebrow">Chapter One</div>
-  <h1>Lala Luna<br>Land<span>Queen of Whimsy</span></h1>
+  <h1 id="ovTitleH">Lala Luna<br>Land<span>Queen of Whimsy</span></h1>
   <p class="body">The keep is shut. The night the songs got loud, Lala walked out of her own castle
      and scattered four letters across four islands — one for every song. Spell her name and the doors
      open. Walk the grounds first. She left notes.</p>
@@ -365,43 +368,40 @@ body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;p
   <button class="ghost" id="bTitleReset" style="margin-top:10px">Start over</button>
 </div></div>
 
-<div class="ov hide" id="ovNote"><div class="card">
+<div class="ov hide" id="ovNote" role="dialog" aria-modal="true" aria-labelledby="noteWho"><div class="card">
   <div class="eyebrow" id="noteWho"></div>
   <p class="note-text" id="noteBody"></p>
   <button id="bNote">Put it back</button>
 </div></div>
 
-<div class="ov hide" id="ovCastle"><div class="card">
+<div class="ov hide" id="ovCastle" role="dialog" aria-modal="true" aria-labelledby="ovCastleH"><div class="card">
   <div class="eyebrow" id="castleEye"></div>
-  <h1 style="font-size:44px">L U N A</h1>
+  <h1 id="ovCastleH" style="font-size:44px">L U N A</h1>
   <p class="body" id="castleBody"></p>
   <button id="bCastle">Turn back</button>
   <button id="bEnter" class="ghost hide">Go in</button>
 </div></div>
 
-<div class="ov hide" id="ovDock"><div class="card">
+<div class="ov hide" id="ovDock" role="dialog" aria-modal="true" aria-labelledby="ovDockH"><div class="card">
   <div class="eyebrow">The boat is ready</div>
-  <h1 style="font-size:38px">Where to?</h1>
+  <h1 id="ovDockH" style="font-size:38px">Where to?</h1>
   <div class="isles" id="isleList"></div>
   <button class="ghost" id="bDock">Stay ashore</button>
 </div></div>
 
-<div class="ov hide" id="ovIntro"><div class="card">
+<div class="ov hide" id="ovIntro" role="dialog" aria-modal="true" aria-labelledby="inTitle"><div class="card">
   <div class="eyebrow" id="inEye"></div>
   <h1 id="inTitle"></h1>
   <p class="body" id="inBody"></p>
   <button id="bIntro">Go ashore</button>
 </div></div>
 
-<div class="ov hide" id="ovSecrets"><div class="card">
+<div class="ov hide" id="ovSecrets" role="dialog" aria-modal="true" aria-labelledby="ovSecretsH"><div class="card">
   <div class="eyebrow">Secrets</div>
-  <h1 style="font-size:40px">What you've found</h1>
+  <h1 id="ovSecretsH" style="font-size:40px">What you've found</h1>
   <div id="secretsList" style="margin-top:18px"></div>
   <button id="bSecrets">Back</button>
   <button class="ghost" id="bReset" style="margin-top:10px">Start over</button>
-  <div id="ctxLost" class="hide" style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(12,10,22,.88);color:#FFF6D6;font:15px/1.6 system-ui,sans-serif;text-align:center;padding:24px">
-    <div>Rebuilding the island&hellip;<div style="opacity:.7;font-size:13px;margin-top:8px">Your phone reclaimed the graphics memory. Nothing is lost.</div></div>
-  </div>
   <div id="resetWrap" class="hide" style="margin-top:14px">
     <div style="opacity:.8;font-size:15px;line-height:1.5">This clears every letter, note, moon and outfit and puts you back at the keep. It cannot be undone.</div>
     <button id="bResetYes" style="margin-top:10px">Yes, start over</button>
@@ -409,9 +409,9 @@ body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;p
   </div>
 </div></div>
 
-<div class="ov hide" id="ovEnd"><div class="card">
+<div class="ov hide" id="ovEnd" role="dialog" aria-modal="true" aria-labelledby="ovEndH"><div class="card">
   <div class="eyebrow">The fifth song</div>
-  <h1>It was<br>never hidden<span>Lala Luna Land</span></h1>
+  <h1 id="ovEndH">It was<br>never hidden<span>Lala Luna Land</span></h1>
   <p class="body" id="endBody"></p>
   <button id="bEnd">Back to the island</button>
 </div></div>
@@ -426,6 +426,9 @@ body.talking .topbtn,body.talking #hud,body.talking #toast{opacity:0!important;p
   <div id="tkBox"><div id="tkWho"></div><div id="tkLine"></div><div id="tkMore"></div></div>
   <button type="button" id="tkSkip">SKIP</button>
   <div id="tkSay" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></div>
+</div>
+<div id="ctxLost" class="hide" role="alert" style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(12,10,22,.88);color:#FFF6D6;font:15px/1.6 system-ui,sans-serif;text-align:center;padding:24px">
+  <div>Rebuilding the island&hellip;<div style="opacity:.7;font-size:13px;margin-top:8px">Your phone reclaimed the graphics memory. Nothing is lost.</div></div>
 </div>
 <div id="fade"><div id="loadBox"><div class="eyebrow" id="loadEye">Setting sail</div><div id="loadName"></div><div class="lbar"><i id="loadBar"></i></div></div></div>
 
@@ -5212,8 +5215,43 @@ async function save(){
 const $ = id => document.getElementById(id);
 const glyphs = [...document.querySelectorAll(".glyph")];
 const OVS = ["ovTitle","ovNote","ovCastle","ovDock","ovIntro","ovSecrets","ovEnd","ovTravel"];
-function ov(id){ glideOv(id); OVS.forEach(k => $(k).classList.toggle("hide", k !== id)); }
-function ovNone(){ glideOv(null); OVS.forEach(k => $(k).classList.add("hide")); }
+function ov(id){ const was = ovShown(), op = document.activeElement; glideOv(id); OVS.forEach(k => $(k).classList.toggle("hide", k !== id)); ovFocus(id, was, op); }
+function ovNone(){ const was = ovShown(); glideOv(null); OVS.forEach(k => $(k).classList.add("hide")); ovFocus(null, was, null); }
+/* Keyboard and screen-reader handling for the overlay cards (no visual change): focus moves into a card when it
+   opens, goes back to what opened it when the last card closes, Tab stays inside the open card, and Escape presses
+   the card's own cancel button. The title card is not focused on load (nothing has been pressed yet). */
+const OV_CANCEL = {ovTravel:"bTravel", ovDock:"bDock", ovSecrets:"bSecrets", ovNote:"bNote", ovCastle:"bCastle"};
+let ovOpener = null;
+function ovShown(){ return OVS.find(k => !$(k).classList.contains("hide")) || null; }
+function ovFocus(id, was, op){
+  try{
+    if(id){
+      if(!was && op && op !== document.body && !$(id).contains(op)) ovOpener = op;
+      if(id === "ovTitle") return;
+      requestAnimationFrame(() => { if(ovShown() !== id) return;
+        const b = $(id).querySelector("button:not(.hide):not([disabled])"); if(b) b.focus({preventScroll:true}); });
+    } else if(was){
+      const o = ovOpener; ovOpener = null;
+      if(o && o.isConnected && !o.closest(".hide")) o.focus({preventScroll:true});
+      else if(document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    }
+  }catch(e){}
+}
+addEventListener("keydown", e => {
+  const id = ovShown(); if(!id) return;
+  if(e.key === "Escape" && !e.defaultPrevented && OV_CANCEL[id]){ e.preventDefault(); $(OV_CANCEL[id]).click(); return; }
+  if(e.key === "Tab"){
+    const f = [...$(id).querySelectorAll("button,[role=button]")].filter(x => !x.disabled && x.offsetParent !== null);
+    if(!f.length) return;
+    const first = f[0], last = f[f.length-1], cur = document.activeElement;
+    if(!$(id).contains(cur)){ e.preventDefault(); first.focus(); }
+    else if(e.shiftKey && cur === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && cur === last){ e.preventDefault(); first.focus(); }
+  }
+});
+/* a clickable div that a keyboard can reach: Enter or Space presses it */
+function kbBtn(d){ d.setAttribute("role", "button"); d.tabIndex = 0;
+  d.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); e.stopPropagation(); d.click(); } }); }
 /* NOTHING JUST APPEARS. A card opened by a button (Secrets, Travel) grows out of that button, and one opened by
    interacting (a note, the castle door, the dock) grows out of the thing Lala walked up to, or the Interact button
    if that was what was tapped. Closing shrinks it back to the same spot. Motion only: the .hide class still flips
@@ -5289,6 +5327,7 @@ let hudHorseUntil = 0;
 function horseHUD(){ hudHorseUntil = performance.now() + 6000; syncHUD(); setTimeout(syncHUD, 6100); }
 function syncHUD(){
   G.letters.forEach((v,i) => glyphs[i].classList.toggle("on", !!v));
+  $("letters").setAttribute("aria-label", G.letters.filter(Boolean).length + " of 4 letters found");
   const cur = CUR ? CUR.cfg : null;
   $("sub").textContent = cur ? `Notes ${noteCount(cur.key)} / ${cur.notes.length}` : "";
   $("moonsub").textContent = `Moons ${G.moons}`;
@@ -14791,7 +14830,7 @@ function renderDock(){
     const got = G.letters.filter(Boolean).length;
     const st = c.hub ? `${got} of 4 letters · the keep` : (G.letters[c.idx] ? `Letter ${c.glyph} recovered` : (G.abilities[c.ability.key] ? `${c.ability.name} found — letter still out there` : "Unexplored"));
     d.innerHTML = `<h3>${c.hub ? "Home Island" : c.name}</h3><div class="s">${c.hub ? "Luna's Keep" : c.song}</div><div class="st">${st}</div>`;
-    d.onclick = () => { SAIL_TARGET = c.key; SAIL_LINES = c.hub ? ["Home, then.", `${got} of four.`, "The keep is waiting."] : [`${c.name}. ${c.song}.`, "Find what she left. Wear it.", "Then find the letter."]; goSail(() => goIsland(ISL[c.key])); };
+    kbBtn(d); d.onclick = () => { SAIL_TARGET = c.key; SAIL_LINES = c.hub ? ["Home, then.", `${got} of four.`, "The keep is waiting."] : [`${c.name}. ${c.song}.`, "Find what she left. Wear it.", "Then find the letter."]; goSail(() => goIsland(ISL[c.key])); };
     list.appendChild(d);
   });
 }
@@ -14847,7 +14886,7 @@ function renderTravel(){
     list.appendChild(d); return;
   }
   here.forEach(q => {
-    const d = document.createElement("div"); d.className = "isle";
+    const d = document.createElement("div"); d.className = "isle"; kbBtn(d);
     const away = Math.round(Math.hypot(I.W.x-q.x, I.W.z-q.z) * 0.576);
     d.innerHTML = `<b>${q.name}</b><span>${away} m away</span>`;
     d.onclick = async () => {
