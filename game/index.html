@@ -1857,7 +1857,7 @@ function bakeGeoC(){
            no two within .55 u of each other */
         if(!ANCH){ const bp = l.branches.attributes.position, nb = bp.count, anchors = [];
           for(let t = 0; t < 30000 && anchors.length < 520; t++){ const i = Math.floor(wr() * nb), x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), r = Math.hypot(x, z);
-            if(y < 3.6 || y > HT * 1.01 || r < .5 || wr() > (.2 + r / K.HALFW) * (.35 + .65 * Math.min(1, y / (HT * .8)))) continue;
+            if(y < 3.6 || y > HT * (1.02 - .55 * Math.pow(Math.min(1, r / K.HALFW), 2)) || r < .5 || wr() > (.2 + r / K.HALFW) * (.35 + .65 * Math.min(1, y / (HT * .8)))) continue;
             let ok = true; for(const a of anchors){ const dx = a[0] - x, dy = a[1] - y, dz = a[2] - z; if(dx * dx + dy * dy + dz * dz < .13){ ok = false; break; } }
             if(ok) anchors.push([x, y, z, r]); }
           ANCH = anchors; }
@@ -1865,18 +1865,18 @@ function bakeGeoC(){
         const pos = [], nor = [], uv = [], col = [], aB = [], aW = [], aEx = [], idx = [];
         const pushKept = q => { const i0 = q * 4, b = pos.length / 3; for(let k = 0; k < 4; k++){ pos.push(pa.getX(i0 + k), pa.getY(i0 + k), pa.getZ(i0 + k)); nor.push(na.getX(i0 + k), na.getY(i0 + k), na.getZ(i0 + k)); uv.push(ua.getX(i0 + k), ua.getY(i0 + k));
           col.push(cr.getX(i0 + k), cr.getY(i0 + k), cr.getZ(i0 + k)); aB.push(aB0.getX(i0 + k)); aW.push(aW0.getX(i0 + k)); aEx.push(aE0.getX(i0 + k)); } idx.push(b, b + 1, b + 2, b, b + 2, b + 3); };
-        const pa0k = pa, WTINT = QS.get('wtint') ? QS.get('wtint').split(',').map(Number) : [.92, .74, .50];
+        const pa0k = pa, WTINT = QS.get('wtint') ? QS.get('wtint').split(',').map(Number) : [.85, .66, .42];
         const V = new THREE.Vector3(), Dk = new THREE.Vector3(), O = new THREE.Vector3(), O0 = new THREE.Vector3(), P0 = new THREE.Vector3(), R = new THREE.Vector3(), P = new THREE.Vector3(), UPv = new THREE.Vector3(0, 1, 0), Nn = new THREE.Vector3();
         /* one hanging chain of willow-sprig cards from a point P0, falling to floorY. Card: WCW x WCL world units (the proportions the sprig was drawn in, so its
            leaves stay about 9:1), the sprig's base at the top of the chain, its tip hanging down. Overlap 38%. */
         const WCW = .88, WCL = 2.2;
-        const chain = (P0, O0, wr, floorY, sz, wm, dome, arch) => {
+        const chain = (P0, O0, wr, floorY, sz, wm, dome, arch, flare) => {
           const ph = wr() * 6.28; O.copy(O0); P.copy(P0); const total = Math.max(.1, P0.y - floorY); let k = 0, travelled = 0;
           while(P.y > floorY && k < 12){
             const t0 = Math.min(1, travelled / total), lat = Math.sin(k * 1.3 + ph) * .13;
             if(arch && k === 0) Dk.set(O.x * .75, .45, O.z * .75).normalize();        /* the first card leaves the limb up and out, the next ones fall: the leaves cover the limb's top */
             else if(arch && k === 1) Dk.set(O.x * .55, -.45, O.z * .55).normalize();
-            else Dk.set(O.x * (dome ? .30 : .10) * (1 - t0) + (-O.z) * lat, -1, O.z * (dome ? .30 : .10) * (1 - t0) + O.x * lat).normalize();
+            else { const fl = (dome ? .30 : .10) + (flare || 0); Dk.set(O.x * fl * (1 - t0) + (-O.z) * lat, -1, O.z * fl * (1 - t0) + O.x * lat).normalize(); }
             const Lc = WCL * sz, w = WCW * sz * wm, step = Lc * .62;
             R.crossVectors(Dk, O); if(R.lengthSq() < 1e-4) R.set(1, 0, 0); R.normalize();
             R.applyAxisAngle(Dk, ((k & 1) ? 1.25 : 0) + (wr() - .5) * .9);
@@ -1894,10 +1894,10 @@ function bakeGeoC(){
         anchorsL.forEach((an, ai) => { if(ai % stride) return; const wr = mulberry32(seedOf('wc:' + sp.seed + ':' + ai));      /* per strand: the same in every level */
           const lenR = wr(), floorY = HT * (lenR < .72 ? .27 + .08 * wr() : .38 + .30 * wr()), sz = (.80 + wr() * .40) * scl, wm = .85 + wr() * .45, rl = wr() * 6.28;
           O0.set(an[0], 0, an[2]); if(O0.lengthSq() < .01) O0.set(Math.cos(rl), 0, Math.sin(rl)); O0.normalize();
-          chain(P0.set(an[0], an[1], an[2]), O0, wr, floorY, sz, wm, false, an[1] > HT * .72 && wr() < .6); });
+          chain(P0.set(an[0], an[1], an[2]), O0, wr, floorY, sz, wm, false, an[1] > HT * .72 && wr() < .6, Math.max(0, an[3] / K.HALFW - .45) * .45); });
         /* the dome: the old leaf quads of the crown's top are replaced by short drooping chains from the same places (the sun-lit pale clumps were those quads),
            and these also cover the limbs that showed through */
-        keep.forEach((q, qi) => { if(qi % stride) return; const wr = mulberry32(seedOf('wd:' + sp.seed + ':' + qi)), i0 = q * 4;
+        keep.forEach((q, qi) => { if(qi % stride) return; const wr = mulberry32(seedOf('wd:' + sp.seed + ':' + qi)), i0 = q * 4; { const qx = (pa0k.getX(i0 + 1) + pa0k.getX(i0 + 2)) / 2, qz = (pa0k.getZ(i0 + 1) + pa0k.getZ(i0 + 2)) / 2, qy = (pa0k.getY(i0 + 1) + pa0k.getY(i0 + 2)) / 2; if(qy > HT * (1.02 - .55 * Math.pow(Math.min(1, Math.hypot(qx, qz) / K.HALFW), 2))) return; }
           P0.set((pa0k.getX(i0 + 1) + pa0k.getX(i0 + 2)) / 2, (pa0k.getY(i0 + 1) + pa0k.getY(i0 + 2)) / 2, (pa0k.getZ(i0 + 1) + pa0k.getZ(i0 + 2)) / 2);
           O0.set(P0.x, 0, P0.z); if(O0.lengthSq() < .01) O0.set(1, 0, 0); O0.normalize();
           chain(P0, O0, wr, Math.max(P0.y - (1.6 + wr() * 1.9), HT * .30), (.62 + wr() * .30) * scl, .9 + wr() * .3, true, wr() < .7); });

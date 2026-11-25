@@ -120,9 +120,12 @@ if (mode === 'stills') {
     if(bv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bv.x + bv.ux * 1.2 - bv.uz * 1.6, bv.z + bv.uz * 1.2 + bv.ux * 1.6], e: [bv.x + bv.ux * 5.2 - bv.uz * 1.2, bv.g + 3.0, bv.z + bv.uz * 5.2 + bv.ux * 1.2], t: [bv.x, bv.g + .4, bv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_bush.jpg`); }
     /* 7. bush_close: the biggest bush within 130 u (bushPos holds every island built so far, so the radius keeps it on this island) of the spawn is the subject, camera 7 u off and 2.6 u up looking slightly down (so the grass does not hide it), Lala beside it */
-    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = I.bushPos || []; let best = null, bs = -1;
-      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(b.f !== 1 || d < 7 || d > 130) continue; if(b.sc > bs) { bs = b.sc; best = b; } } if(!best) return null;
-      const dx = sp[0] - best.x, dz = sp[1] - best.z, d = Math.hypot(dx, dz) || 1; return { x: best.x, z: best.z, sc: best.sc, ux: dx / d, uz: dz / d, g: I.height(best.x, best.z) }; });
+    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = (I.bushPos || []).filter(b => b.f === 1), all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")); let best = null, bs = -1e9;
+      const cl = (x, z) => { let m = 1e9; for(const o of all) m = Math.min(m, Math.hypot(o.x - x, o.z - z) - (5.0 * o.r / .55 + .5)); return m; };
+      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 130 || b.sc < .8) continue; const sco = Math.min(cl(b.x, b.z), 8) + b.sc * 2 - .01 * d; if(sco > bs) { bs = sco; best = b; } }
+      if(!best) return null; const a0 = Math.atan2(sp[1] - best.z, sp[0] - best.x); let pick = null, pc = -1e9;
+      for(let k = -8; k < 8; k++) { const a = a0 + k * Math.PI / 8, ex = best.x + Math.cos(a) * 7, ez = best.z + Math.sin(a) * 7; let c2 = 1e9; for(let f = 0; f <= 1; f += .2) c2 = Math.min(c2, cl(ex + (best.x - ex) * f, ez + (best.z - ez) * f)); const sc2 = Math.min(c2, 6) - .1 * Math.abs(k); if(sc2 > pc) { pc = sc2; pick = a; } }
+      return { x: best.x, z: best.z, sc: best.sc, ux: Math.cos(pick), uz: Math.sin(pick), g: I.height(best.x, best.z), clr: cl(best.x, best.z) }; });
     res.bushClose = bc;
     if(bc) { const e = [bc.x + bc.ux * 7 - bc.uz * 1.5, bc.g + 2.6, bc.z + bc.uz * 7 + bc.ux * 1.5];
       await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bc.x + bc.ux * 2.6 + bc.uz * 1.6, bc.z + bc.uz * 2.6 - bc.ux * 1.6], e, t: [bc.x, bc.g + .45, bc.z] })})`);

@@ -72,7 +72,7 @@ def willow_cell(S=768, SS=4, seed=11):
             yy = y + (0.09 if side > 0 else 0.0); tx = twig_x(yy)
             L = (0.50 + 0.22 * rnd.random()) * (1 - .30 * max(0, (yy - 1.2) / .6)) ; wd = L / (9.5 + rnd.random() * 2.0)
             ang = side * (math.radians(30 + rnd.random() * 22))
-            g = rnd.random(); tone = (int(70 + 22 * g), int(120 + 26 * g), int(46 + 14 * g))
+            g = rnd.random(); tone = (int(80 + 20 * g), int(116 + 22 * g), int(40 + 12 * g))
             leaf(tx, yy, ang, L, wd, tone)
         y += 0.21 + 0.03 * rnd.random(); k += 1
     leaf(twig_x(1.84), 1.84, 0.05, 0.34, 0.04, (88, 142, 58))
