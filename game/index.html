@@ -7123,6 +7123,7 @@ const WING = (() => {
   sh.bezierCurveTo(.02, -.08, .01, -.03, 0, .02);
   const g = new THREE.ShapeGeometry(sh, 12); g.rotateX(-Math.PI/2); return g;
 })();
+const BF_DARK = new THREE.MeshBasicMaterial({color:0x2A2338}), BF_ANT = new THREE.CylinderGeometry(.006,.004,.16,3);   /* one material and one feeler geometry for every butterfly: the colour and shape are the ones each had */
 function butterflies(scene, n, heightFn, cols){
   const list = [];
   const bodyG = new THREE.CylinderGeometry(.022,.014,.30,5); bodyG.rotateX(Math.PI/2);
@@ -7137,9 +7138,10 @@ function butterflies(scene, n, heightFn, cols){
       const edge = new THREE.Mesh(WING, em); edge.scale.set(sgn*1.06, 1, 1.06); edge.position.y = -.002;
       hinge.add(edge); hinge.add(w); hinge.userData.s = sgn; g.add(hinge);
     });
-    const body = new THREE.Mesh(bodyG, new THREE.MeshBasicMaterial({color:0x2A2338})); body.position.y = .01; g.add(body);
-    [-1,1].forEach(sgn => { const a = new THREE.Mesh(new THREE.CylinderGeometry(.006,.004,.16,3), new THREE.MeshBasicMaterial({color:0x2A2338}));
+    const body = new THREE.Mesh(bodyG, BF_DARK); body.position.y = .01; g.add(body);
+    [-1,1].forEach(sgn => { const a = new THREE.Mesh(BF_ANT, BF_DARK);
       a.position.set(sgn*.03, .03, .16); a.rotation.set(-1.1, 0, sgn*.25); g.add(a); });
+    if(PARTMERGE){ try{ mergePartsByMaterial(g, g); }catch(e){} }   /* the body and its two feelers are one opaque mesh (one material, one geometry): 3 draws -> 1 */
     g.userData = {a:Math.random()*6.3, r:8+Math.random()*40, sp:.25+Math.random()*.3, ph:Math.random()*6.3, yb:1.6+Math.random()*2.4};
     scene.add(g); list.push(g);
   }

@@ -21,6 +21,7 @@ for (const key of argIslands(['sanity'])) {
       else if (v && typeof v === 'object') for (const kk of Object.keys(v)) { const w = v[kk]; if (w && w.isObject3D) tagTree(w, 'I.' + k + '.' + kk); else if (Array.isArray(w)) w.forEach(x => { if (x && x.isObject3D) tagTree(x, 'I.' + k + '.' + kk); }); }
     } catch (e) { } }
     const W = I.W, pw = new TH.Vector3(W.x, W.y, W.z), wp = new TH.Vector3();
+    const transm = []; I.scene.traverse(o => { const ms = Array.isArray(o.material) ? o.material : [o.material]; for (const m of ms) if (m && m.transmission > 0) transm.push({ n: o.name, par: o.parent && o.parent.name, vis: o.visible, mat: m.name, tr: m.transmission, skinned: !!o.isSkinnedMesh }); });
     const passes = {}; const draws = []; const d0 = R.renderBufferDirect.bind(R); const sunCam = I.sun && I.sun.shadow && I.sun.shadow.camera;
     R.renderBufferDirect = function (camera, sc, geometry, material, object, group) { const c = info.render.calls, t = info.render.triangles; d0(camera, sc, geometry, material, object, group);
       const dc = info.render.calls - c, dt = info.render.triangles - t; if (!dc) return;
@@ -37,7 +38,7 @@ for (const key of argIslands(['sanity'])) {
     const rows = Object.entries(g).map(([k, v]) => { const ds = v.ds.sort((a, b) => a - b); const [lb, kind, mat] = k.split('|'); return { group: lb, kind, mat, draws: v.calls, zero: v.zero, tris: v.tris, objects: v.ids.size, samples: v.samples, passes: v.passes, cullable: v.cullable, distMin: +ds[0].toFixed(0), distMed: +ds[ds.length >> 1].toFixed(0), distMax: +ds[ds.length - 1].toFixed(0) }; });
     const mainRows = rows.filter(r => !r.group.startsWith('S:')), shRows = rows.filter(r => r.group.startsWith('S:'));
     const sum = rr => rr.reduce((a, r) => [a[0] + r.draws, a[1] + r.tris], [0, 0]); const tot = sum(mainRows), tsh = sum(shRows);
-    return { key: I.cfg.key, total: { calls: tot[0], tris: tot[1] }, shadow: { calls: tsh[0], tris: tsh[1] }, passes, stacks, programs: R.info.programs ? R.info.programs.length : -1, geometries: info.memory.geometries, zeroMain: mainRows.reduce((a, r) => a + r.zero, 0), zeroShadow: shRows.reduce((a, r) => a + r.zero, 0), byTris: mainRows.slice().sort((a, b) => b.tris - a.tris).slice(0, 25), byCalls: mainRows.slice().sort((a, b) => b.draws - a.draws).slice(0, 60), shByCalls: shRows.slice().sort((a, b) => b.draws - a.draws).slice(0, 30) };
+    return { key: I.cfg.key, total: { calls: tot[0], tris: tot[1] }, shadow: { calls: tsh[0], tris: tsh[1] }, passes, stacks, transm: transm.slice(0, 20), programs: R.info.programs ? R.info.programs.length : -1, geometries: info.memory.geometries, zeroMain: mainRows.reduce((a, r) => a + r.zero, 0), zeroShadow: shRows.reduce((a, r) => a + r.zero, 0), byTris: mainRows.slice().sort((a, b) => b.tris - a.tris).slice(0, 25), byCalls: mainRows.slice().sort((a, b) => b.draws - a.draws).slice(0, 60), shByCalls: shRows.slice().sort((a, b) => b.draws - a.draws).slice(0, 30) };
   });
   r.errors = H.log.errors.slice(0, 5); console.log(JSON.stringify({ island: key, cur: r.key, total: r.total, shadow: r.shadow, programs: r.programs, zeroMain: r.zeroMain, zeroShadow: r.zeroShadow })); writeFileSync(`${OUT}/sanityperf_top_${tag}_${key}.json`, JSON.stringify(r, null, 1));
   await H.close();
