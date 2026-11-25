@@ -1,0 +1,5 @@
+node qa/sanityperf_top.mjs hub --tag=base
+node qa/sanityperf_top.mjs green --tag=base
+node qa/sanityperf_top.mjs gr --tag=base
+node qa/sanityperf_top.mjs sanity --tag=base
+node qa/sanityperf_top.mjs town --tag=base
