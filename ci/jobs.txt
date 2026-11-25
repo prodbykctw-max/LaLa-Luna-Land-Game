@@ -1,0 +1,2 @@
+node qa/sanityperf_top.mjs sanity --tag=base
+node qa/sanityperf_top.mjs green --tag=base
