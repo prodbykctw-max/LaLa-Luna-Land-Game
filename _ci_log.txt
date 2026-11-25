@@ -1,0 +1,12 @@
+[vcheck] hub: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] green: lights 9, lamps null (null bad), errors 0
+[vcheck] gr: lights 10, lamps null (null bad), errors 0
+[vcheck] sanity: lights 12, lamps null (null bad), errors 0
+[vcheck] town: lights 9, lamps null (null bad), errors 0
+[vcheck] hub: lights 9, lamps 4 (0 bad), errors 0
+[vcheck] green: lights 9, lamps null (null bad), errors 0
+[vcheck] gr: lights 10, lamps null (null bad), errors 0
+[vcheck] sanity: lights 12, lamps null (null bad), errors 0
+[vcheck] town: lights 9, lamps null (null bad), errors 0
+SUITE vcheck  NEW rc=0 OLD rc=0
+rc=0

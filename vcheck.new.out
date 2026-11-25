@@ -1,0 +1,468 @@
+{
+ "hub": {
+  "key": "hub",
+  "hat": {
+   "brim": {
+    "w": 1.356,
+    "h": 0.08,
+    "d": 1.376,
+    "top": 2.7
+   },
+   "crown": {
+    "w": 0.711,
+    "h": 0.4,
+    "d": 0.729,
+    "top": 3.07
+   },
+   "headWorldW": 5.021027588042438e+71,
+   "headWorldD": 1.5251524570482848e+71,
+   "headTopY": 6.131757575736483e+71,
+   "headBoneY": 2.472,
+   "nBones": 22,
+   "bodyH": 3.099,
+   "brimOverHeadW": 0,
+   "crownOverHeadW": 0,
+   "headOverBody": 1.6202089667771661e+71
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#a8dcd8",
+    "y": 1
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffe9cc",
+    "y": 85
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#86c4e0",
+    "y": -6
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2",
+    "y": 22
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8",
+    "y": 2.3
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff",
+    "y": 2.5
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8",
+    "y": 0.3
+   }
+  ],
+  "lampCount": 4,
+  "lampsBadMat": 0,
+  "lampTypes": [
+   "MeshBasicMaterial"
+  ],
+  "lettersOK": true,
+  "consoleErrors": [],
+  "errorCount": 0
+ },
+ "green": {
+  "key": "green",
+  "hat": {
+   "brim": {
+    "w": 1.45,
+    "h": 0.08,
+    "d": 1.468,
+    "top": 2.749
+   },
+   "crown": {
+    "w": 0.76,
+    "h": 0.4,
+    "d": 0.777,
+    "top": 3.119
+   },
+   "headWorldW": 4.479083556624853e+71,
+   "headWorldD": 3.4646476744267414e+72,
+   "headTopY": 1.5408943616498375e+72,
+   "headBoneY": 2.522,
+   "nBones": 22,
+   "bodyH": 3.119,
+   "brimOverHeadW": 0,
+   "crownOverHeadW": 0,
+   "headOverBody": 1.4360639809634025e+71
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#a8dcd8",
+    "y": 1
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffe0b4",
+    "y": 85.1
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#86c4e0",
+    "y": -6
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2",
+    "y": 22
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8",
+    "y": 2.3
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff",
+    "y": 2.5
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8",
+    "y": 0.3
+   }
+  ],
+  "lampCount": null,
+  "lampsBadMat": null,
+  "lampTypes": null,
+  "lettersOK": true,
+  "consoleErrors": [],
+  "errorCount": 0
+ },
+ "gr": {
+  "key": "gr",
+  "hat": {
+   "brim": {
+    "w": 1.542,
+    "h": 0.08,
+    "d": 1.525,
+    "top": 2.7
+   },
+   "crown": {
+    "w": 0.815,
+    "h": 0.4,
+    "d": 0.8,
+    "top": 3.07
+   },
+   "headWorldW": 7.013229156670643e+71,
+   "headWorldD": 3.6971008377806173e+71,
+   "headTopY": 1.1147621535493011e+72,
+   "headBoneY": 2.473,
+   "nBones": 22,
+   "bodyH": 3.13,
+   "brimOverHeadW": 0,
+   "crownOverHeadW": 0,
+   "headOverBody": 2.2406482928660205e+71
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#e9b98a",
+    "y": 1
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffcb9a",
+    "y": 85
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#5e93ae",
+    "y": -6
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2",
+    "y": 22
+   },
+   {
+    "t": "PointLight",
+    "i": 1.6,
+    "c": "#ff8a4a",
+    "y": 19.3
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8",
+    "y": 2.3
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff",
+    "y": 2.5
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8",
+    "y": 0.3
+   }
+  ],
+  "lampCount": null,
+  "lampsBadMat": null,
+  "lampTypes": null,
+  "lettersOK": true,
+  "consoleErrors": [],
+  "errorCount": 0
+ },
+ "sanity": {
+  "key": "sanity",
+  "hat": {
+   "brim": {
+    "w": 1.909,
+    "h": 0.08,
+    "d": 1.909,
+    "top": 2.7
+   },
+   "crown": {
+    "w": 1.005,
+    "h": 0.4,
+    "d": 1.005,
+    "top": 3.07
+   },
+   "headWorldW": 6.933753756648307e+71,
+   "headWorldD": 7.568609633596947e+71,
+   "headTopY": 3.228418350065381e+71,
+   "headBoneY": 2.473,
+   "nBones": 22,
+   "bodyH": 3.082,
+   "brimOverHeadW": 0,
+   "crownOverHeadW": 0,
+   "headOverBody": 2.249757870424499e+71
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.21,
+    "c": "#24375f",
+    "y": 1
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.03,
+    "c": "#bfd3ff",
+    "y": 52.5
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.09,
+    "c": "#2e5a86",
+    "y": -6
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.34,
+    "c": "#aec1fc",
+    "y": 22
+   },
+   {
+    "t": "SpotLight",
+    "i": 2.2,
+    "c": "#fff0c0",
+    "y": 24.8
+   },
+   {
+    "t": "PointLight",
+    "i": 1.8,
+    "c": "#ffb067",
+    "y": 3.5
+   },
+   {
+    "t": "PointLight",
+    "i": 1.6,
+    "c": "#3fe0d0",
+    "y": 1.2
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8",
+    "y": 2.3
+   },
+   {
+    "t": "PointLight",
+    "i": 0.75,
+    "c": "#c9d6ff",
+    "y": 2.5
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8",
+    "y": 0.3
+   }
+  ],
+  "lampCount": null,
+  "lampsBadMat": null,
+  "lampTypes": null,
+  "lettersOK": true,
+  "consoleErrors": [],
+  "errorCount": 0
+ },
+ "town": {
+  "key": "town",
+  "hat": {
+   "brim": {
+    "w": 1.909,
+    "h": 0.08,
+    "d": 1.909,
+    "top": 4.952
+   },
+   "crown": {
+    "w": 1.005,
+    "h": 0.4,
+    "d": 1.005,
+    "top": 5.322
+   },
+   "headWorldW": 2.5299194344739066e+71,
+   "headWorldD": 2.890222142780792e+71,
+   "headTopY": 1.4161383788398783e+71,
+   "headBoneY": 4.725,
+   "nBones": 22,
+   "bodyH": 3.079,
+   "brimOverHeadW": 0,
+   "crownOverHeadW": 0,
+   "headOverBody": 8.216691895011064e+70
+  },
+  "lights": [
+   {
+    "t": "HemisphereLight",
+    "i": 0.44,
+    "c": "#ffd9a8",
+    "y": 1
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 1.65,
+    "c": "#ffe3bc",
+    "y": 87.2
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.38,
+    "c": "#8ed8e8",
+    "y": -6
+   },
+   {
+    "t": "DirectionalLight",
+    "i": 0.42,
+    "c": "#fff4e2",
+    "y": 22
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 0.38,
+    "c": "#ffe2a8",
+    "y": 1.6
+   },
+   {
+    "t": "PointLight",
+    "i": 1,
+    "c": "#ffe2a8",
+    "y": 2.3
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#c9d6ff",
+    "y": 2.5
+   },
+   {
+    "t": "PointLight",
+    "i": 0,
+    "c": "#ffe2a8",
+    "y": 0.3
+   }
+  ],
+  "lampCount": null,
+  "lampsBadMat": null,
+  "lampTypes": null,
+  "lettersOK": true,
+  "consoleErrors": [],
+  "errorCount": 0
+ }
+}
