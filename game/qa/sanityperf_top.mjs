@@ -10,9 +10,10 @@ const tag = arg('tag', 'new'), query = arg('flags', '');
 for (const key of argIslands(['sanity'])) {
   const H = await open({ viewport: { width: 640, height: 360 }, wait: 2000, query });
   await enterIsland(H.page, key);
-  const r = await H.page.evaluate(async () => {
+  const r = await H.page.evaluate(async SETTLE => {
     const T = window.__T, TH = window.THREE, I = T.CUR, R = T.renderer, info = R.info; info.autoReset = false;
     await new Promise(r => setTimeout(r, 2500));
+    await new Promise(res => { let n = 0; const f = () => { if (++n >= SETTLE) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); });   /* the crowd's LOD swaps and the NPC sim move with the frame count, not the wall clock: count frames so two builds are measured at the same point */
     const label = new Map();
     const tagTree = (o, name) => { if (o && o.isObject3D) o.traverse(q => { if (!label.has(q)) label.set(q, name); }); };
     for (const k of Object.keys(I)) { if (k === 'scene' || k === 'cfg') continue; const v = I[k]; try {
@@ -39,7 +40,7 @@ for (const key of argIslands(['sanity'])) {
     const mainRows = rows.filter(r => !r.group.startsWith('S:')), shRows = rows.filter(r => r.group.startsWith('S:'));
     const sum = rr => rr.reduce((a, r) => [a[0] + r.draws, a[1] + r.tris], [0, 0]); const tot = sum(mainRows), tsh = sum(shRows);
     return { key: I.cfg.key, total: { calls: tot[0], tris: tot[1] }, shadow: { calls: tsh[0], tris: tsh[1] }, passes, stacks, transm: transm.slice(0, 20), programs: R.info.programs ? R.info.programs.length : -1, geometries: info.memory.geometries, zeroMain: mainRows.reduce((a, r) => a + r.zero, 0), zeroShadow: shRows.reduce((a, r) => a + r.zero, 0), byTris: mainRows.slice().sort((a, b) => b.tris - a.tris).slice(0, 25), byCalls: mainRows.slice().sort((a, b) => b.draws - a.draws).slice(0, 60), shByCalls: shRows.slice().sort((a, b) => b.draws - a.draws).slice(0, 30) };
-  });
+  }, +arg('settle', 240));
   r.errors = H.log.errors.slice(0, 5); console.log(JSON.stringify({ island: key, cur: r.key, total: r.total, shadow: r.shadow, programs: r.programs, zeroMain: r.zeroMain, zeroShadow: r.zeroShadow })); writeFileSync(`${OUT}/sanityperf_top_${tag}_${key}.json`, JSON.stringify(r, null, 1));
   await H.close();
 }
