@@ -1,0 +1,2 @@
+SUITE codehealth  NEW rc=0 OLD rc=0
+rc=0
