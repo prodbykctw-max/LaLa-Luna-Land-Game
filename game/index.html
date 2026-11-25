@@ -4403,7 +4403,7 @@ const FARSKIP_SPHERE = new THREE.Sphere(new THREE.Vector3(0, 1e9, 0), 1);
 const INSTGATE = QS.get("instgate") !== "0", INSTDECAL = QS.get("instdecal") !== "0";
 const _sceneOf = o => { for(; o.parent; o = o.parent); return o; };
 function effVisible(o){ for(let q = o; q; q = q.parent) if(!q.visible) return false; return true; }
-function gateInstances(I){
+function _gateInstances(I){
   const scene = I.scene, G = (I.gateMeshes || []).map(g => g.userData && g.userData.main).filter(m => m && m.isMesh && m.parent);
   if(G.length < 2) return;
   const kinds = new Map(); G.forEach(m => { const k = m.geometry.type; (kinds.get(k) || kinds.set(k, []).get(k)).push(m); });
@@ -4418,7 +4418,7 @@ function gateInstances(I){
     list.forEach(m => { m.layers.set(31); }); scene.add(inst); I.gateInst.push(inst);
   }
 }
-function decalInstances(I){
+function _decalInstances(I){
   const scene = I.scene, list = [];
   scene.traverse(o => { if(o.isMesh && !o.isInstancedMesh && o.geometry === SHADOW_GEO && o.material && o.material.map === SHADOW_TEX && o.layers.mask === 1) list.push(o); });
   const n = list.length; if(n < 2) return;
@@ -4442,7 +4442,7 @@ function decalInstances(I){
    are the same; only the number of draws and the size of the culling unit change. Transparent materials, skinned and instanced meshes, multi-material meshes, hidden
    parts and anything with children are left exactly as they were. Used on the item models (once, on the loaded file) and on every Town house (once per house). */
 const PARTMERGE = QS.get("partmerge") !== "0";
-function mergePartsByMaterial(root, frame, opts){
+function _mergePartsByMaterial(root, frame, opts){
   opts = opts || {};
   root.updateMatrixWorld(true); frame.updateMatrixWorld(true);
   const inv = new THREE.Matrix4().copy(frame.matrixWorld).invert(), groups = new Map(), rm = [];
@@ -4490,8 +4490,17 @@ function mergePartsByMaterial(root, frame, opts){
    instance buffers copy their world matrices. A taken moon (visible = false) gets a zero-scale instance; a sphere the far-prop cull has swapped for its empty stand-in
    (m.geometry !== the sphere) is zero-scaled too, so the distance rule is the one the plain meshes had. The ring is never far-culled, as before. */
 const INSTMOONS = QS.get("instmoons") !== "0";
+/* three's generateUUID draws from Math.random, and the island build runs on ONE seeded stream (see the fleet, above): every Mesh, Geometry or Material made
+   here would eat numbers from it and move everything placed afterwards (qa/moonpos: the moons landed somewhere else). The cuts below build on a private stream. */
+let _qrnd = null;
+const quietRandom = f => function(){ const r0 = Math.random; Math.random = _qrnd || (_qrnd = mulberry32(0x51CE7)); try{ return f.apply(this, arguments); } finally{ Math.random = r0; } };
+const gateInstances = quietRandom(_gateInstances), decalInstances = quietRandom(_decalInstances), mergePartsByMaterial = quietRandom(_mergePartsByMaterial), moonInstances = quietRandom(_moonInstances);
+/* A cut that makes a model SMALLER also makes every later clone of it draw fewer UUIDs from the seeded stream. cloneDraws counts what one clone of a tree takes from Math.random,
+   and burnRandom spends the difference at each clone, so the stream (and the layout built from it) comes out exactly as before. */
+const cloneDraws = o => { let n = 0; const r0 = Math.random; Math.random = () => { n++; return .5; }; try{ o.clone(true); } finally{ Math.random = r0; } return n; };
+const burnRandom = n => { for(let i = 0; i < n; i++) Math.random(); };
 const _Z4 = new THREE.Matrix4().makeScale(0, 0, 0);
-function moonInstances(I, scene, geo, mat, ringG, ringM){
+function _moonInstances(I, scene, geo, mat, ringG, ringM){
   const moons = I.moons, n = moons.length; if(!n) return;
   const sph = new THREE.InstancedMesh(geo, mat, n), rin = new THREE.InstancedMesh(ringG, ringM, n);
   sph.name = "moonInst"; rin.name = "moonRingInst"; sph.userData.castOK = true; sph.userData.dyn = 1; rin.userData.dyn = 1; sph.userData.noOcc = rin.userData.noOcc = 1; rin.userData.flatInstances = true;
@@ -7167,7 +7176,9 @@ const WING = (() => {
   sh.bezierCurveTo(.02, -.08, .01, -.03, 0, .02);
   const g = new THREE.ShapeGeometry(sh, 12); g.rotateX(-Math.PI/2); return g;
 })();
-const BF_DARK = new THREE.MeshBasicMaterial({color:0x2A2338}), BF_ANT = new THREE.CylinderGeometry(.006,.004,.16,3);   /* one material and one feeler geometry for every butterfly: the colour and shape are the ones each had */
+const [BF_DARK, BF_ANT] = quietRandom(() => [new THREE.MeshBasicMaterial({color:0x2A2338}), new THREE.CylinderGeometry(.006,.004,.16,3)])();
+/* what the old per-butterfly body material, two feeler geometries and two feeler materials took from the seeded stream: spent per butterfly, so the layout after them is unchanged */
+const BF_DEBT = (() => { let n = 0; const r0 = Math.random; Math.random = () => { n++; return .5; }; try{ new THREE.MeshBasicMaterial({color:0x2A2338}); for(let k = 0; k < 2; k++){ new THREE.CylinderGeometry(.006,.004,.16,3); new THREE.MeshBasicMaterial({color:0x2A2338}); } } finally{ Math.random = r0; } return n; })();   /* one material and one feeler geometry for every butterfly: the colour and shape are the ones each had */
 function butterflies(scene, n, heightFn, cols){
   const list = [];
   const bodyG = new THREE.CylinderGeometry(.022,.014,.30,5); bodyG.rotateX(Math.PI/2);
@@ -7185,6 +7196,7 @@ function butterflies(scene, n, heightFn, cols){
     const body = new THREE.Mesh(bodyG, BF_DARK); body.position.y = .01; g.add(body);
     [-1,1].forEach(sgn => { const a = new THREE.Mesh(BF_ANT, BF_DARK);
       a.position.set(sgn*.03, .03, .16); a.rotation.set(-1.1, 0, sgn*.25); g.add(a); });
+    burnRandom(BF_DEBT);
     if(PARTMERGE){ try{ mergePartsByMaterial(g, g); }catch(e){} }   /* the body and its two feelers are one opaque mesh (one material, one geometry): 3 draws -> 1 */
     g.userData = {a:Math.random()*6.3, r:8+Math.random()*40, sp:.25+Math.random()*.3, ph:Math.random()*6.3, yb:1.6+Math.random()*2.4};
     scene.add(g); list.push(g);
@@ -13120,7 +13132,7 @@ function itemLoad(key){ if(!ITEMSQ || ITEM_G[key] || ITEM_WAIT[key] || !THREE.GL
          phone read that alpha as low, the whole item was cut away. Nothing she picks up needs to be see-through, so an
          item's alpha is never read at all - and the two models now carry plain JPEG colour with no alpha in them. */
       const m = o.material; if(m){ m.envMapIntensity = .55; m.transparent = false; m.alphaTest = 0; m.opacity = 1; m.depthWrite = true; m.alphaMap = null; m.needsUpdate = true; } });
-    if(PARTMERGE){ try{ const r = mergePartsByMaterial(g.scene, g.scene, {cull:true}); DBG("item merge", key, r.merged, "parts ->", r.after); }catch(e){ console.warn("item merge failed", key, e); } }
+    if(PARTMERGE){ try{ const d0 = cloneDraws(g.scene); const r = mergePartsByMaterial(g.scene, g.scene, {cull:true}); g.scene.userData.cloneDebt = Math.max(0, d0 - cloneDraws(g.scene)); DBG("item merge", key, r.merged, "parts ->", r.after); }catch(e){ console.warn("item merge failed", key, e); } }
     ITEM_G[key] = g.scene; const w = ITEM_WAIT[key]; ITEM_WAIT[key] = null; w.forEach(fn => fn()); },
     undefined, e => { console.warn("Item " + key + " not loaded - keeping the old piece", e); ITEM_WAIT[key] = null; }); }
 /* A GLINT ON WHAT SHE CAN TAKE. The real pen is an ink bottle and a brown quill: true to life, and dark on dark grass and
@@ -13142,9 +13154,9 @@ function itemSwap(group, src, opts){
     olds.push(c); c.traverse(o => { if(!o.isMesh || !o.geometry) return; if(!o.geometry.boundingBox) o.geometry.computeBoundingBox();
       bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld).applyMatrix4(inv); B.union(bb); }); });
   if(B.isEmpty()) return;
-  let m = src.clone(true); const oS = B.getSize(new THREE.Vector3()), oC = B.getCenter(new THREE.Vector3());
+  let m = src.clone(true); burnRandom(src.userData.cloneDebt); const oS = B.getSize(new THREE.Vector3()), oC = B.getCenter(new THREE.Vector3());
   if(opts.pair){ /* boots and fans come as a pair: a mirrored twin beside the first (as in the pick sheet) */
-    const b0 = new THREE.Box3().setFromObject(m), d = Math.max(...b0.getSize(new THREE.Vector3()).toArray())*.32, tw = src.clone(true), pg = new THREE.Group();
+    const b0 = new THREE.Box3().setFromObject(m), d = Math.max(...b0.getSize(new THREE.Vector3()).toArray())*.32, tw = (burnRandom(src.userData.cloneDebt), src.clone(true)), pg = new THREE.Group();
     m.position.x -= d; tw.position.x += d; tw.scale.x *= -1; pg.add(m, tw); m = pg; }
   m.updateMatrixWorld(true); const nb = new THREE.Box3().setFromObject(m), nS = nb.getSize(new THREE.Vector3());
   const k = Math.max(oS.x, oS.y, oS.z) / Math.max(nS.x, nS.y, nS.z, 1e-4) * (opts.scale || 1);

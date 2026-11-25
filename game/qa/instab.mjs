@@ -68,7 +68,7 @@ for (const key of keys) { try {
     if (I.quest && I.quest.desk) look('desk', I.quest.desk.position.x, I.quest.desk.position.z, 7, 0, 1.5);
     if (I.pickup) look('pickup', I.pickup.position.x, I.pickup.position.z, 7, 0, 2.2);
     return P; });
-  report.poses = report.poses || {}; report.poses[key] = poses.map(p => p.name);
+  report.poses = report.poses || {}; report.poses[key] = poses.map(p => p.name + "@" + (p.x === undefined ? "" : Math.round(p.x) + "," + Math.round(p.z)));
   let pi = 0;
   for (const P of poses) {
     if (!P.keep) await page.evaluate(P => { const T = window.__T, I = T.CUR, W = I.W; W.x = P.x; W.z = P.z; W.y = I.height(P.x, P.z); W.vx = W.vz = W.vy = 0; W.grounded = true; W.heading = P.yaw; W.camYaw = P.yaw; W.recenter = false; W.lookHold = 5; }, P);
