@@ -1,0 +1,482 @@
+{
+ "hub": {
+  "samples": [
+   {
+    "spot": "spawn",
+    "tris": 1195717,
+    "calls": 170
+   },
+   {
+    "spot": "Luna's Keep",
+    "tris": 1210187,
+    "calls": 161
+   },
+   {
+    "spot": "South Dock",
+    "tris": 1154940,
+    "calls": 109
+   }
+  ],
+  "breakdown": {
+   "totalSceneTris": 1138695,
+   "meshes": 556,
+   "uniqueMaterials": 403,
+   "uniqueGeometries": 456,
+   "lights": 9,
+   "shadowCasters": 204,
+   "skinnedTris": 244151,
+   "top": [
+    {
+     "key": "inst:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 272616,
+     "meshes": 20
+    },
+    {
+     "key": "MeshStandardMaterial:BufferGeometry",
+     "tris": 270030,
+     "meshes": 56
+    },
+    {
+     "key": "skinned:MeshPhysicalMaterial:BufferGeometry",
+     "tris": 149752,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 141826,
+     "meshes": 4
+    },
+    {
+     "key": "ShaderMaterial:BufferGeometry",
+     "tris": 97066,
+     "meshes": 4
+    },
+    {
+     "key": "skinned:MeshStandardMaterial:BufferGeometry",
+     "tris": 94399,
+     "meshes": 24
+    },
+    {
+     "key": "ShaderMaterial:PlaneGeometry",
+     "tris": 51200,
+     "meshes": 1
+    },
+    {
+     "key": "inst:MeshStandardMaterial:BufferGeometry",
+     "tris": 22408,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:SphereGeometry",
+     "tris": 11394,
+     "meshes": 54
+    },
+    {
+     "key": "inst:MeshStandardMaterial:SphereGeometry",
+     "tris": 7084,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 3564,
+     "meshes": 79
+    },
+    {
+     "key": "MeshStandardMaterial:ExtrudeGeometry",
+     "tris": 3076,
+     "meshes": 3
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ },
+ "green": {
+  "samples": [
+   {
+    "spot": "spawn",
+    "tris": 1773422,
+    "calls": 316
+   },
+   {
+    "spot": "Horse Hill",
+    "tris": 1848041,
+    "calls": 375
+   },
+   {
+    "spot": "The High Rock",
+    "tris": 1697513,
+    "calls": 164
+   },
+   {
+    "spot": "The Ruins",
+    "tris": 1752048,
+    "calls": 229
+   }
+  ],
+  "breakdown": {
+   "totalSceneTris": 1591243,
+   "meshes": 884,
+   "uniqueMaterials": 615,
+   "uniqueGeometries": 787,
+   "lights": 9,
+   "shadowCasters": 403,
+   "skinnedTris": 310819,
+   "top": [
+    {
+     "key": "MeshStandardMaterial:BufferGeometry",
+     "tris": 397077,
+     "meshes": 90
+    },
+    {
+     "key": "inst:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 282819,
+     "meshes": 20
+    },
+    {
+     "key": "MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 258802,
+     "meshes": 7
+    },
+    {
+     "key": "ShaderMaterial:BufferGeometry",
+     "tris": 200856,
+     "meshes": 6
+    },
+    {
+     "key": "skinned:MeshPhysicalMaterial:BufferGeometry",
+     "tris": 149752,
+     "meshes": 1
+    },
+    {
+     "key": "skinned:MeshStandardMaterial:BufferGeometry",
+     "tris": 140602,
+     "meshes": 20
+    },
+    {
+     "key": "ShaderMaterial:PlaneGeometry",
+     "tris": 51200,
+     "meshes": 1
+    },
+    {
+     "key": "inst:MeshStandardMaterial:BufferGeometry",
+     "tris": 22408,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:SphereGeometry",
+     "tris": 16778,
+     "meshes": 81
+    },
+    {
+     "key": "skinned:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 16395,
+     "meshes": 10
+    },
+    {
+     "key": "inst:MeshStandardMaterial:SphereGeometry",
+     "tris": 10780,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 7404,
+     "meshes": 110
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ },
+ "gr": {
+  "samples": [
+   {
+    "spot": "spawn",
+    "tris": 1535826,
+    "calls": 291
+   },
+   {
+    "spot": "The Caldera",
+    "tris": 1464540,
+    "calls": 207
+   },
+   {
+    "spot": "Bone Ledge",
+    "tris": 1336441,
+    "calls": 142
+   },
+   {
+    "spot": "The Bone Yard",
+    "tris": 1410281,
+    "calls": 225
+   }
+  ],
+  "breakdown": {
+   "totalSceneTris": 1410525,
+   "meshes": 790,
+   "uniqueMaterials": 607,
+   "uniqueGeometries": 651,
+   "lights": 10,
+   "shadowCasters": 421,
+   "skinnedTris": 381653,
+   "top": [
+    {
+     "key": "MeshStandardMaterial:BufferGeometry",
+     "tris": 361011,
+     "meshes": 78
+    },
+    {
+     "key": "inst:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 276315,
+     "meshes": 20
+    },
+    {
+     "key": "skinned:MeshPhysicalMaterial:BufferGeometry",
+     "tris": 200907,
+     "meshes": 16
+    },
+    {
+     "key": "skinned:MeshStandardMaterial:BufferGeometry",
+     "tris": 169031,
+     "meshes": 23
+    },
+    {
+     "key": "MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 160740,
+     "meshes": 8
+    },
+    {
+     "key": "ShaderMaterial:BufferGeometry",
+     "tris": 122224,
+     "meshes": 4
+    },
+    {
+     "key": "ShaderMaterial:PlaneGeometry",
+     "tris": 51200,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:SphereGeometry",
+     "tris": 23082,
+     "meshes": 119
+    },
+    {
+     "key": "skinned:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 11715,
+     "meshes": 2
+    },
+    {
+     "key": "inst:MeshStandardMaterial:SphereGeometry",
+     "tris": 8624,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 4240,
+     "meshes": 161
+    },
+    {
+     "key": "MeshStandardMaterial:ExtrudeGeometry",
+     "tris": 3644,
+     "meshes": 3
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ },
+ "sanity": {
+  "samples": [
+   {
+    "spot": "spawn",
+    "tris": 1984603,
+    "calls": 459
+   },
+   {
+    "spot": "Lighthouse Rock",
+    "tris": 1191084,
+    "calls": 279
+   },
+   {
+    "spot": "The Sea Stack",
+    "tris": 1069907,
+    "calls": 104
+   },
+   {
+    "spot": "The Shallows",
+    "tris": 1063710,
+    "calls": 92
+   }
+  ],
+  "breakdown": {
+   "totalSceneTris": 1125785,
+   "meshes": 841,
+   "uniqueMaterials": 585,
+   "uniqueGeometries": 751,
+   "lights": 12,
+   "shadowCasters": 435,
+   "skinnedTris": 244048,
+   "top": [
+    {
+     "key": "MeshStandardMaterial:BufferGeometry",
+     "tris": 371843,
+     "meshes": 77
+    },
+    {
+     "key": "skinned:MeshPhysicalMaterial:BufferGeometry",
+     "tris": 153562,
+     "meshes": 11
+    },
+    {
+     "key": "ShaderMaterial:BufferGeometry",
+     "tris": 134608,
+     "meshes": 6
+    },
+    {
+     "key": "inst:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 127440,
+     "meshes": 2
+    },
+    {
+     "key": "MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 125608,
+     "meshes": 5
+    },
+    {
+     "key": "skinned:MeshStandardMaterial:BufferGeometry",
+     "tris": 87207,
+     "meshes": 34
+    },
+    {
+     "key": "ShaderMaterial:PlaneGeometry",
+     "tris": 51200,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:SphereGeometry",
+     "tris": 20762,
+     "meshes": 116
+    },
+    {
+     "key": "inst:MeshStandardMaterial:SphereGeometry",
+     "tris": 10164,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:LatheGeometry",
+     "tris": 10088,
+     "meshes": 17
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 5196,
+     "meshes": 143
+    },
+    {
+     "key": "MeshBasicMaterial:SphereGeometry",
+     "tris": 4516,
+     "meshes": 32
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ },
+ "town": {
+  "samples": [
+   {
+    "spot": "spawn",
+    "tris": 2162069,
+    "calls": 610
+   },
+   {
+    "spot": "The Square",
+    "tris": 1694052,
+    "calls": 398
+   },
+   {
+    "spot": "The Point",
+    "tris": 1438072,
+    "calls": 159
+   },
+   {
+    "spot": "The Beach",
+    "tris": 1817591,
+    "calls": 507
+   }
+  ],
+  "breakdown": {
+   "totalSceneTris": 1914094,
+   "meshes": 1273,
+   "uniqueMaterials": 970,
+   "uniqueGeometries": 1001,
+   "lights": 9,
+   "shadowCasters": 699,
+   "skinnedTris": 796473,
+   "top": [
+    {
+     "key": "skinned:MeshStandardMaterial:BufferGeometry",
+     "tris": 635006,
+     "meshes": 96
+    },
+    {
+     "key": "MeshStandardMaterial:BufferGeometry",
+     "tris": 472143,
+     "meshes": 171
+    },
+    {
+     "key": "inst:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 248424,
+     "meshes": 20
+    },
+    {
+     "key": "ShaderMaterial:BufferGeometry",
+     "tris": 161248,
+     "meshes": 4
+    },
+    {
+     "key": "skinned:MeshPhysicalMaterial:BufferGeometry",
+     "tris": 149752,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 112892,
+     "meshes": 11
+    },
+    {
+     "key": "ShaderMaterial:PlaneGeometry",
+     "tris": 51200,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:SphereGeometry",
+     "tris": 18182,
+     "meshes": 118
+    },
+    {
+     "key": "skinned:MeshStandardMaterial-merged:BufferGeometry",
+     "tris": 11715,
+     "meshes": 2
+    },
+    {
+     "key": "inst:MeshStandardMaterial:SphereGeometry",
+     "tris": 8624,
+     "meshes": 1
+    },
+    {
+     "key": "MeshStandardMaterial:CylinderGeometry",
+     "tris": 6528,
+     "meshes": 209
+    },
+    {
+     "key": "MeshStandardMaterial-merged:SphereGeometry",
+     "tris": 5460,
+     "meshes": 7
+    }
+   ],
+   "shadowMap": true,
+   "pixelRatio": 1
+  }
+ }
+}
