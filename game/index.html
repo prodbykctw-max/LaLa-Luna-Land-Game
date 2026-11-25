@@ -4392,6 +4392,50 @@ function farCullUpdate(scene){
    whose frustumCulled the island code had switched off is switched on while it is far and put back when it returns. */
 const FARSKIP = FARCULL && QS.get("farskip") !== "0";
 const FARSKIP_SPHERE = new THREE.Sphere(new THREE.Vector3(0, 1e9, 0), 1);
+/* ===================  GATE FENCE AND CONTACT-SHADOW DECALS AS INSTANCES  (?instgate=0 / ?instdecal=0 restore)  ===================
+   Same arrangement as the moons: the original meshes stay in the scene as proxies on layer 31 (never drawn, still the thing the game moves, hides and fades), and one
+   InstancedMesh per kind copies their world matrices just before it draws.
+   GATE: Town's fence is 20 posts and 19 rails, each its own mesh and material (38 draws, 23 in the sun's shadow pass). They share a geometry and a colour, so they are two instanced
+   draws. A post that is hidden or has sunk (gateSet moves it) is the proxy's position, so it sinks the same way.
+   DECALS: every character and creature carries a soft contact-shadow plane (groundShadow): the same plane and texture, a material each, 65 draws on Town. One instanced draw per island; the
+   per-decal opacity the game sets (the lift fade, the mount fade) is read from the proxy's own material each frame and goes in as an instanced attribute that multiplies the alpha, so a
+   decal is exactly as dark as before. A decal is drawn when it and every parent of it are visible, and not when the far-prop cull has swapped its geometry. */
+const INSTGATE = QS.get("instgate") !== "0", INSTDECAL = QS.get("instdecal") !== "0";
+const _sceneOf = o => { for(; o.parent; o = o.parent); return o; };
+function effVisible(o){ for(let q = o; q; q = q.parent) if(!q.visible) return false; return true; }
+function gateInstances(I){
+  const scene = I.scene, G = (I.gateMeshes || []).map(g => g.userData && g.userData.main).filter(m => m && m.isMesh && m.parent);
+  if(G.length < 2) return;
+  const kinds = new Map(); G.forEach(m => { const k = m.geometry.type; (kinds.get(k) || kinds.set(k, []).get(k)).push(m); });
+  I.gateInst = [];
+  for(const list of kinds.values()){
+    const n = list.length, geo = list[0].geometry, mat = list[0].material, inst = new THREE.InstancedMesh(geo, mat, n);
+    inst.name = "gateInst"; inst.userData.dyn = 1; inst.userData.noOcc = 1; inst.userData.castOK = true; inst.castShadow = list[0].castShadow; inst.receiveShadow = list[0].receiveShadow; inst.renderOrder = list[0].renderOrder; inst.frustumCulled = false;
+    let last = -1; const sync = () => { const f = renderer.info.render.frame; if(f === last) return; last = f;
+      for(let i = 0; i < n; i++){ const m = list[i], el = m.matrixWorld.elements; inst.setMatrixAt(i, effVisible(m) ? m.matrixWorld : _Z4.makeScale(0, 0, 0).setPosition(el[12], el[13], el[14])); }
+      inst.instanceMatrix.needsUpdate = true; };
+    inst.onBeforeRender = sync; scene.updateMatrixWorld(true); sync(); last = -1;
+    list.forEach(m => { m.layers.set(31); }); scene.add(inst); I.gateInst.push(inst);
+  }
+}
+function decalInstances(I){
+  const scene = I.scene, list = [];
+  scene.traverse(o => { if(o.isMesh && !o.isInstancedMesh && o.geometry === SHADOW_GEO && o.material && o.material.map === SHADOW_TEX && o.layers.mask === 1) list.push(o); });
+  const n = list.length; if(n < 2) return;
+  const geo = SHADOW_GEO.clone(), aOp = new THREE.InstancedBufferAttribute(new Float32Array(n), 1); aOp.setUsage(THREE.DynamicDrawUsage); geo.setAttribute("aOp", aOp);
+  const mat = new THREE.MeshBasicMaterial({map:SHADOW_TEX, transparent:true, depthWrite:false, opacity:1});
+  mat.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute float aOp; varying float vOp;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvOp = aOp;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying float vOp;").replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.a *= vOp;"); };
+  mat.customProgramCacheKey = () => "decalInst";
+  const inst = new THREE.InstancedMesh(geo, mat, n); inst.name = "decalInst"; inst.userData.dyn = 1; inst.userData.noOcc = 1; inst.renderOrder = list[0].renderOrder; inst.frustumCulled = false; inst.castShadow = false; inst.receiveShadow = false;
+  let last = -1; const sync = () => { const f = renderer.info.render.frame; if(f === last) return; last = f;
+    for(let i = 0; i < n; i++){ const m = list[i], el = m.matrixWorld.elements, on = m.geometry === SHADOW_GEO && effVisible(m);
+      inst.setMatrixAt(i, on ? m.matrixWorld : _Z4.makeScale(0, 0, 0).setPosition(el[12], el[13], el[14])); aOp.setX(i, m.material.opacity); }
+    inst.instanceMatrix.needsUpdate = true; aOp.needsUpdate = true; };
+  inst.onBeforeRender = sync; scene.updateMatrixWorld(true); sync(); last = -1;
+  list.forEach(m => { m.layers.set(31); }); scene.add(inst); I.decalInst = inst;
+}
 /* ===================  PARTS MERGED PER MATERIAL  (?partmerge=0 restores)  ===================
    A model file arrives as dozens of small meshes that share a few materials: a Town house is 4 to 152 draws, a carrot 10, the desk 6. The parts of ONE model that
    share a material, a shadow setting and a draw order are baked into one mesh in the model's own space: the same vertices, the same material object, so the pixels
@@ -4450,7 +4494,7 @@ const _Z4 = new THREE.Matrix4().makeScale(0, 0, 0);
 function moonInstances(I, scene, geo, mat, ringG, ringM){
   const moons = I.moons, n = moons.length; if(!n) return;
   const sph = new THREE.InstancedMesh(geo, mat, n), rin = new THREE.InstancedMesh(ringG, ringM, n);
-  sph.name = "moonInst"; rin.name = "moonRingInst"; sph.userData.castOK = true; sph.userData.dyn = 1; rin.userData.dyn = 1; rin.userData.flatInstances = true;
+  sph.name = "moonInst"; rin.name = "moonRingInst"; sph.userData.castOK = true; sph.userData.dyn = 1; rin.userData.dyn = 1; sph.userData.noOcc = rin.userData.noOcc = 1; rin.userData.flatInstances = true;
   sph.castShadow = true; sph.receiveShadow = true; rin.renderOrder = moons[0].children[0].renderOrder;
   let lastFrame = -1;
   const sync = () => { for(let i = 0; i < n; i++){ const m = moons[i], ring = m.children[0], on = m.visible, el = m.matrixWorld.elements;
@@ -10214,7 +10258,7 @@ function skyCollect(I){
   const occ = [], gnd = [], why = {skinned:0, fx:0, unlit:0, small:0, hidden:0}; const gbox = new THREE.Box3(), obox = new THREE.Box3(), b = new THREE.Box3();
   const walk = (o, skipped) => {
     if(!o.visible){ why.hidden++; return; }
-    if(skip.has(o)) skipped = true;
+    if(skip.has(o) || o.userData.noOcc) skipped = true;
     if(o.isMesh && o.geometry){
       if(o.isSkinnedMesh) why.skinned++;
       else if(skipped) why.fx++;
@@ -14835,6 +14879,7 @@ async function readyIsland(key, prog){
       if(performance.now() - t0 > 75000){ rigNames(I).forEach(rigGiveUp); if(performance.now() - t0 > 90000) break; }
       n0 = Math.max(n0, ASSET_PENDING); prog(.5 + .3*(1 - ASSET_PENDING/n0)); await nextFrame(); preloadRigs(I); }
     if(SLQ && I.skyDirty && !I.skyBusy && !(I.bldPending > 0)){ prog(.8); await skyRun(I); }     /* SKY LIGHT: the late models are in; bake (once) before the shaders are compiled */
+    try{ if(INSTGATE) gateInstances(I); if(INSTDECAL) decalInstances(I); }catch(e){ DBG("instancing failed", String(e)); }
     try{ const nsp = singlePassSheets(I.scene); DBG("singlepass", key, nsp, "materials"); }catch(e){ DBG("singlepass failed", String(e)); }
     PREP[key] = {i:0, done:false, ms:0};         /* everything that arrived is in the scene now: draw it all once */
     await warmCompile(I);
