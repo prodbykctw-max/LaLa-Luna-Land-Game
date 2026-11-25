@@ -1,0 +1,5 @@
+QA_ROOT=$BASE node qa/sanityperf_top.mjs hub --tag=base; cp $BASE/qa/out/sanityperf_top_base_hub.json qa/out/
+QA_ROOT=$BASE node qa/sanityperf_top.mjs green --tag=base; cp $BASE/qa/out/sanityperf_top_base_green.json qa/out/
+QA_ROOT=$BASE node qa/sanityperf_top.mjs gr --tag=base; cp $BASE/qa/out/sanityperf_top_base_gr.json qa/out/
+QA_ROOT=$BASE node qa/sanityperf_top.mjs sanity --tag=base; cp $BASE/qa/out/sanityperf_top_base_sanity.json qa/out/
+QA_ROOT=$BASE node qa/sanityperf_top.mjs town --tag=base; cp $BASE/qa/out/sanityperf_top_base_town.json qa/out/
