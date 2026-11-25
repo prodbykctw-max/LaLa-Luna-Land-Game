@@ -1,0 +1,5 @@
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old --islands=hub && AB_DIR=$PWD/qa/out node qa/instab.mjs --tag=new --islands=hub && AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old2 --islands=hub
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old --islands=green && AB_DIR=$PWD/qa/out node qa/instab.mjs --tag=new --islands=green && AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old2 --islands=green
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old --islands=gr && AB_DIR=$PWD/qa/out node qa/instab.mjs --tag=new --islands=gr && AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old2 --islands=gr
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old --islands=sanity && AB_DIR=$PWD/qa/out node qa/instab.mjs --tag=new --islands=sanity && AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old2 --islands=sanity
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old --islands=town && AB_DIR=$PWD/qa/out node qa/instab.mjs --tag=new --islands=town && AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old2 --islands=town
