@@ -50,10 +50,17 @@ for (const key of keys) { try {
   report.seedState = report.seedState || {}; report.seedState[key] = await page.evaluate(() => { const I = window.__T.CUR, r = (I.npcs || []).filter(g => g.userData && g.userData.cfg).map(g => [g.userData.cfg.name || '', +g.position.x.toFixed(2), +g.position.z.toFixed(2), g.userData.state || '', +(g.userData.timer || 0).toFixed(2)]); return { fc: window.__fc, npcs: r.slice(0, 12) }; });   /* sim state at the start of the sequence: two builds that start here equal are comparable */
   const shots = []; let nshot = 0;
   /* poses are computed in the page from the island's own objects, so old and new builds get the identical list (same seed, same layout) */
+  /* the butterflies' orbit parameters come from Math.random at build time, whose stream depends on load timing: pin them (and let them move once) so both builds fly the same paths */
+  await page.evaluate(() => { const I = window.__T.CUR; if (I.fx && I.fx.bf) I.fx.bf.list.forEach((b, i) => { const u = b.userData; u.a = 1 + i * .9; u.ph = i * .7; u.r = 20 + i * 3; u.sp = .3; u.yb = 2.5; }); });
+  await adv(3);
   const poses = await page.evaluate(() => { const T = window.__T, I = T.CUR, P = []; const look = (name, x, z, dist, ang, yaw) => { const dx = Math.sin(yaw), dz = Math.cos(yaw); P.push({ name, x: x - dx * dist, z: z - dz * dist, yaw }); };
     const near = (o, n, dist, nm) => { for (let i = 0; i < Math.min(n, o.length); i++) { const p = o[i].position; look(nm + i, p.x, p.z, dist, 0, [0.4, 2.0, 3.6, 5.2][i % 4]); } };
     P.push({ name: 'spawn', keep: 1 });
-    if (I.moons && I.moons.length) { const mo = I.moons; near(mo, 3, 9, 'moon'); near(mo.slice(5), 2, 22, 'moonwide'); const p = mo[2].position; look('moonfar360', p.x, p.z, 360, 0, 1.1); look('moonfar395', p.x, p.z, 395, 0, 1.1); look('moonfar430', p.x, p.z, 430, 0, 1.1); }
+
+    if (I.moons && I.moons.length) { const mo = I.moons; near(mo, 3, 9, 'moon'); near(mo.slice(5), 2, 22, 'moonwide');
+      /* the far-prop cull hides a moon 378 u from the camera: stand ON one moon (never in the sea) and look at another 350-420 u away, on both sides of that distance */
+      let nf = 0; for (let j = 0; j < mo.length && nf < 3; j++) for (let i = 0; i < mo.length && nf < 3; i++) { if (i === j) continue; const a = mo[j].position, b = mo[i].position, d = Math.hypot(a.x - b.x, a.z - b.z);
+        if (d > 350 && d < 420 && !P.some(q => q.name.startsWith('moonfar') && Math.abs(q.x - a.x) < 40 && Math.abs(q.z - a.z) < 40)) { P.push({ name: 'moonfar' + nf + '_' + Math.round(d), x: a.x, z: a.z, yaw: Math.atan2(b.x - a.x, b.z - a.z) }); nf++; } } }
     if (I.quest && I.quest.carrots) near(I.quest.carrots, 3, 7, 'carrot');
     if (I.buildings) for (let i = 0; i < Math.min(6, I.buildings.length); i++) { const p = I.buildings[i].position; for (let k = 0; k < 3; k++) look('house' + i + '_' + k, p.x, p.z, 26, 0, [0.2, 2.3, 4.4][k]); }
     if (I.fx && I.fx.bf && I.fx.bf.list.length) { for (let i = 0; i < 2; i++) { const p = I.fx.bf.list[i].position; look('bfly' + i, p.x, p.z, 7, 0, 0.9 + i); } }

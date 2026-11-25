@@ -353,6 +353,7 @@ NPCs, beach, grotto, stones, **and now places**.
 
 `?world=` `?grass=` `?ride=` `?saddle=` `?hs=` `?hy=` `?reset=1` `?old=1` `?v3=1` (removed)
 `?fps=1` `?noink` `?noshadow` `?nobloom` `?dpr=` `?skylight=old|v1|0..1` `?skyn=` `?skyres=` `?skyacc=8`
+Draw-call cuts (branch `instancing`, each default ON, `=0` restores the old way, see "Draw-call pass"): `?farskip=0` `?singlepass=0` `?instmoons=0` `?instgate=0` `?instdecal=0` `?partmerge=0`
 
 ## 2.8 Commit history this session (newest first)
 
