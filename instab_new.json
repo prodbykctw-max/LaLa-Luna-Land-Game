@@ -1,0 +1,118 @@
+{
+ "video": false,
+ "tag": "new",
+ "clockSteps": {
+  "green": [
+   17,
+   17,
+   16,
+   17,
+   17,
+   16
+  ]
+ },
+ "errors": {
+  "green": []
+ },
+ "shots": {
+  "green": [
+   "spawn",
+   "moon0",
+   "moon1",
+   "moon2",
+   "moonwide0",
+   "moonwide1",
+   "moonfar360",
+   "moonfar395",
+   "moonfar430",
+   "carrot0",
+   "carrot1",
+   "carrot2",
+   "bfly0",
+   "bfly1",
+   "pen",
+   "desk",
+   "pickup"
+  ]
+ },
+ "simFrames": {
+  "green": 120
+ },
+ "seedState": {
+  "green": {
+   "fc": 233,
+   "npcs": [
+    [
+     "Wren",
+     -37.11,
+     135.44,
+     "walk",
+     -0.01
+    ],
+    [
+     "Juno",
+     56.96,
+     79.7,
+     "walk",
+     -0.01
+    ],
+    [
+     "Marisol",
+     -3.08,
+     255.61,
+     "walk",
+     -0.01
+    ],
+    [
+     "Dee",
+     -106,
+     -64,
+     "idle",
+     0.01
+    ],
+    [
+     "Theo",
+     80.67,
+     -143.76,
+     "idle",
+     2.84
+    ],
+    [
+     "Nan",
+     38.16,
+     27.67,
+     "walk",
+     0
+    ],
+    [
+     "Ollie the postman",
+     0,
+     248,
+     "idle",
+     0.46
+    ]
+   ]
+  }
+ },
+ "poses": {
+  "green": [
+   "spawn",
+   "moon0",
+   "moon1",
+   "moon2",
+   "moonwide0",
+   "moonwide1",
+   "moonfar360",
+   "moonfar395",
+   "moonfar430",
+   "carrot0",
+   "carrot1",
+   "carrot2",
+   "bfly0",
+   "bfly1",
+   "pen",
+   "desk",
+   "pickup"
+  ]
+ }
+}
