@@ -119,10 +119,11 @@ if (mode === 'stills') {
     res.bush = bv; res.bushDiag = await H.page.evaluate(() => { const I = window.__T.CUR; return { n: (I.bushPos || []).length, f1: (I.bushPos || []).filter(b => b.f === 1).length, f2: (I.bushPos || []).filter(b => b.f === 2).length, near: (I.bushPos || []).filter(b => Math.hypot(b.x - I.cfg.spawn[0], b.z - I.cfg.spawn[1]) < 130).length, spawn: I.cfg.spawn }; });
     if(bv) { await H.page.evaluate(`${POSE_SRC}(${JSON.stringify({ at: [bv.x + bv.ux * 1.2 - bv.uz * 1.6, bv.z + bv.uz * 1.2 + bv.ux * 1.6], e: [bv.x + bv.ux * 5.2 - bv.uz * 1.2, bv.g + 3.0, bv.z + bv.uz * 5.2 + bv.ux * 1.2], t: [bv.x, bv.g + .4, bv.z] })})`);
       await settle(H, 60); await shot(H, `${base}_bush.jpg`); }
-    /* 7. bush_close: the biggest bush within 130 u (bushPos holds every island built so far, so the radius keeps it on this island) of the spawn is the subject, camera 7 u off and 2.6 u up looking slightly down (so the grass does not hide it), Lala beside it */
-    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = (I.bushPos || []).filter(b => b.f === 1), all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")); let best = null, bs = -1e9;
+  }
+  /* 7. bush_close: the biggest bush within 130 u (bushPos holds every island built so far, so the radius keeps it on this island) of the spawn is the subject, camera 7 u off and 2.6 u up looking slightly down (so the grass does not hide it), Lala beside it */
+    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = (I.bushPos || []).filter(b => Math.hypot(b.x - sp[0], b.z - sp[1]) < 130), all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")); let best = null, bs = -1e9;
       const cl = (x, z) => { let m = 1e9; for(const o of all) m = Math.min(m, Math.hypot(o.x - x, o.z - z) - (5.0 * o.r / .55 + .5)); return m; };
-      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 130 || b.sc < .8) continue; const sco = Math.min(cl(b.x, b.z), 8) + b.sc * 2 - .01 * d; if(sco > bs) { bs = sco; best = b; } }
+      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 130 || b.sc < .6) continue; const sco = Math.min(cl(b.x, b.z), 8) + b.sc * 1.5 - .01 * d; if(sco > bs) { bs = sco; best = b; } }
       if(!best) return null; const a0 = Math.atan2(sp[1] - best.z, sp[0] - best.x); let pick = null, pc = -1e9;
       for(let k = -8; k < 8; k++) { const a = a0 + k * Math.PI / 8, ex = best.x + Math.cos(a) * 7, ez = best.z + Math.sin(a) * 7; let c2 = 1e9; for(let f = 0; f <= 1; f += .2) c2 = Math.min(c2, cl(ex + (best.x - ex) * f, ez + (best.z - ez) * f)); const sc2 = Math.min(c2, 6) - .1 * Math.abs(k); if(sc2 > pc) { pc = sc2; pick = a; } }
       return { x: best.x, z: best.z, sc: best.sc, ux: Math.cos(pick), uz: Math.sin(pick), g: I.height(best.x, best.z), clr: cl(best.x, best.z) }; });
@@ -136,7 +137,6 @@ if (mode === 'stills') {
         return [Math.max(0, Math.round(x0)), Math.max(0, Math.round(y0)), Math.min(innerWidth, Math.round(x1)), Math.min(innerHeight, Math.round(y1))]; }, { x: bc.x, y: bc.g, z: bc.z, sc: bc.sc });
       await H.page.evaluate(() => { window.__NOTREES = true; (window.__T.CUR.forest || []).forEach(m => { m.visible = false; }); }); await H.tick(); await H.tick(); await shot(H, `${base}_bush_close_bare.jpg`);
       await H.page.evaluate(() => { window.__NOTREES = false; (window.__T.CUR.forest || []).forEach(m => { m.visible = true; }); }); await H.tick(); await H.tick(); }
-  }
   res.errors = [...new Set(H.log.errors)].slice(0, 10); writeFileSync(`${base}_stills.json`, JSON.stringify(res, null, 1));
   console.error('[done]', opt, island, 'errors', H.log.errors.length); await H.close(); process.exit(0);
 }
