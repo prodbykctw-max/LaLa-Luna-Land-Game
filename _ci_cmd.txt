@@ -1,0 +1,1 @@
+node qa/instcheck.mjs gr --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs gr --tag=old; ro=$?; echo "instcheck gr NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]

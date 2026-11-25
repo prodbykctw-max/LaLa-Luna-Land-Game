@@ -1,0 +1,310 @@
+{
+ "island": "gr",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "pen": {
+    "tris": 1288,
+    "materials": 1,
+    "box": [
+     -92.8,
+     1.2,
+     -34.97,
+     -90.66,
+     3.55,
+     -32.83
+    ]
+   },
+   "secret": {
+    "tris": 348,
+    "materials": 2,
+    "box": [
+     38.21,
+     32.08,
+     -128.57,
+     38.59,
+     32.45,
+     -127.43
+    ]
+   },
+   "desk": {
+    "tris": 15009,
+    "materials": 6,
+    "box": [
+     -12.38,
+     0.48,
+     240.5,
+     -8.25,
+     3.91,
+     244.47
+    ]
+   },
+   "pickup": {
+    "tris": 1988,
+    "materials": 2,
+    "box": [
+     -90.6,
+     6.62,
+     101.41,
+     -85.4,
+     8.87,
+     106.59
+    ]
+   },
+   "bfly0": {
+    "tris": 276,
+    "materials": 3,
+    "box": [
+     2.5,
+     25.93,
+     -35.83,
+     3.34,
+     26.28,
+     -35.09
+    ]
+   },
+   "bfly1": {
+    "tris": 276,
+    "materials": 3,
+    "box": [
+     12.24,
+     32.39,
+     6.38,
+     13.07,
+     32.75,
+     7.23
+    ]
+   },
+   "bfly2": {
+    "tris": 276,
+    "materials": 3,
+    "box": [
+     23.07,
+     33.75,
+     -35.52,
+     23.71,
+     34.22,
+     -34.83
+    ]
+   },
+   "bfly3": {
+    "tris": 276,
+    "materials": 3,
+    "box": [
+     -10.53,
+     25.92,
+     21.86,
+     -9.56,
+     26.11,
+     22.85
+    ]
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 28,
+   "instanced": true,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       -0.602,
+       0,
+       -0.799,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.799,
+       0,
+       -0.602,
+       0,
+       47.971,
+       31.709,
+       120.606,
+       1
+      ],
+      "e": [
+       -0.602,
+       0,
+       -0.799,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.799,
+       0,
+       -0.602,
+       0,
+       47.971,
+       31.709,
+       120.606,
+       1
+      ],
+      "vis": true,
+      "frame": 3456
+     }
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0.391,
+       0,
+       0.921,
+       0,
+       0,
+       1,
+       0,
+       0,
+       -0.921,
+       0,
+       0.391,
+       0,
+       52.942,
+       37.076,
+       -74.993,
+       1
+      ],
+      "e": [
+       0.391,
+       0,
+       0.921,
+       0,
+       0,
+       1,
+       0,
+       0,
+       -0.921,
+       0,
+       0.391,
+       0,
+       52.942,
+       37.076,
+       -74.993,
+       1
+      ],
+      "vis": true,
+      "frame": 4986
+     }
+    },
+    {
+     "k": 27,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       -0.156,
+       0,
+       -0.988,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.988,
+       0,
+       -0.156,
+       0,
+       165.562,
+       18.547,
+       30.881,
+       1
+      ],
+      "e": [
+       -0.156,
+       0,
+       -0.988,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.988,
+       0,
+       -0.156,
+       0,
+       165.562,
+       18.547,
+       30.881,
+       1
+      ],
+      "vis": true,
+      "frame": 6516
+     }
+    }
+   ]
+  },
+  "decals": {
+   "proxies": 31,
+   "instanced": true,
+   "count": 31,
+   "checked": 30,
+   "mismatch": 0,
+   "hiddenParentStillDrawn": false
+  },
+  "partMeshes": {
+   "pen": 1,
+   "secret": 2,
+   "desk": 6,
+   "pickup": 3,
+   "bfly0": 7,
+   "bfly1": 7,
+   "bfly2": 7,
+   "bfly3": 7
+  }
+ },
+ "findings": [],
+ "errors": []
+}
