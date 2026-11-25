@@ -1,0 +1,3 @@
+{"island":"gr","cur":"gr","total":{"calls":395,"tris":997116},"shadow":{"calls":77,"tris":329332},"programs":211,"zeroMain":93,"zeroShadow":1}
+{"island":"gr","cur":"gr","total":{"calls":200,"tris":997106},"shadow":{"calls":71,"tris":281264},"programs":220,"zeroMain":6,"zeroShadow":0}
+rc=0
