@@ -4380,9 +4380,127 @@ function farCullUpdate(scene){
     const dx = el[12] - cp.x, dy = el[13] - cp.y, dz = el[14] - cp.z, dd = dx*dx + dy*dy + dz*dz, r = e.d;
     if(!e.isFar && dd > r*r){
       if(!e.far){ const g = new THREE.BufferGeometry(); for(const k in e.near.attributes) g.setAttribute(k, e.near.attributes[k]); if(e.near.index) g.setIndex(e.near.index);
-        g.setDrawRange(0, 0); g.boundingSphere = e.near.boundingSphere; g.boundingBox = e.near.boundingBox; g.parameters = e.near.parameters; g.type = e.near.type; e.far = g; }
-      e.m.geometry = e.far; e.isFar = true; }
-    else if(e.isFar && dd < r*r*.81){ e.m.geometry = e.near; e.isFar = false; } }
+        g.setDrawRange(0, 0); g.boundingSphere = FARSKIP ? FARSKIP_SPHERE : e.near.boundingSphere; g.boundingBox = e.near.boundingBox; g.parameters = e.near.parameters; g.type = e.near.type; e.far = g; }
+      e.m.geometry = e.far; e.isFar = true;
+      if(FARSKIP){ e.fc = e.m.frustumCulled; e.m.frustumCulled = true; } }
+    else if(e.isFar && dd < r*r*.81){ e.m.geometry = e.near; e.isFar = false; if(FARSKIP) e.m.frustumCulled = e.fc; } }
+}
+/* ?farskip=0 restores. The stand-in above has an EMPTY draw range, but in r187 an empty range is still a gl.drawElements(count 0) plus the whole
+   per-object state set-up, and it is counted as a draw call (qa/sanityperf_top 'zero' column: Green at the spawn, 472 of 840 main-pass calls and 74 of
+   130 shadow calls were these). The stand-in's bounding sphere now sits far outside every frustum, so three's own frustum test drops the object before
+   it is submitted at all, in the main pass and in the sun's shadow pass. Nothing was drawn by those calls, so nothing changes on screen. An object
+   whose frustumCulled the island code had switched off is switched on while it is far and put back when it returns. */
+const FARSKIP = FARCULL && QS.get("farskip") !== "0";
+const FARSKIP_SPHERE = new THREE.Sphere(new THREE.Vector3(0, 1e9, 0), 1);
+/* ===================  PARTS MERGED PER MATERIAL  (?partmerge=0 restores)  ===================
+   A model file arrives as dozens of small meshes that share a few materials: a Town house is 4 to 152 draws, a carrot 10, the desk 6. The parts of ONE model that
+   share a material, a shadow setting and a draw order are baked into one mesh in the model's own space: the same vertices, the same material object, so the pixels
+   are the same; only the number of draws and the size of the culling unit change. Transparent materials, skinned and instanced meshes, multi-material meshes, hidden
+   parts and anything with children are left exactly as they were. Used on the item models (once, on the loaded file) and on every Town house (once per house). */
+const PARTMERGE = QS.get("partmerge") !== "0";
+function mergePartsByMaterial(root, frame, opts){
+  opts = opts || {};
+  root.updateMatrixWorld(true); frame.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(frame.matrixWorld).invert(), groups = new Map(), rm = [];
+  root.traverse(o => {
+    if(!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || o.children.length || Array.isArray(o.material) || !o.material || !o.geometry) return;
+    const g = o.geometry, m = o.material; if(!g.attributes.position || m.transparent || (g.groups && g.groups.length > 1) || (g.morphAttributes && g.morphAttributes.position)) return;
+    for(let q = o; q; q = q.parent){ if(!q.visible) return; if(q === root) break; }
+    const sig = Object.keys(g.attributes).sort().map(k => k + g.attributes[k].itemSize).join(",");
+    const key = m.uuid + "|" + (+o.castShadow) + (+o.receiveShadow) + "|" + o.renderOrder + "|" + o.layers.mask + "|" + sig + "|" + (+!!g.index);
+    let e = groups.get(key); if(!e){ e = {mat:m, parts:[], src:o, sig}; groups.set(key, e); } e.parts.push(o); });
+  let before = 0, after = 0;
+  for(const e of groups.values()){
+    before += e.parts.length;
+    if(e.parts.length < 2){ continue; }
+    const names = Object.keys(e.parts[0].geometry.attributes); let nv = 0, ni = 0;
+    for(const o of e.parts){ const g = o.geometry; nv += g.attributes.position.count; ni += g.index ? g.index.count : g.attributes.position.count; }
+    const arr = {}; for(const k of names) arr[k] = new Float32Array(nv*e.parts[0].geometry.attributes[k].itemSize);
+    const idx = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+    let vo = 0, io = 0; const M = new THREE.Matrix4(), NM = new THREE.Matrix3(), v = new THREE.Vector3(), t4 = new THREE.Vector4();
+    for(const o of e.parts){
+      const g = o.geometry; M.multiplyMatrices(inv, o.matrixWorld); NM.getNormalMatrix(M); const flip = M.determinant() < 0, cnt = g.attributes.position.count;
+      for(const k of names){ const A = g.attributes[k], out = arr[k], sz = A.itemSize;
+        for(let i = 0; i < cnt; i++){
+          if(k === "position"){ v.fromBufferAttribute(A, i).applyMatrix4(M); out[(vo + i)*3] = v.x; out[(vo + i)*3 + 1] = v.y; out[(vo + i)*3 + 2] = v.z; }
+          else if(k === "normal"){ v.fromBufferAttribute(A, i).applyMatrix3(NM).normalize(); out[(vo + i)*3] = v.x; out[(vo + i)*3 + 1] = v.y; out[(vo + i)*3 + 2] = v.z; }
+          else if(k === "tangent"){ t4.fromBufferAttribute(A, i); v.set(t4.x, t4.y, t4.z).transformDirection(M); out[(vo + i)*4] = v.x; out[(vo + i)*4 + 1] = v.y; out[(vo + i)*4 + 2] = v.z; out[(vo + i)*4 + 3] = flip ? -t4.w : t4.w; }
+          else for(let c = 0; c < sz; c++) out[(vo + i)*sz + c] = A["get" + "XYZW"[c]](i); } }
+      const n3 = g.index ? g.index.count : cnt;
+      for(let k = 0; k < n3; k += 3){ const a = g.index ? g.index.getX(k) : k, b = g.index ? g.index.getX(k + 1) : k + 1, c = g.index ? g.index.getX(k + 2) : k + 2;
+        if(flip){ idx[io++] = vo + a; idx[io++] = vo + c; idx[io++] = vo + b; } else { idx[io++] = vo + a; idx[io++] = vo + b; idx[io++] = vo + c; } }
+      vo += cnt; }
+    const geo = new THREE.BufferGeometry(); for(const k of names) geo.setAttribute(k, new THREE.BufferAttribute(arr[k], e.parts[0].geometry.attributes[k].itemSize)); geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    geo.computeBoundingSphere(); geo.computeBoundingBox();
+    const src = e.src, mesh = new THREE.Mesh(geo, e.mat); mesh.name = "partMerge"; mesh.castShadow = src.castShadow; mesh.receiveShadow = src.receiveShadow; mesh.renderOrder = src.renderOrder;
+    mesh.layers.mask = src.layers.mask; mesh.frustumCulled = opts.cull != null ? opts.cull : src.frustumCulled; mesh.userData.dyn = src.userData.dyn || 1;
+    frame.add(mesh); after++;
+    e.parts.forEach(o => rm.push(o)); }
+  for(const o of rm) if(o.parent) o.parent.remove(o);
+  return {before, after, merged: rm.length};
+}
+/* ===================  MOONS AS TWO INSTANCED DRAWS  (?instmoons=0 restores)  ===================
+   Every island had one mesh per moon plus a ground ring under it: 35 moons on Green were 70 meshes and (the ring being a transparent two-sided sheet) 105 draws.
+   They are now two InstancedMesh draws per island, one for the spheres and one for the rings. The 35 moon objects themselves are untouched - same Mesh with the ring as
+   its child, same position, spin, .visible, userData, same pick-up test and ghost when taken - but they sit on a layer no camera renders (31), and each frame the two
+   instance buffers copy their world matrices. A taken moon (visible = false) gets a zero-scale instance; a sphere the far-prop cull has swapped for its empty stand-in
+   (m.geometry !== the sphere) is zero-scaled too, so the distance rule is the one the plain meshes had. The ring is never far-culled, as before. */
+const INSTMOONS = QS.get("instmoons") !== "0";
+const _Z4 = new THREE.Matrix4().makeScale(0, 0, 0);
+function moonInstances(I, scene, geo, mat, ringG, ringM){
+  const moons = I.moons, n = moons.length; if(!n) return;
+  const sph = new THREE.InstancedMesh(geo, mat, n), rin = new THREE.InstancedMesh(ringG, ringM, n);
+  sph.name = "moonInst"; rin.name = "moonRingInst"; sph.userData.castOK = true; sph.userData.dyn = 1; rin.userData.dyn = 1; rin.userData.flatInstances = true;
+  sph.castShadow = true; sph.receiveShadow = true; rin.renderOrder = moons[0].children[0].renderOrder;
+  let lastFrame = -1;
+  const sync = () => { for(let i = 0; i < n; i++){ const m = moons[i], ring = m.children[0], on = m.visible, el = m.matrixWorld.elements;
+      if(on && m.geometry === geo) sph.setMatrixAt(i, m.matrixWorld); else sph.setMatrixAt(i, _Z4.makeScale(0, 0, 0).setPosition(el[12], el[13], el[14]));
+      if(on) rin.setMatrixAt(i, ring.matrixWorld); else rin.setMatrixAt(i, _Z4.makeScale(0, 0, 0).setPosition(el[12], el[13], el[14])); }
+    sph.instanceMatrix.needsUpdate = true; rin.instanceMatrix.needsUpdate = true; };
+  const pre = function(){ const f = renderer.info.render.frame; if(f === lastFrame) return; lastFrame = f; sync(); };
+  sph.onBeforeRender = pre; rin.onBeforeRender = pre;
+  scene.updateMatrixWorld(true); sync(); sph.computeBoundingSphere(); rin.computeBoundingSphere(); sph.computeBoundingBox();
+  sph.frustumCulled = true; rin.frustumCulled = true;
+  moons.forEach(m => { m.layers.set(31); m.children[0].layers.set(31); });
+  scene.add(sph); scene.add(rin);
+  /* a taken moon flies off as a plain mesh pair (ghostOf): a hidden stand-in in the scene lets the warm pass build that program now, not at the first pick-up */
+  const w = new THREE.Mesh(geo, mat), wr = new THREE.Mesh(ringG, ringM); w.visible = false; w.userData.dyn = 1; w.userData.farCullSkip = 1; wr.userData.farCullSkip = 1; w.add(wr); w.position.copy(moons[0].position); wr.rotation.x = -Math.PI/2;
+  scene.add(w); I.moonInst = {sph, rin, warm:w};
+}
+/* ===================  ONE PASS FOR FLAT TRANSPARENT SHEETS  (?singlepass=0 restores)  ===================
+   three draws a transparent DoubleSide material TWICE (back faces, then front faces) so a closed shape sorts inside itself. A flat sheet - a ring, a
+   butterfly wing, a ripple, a mist plane - has only one side facing the camera at a time, so one of those two draws never puts a pixel down; it is only a
+   second call. (That is the "draws = 2 x objects" in qa/sanityperf_top: the moons' rings, every wing, the mist planes.) A material gets forceSinglePass
+   only when EVERY mesh that uses it is planar with all triangles facing one way, so the one remaining draw rasterises exactly what the pair did. */
+const SINGLEPASS = QS.get("singlepass") !== "0";
+const _flatMemo = new WeakMap();
+function flatGeometry(g){
+  let r = _flatMemo.get(g); if(r !== undefined) return r;
+  r = false;
+  const P = g.attributes && g.attributes.position;
+  if(P && P.count >= 3 && P.count <= 6000 && (!g.morphAttributes || !g.morphAttributes.position)){
+    const ix = g.index, n = ix ? ix.count : P.count, a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), N = new THREE.Vector3(), t = new THREE.Vector3();
+    const at = (v, k) => v.fromBufferAttribute(P, ix ? ix.getX(k) : k);
+    let ext = 0; for(let k = 0; k < n; k += 3){ at(a, k); at(b, k + 1); at(c, k + 2); ext = Math.max(ext, a.distanceTo(b), a.distanceTo(c)); }
+    const eps = 1e-4*Math.max(1, ext); let have = false, ok = true;
+    for(let k = 0; k < n && !have; k += 3){ at(a, k); at(b, k + 1); at(c, k + 2); N.crossVectors(t.subVectors(b, a), c.clone().sub(a)); if(N.lengthSq() > 1e-14){ N.normalize(); have = true; } }
+    if(have){
+      at(a, 0); const o = a.clone();
+      for(let i = 0; i < P.count && ok; i++){ t.fromBufferAttribute(P, i).sub(o); if(Math.abs(t.dot(N)) > eps) ok = false; }
+      for(let k = 0; k < n && ok; k += 3){ at(a, k); at(b, k + 1); at(c, k + 2); t.crossVectors(b.clone().sub(a), c.clone().sub(a)); if(t.dot(N) < -1e-9) ok = false; }
+      r = ok; } }
+  _flatMemo.set(g, r); return r;
+}
+function singlePassSheets(scene){
+  if(!SINGLEPASS) return 0;
+  const use = new Map();
+  scene.traverse(o => { if(!o.isMesh && !o.isPoints && !o.isLine && !o.isSprite) return;
+    for(const m of (Array.isArray(o.material) ? o.material : [o.material])){
+      if(!m || !m.transparent || m.side !== THREE.DoubleSide || m.forceSinglePass) continue;
+      let ok = o.isMesh && !o.isSkinnedMesh && (!o.isInstancedMesh || o.userData.flatInstances) && !Array.isArray(o.material) && o.geometry && flatGeometry(o.geometry);
+      use.set(m, use.has(m) ? use.get(m) && ok : ok); } });
+  let n = 0; use.forEach((ok, m) => { if(ok){ m.forceSinglePass = true; m.needsUpdate = true; n++; } });
+  return n;
 }
 function attachRig(R, name){
   const gltf = RIGS[name].gltf; if(!gltf || R.model) return;
@@ -11520,7 +11638,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
         (I.buildings = I.buildings || []).push(g);
         const paint = PASTELQ && B.paint ? PASTELS[(_pastelI++) % PASTELS.length] : null;   /* chosen in placement order, so every load paints the same house the same colour */
         I.bldPending = (I.bldPending || 0) + 1;      /* SKY LIGHT waits for the houses: they are most of what shades a street */
-        bldProto(key).then(p => { if(p){ const c = p.clone(); if(paint != null) paintHouse(c, paint); g.add(c); } I.bldPending--; skyLate(I); });
+        bldProto(key).then(p => { if(p){ const c = p.clone(); if(paint != null) paintHouse(c, paint); g.add(c); if(PARTMERGE){ try{ g.updateMatrixWorld(true); const r = mergePartsByMaterial(c, g); DBG("house merge", key, r.merged, "parts ->", r.after); }catch(e){ console.warn("house merge failed", key, e); } } } I.bldPending--; skyLate(I); });
       };
       /* 1. THE WATERFRONT: the gable houses stand in one row along the harbour shore, fronts to the water, a quay's
          width back from it - Willemstad's Handelskade, the first thing she sees from the boat. The row runs both ways
@@ -11853,7 +11971,8 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
       if(dy < 2.2){ const q = clearOf(x, z); if(!cfg.landify || inside(q[0], q[1])){ x = q[0]; z = q[1]; } }   /* the glide trail's moons hang in the air: leave those */
       const m = new THREE.Mesh(geo, mat); m.position.set(x, height(x,z)+dy, z);
       const ring = new THREE.Mesh(ringG, ringM); ring.rotation.x = -Math.PI/2; ring.position.y = -dy + .08; m.add(ring);
-      m.userData = {id:cfg.key+":"+i}; if(G.moonsTaken[m.userData.id]) m.visible = false; scene.add(m); I.moons.push(m); }); }
+      m.userData = {id:cfg.key+":"+i}; if(G.moonsTaken[m.userData.id]) m.visible = false; scene.add(m); I.moons.push(m); });
+    if(INSTMOONS) moonInstances(I, scene, geo, mat, ringG, ringM); }
 
   /* people — wanderers with idle/walk states; each has a line for the player */
   yield;
@@ -12955,6 +13074,7 @@ function itemLoad(key){ if(!ITEMSQ || ITEM_G[key] || ITEM_WAIT[key] || !THREE.GL
          phone read that alpha as low, the whole item was cut away. Nothing she picks up needs to be see-through, so an
          item's alpha is never read at all - and the two models now carry plain JPEG colour with no alpha in them. */
       const m = o.material; if(m){ m.envMapIntensity = .55; m.transparent = false; m.alphaTest = 0; m.opacity = 1; m.depthWrite = true; m.alphaMap = null; m.needsUpdate = true; } });
+    if(PARTMERGE){ try{ const r = mergePartsByMaterial(g.scene, g.scene, {cull:true}); DBG("item merge", key, r.merged, "parts ->", r.after); }catch(e){ console.warn("item merge failed", key, e); } }
     ITEM_G[key] = g.scene; const w = ITEM_WAIT[key]; ITEM_WAIT[key] = null; w.forEach(fn => fn()); },
     undefined, e => { console.warn("Item " + key + " not loaded - keeping the old piece", e); ITEM_WAIT[key] = null; }); }
 /* A GLINT ON WHAT SHE CAN TAKE. The real pen is an ink bottle and a brown quill: true to life, and dark on dark grass and
@@ -14713,6 +14833,7 @@ async function readyIsland(key, prog){
       if(performance.now() - t0 > 75000){ rigNames(I).forEach(rigGiveUp); if(performance.now() - t0 > 90000) break; }
       n0 = Math.max(n0, ASSET_PENDING); prog(.5 + .3*(1 - ASSET_PENDING/n0)); await nextFrame(); preloadRigs(I); }
     if(SLQ && I.skyDirty && !I.skyBusy && !(I.bldPending > 0)){ prog(.8); await skyRun(I); }     /* SKY LIGHT: the late models are in; bake (once) before the shaders are compiled */
+    try{ const nsp = singlePassSheets(I.scene); DBG("singlepass", key, nsp, "materials"); }catch(e){ DBG("singlepass failed", String(e)); }
     PREP[key] = {i:0, done:false, ms:0};         /* everything that arrived is in the scene now: draw it all once */
     await warmCompile(I);
     while(!warmStep(I, 40)){ prog(.8 + .2*PREP[key].i/Math.max(1, I.scene.children.length)); await nextFrame(); }
