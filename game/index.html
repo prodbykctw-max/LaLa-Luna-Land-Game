@@ -1749,27 +1749,30 @@ function bakeGeoC(){
         col.push(tint[0] * br * (1 + hue), tint[1] * br, tint[2] * br * (1 - hue)); aB.push(CLAMP01(.15 + .45 * (y / HTb)) * w); aW.push(.25 + .75 * cv); aEx.push(ex); }
       idx.push(b, b + 1, b + 2, b, b + 2, b + 3); };
     const ns = sp.stems, up = new THREE.Vector3(0, 1, 0), cards = [];
+    const rdir = (base, spread) => new THREE.Vector3(base.x + (rg() - .5) * spread, base.y + (rg() - .5) * spread * .8, base.z + (rg() - .5) * spread).normalize();
     for(let i = 0; i < ns; i++){
-      const az = (i + rg() * .7) / ns * Math.PI * 2, tilt = .22 + rg() * .85, len = (.62 + rg() * .45) * (i % 3 === 0 ? 1.0 : .8), r0 = .03 + rg() * .012;
+      const az = (i + rg() * .7) / ns * Math.PI * 2, tilt = .25 + rg() * .80, len = (.70 + rg() * .40) * (i % 3 === 0 ? 1.0 : .82), r0 = .03 + rg() * .012;
       const dir = new THREE.Vector3(Math.sin(tilt) * Math.cos(az), Math.cos(tilt), Math.sin(tilt) * Math.sin(az)), org = new THREE.Vector3(Math.cos(az + 1.6) * .06 * rg(), -.05, Math.sin(az + 1.6) * .06 * rg());
       const pts = [], N = 6; let cur = org.clone(), dd = dir.clone();
       for(let k = 0; k <= N; k++){ pts.push(cur.clone()); dd.addScaledVector(up, -.05).normalize(); dd.x += (rg() - .5) * .08; dd.z += (rg() - .5) * .08; dd.normalize(); cur.addScaledVector(dd, len / N); }
-      const sp3 = k => pts[Math.min(N, Math.round(k * N))];
       tube(pts.filter((_, k) => !far || k % 2 === 0 || k === N), r0, r0 * .3, .02, .45);
-      /* leaves along the outer 3/4 of the stem; the farther out, the lighter and the freer */
-      const nl = 8 + Math.floor(rg() * 3);
-      for(let k = 0; k < nl; k++){ const f = .22 + .78 * (k + rg() * .6) / nl, at = Math.min(f * N, N - .001), j = Math.floor(at), P = pts[j].clone().lerp(pts[j + 1], at - j);
-        const D = new THREE.Vector3().copy(dd).lerp(new THREE.Vector3(P.x, 0, P.z).normalize(), .45).add(new THREE.Vector3((rg() - .5) * .7, (rg() - .3) * .4, (rg() - .5) * .7)).normalize();
-        cards.push({P, D, s: (.55 + rg() * .35) * (1 - .25 * (1 - f)), br: .72 + .38 * f + (rg() - .5) * .16, ex: CLAMP01(f * 1.1 - .1), w: .6}); }
-      /* two side twigs, each with a few leaves */
-      for(let t2 = 0; t2 < 2; t2++){ const f = .35 + .4 * rg(), at = f * N, j = Math.floor(at), P0 = pts[j].clone().lerp(pts[j + 1], at - j);
-        const sd = new THREE.Vector3(rg() - .5, .35 + rg() * .3, rg() - .5).normalize().lerp(new THREE.Vector3(P0.x, 0, P0.z).normalize(), .5).normalize(), tl = .30 + rg() * .22, tp = [P0, P0.clone().addScaledVector(sd, tl * .5), P0.clone().addScaledVector(sd, tl).addScaledVector(up, -.05)];
+      /* leaves along the stem from a third of the way up: the farther out, the lighter and the freer. Directions spread wide (a shrub's leaves face every way, not all out like a feather) */
+      const nl = 15 + Math.floor(rg() * 4);
+      for(let k = 0; k < nl; k++){ const f = .20 + .80 * (k + rg() * .7) / nl, at = Math.min(f * N, N - .001), j = Math.floor(at), P = pts[j].clone().lerp(pts[j + 1], at - j);
+        const out = new THREE.Vector3(P.x, Math.max(0, P.y - .3) * .5, P.z).normalize(), D = rdir(dd.clone().lerp(out, .5).normalize(), 1.5);
+        cards.push({P, D, s: (.78 + rg() * .38) * (1 - .22 * (1 - f)), br: .70 + .40 * f + (rg() - .5) * .16, ex: CLAMP01(f * 1.1 - .1), w: .6}); }
+      /* three side twigs, each with leaves */
+      for(let t2 = 0; t2 < 3; t2++){ const f = .30 + .5 * rg(), at = f * N, j = Math.floor(at), P0 = pts[j].clone().lerp(pts[j + 1], at - j);
+        const sd = new THREE.Vector3(rg() - .5, .30 + rg() * .35, rg() - .5).normalize().lerp(new THREE.Vector3(P0.x, 0, P0.z).normalize(), .5).normalize(), tl = .32 + rg() * .25, tp = [P0, P0.clone().addScaledVector(sd, tl * .5), P0.clone().addScaledVector(sd, tl).addScaledVector(up, -.05)];
         tube(far ? [tp[0], tp[2]] : tp, r0 * .5, r0 * .2, .3, .6);
-        for(let k = 0; k < 3; k++){ const P = tp[k % 3 === 0 ? 1 : 2].clone().addScaledVector(sd, k * .05), D = sd.clone().add(new THREE.Vector3((rg() - .5) * .8, rg() * .3, (rg() - .5) * .8)).normalize();
-          cards.push({P, D, s: .5 + rg() * .3, br: .8 + rg() * .3, ex: CLAMP01(.3 + .6 * rg()), w: .7}); } } }
+        for(let k = 0; k < 5; k++){ const P = tp[k % 3 === 0 ? 1 : 2].clone().addScaledVector(sd, k * .04), D = rdir(sd, 1.6);
+          cards.push({P, D, s: .62 + rg() * .34, br: .76 + rg() * .34, ex: CLAMP01(.3 + .6 * rg()), w: .7}); } } }
+    /* the inside: darker leaves packed through the mound so the outline has something behind it (depth) */
+    for(let k = 0; k < 34; k++){ const az = rg() * Math.PI * 2, el = Math.acos(1 - rg() * .9), rr = .25 + rg() * .55, P = new THREE.Vector3(Math.sin(el) * Math.cos(az) * rr * 1.2, .12 + Math.cos(el) * rr * .8 + .25, Math.sin(el) * Math.sin(az) * rr * 1.2);
+      cards.push({P, D: rdir(new THREE.Vector3(Math.cos(az), .4, Math.sin(az)), 1.8), s: .7 + rg() * .3, br: .50 + rg() * .22, ex: .1, w: .5}); }
     /* a skirt at the ground, so the mound meets the grass with leaves, not with a hard rim */
-    for(let k = 0; k < 11; k++){ const az = k / 11 * Math.PI * 2 + rg() * .5, rr = .38 + rg() * .55, P = new THREE.Vector3(Math.cos(az) * rr * .6, .02 + rg() * .12, Math.sin(az) * rr * .6),
-        D = new THREE.Vector3(Math.cos(az), .30 + rg() * .5, Math.sin(az)).normalize(); cards.push({P, D, s: .5 + rg() * .25, br: .62 + rg() * .25, ex: .15, w: .5}); }
+    for(let k = 0; k < 16; k++){ const az = k / 16 * Math.PI * 2 + rg() * .4, rr = .45 + rg() * .6, P = new THREE.Vector3(Math.cos(az) * rr * .65, .02 + rg() * .12, Math.sin(az) * rr * .65),
+        D = new THREE.Vector3(Math.cos(az), .35 + rg() * .55, Math.sin(az)).normalize(); cards.push({P, D, s: .62 + rg() * .30, br: .60 + rg() * .26, ex: .15, w: .5}); }
     cards.forEach((c, i) => { if(i % stride) return; card(c.P, c.D, c.s * scl, c.br, c.ex, c.w); });
     const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute("normal", new THREE.Float32BufferAttribute(bn, 3)); bg.setAttribute("uv", new THREE.Float32BufferAttribute(bu, 2));
     bg.setAttribute("aB", new THREE.Float32BufferAttribute(bB.map(v => v * .8), 1)); bg.setAttribute("aW", new THREE.Float32BufferAttribute(new Array(bB.length).fill(0), 1)); bg.setAttribute("aEx", new THREE.Float32BufferAttribute(new Array(bB.length).fill(0), 1)); bg.setIndex(new THREE.BufferAttribute(new Uint32Array(bi), 1)); bg.computeBoundingSphere();
@@ -10760,7 +10763,7 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
     if(FOREST) FOREST.bush(bs, s[0], height(s[0],s[1]), s[1]); else { const b = makeBush(bs); b.position.set(s[0], height(s[0],s[1])+.25, s[1]); scene.add(b); bushes.push(b); } }
   /* QA ONLY (?qabush=1): one extra bush on open ground 9-18 u from the spawn, so a proof frame can show a bush as the subject. Draws extra random numbers, so it is never on in the game. */
   if(FOREST && QS.get("qabush")){ const sp0 = cfg.spawn; let qb = null, qs = -1e9;
-    for(let rr = 9; rr <= 18; rr += 1.5) for(let k = 0; k < 24; k++){ const a = k / 24 * Math.PI * 2, x = sp0[0] + Math.cos(a) * rr, z = sp0[1] + Math.sin(a) * rr; if(!inside(x, z)) continue; const y = height(x, z); if(y < .5) continue;
+    for(let rr = 9; rr <= 18; rr += 1.5) for(let k = 0; k < 24; k++){ const a = k / 24 * Math.PI * 2, x = sp0[0] + Math.cos(a) * rr, z = sp0[1] + Math.sin(a) * rr; if(!inside(x, z) || (Math.abs(x - cfg.dock[0]) < 12 && Math.abs(z - cfg.dock[1]) < DOCK_LEN / 2 + 12)) continue; const y = height(x, z); if(y < .5) continue;
       let m = 1e9; for(const c of I.colliders) m = Math.min(m, Math.hypot(c.x - x, c.z - z) - (c.camR || 1) * 2.6); const sc2 = Math.min(m, 9) - .05 * rr; if(sc2 > qs){ qs = sc2; qb = [x, y, z]; } }
     if(qb){ FOREST.bush(1.15, qb[0], qb[1], qb[2]); FOREST.markQA(); } }
   yield;
