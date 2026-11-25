@@ -1,0 +1,20 @@
+{
+ "island": "hub",
+ "items": 23,
+ "leftovers": [],
+ "shore": [],
+ "bakedInSea": {
+  "n": 0,
+  "sample": []
+ },
+ "facing": [],
+ "sliding": {},
+ "moved": {
+  "iguana": 7
+ },
+ "swimOnly": {},
+ "postman": null,
+ "mounts": [],
+ "take": [],
+ "errors": []
+}

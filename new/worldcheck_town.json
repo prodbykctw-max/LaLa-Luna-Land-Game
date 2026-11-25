@@ -1,0 +1,106 @@
+{
+ "island": "town",
+ "items": 54,
+ "leftovers": [],
+ "shore": [],
+ "bakedInSea": {
+  "n": 0,
+  "sample": []
+ },
+ "facing": [],
+ "sliding": {
+  "flamingo": {
+   "n": 5,
+   "why": "plays a clip, but not a walk",
+   "who": [
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      -20.2,
+      169.4
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      -26.8,
+      167.5
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      28.6,
+      201.4
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      14,
+      196.6
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      -32,
+      159.7
+     ],
+     "moved": 1.01
+    }
+   ]
+  }
+ },
+ "moved": {
+  "cow": 2,
+  "chicken": 7,
+  "iguana": 2,
+  "troupial": 4,
+  "flamingo": 5
+ },
+ "swimOnly": {},
+ "postman": {
+  "riderVsHorse": 0,
+  "moving": true,
+  "horseVsTravel": 2
+ },
+ "mounts": [
+  {
+   "who": "Neri",
+   "riderVsMount": 0
+  }
+ ],
+ "take": [
+  {
+   "kind": "ability",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "pen",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "letter",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "secret",
+   "hidden": true,
+   "ghostsLeft": 0
+  }
+ ],
+ "errors": []
+}

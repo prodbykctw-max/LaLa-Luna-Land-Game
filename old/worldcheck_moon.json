@@ -1,0 +1,22 @@
+{
+ "island": "moon",
+ "items": 24,
+ "leftovers": [],
+ "shore": [],
+ "bakedInSea": {
+  "n": 0,
+  "sample": []
+ },
+ "facing": [],
+ "sliding": {},
+ "moved": {
+  "dolphin": 5,
+  "turtle": 3,
+  "crab": 6
+ },
+ "swimOnly": {},
+ "postman": null,
+ "mounts": [],
+ "take": [],
+ "errors": []
+}
