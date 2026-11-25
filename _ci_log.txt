@@ -1,0 +1,2 @@
+{"island":"sanity","cur":"sanity","total":{"calls":657,"tris":1368296},"shadow":{"calls":68,"tris":262469},"programs":227}
+rc=0
