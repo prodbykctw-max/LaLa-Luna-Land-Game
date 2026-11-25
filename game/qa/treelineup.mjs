@@ -121,10 +121,10 @@ if (mode === 'stills') {
       await settle(H, 60); await shot(H, `${base}_bush.jpg`); }
   }
   /* 7. bush_close: the biggest bush within 130 u (bushPos holds every island built so far, so the radius keeps it on this island) of the spawn is the subject, camera 7 u off and 2.6 u up looking slightly down (so the grass does not hide it), Lala beside it */
-    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = (I.bushPos || []).filter(b => Math.hypot(b.x - sp[0], b.z - sp[1]) < 130), all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")); let best = null, bs = -1e9;
+    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = (I.bushPos || []).filter(b => b.open && Math.hypot(b.x - sp[0], b.z - sp[1]) < 130), all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")); let best = null, bs = -1e9;
       const cl = (x, z) => { let m = 1e9; for(const o of all) m = Math.min(m, Math.hypot(o.x - x, o.z - z) - (4.7 * o.r / .55 + .4)); return m; };
       /* the camera and the first half of its line of sight must be outside every crown; the bush itself may stand at a crown's edge (the tree is then its backdrop) */
-      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 130 || b.sc < .7) continue; const a0 = Math.atan2(sp[1] - b.z, sp[0] - b.x);
+      for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 130 || b.sc < .6) continue; const a0 = Math.atan2(sp[1] - b.z, sp[0] - b.x);
         for(let k = -8; k < 8; k++) { const a = a0 + k * Math.PI / 8, ex = b.x + Math.cos(a) * 7, ez = b.z + Math.sin(a) * 7; let c2 = 1e9; for(let f = 0; f <= .55; f += .11) c2 = Math.min(c2, cl(ex + (b.x - ex) * f, ez + (b.z - ez) * f));
           const sco = Math.min(c2, 4) + b.sc * 1.2 - .01 * d - .05 * Math.abs(k); if(sco > bs) { bs = sco; best = { b, a, clr: c2 }; } } }
       if(!best) return null; const b = best.b; return { x: b.x, z: b.z, sc: b.sc, ux: Math.cos(best.a), uz: Math.sin(best.a), g: I.height(b.x, b.z), clr: best.clr, f: b.f }; });
