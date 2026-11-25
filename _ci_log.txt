@@ -1,0 +1,12 @@
+[console] hub: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=50234ms rig=56902ms
+[console] green: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=66554ms rig=70912ms
+[console] gr: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=69574ms rig=73763ms
+[console] sanity: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=79112ms rig=88097ms
+[console] town: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=69572ms rig=74427ms
+[console] hub: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=48555ms rig=55284ms
+[console] green: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=66046ms rig=70324ms
+[console] gr: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=68152ms rig=68171ms
+[console] sanity: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=80896ms rig=89883ms
+[console] town: errors=0 warnings=2 failed=0 http>=400=0 firstFrame=72476ms rig=77976ms
+SUITE console_load  NEW rc=0 OLD rc=0
+rc=0
