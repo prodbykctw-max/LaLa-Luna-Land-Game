@@ -1,0 +1,1 @@
+QX='btint=.50,.66,.52' node qa/treelineup.mjs stills C hub
