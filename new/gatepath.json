@@ -1,0 +1,34 @@
+{
+ "green": {
+  "letter": [
+   88,
+   19.3,
+   -136
+  ],
+  "reachable": false
+ },
+ "gr": {
+  "letter": [
+   160,
+   19.1,
+   48
+  ],
+  "reachable": false
+ },
+ "sanity": {
+  "letter": [
+   256,
+   10.3,
+   -48
+  ],
+  "reachable": false
+ },
+ "town": {
+  "letter": [
+   197,
+   6.1,
+   41
+  ],
+  "reachable": false
+ }
+}
