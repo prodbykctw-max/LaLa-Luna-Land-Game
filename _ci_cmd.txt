@@ -1,0 +1,1 @@
+node qa/instcheck.mjs hub --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs hub --tag=old; ro=$?; echo "instcheck hub NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
