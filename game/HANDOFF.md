@@ -2305,3 +2305,114 @@ Two things the regression found and this branch fixed: (1) vgeo read each merged
 - Flags: `?skylight=old` = off, `?skylight=v1` = FIRST version, `?skylight=0..1` = strength.
 - Known QA gap: the close shot of Lala inside a shade pool was not usable (leaves cover her), so "does she look muddy in
   shade" is unproven; Lala's own shading is unchanged by the patch.
+
+### 4.59 — A flat sheet was being drawn twice, on every island (build `2026-11-25a`)
+
+He sent a reel (gilad3d, "Same street: 1,147 draw calls, or 105") about draw calls and instancing in
+UE5. Its second rule — *every material on a mesh is another draw call* — sent me to count ours. The
+count found something the reel never mentions and we had never looked for.
+
+three r187's `renderObject` has this branch (read in our own `vendor/three187.min.js`, 2026-11-25):
+
+```js
+material.transparent === true && material.side === DoubleSide && material.forceSinglePass === false
+  ? (side = BackSide,  needsUpdate = true, renderBufferDirect(...),
+     side = FrontSide, needsUpdate = true, renderBufferDirect(...), side = DoubleSide)
+  : renderBufferDirect(...)
+```
+
+Two draw calls and two program-state flips per object per frame. For a closed or curved transparent
+shell that is correct — the far surface has to blend under the near one. For a FLAT sheet it is pure
+waste: a sheet has one layer, so back-face culling and front-face culling each throw away exactly what
+the other keeps, and the two passes paint the same pixels.
+
+Measured on `2026-11-23b` at the spawn view, MAIN pass only (`qa/twopass.mjs`):
+
+| island | main calls | objects drawn twice | wasted calls |
+|---|---|---|---|
+| hub    | 308 | 64  | 64 (21%) |
+| green  | 840 | 136 | 136 (16%) |
+| gr     | 431 | 74  | 74 (17%) |
+| sanity | 657 | 48  | 48 (7%) |
+| town   | 966 | 109 | 109 (11%) |
+
+431 draw calls across five islands, for nothing. The biggest groups: butterfly wings (`ShapeGeometry`,
+80 objects on Green — a butterfly is 2 wings + 2 ink edges, each drawn twice), the moons' ground rings
+(`RingGeometry`, one shared material, 21-35 per island), the note rings, the guide rings, Green's mist
+panels.
+
+**The fix measures the geometry, it does not match a class name.** `flatSinglePass(scene)` runs once at
+the end of the island build (after `guideInit`, so nothing is missed), computes each geometry's local
+bounding box, and calls it a sheet when the smallest extent is under 1e-4 of the largest. Spheres,
+cylinders, tubes and shells fail that test and keep both passes — on Town, `I.buildings` (20 curved
+transparent pieces), 8 `TubeGeometry` and the 2 guide spheres are still two-pass afterwards, which is
+the check working. A material shared between a sheet and a solid is left alone: the sweep collects
+first and sets second. `?singlepass=0` turns it off.
+
+A class-name whitelist would have been shorter and wrong twice: it would have missed any flat
+`BufferGeometry`, and it would have caught a `PlaneGeometry` that something had bent.
+
+### Before / after (`qa/framebudget` at the spawn camera, main + shadow pass, farm; base = git HEAD 171412f measured with `QA_ROOT`, not quoted from an earlier table)
+
+| island | calls base -> new | tris base -> new |
+|---|---|---|
+| hub    | 353 -> 289 (-64, -18%) | 1,197,069 -> 1,195,717 |
+| green  | 970 -> 838 (-132, -14%) | 1,763,184 -> 1,761,366 |
+| gr     | 501 -> 432 (-69, -14%) | 1,528,932 -> 1,527,216 |
+| sanity | 697 -> 654 (-43, -6%) | 1,918,837 -> 1,917,113 |
+| town   | 1319 -> 1237 (-82, -6%) | 1,869,933 -> 1,865,975 |
+
+390 draw calls. No triangle is added or removed from the world — the small triangle drop is the second
+pass no longer being counted.
+
+### Pixel proof
+
+The scripted A/B (`qa/sanityperf_ab` + `_diff`, 15 frames per island, flag ON vs `?singlepass=0` on the
+same build) sits inside the same-build noise floor on hub, green, gr and sanity, and on several frames
+is lower than it:
+
+| island | floor (ON vs ON) mean / worst | flag (ON vs OFF) mean / worst |
+|---|---|---|
+| hub    | 0.589 / 0.913 | 0.654 / 0.882 |
+| green  | 0.590 / 0.885 | 0.559 / 0.907 |
+| gr     | 0.704 / 0.981 | 0.527 / 0.994 |
+| sanity | 0.369 / 0.752 | 0.476 / 0.730 |
+| town   | 1.997 / 3.040 (ON vs ON), 2.270 / 3.580 (OFF vs OFF) | 2.419 / 4.944 |
+
+Town's ON-vs-OFF sat above both of its own same-build floors, so that number settles nothing: Town's
+floor is the wandering crowd's build-time placement, which differs run to run (Performance pass,
+"Pixel proof"). The proof that does settle it is **same-frame, no sim drift** (`qa/spsame.mjs`): the
+camera pans, and at every step the identical game state is rendered three times — ON, ON again (the
+re-render noise floor: dithered AO and god-ray jitter), and OFF with `forceSinglePass` flipped back off
+on every material the sweep touched.
+
+| island | materials | re-render noise mean / max / px>32 | singlePass OFF vs ON mean / max / px>32 |
+|---|---|---|---|
+| town  | 38 | 0.0023 / 0.0064 / 134 | 0.0019 / 0.0046 / 119 |
+| green | 61 | 0.0004 / 0.0013 / 21  | 0.0004 / 0.0013 / 20 |
+| hub   | 33 | 0.0032 / 0.0337 / 267 | 0.0036 / 0.0286 / 293 |
+
+24 frames each, 230,400 px per frame. The flag's difference is at or below the floor of rendering the
+same frame twice, on all three. The picture does not change.
+
+### Why the first version of `qa/twopass.mjs` reported 0 on every island
+
+It asked, inside `renderBufferDirect`, whether `material.side === DoubleSide`. It never is: three sets
+`side` to BackSide and then FrontSide *around* the two calls and restores DoubleSide afterwards, so the
+suite was reading a value the renderer had already changed. It now detects the pair — same object, same
+material, twice in one frame, one BackSide call and one FrontSide call. Same class as 4.22 and 4.27:
+the probe measured what it could see rather than what it was asked, and a clean 0 is the most
+convincing wrong answer there is.
+
+### Still open for calls (the reel's actual lesson, not yet applied)
+
+The reel's point is that pieces which must DIFFER do not have to be merged — keep them instanced and
+push the per-piece difference through per-instance data (Custom Primitive Data in UE; `InstancedMesh`
++ `instanceColor` / a custom `InstancedBufferAttribute` here). That is the answer to the Performance
+pass's "not cut: buildings, moons and flares fade or animate individually". Measured candidates, main
+pass, after this change:
+- 20 butterflies on Green are still ~100 calls: `WING` is ONE shared geometry, the body is one shared
+  geometry, only colour and transform differ per butterfly.
+- `I.moons`: one geometry, one material, 21-35 per island, plus the same again for their rings.
+- `-:ShapeGeometry` on hub/green/gr/town: one geometry, N materials that differ only in colour.
+- Town `I.buildings`: 284 separate meshes.
