@@ -1,0 +1,183 @@
+{
+ "video": false,
+ "tag": "new",
+ "clockSteps": {
+  "town": [
+   17,
+   17,
+   16,
+   17,
+   17,
+   16
+  ]
+ },
+ "errors": {
+  "town": []
+ },
+ "shots": {
+  "town": [
+   "spawn",
+   "moon0",
+   "moon1",
+   "moon2",
+   "moonwide0",
+   "moonwide1",
+   "moonfar360",
+   "moonfar395",
+   "moonfar430",
+   "house0_0",
+   "house0_1",
+   "house0_2",
+   "house1_0",
+   "house1_1",
+   "house1_2",
+   "house2_0",
+   "house2_1",
+   "house2_2",
+   "house3_0",
+   "house3_1",
+   "house3_2",
+   "house4_0",
+   "house4_1",
+   "house4_2",
+   "house5_0",
+   "house5_1",
+   "house5_2",
+   "bfly0",
+   "bfly1",
+   "pen",
+   "desk",
+   "pickup"
+  ]
+ },
+ "simFrames": {
+  "town": 120
+ },
+ "seedState": {
+  "town": {
+   "fc": 233,
+   "npcs": [
+    [
+     "",
+     -92.61,
+     29.9,
+     "idle",
+     1.31
+    ],
+    [
+     "",
+     -99.39,
+     7.42,
+     "walk",
+     0
+    ],
+    [
+     "",
+     -97.22,
+     16.58,
+     "walk",
+     -0.01
+    ],
+    [
+     "",
+     -81.59,
+     18.45,
+     "idle",
+     5.33
+    ],
+    [
+     "",
+     -91.2,
+     34.06,
+     "idle",
+     2.55
+    ],
+    [
+     "",
+     -85.98,
+     30,
+     "walk",
+     -0.01
+    ],
+    [
+     "",
+     -97.86,
+     2.26,
+     "idle",
+     1.37
+    ],
+    [
+     "",
+     -88.58,
+     22.97,
+     "idle",
+     0.39
+    ],
+    [
+     "",
+     -102.64,
+     24.79,
+     "idle",
+     0.47
+    ],
+    [
+     "",
+     -75.65,
+     18.68,
+     "idle",
+     0.25
+    ],
+    [
+     "",
+     -111.23,
+     18.32,
+     "walk",
+     0
+    ],
+    [
+     "",
+     -99.47,
+     20.91,
+     "idle",
+     3.43
+    ]
+   ]
+  }
+ },
+ "poses": {
+  "town": [
+   "spawn",
+   "moon0",
+   "moon1",
+   "moon2",
+   "moonwide0",
+   "moonwide1",
+   "moonfar360",
+   "moonfar395",
+   "moonfar430",
+   "house0_0",
+   "house0_1",
+   "house0_2",
+   "house1_0",
+   "house1_1",
+   "house1_2",
+   "house2_0",
+   "house2_1",
+   "house2_2",
+   "house3_0",
+   "house3_1",
+   "house3_2",
+   "house4_0",
+   "house4_1",
+   "house4_2",
+   "house5_0",
+   "house5_1",
+   "house5_2",
+   "bfly0",
+   "bfly1",
+   "pen",
+   "desk",
+   "pickup"
+  ]
+ }
+}
