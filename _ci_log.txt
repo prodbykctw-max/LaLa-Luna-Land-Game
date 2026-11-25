@@ -1,0 +1,3 @@
+{"island":"hub","cur":"hub","total":{"calls":306,"tris":750679},"shadow":{"calls":46,"tris":202426},"programs":133,"zeroMain":82,"zeroShadow":0}
+{"island":"hub","cur":"hub","total":{"calls":129,"tris":749287},"shadow":{"calls":46,"tris":202426},"programs":137,"zeroMain":2,"zeroShadow":0}
+rc=0
