@@ -1,0 +1,4 @@
+{"island":"sanity","findings":["moon 0 instance: {\"k\":0,\"takenFlag\":true,\"moonsDelta\":1,\"visible\":false,\"ghostAdded\":1,\"sphZero\":true,\"ringZero\":true,\"ghostGone\":true,\"restoredSph\":false,\"restoredRing\":true,\"dbg\":{\"s\":[0,0,0,0,0,0,0,0,0,0,0,0,67.438,2.043,-115.421,1],\"e\":[-0.708,0,-0.707,0,0,1,0,0,0.707,0,-0.708,0,67.438,2.043,-115.421,1],\"vis\":true,\"frame\":4238}}","moon 5 instance: {\"k\":5,\"takenFlag\":true,\"moonsDelta\":1,\"visible\":false,\"ghostAdded\":1,\"sphZero\":true,\"ringZero\":true,\"ghostGone\":true,\"restoredSph\":false,\"restoredRing\":true,\"dbg\":{\"s\":[0,0,0,0,0,0,0,0,0,0,0,0,29.15,1.915,9.611,1],\"e\":[0.515,0,0.857,0,0,1,0,0,-0.857,0,0.515,0,29.15,1.915,9.611,1],\"vis\":true,\"frame\":6176}}"],"moons":true,"partMeshes":12}
+{"island":"sanity","findings":[],"moons":false,"partMeshes":14}
+instcheck sanity NEW rc=1 OLD rc=0
+rc=1
