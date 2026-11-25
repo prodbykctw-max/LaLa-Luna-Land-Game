@@ -1,0 +1,62 @@
+{
+ "video": false,
+ "tag": "new",
+ "clockSteps": {
+  "hub": [
+   17,
+   17,
+   16,
+   17,
+   17,
+   16
+  ]
+ },
+ "errors": {
+  "hub": []
+ },
+ "shots": {
+  "hub": [
+   "spawn",
+   "moon0",
+   "moon1",
+   "moon2",
+   "moonwide0",
+   "moonwide1",
+   "bfly0",
+   "bfly1"
+  ]
+ },
+ "seedState": {
+  "hub": {
+   "fc": 146,
+   "npcs": [
+    [
+     "Moss",
+     24,
+     192,
+     "idle",
+     1.6
+    ],
+    [
+     "Pip",
+     -66.45,
+     -31.57,
+     "walk",
+     -0.01
+    ]
+   ]
+  }
+ },
+ "poses": {
+  "hub": [
+   "spawn@",
+   "moon0@15,-86",
+   "moon1@-47,54",
+   "moon2@-30,47",
+   "moonwide0@20,-46",
+   "moonwide1@-42,-30",
+   "bfly0@2,13",
+   "bfly1@-16,23"
+  ]
+ }
+}
