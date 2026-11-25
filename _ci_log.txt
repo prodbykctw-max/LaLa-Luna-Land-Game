@@ -1,0 +1,2 @@
+{"island":"town","cur":"town","total":{"calls":1022,"tris":1409291},"shadow":{"calls":200,"tris":431519},"programs":175,"zeroMain":113,"zeroShadow":1}
+rc=0
