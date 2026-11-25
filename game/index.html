@@ -515,7 +515,7 @@ if(LEGACY_LIGHTS){
   C.lights_pars_begin = t;
 }
 /* profiling switches (?nobloom ?noshadow ?noink ?dpr=1) — used to measure what each pass costs on real hardware */
-const BUILD = "2026-11-23b";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
+const BUILD = "2026-11-25a";   /* bump on every deploy — shown bottom-right so a screenshot always tells us which build it is */
 const QS = new URLSearchParams(location.search);
 const SWASHQ = QS.get("swash") !== "old";   /* uneven, travelling swash on the beach; ?swash=old restores the striped foam band + wet strip */
 const SURFQ = QS.get("surf") !== "old";    /* breaking swells rolling into the beach; ?surf=old removes them */
@@ -7976,6 +7976,44 @@ function chunkMesh(mesh, scene, pad, cell){
   const par = mesh.parent; par.remove(mesh); out.forEach(m => par.add(m)); g.dispose();
   return out;
 }
+/* ===============  A FLAT SHEET DOES NOT NEED TWO PASSES  ===============
+   three r187 renders a transparent DoubleSide material TWICE — back faces, then front faces, with
+   material.needsUpdate = true between them so the program state is rebuilt each way (WebGLRenderer
+   renderObject: `transparent && side === DoubleSide && forceSinglePass === false`). That is the right
+   thing for a closed or curved shell, where the far surface must blend under the near one. It is pure
+   waste for a FLAT sheet: a ring, a ground decal, a mist panel has one layer, so back-face and
+   front-face culling each keep the half the other threw away and the two passes draw the same pixels.
+   Measured on build 2026-11-23b, main pass, spawn view: hub 64 of 308 calls, green 136 of 840,
+   gr 74 of 431, sanity 48 of 657, town 109 of 966 — 431 draw calls for nothing.
+   This decides by MEASURING the geometry, not by its class name: a geometry whose local bounding box
+   is zero-thickness on one axis is a sheet. Spheres, cylinders, tubes and shells fail that test and
+   keep both passes. A material shared between a flat mesh and a solid one is left alone.
+   ?singlepass=0 turns it off for an A/B. */
+function flatSinglePass(scene){
+  if(QS.get("singlepass") === "0") return 0;
+  const flat = new Map();                      /* material -> true while every user of it is a flat sheet */
+  const isSheet = g => {
+    if(!g || !g.attributes || !g.attributes.position) return false;
+    if(g.userData.__sheet !== undefined) return g.userData.__sheet;
+    if(!g.boundingBox) g.computeBoundingBox();
+    const b = g.boundingBox, e = [b.max.x-b.min.x, b.max.y-b.min.y, b.max.z-b.min.z];
+    const big = Math.max(e[0], e[1], e[2]);
+    const r = big > 1e-9 && Math.min(e[0], e[1], e[2]) <= big * 1e-4;
+    g.userData.__sheet = r; return r;
+  };
+  scene.traverse(o => {
+    if(!o.isMesh && !o.isInstancedMesh) return;
+    const sheet = isSheet(o.geometry);
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for(const m of mats){ if(!m) continue;
+      if(!(m.transparent && m.side === THREE.DoubleSide && m.forceSinglePass === false)) continue;
+      flat.set(m, (flat.has(m) ? flat.get(m) : true) && sheet); }
+  });
+  const hit = [];
+  flat.forEach((ok, m) => { if(ok){ m.forceSinglePass = true; m.needsUpdate = true; hit.push(m); } });
+  scene.userData.singlePassMats = hit;   /* qa/spsame.mjs flips these back in the SAME frame to prove the picture is identical */
+  return hit.length;
+}
 function mergeStatics(I, scene){
   const skip = new Set([I.pickup, I.letterMesh, I.boat, I.door, I.W && I.W.group, I.sea, I.moon, I.rain, I.bow, I.beam && I.beam.target,
                         I.quest && I.quest.horse].filter(Boolean));
@@ -12177,6 +12215,8 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   guideInit(I); yield; cueInit(I);
   yield;
   if(RLF) RLF.finish(scene, I);                      /* TERRAINQ: outcrops and talus, last, against the finished colliders */
+  yield;
+  I.singlePassMats = flatSinglePass(scene);   /* flat transparent sheets stop being drawn twice (see flatSinglePass) */
   /* ===============  NOTHING STANDS UNDER ITS OWN GROUND  ===============
      Luna's Keep sat 30 u inside its own hill for weeks: the island's namesake landmark, invisible,
      with its door still firing an interact prompt at a player who could see nothing. It was one
