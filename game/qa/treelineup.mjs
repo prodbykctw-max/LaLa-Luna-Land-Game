@@ -121,7 +121,7 @@ if (mode === 'stills') {
       await settle(H, 60); await shot(H, `${base}_bush.jpg`); }
   }
   /* 7. bush_close: the biggest bush within 130 u (bushPos holds every island built so far, so the radius keeps it on this island) of the spawn is the subject, camera 7 u off and 2.6 u up looking slightly down (so the grass does not hide it), Lala beside it */
-    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = (I.bushPos || []).filter(b => b.open && Math.hypot(b.x - sp[0], b.z - sp[1]) < 130), all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")); let best = null, bs = -1e9;
+    const bc = await H.page.evaluate(() => { const I = window.__T.CUR, sp = I.cfg.spawn, its = (I.bushPos || []).filter(b => b.qa), all = I.colliders.filter(c => c.camR > 1 && (c.kind === "tree" || c.kind === "willow")); let best = null, bs = -1e9;
       const cl = (x, z) => { let m = 1e9; for(const o of all) m = Math.min(m, Math.hypot(o.x - x, o.z - z) - (4.7 * o.r / .55 + .4)); return m; };
       /* the camera and the first half of its line of sight must be outside every crown; the bush itself may stand at a crown's edge (the tree is then its backdrop) */
       for(const b of its) { const d = Math.hypot(b.x - sp[0], b.z - sp[1]); if(d < 7 || d > 130 || b.sc < .6) continue; const a0 = Math.atan2(sp[1] - b.z, sp[0] - b.x);
