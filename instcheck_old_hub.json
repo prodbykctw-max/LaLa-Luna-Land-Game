@@ -1,0 +1,122 @@
+{
+ "island": "hub",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "bfly0": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -19.15,
+     33.89,
+     15.62,
+     -18.22,
+     33.98,
+     16.64
+    ]
+   },
+   "bfly1": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -26.68,
+     23.34,
+     34.46,
+     -25.82,
+     23.64,
+     35.36
+    ]
+   },
+   "bfly2": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -22.48,
+     30.14,
+     19.34,
+     -21.96,
+     30.66,
+     19.96
+    ]
+   },
+   "bfly3": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -24.02,
+     23.75,
+     35.19,
+     -23.02,
+     23.86,
+     36.16
+    ]
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 23,
+   "instanced": false,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 22,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    }
+   ]
+  },
+  "decals": {
+   "proxies": 17,
+   "instanced": false
+  },
+  "partMeshes": {
+   "bfly0": 7,
+   "bfly1": 7,
+   "bfly2": 7,
+   "bfly3": 7
+  }
+ },
+ "findings": [],
+ "errors": []
+}

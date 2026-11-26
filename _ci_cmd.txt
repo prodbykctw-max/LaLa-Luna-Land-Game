@@ -1,0 +1,1 @@
+node qa/instcheck.mjs hub --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs hub --tag=old; ro=$?; cp $BASE/qa/out/instcheck_old_hub.json qa/out/; echo "instcheck hub NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
