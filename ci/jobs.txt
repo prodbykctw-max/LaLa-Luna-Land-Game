@@ -1,0 +1,5 @@
+node qa/instcheck.mjs hub --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs hub --tag=old; ro=$?; echo "instcheck hub NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
+node qa/instcheck.mjs green --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs green --tag=old; ro=$?; echo "instcheck green NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
+node qa/instcheck.mjs gr --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs gr --tag=old; ro=$?; echo "instcheck gr NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
+node qa/instcheck.mjs sanity --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs sanity --tag=old; ro=$?; echo "instcheck sanity NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
+node qa/instcheck.mjs town --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs town --tag=old; ro=$?; echo "instcheck town NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
