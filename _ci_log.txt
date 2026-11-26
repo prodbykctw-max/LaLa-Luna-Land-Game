@@ -1,0 +1,14 @@
+[mobile] gr portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] gr landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] sanity portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] sanity landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] town portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] town landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] gr portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] gr landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] sanity portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] sanity landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] town portrait: overlaps=0 offscreen=0 small=0 inJoyZone=
+[mobile] town landscape: overlaps=0 offscreen=0 small=0 inJoyZone=
+SUITE mobile  NEW rc=0 OLD rc=0
+rc=0
