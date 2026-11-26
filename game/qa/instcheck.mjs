@@ -42,7 +42,7 @@ for (const key of argIslands(['hub', 'green', 'gr', 'sanity', 'town'])) {
       /* put it back, as the island re-entry does */
       W.x = I.cfg.spawn[0] + 3; W.z = I.cfg.spawn[1] + 3; W.y = I.height(W.x, W.z);   /* away from it, or the loop takes it again */
       G.moonsTaken[id] = false; G.moons = g0; m.visible = true; await frames(4);
-      if (mi) { const s = mi.sph.instanceMatrix.array, r = mi.rin.instanceMatrix.array, e = m.matrixWorld.elements; t.restoredSph = nz(s, k) && Math.abs(s[k * 16 + 12] - e[12]) < 1e-3 && Math.abs(s[k * 16 + 13] - e[13]) < 1e-3; t.restoredRing = nz(r, k); t.dbg = { s: Array.from(s.slice(k * 16, k * 16 + 16)).map(v => +v.toFixed(3)), e: Array.from(e).map(v => +v.toFixed(3)), vis: m.visible, frame: window.__T.renderer.info.render.frame }; }
+      if (mi) { const s = mi.sph.instanceMatrix.array, r = mi.rin.instanceMatrix.array, e = m.matrixWorld.elements; t.far = m.geometry !== mi.sph.geometry; /* a moon the far-prop cull has swapped for its empty stand-in draws nothing as a plain mesh, so its sphere instance must be zero too */ t.restoredSph = t.far ? !nz(s, k) : (nz(s, k) && Math.abs(s[k * 16 + 12] - e[12]) < 1e-3 && Math.abs(s[k * 16 + 13] - e[13]) < 1e-3); t.restoredRing = nz(r, k); t.dbg = { s: Array.from(s.slice(k * 16, k * 16 + 16)).map(v => +v.toFixed(3)), e: Array.from(e).map(v => +v.toFixed(3)), vis: m.visible, frame: window.__T.renderer.info.render.frame }; }
     }
     return out; });
   R.state.moons = moon.taken.map(t => ({ taken: t.takenFlag, delta: t.moonsDelta, visibleAfter: t.visible, ghost: t.ghostAdded > 0, ghostGone: t.ghostGone, skipped: t.skipped }));
@@ -73,15 +73,18 @@ for (const key of argIslands(['hub', 'green', 'gr', 'sanity', 'town'])) {
     const out = { proxies: proxies.length, instanced: !!di }; if (!di) return out;
     out.count = di.count; await frames(3);
     const eff = o => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; };
-    let mism = 0, opMism = 0, checked = 0; const a = di.instanceMatrix.array, op = di.geometry.attributes.aOp.array;
-    const mine = proxies.filter(p => p.layers.mask !== 1);
-    for (let i = 0; i < mine.length; i++) { const p = mine[i]; if (!eff(p)) continue; const e = p.matrixWorld.elements; checked++;
-      let ok = false; for (let j = 0; j < di.count && !ok; j++) { let same = true; for (let q = 0; q < 16 && same; q++) if (Math.abs(a[j * 16 + q] - e[q]) > 1e-3) same = false; if (same && Math.abs(op[j] - p.material.opacity) < 1e-4) ok = true; }
-      if (!ok) mism++; }
-    out.checked = checked; out.mismatch = mism;
+    /* compare in the SAME tick as a render: the instance buffer is synced from the proxies' matrixWorld inside the frame, and a moving proxy (a fan, a boat) is a frame ahead a moment later */
+    const T = window.__T, atRender = fn => new Promise(res => { const c0 = T.composer.render; T.composer.render = function () { const r = c0.apply(this, arguments); T.composer.render = c0; res(fn()); return r; }; });
+    const a = di.instanceMatrix.array, op = di.geometry.attributes.aOp.array, mine = proxies.filter(p => p.layers.mask !== 1);
+    const has = (e, o) => { for (let j = 0; j < di.count; j++) { let same = true; for (let q = 0; q < 16 && same; q++) if (Math.abs(a[j * 16 + q] - e[q]) > 1e-3) same = false; if (same && (o === undefined || Math.abs(op[j] - o) < 1e-4)) return j; } return -1; };
+    const gc = new Map(); mine.forEach(p => gc.set(p.geometry, (gc.get(p.geometry) || 0) + 1)); const main = [...gc.entries()].sort((x, y) => y[1] - x[1])[0][0];   /* the shared sheet; a decal on any other geometry is the far-prop cull's empty stand-in: it draws nothing, so its instance is zero */
+    const r1 = await atRender(() => { let mism = 0, checked = 0, far = 0, farZero = 0; const bad = []; for (const p of mine) { if (!eff(p)) continue; if (p.geometry !== main) { far++; const j = has(p.matrixWorld.elements); if (!(j >= 0 && a[j * 16] !== 0)) farZero++; else mism++; continue; } checked++; if (has(p.matrixWorld.elements, p.material.opacity) < 0) { mism++; if (bad.length < 4) { const j = has(p.matrixWorld.elements); let best = 1e9, bj = -1; for (let k = 0; k < di.count; k++) { let d = 0; for (let q = 0; q < 16; q++) d = Math.max(d, Math.abs(a[k * 16 + q] - p.matrixWorld.elements[q])); if (d < best) { best = d; bj = k; } }
+        bad.push({ name: p.name, par: p.parent && p.parent.name, matchByMatrix: j, op: +p.material.opacity.toFixed(4), instOp: j >= 0 ? +op[j].toFixed(4) : null, bestDiff: +best.toFixed(4), bj, vis: p.visible, shared: p.material.uuid.slice(0, 4), nUsers: mine.filter(x => x.material === p.material).length }); } } } return { mism, checked, far, farZero, bad }; });
+    out.bad = r1.bad; out.farSwapped = r1.far; out.farSwappedZero = r1.farZero;
+    out.checked = r1.checked; out.mismatch = r1.mism;
     /* a hidden parent hides its decal */
     const p0 = mine.find(p => p.parent && p.parent !== I.scene && eff(p));
-    if (p0) { const par = p0.parent; par.visible = false; await frames(3); const e = p0.matrixWorld.elements; let found = false; for (let j = 0; j < di.count; j++) { let same = true; for (let q = 0; q < 16 && same; q++) if (Math.abs(a[j * 16 + q] - e[q]) > 1e-3) same = false; if (same && a[j * 16] !== 0) found = true; } out.hiddenParentStillDrawn = found; par.visible = true; }
+    if (p0) { const par = p0.parent; par.visible = false; const found = await atRender(() => { const j = has(p0.matrixWorld.elements); return j >= 0 && a[j * 16] !== 0; }); out.hiddenParentStillDrawn = found; par.visible = true; }
     return out; });
   R.struct.decals = dec; if (dec.instanced && (dec.mismatch || dec.hiddenParentStillDrawn)) fail('decals: ' + JSON.stringify(dec));
   /* ---- model parts ---- */
