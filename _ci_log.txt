@@ -1,0 +1,4 @@
+[traversal] town: traps=0 pockets=0 camHits=31076 stalls=0 buried=0 fps~60
+[traversal] town: traps=0 pockets=0 camHits=31076 stalls=0 buried=0 fps~60
+SUITE traversal town NEW rc=0 OLD rc=0
+rc=0
