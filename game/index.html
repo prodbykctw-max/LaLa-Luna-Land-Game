@@ -1713,12 +1713,13 @@ function bakeGeoC(){
     bush:   {HT: 1.25, HALFW: 1.45, ybot: .14,  floorTo: null}
   };
   const WILLOW = {"branch.force.direction": {x:0, y:-1, z:0}, "branch.force.strength": .16, "branch.length.0": 50, "branch.length.1": 22, "branch.length.2": 22, "branch.length.3": 20, "branch.angle.1": 50};
+  const BT = [.90, .80, .50];      /* bush leaf tint, measured against A's bush (qa/treecolour.py) */
   const specs = {
     tree: [["Oak Large", 1, 0, 1.3], ["Oak Large", 2, 0, 1.3], ["Oak Large", 3, 0, 1.3], ["Oak Medium", 1, 0, 1], ["Oak Medium", 7, 0, 1], ["Oak Medium", 9, 0, 1], ["Oak Small", 3, 0, .6],
            ["Oak Large", 4, 0, 1.3], ["Ash Large", 3, 1, 1.1], ["Ash Large", 5, 1, 1.1], ["Ash Medium", 5, 1, 1], ["Ash Medium", 8, 1, 1]].map(s => ({preset: s[0], seed: s[1], cell: s[2], w: s[3], radius: [2.7, 1.9, 1.5, 1.5], leafMul: 2.4, leafMax: 140,
              leafSize: s[2] === 1 ? ASH_LS : 1.35, wide: s[2] === 1 ? ASH_WIDE : 1, tint: s[2] === 1 ? ASHTINT : null})),      /* the ash sprig is a different green from the oak's: tinted to the oak's mean colour, and fitted wider (it came out 70% of A's crown) */
     willow: [1, 4, 6].map((sd, i) => ({preset: "Ash Large", seed: sd, cell: 1, w: 1, radius: [2.6, 1.3, .8, .5], leafMul: 2.2, leafMax: 130, leafSize: 1.35, tint: [.92, .74, .50], set: i === 2 ? {...WILLOW, "branch.force.strength": .2, "branch.length.0": 54, "branch.length.1": 20, "branch.length.2": 20, "branch.length.3": 18, "branch.angle.1": 45} : WILLOW})),
-    bush: [{seed: 1, stems: 8, cell: 2, tint: [.60, .68, .50]}, {seed: 3, stems: 7, cell: 2, tint: [.60, .68, .50]}, {seed: 5, stems: 9, cell: 0, tint: [.80, .70, .54]}, {seed: 2, stems: 8, cell: 2, tint: [.60, .68, .50]}]
+    bush: [{seed: 1, stems: 8, cell: 2, tint: BT}, {seed: 3, stems: 7, cell: 2, tint: BT}, {seed: 5, stems: 9, cell: 0, tint: BT}, {seed: 2, stems: 8, cell: 2, tint: BT}]
   };
   /* detail per level: the desktop near level is the full ez-tree mesh, the phone's is thinned (every 2nd sprig, 1.35x) */
   const NEAR = TREE_MOBILE ? {sectionStride:2, segmentFactor:.75, leafStride:2, leafScale:1.35} : {};
