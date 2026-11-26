@@ -1,0 +1,1 @@
+AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old --islands=town && AB_DIR=$PWD/qa/out node qa/instab.mjs --tag=new --islands=town && AB_DIR=$PWD/qa/out QA_ROOT=$BASE node qa/instab.mjs --tag=old2 --islands=town && AB_DIR=$PWD/qa/out node qa/instab.mjs --tag=new2 --islands=town
