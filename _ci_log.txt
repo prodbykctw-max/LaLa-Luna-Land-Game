@@ -1,0 +1,4 @@
+[traversal] green: traps=0 pockets=0 camHits=36204 stalls=0 buried=0 fps~59.9
+[traversal] green: traps=0 pockets=0 camHits=36204 stalls=0 buried=0 fps~59.9
+SUITE traversal green NEW rc=0 OLD rc=0
+rc=0
