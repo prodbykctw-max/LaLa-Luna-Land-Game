@@ -1,0 +1,159 @@
+{
+ "hub": {
+  "key": "hub",
+  "floating": [],
+  "floatCount": 0,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 292.6,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 4,
+   "unlit": 4,
+   "mats": [
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.91,
+   "minWorld": 0.44,
+   "mean": 0.67,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ },
+ "green": {
+  "key": "green",
+  "floating": [],
+  "floatCount": 0,
+  "buried": [],
+  "buriedCount": 0,
+  "globes": {
+   "total": 1,
+   "unlit": 1,
+   "mats": [
+    "MeshStandardMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.91,
+   "minWorld": 0.44,
+   "mean": 0.67,
+   "live": 94,
+   "count": 94
+  },
+  "landmarks": {}
+ },
+ "gr": {
+  "key": "gr",
+  "floating": [],
+  "floatCount": 0,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 272.4,
+    "gap": -0.5,
+    "h": 0.5
+   },
+   {
+    "name": "group",
+    "x": -14.3,
+    "z": 121.9,
+    "gap": -34.77,
+    "h": 7.3
+   }
+  ],
+  "buriedCount": 2,
+  "globes": {
+   "total": 13,
+   "unlit": 13,
+   "mats": [
+    "MeshStandardMaterial",
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.91,
+   "minWorld": 0.46,
+   "mean": 0.66,
+   "live": 95,
+   "count": 95
+  },
+  "landmarks": {}
+ },
+ "sanity": {
+  "key": "sanity",
+  "floating": [
+   {
+    "name": "ConeGeometry",
+    "x": -140.4,
+    "z": -49,
+    "gap": 3.58,
+    "h": 35.3
+   }
+  ],
+  "floatCount": 1,
+  "buried": [],
+  "buriedCount": 0,
+  "globes": {
+   "total": 7,
+   "unlit": 7,
+   "mats": [
+    "MeshStandardMaterial",
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 1,
+   "maxWorld": 1.1,
+   "minWorld": 0.55,
+   "mean": 0.83,
+   "live": 571,
+   "count": 571
+  },
+  "landmarks": {}
+ },
+ "town": {
+  "key": "town",
+  "floating": [],
+  "floatCount": 0,
+  "buried": [
+   {
+    "name": "BoxGeometry",
+    "x": 0,
+    "z": 189.7,
+    "gap": -0.5,
+    "h": 0.5
+   }
+  ],
+  "buriedCount": 1,
+  "globes": {
+   "total": 16,
+   "unlit": 16,
+   "mats": [
+    "MeshStandardMaterial",
+    "MeshBasicMaterial"
+   ]
+  },
+  "grass": {
+   "bladeGeoHeight": 0.62,
+   "maxWorld": 0.93,
+   "minWorld": 0.44,
+   "mean": 0.67,
+   "live": 69,
+   "count": 69
+  },
+  "landmarks": {}
+ }
+}
