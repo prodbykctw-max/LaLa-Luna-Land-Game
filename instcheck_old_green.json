@@ -1,0 +1,265 @@
+{
+ "island": "green",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "carrot0": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     26.32,
+     2.72,
+     31.62,
+     27.46,
+     3.15,
+     32.21
+    ]
+   },
+   "carrot1": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     7.88,
+     2.85,
+     49.64,
+     8.74,
+     3.28,
+     50.66
+    ]
+   },
+   "carrot2": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     33.42,
+     3.02,
+     42.39,
+     34.09,
+     3.45,
+     43.53
+    ]
+   },
+   "carrot3": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -9.74,
+     3.1,
+     -47.87,
+     -8.58,
+     3.53,
+     -47.4
+    ]
+   },
+   "carrot4": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -14.53,
+     3.68,
+     -12.31,
+     -13.64,
+     4.1,
+     -11.32
+    ]
+   },
+   "carrot5": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -37.29,
+     2.26,
+     -42.97,
+     -36.12,
+     2.69,
+     -42.42
+    ]
+   },
+   "carrot6": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -53.72,
+     3.17,
+     -24.26,
+     -52.7,
+     3.59,
+     -23.41
+    ]
+   },
+   "pen": {
+    "tris": 1288,
+    "materials": 1,
+    "box": [
+     -75.86,
+     4.73,
+     114.4,
+     -73.94,
+     6.88,
+     116.54
+    ]
+   },
+   "secret": {
+    "tris": 348,
+    "materials": 2,
+    "box": [
+     -109.07,
+     31.42,
+     -70.98,
+     -108.52,
+     31.79,
+     -69.82
+    ]
+   },
+   "desk": {
+    "tris": 15009,
+    "materials": 6,
+    "box": [
+     -12.39,
+     0.2,
+     720.79,
+     -8.25,
+     3.64,
+     724.77
+    ]
+   },
+   "pickup": {
+    "tris": 12718,
+    "materials": 2,
+    "box": [
+     25.67,
+     3.56,
+     21.69,
+     30.33,
+     6.28,
+     26.31
+    ]
+   },
+   "bfly0": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -34.93,
+     4.59,
+     -28.1,
+     -34.3,
+     5.07,
+     -27.61
+    ]
+   },
+   "bfly1": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     19.99,
+     4.89,
+     8.64,
+     20.79,
+     5.2,
+     9.57
+    ]
+   },
+   "bfly2": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -13.86,
+     6.54,
+     4.94,
+     -13.21,
+     6.7,
+     5.86
+    ]
+   },
+   "bfly3": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     10.01,
+     5.56,
+     9.77,
+     10.66,
+     6.05,
+     10.35
+    ]
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 35,
+   "instanced": false,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 34,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    }
+   ]
+  },
+  "decals": {
+   "proxies": 35,
+   "instanced": false
+  },
+  "partMeshes": {
+   "carrot0": 10,
+   "carrot1": 10,
+   "carrot2": 10,
+   "carrot3": 10,
+   "carrot4": 10,
+   "carrot5": 10,
+   "carrot6": 10,
+   "pen": 3,
+   "secret": 2,
+   "desk": 6,
+   "pickup": 3,
+   "bfly0": 7,
+   "bfly1": 7,
+   "bfly2": 7,
+   "bfly3": 7
+  }
+ },
+ "findings": [],
+ "errors": []
+}
