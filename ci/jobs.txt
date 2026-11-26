@@ -1,0 +1,5 @@
+node qa/instcheck.mjs hub --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs hub --tag=old; ro=$?; cp $BASE/qa/out/instcheck_old_hub.json qa/out/; echo "instcheck hub NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
+node qa/instcheck.mjs green --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs green --tag=old; ro=$?; cp $BASE/qa/out/instcheck_old_green.json qa/out/; echo "instcheck green NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
+node qa/instcheck.mjs gr --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs gr --tag=old; ro=$?; cp $BASE/qa/out/instcheck_old_gr.json qa/out/; echo "instcheck gr NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
+node qa/instcheck.mjs sanity --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs sanity --tag=old; ro=$?; cp $BASE/qa/out/instcheck_old_sanity.json qa/out/; echo "instcheck sanity NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
+node qa/instcheck.mjs town --tag=new; rn=$?; QA_ROOT=$BASE node qa/instcheck.mjs town --tag=old; ro=$?; cp $BASE/qa/out/instcheck_old_town.json qa/out/; echo "instcheck town NEW rc=$rn OLD rc=$ro"; [ $rn -eq 0 ]
