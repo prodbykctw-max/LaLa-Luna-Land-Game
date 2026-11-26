@@ -4475,7 +4475,12 @@ function _mergePartsByMaterial(root, frame, opts){
         if(flip){ idx[io++] = vo + a; idx[io++] = vo + c; idx[io++] = vo + b; } else { idx[io++] = vo + a; idx[io++] = vo + b; idx[io++] = vo + c; } }
       vo += cnt; }
     const geo = new THREE.BufferGeometry(); for(const k of names) geo.setAttribute(k, new THREE.BufferAttribute(arr[k], e.parts[0].geometry.attributes[k].itemSize)); geo.setIndex(new THREE.BufferAttribute(idx, 1));
-    geo.computeBoundingSphere(); geo.computeBoundingBox();
+    geo.computeBoundingSphere();
+    /* Box3.setFromObject (itemSwap sizes every pickup from it) takes each part's own box carried through that part's matrix: a LOOSE box for a rotated part. A tight box over the merged vertices would
+       read smaller and scale the pen up ~15%. So the merged geometry carries exactly the union of those loose boxes, in the frame's space (qa/instcheck: the pen's root-local box). */
+    { const lb = new THREE.Box3(), tb = new THREE.Box3(), Mb = new THREE.Matrix4();
+      for(const o of e.parts){ const g = o.geometry; if(!g.boundingBox) g.computeBoundingBox(); Mb.multiplyMatrices(inv, o.matrixWorld); tb.copy(g.boundingBox).applyMatrix4(Mb); lb.union(tb); }
+      geo.boundingBox = lb; }
     const src = e.src, mesh = new THREE.Mesh(geo, e.mat); mesh.name = "partMerge"; mesh.castShadow = src.castShadow; mesh.receiveShadow = src.receiveShadow; mesh.renderOrder = src.renderOrder;
     mesh.layers.mask = src.layers.mask; mesh.frustumCulled = opts.cull != null ? opts.cull : src.frustumCulled; mesh.userData.dyn = src.userData.dyn || 1;
     frame.add(mesh); after++;
