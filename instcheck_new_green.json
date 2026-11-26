@@ -1,0 +1,438 @@
+{
+ "island": "green",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "carrot0": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -0.58,
+     0,
+     -0.22,
+     0.58,
+     0.43,
+     0.23
+    ],
+    "centroid": [
+     -0.24,
+     0.21,
+     0
+    ]
+   },
+   "carrot1": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -0.58,
+     0,
+     -0.22,
+     0.58,
+     0.43,
+     0.23
+    ],
+    "centroid": [
+     -0.24,
+     0.21,
+     0
+    ]
+   },
+   "carrot2": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -0.58,
+     0,
+     -0.22,
+     0.58,
+     0.43,
+     0.23
+    ],
+    "centroid": [
+     -0.24,
+     0.21,
+     0
+    ]
+   },
+   "carrot3": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -0.58,
+     0,
+     -0.22,
+     0.58,
+     0.43,
+     0.22
+    ],
+    "centroid": [
+     -0.24,
+     0.21,
+     -0.01
+    ]
+   },
+   "carrot4": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -0.58,
+     0,
+     -0.22,
+     0.58,
+     0.43,
+     0.23
+    ],
+    "centroid": [
+     -0.24,
+     0.21,
+     0
+    ]
+   },
+   "carrot5": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -0.58,
+     0,
+     -0.22,
+     0.58,
+     0.43,
+     0.23
+    ],
+    "centroid": [
+     -0.24,
+     0.21,
+     0
+    ]
+   },
+   "carrot6": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -0.58,
+     0,
+     -0.22,
+     0.58,
+     0.43,
+     0.23
+    ],
+    "centroid": [
+     -0.24,
+     0.21,
+     0
+    ]
+   },
+   "pen": {
+    "tris": 1288,
+    "materials": 1,
+    "box": [
+     -0.84,
+     -0.86,
+     -0.55,
+     0.51,
+     1.17,
+     0.72
+    ],
+    "centroid": [
+     -0.49,
+     -0.37,
+     0.44
+    ]
+   },
+   "secret": {
+    "tris": 348,
+    "materials": 2,
+    "box": [
+     -0.7,
+     -0.23,
+     -0.23,
+     0.7,
+     0.23,
+     0.23
+    ],
+    "centroid": [
+     0.03,
+     0,
+     0
+    ]
+   },
+   "desk": {
+    "tris": 15009,
+    "materials": 6,
+    "box": [
+     -1.77,
+     0,
+     -1.69,
+     1.77,
+     3.44,
+     1.69
+    ],
+    "centroid": [
+     -0.11,
+     1.56,
+     -0.27
+    ]
+   },
+   "pickup": {
+    "tris": 12718,
+    "materials": 2,
+    "box": [
+     -2,
+     -1.5,
+     -1.98,
+     2,
+     1.21,
+     1.98
+    ],
+    "centroid": [
+     0.04,
+     0.1,
+     -0.17
+    ]
+   },
+   "bfly0": {
+    "tris": 276,
+    "materials": 3,
+    "box": null,
+    "centroid": null
+   },
+   "bfly1": {
+    "tris": 276,
+    "materials": 3,
+    "box": null,
+    "centroid": null
+   },
+   "bfly2": {
+    "tris": 276,
+    "materials": 3,
+    "box": null,
+    "centroid": null
+   },
+   "bfly3": {
+    "tris": 276,
+    "materials": 3,
+    "box": null,
+    "centroid": null
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 35,
+   "instanced": true,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       63.224,
+       3.932,
+       50.76,
+       1
+      ],
+      "e": [
+       -0.597,
+       0,
+       -0.803,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.803,
+       0,
+       -0.597,
+       0,
+       63.224,
+       3.932,
+       50.76,
+       1
+      ],
+      "vis": true,
+      "frame": 3463
+     }
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       9.209,
+       3.85,
+       67.486,
+       1
+      ],
+      "e": [
+       0.384,
+       0,
+       0.923,
+       0,
+       0,
+       1,
+       0,
+       0,
+       -0.923,
+       0,
+       0.384,
+       0,
+       9.209,
+       3.85,
+       67.486,
+       1
+      ],
+      "vis": true,
+      "frame": 4993
+     }
+    },
+    {
+     "k": 34,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       60.571,
+       22.206,
+       -126.857,
+       1
+      ],
+      "e": [
+       -0.149,
+       0,
+       -0.989,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.989,
+       0,
+       -0.149,
+       0,
+       60.571,
+       22.206,
+       -126.857,
+       1
+      ],
+      "vis": true,
+      "frame": 6523
+     }
+    }
+   ]
+  },
+  "decals": {
+   "proxies": 35,
+   "instanced": true,
+   "count": 35,
+   "bad": [],
+   "farSwapped": 9,
+   "farSwappedZero": 9,
+   "checked": 25,
+   "mismatch": 0,
+   "hiddenParentStillDrawn": false
+  },
+  "partMeshes": {
+   "carrot0": 3,
+   "carrot1": 3,
+   "carrot2": 3,
+   "carrot3": 3,
+   "carrot4": 3,
+   "carrot5": 3,
+   "carrot6": 3,
+   "pen": 1,
+   "secret": 2,
+   "desk": 6,
+   "pickup": 3,
+   "bfly0": 7,
+   "bfly1": 7,
+   "bfly2": 7,
+   "bfly3": 7
+  }
+ },
+ "findings": [],
+ "errors": []
+}
