@@ -1,0 +1,2663 @@
+{
+ "hub": {
+  "island": "hub",
+  "grid": 1.5,
+  "phases": [
+   {
+    "name": "no ability",
+    "stats": {
+     "walk": 118457,
+     "jumps": 19160,
+     "jumpHits": 0,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 0
+    },
+    "seen": 118458
+   }
+  ],
+  "targets": [
+   {
+    "kind": "castle",
+    "label": "The keep doors",
+    "at": [
+     0,
+     36.2,
+     9
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 173,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0,
+      11.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 29.4,
+     "end": {
+      "x": -2.1,
+      "y": 36.2,
+      "z": 13.6
+     },
+     "maxY": 36.2,
+     "got": {
+      "t": 29.4,
+      "at": {
+       "x": -2.1,
+       "y": 36.2,
+       "z": 13.6
+      },
+      "kind": "castle"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "171/172",
+     "wp": {
+      "x": 0,
+      "z": 11.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "dock",
+    "label": "The boat",
+    "at": [
+     0,
+     0.8,
+     292.6
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 16,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0,
+      292
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 2.2,
+     "end": {
+      "x": 7.5,
+      "y": -0.1,
+      "z": 286.1
+     },
+     "maxY": 0,
+     "got": {
+      "t": 2.2,
+      "at": {
+       "x": 7.5,
+       "y": -0.1,
+       "z": 286.1
+      },
+      "kind": "dock"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "11/15",
+     "wp": {
+      "x": 4.5,
+      "z": 287.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 1 (Pinned to the keep door)",
+    "at": [
+     0,
+     27.5,
+     48
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 149,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0,
+      47.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 25.2,
+     "end": {
+      "x": -3.9,
+      "y": 24.4,
+      "z": 51.4
+     },
+     "maxY": 24.4,
+     "got": {
+      "t": 25.2,
+      "at": {
+       "x": -3.9,
+       "y": 24.4,
+       "z": 51.4
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "146/148",
+     "wp": {
+      "x": -1.5,
+      "z": 49,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 2 (Folded under a stone)",
+    "at": [
+     -104,
+     46.7,
+     -56
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 218,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -103.5,
+      -56
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 36.9,
+     "end": {
+      "x": -107.2,
+      "y": 44.4,
+      "z": -52.3
+     },
+     "maxY": 44.4,
+     "got": {
+      "t": 36.9,
+      "at": {
+       "x": -107.2,
+       "y": 44.4,
+       "z": -52.3
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "215/217",
+     "wp": {
+      "x": -105,
+      "z": -54.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 3 (Tucked in a lantern)",
+    "at": [
+     76,
+     11.5,
+     -88
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 239,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      76.5,
+      -87.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 40.4,
+     "end": {
+      "x": 73,
+      "y": 9.8,
+      "z": -84
+     },
+     "maxY": 42.8,
+     "got": {
+      "t": 40.4,
+      "at": {
+       "x": 73,
+       "y": 9.8,
+       "z": -84
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "236/238",
+     "wp": {
+      "x": 75,
+      "z": -86,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 4 (Left at the tree line)",
+    "at": [
+     -56,
+     12.4,
+     104
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 111,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -55.5,
+      104.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 18.8,
+     "end": {
+      "x": -59.1,
+      "y": 9.5,
+      "z": 108.1
+     },
+     "maxY": 9.5,
+     "got": {
+      "t": 18.8,
+      "at": {
+       "x": -59.1,
+       "y": 9.5,
+       "z": 108.1
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "108/110",
+     "wp": {
+      "x": -57,
+      "z": 106,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 5 (Nailed to the dock post)",
+    "at": [
+     6.4,
+     3,
+     208
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 42,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      6,
+      208
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 7.1,
+     "end": {
+      "x": 2.6,
+      "y": 0.6,
+      "z": 211.3
+     },
+     "maxY": 0.7,
+     "got": {
+      "t": 7.1,
+      "at": {
+       "x": 2.6,
+       "y": 0.6,
+       "z": 211.3
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "39/41",
+     "wp": {
+      "x": 4.5,
+      "z": 209.5,
+      "launch": false
+     }
+    }
+   }
+  ],
+  "cells": {
+   "n": 188819,
+   "valid": 118458
+  },
+  "spawn": {
+   "at": [
+    0,
+    269.6215733333232
+   ],
+   "valid": true,
+   "h": 0
+  },
+  "moons": {
+   "total": 23,
+   "onFoot": 23,
+   "withJump": 23,
+   "unreachable": []
+  },
+  "ms": 9492,
+  "pageErrors": []
+ },
+ "green": {
+  "island": "green",
+  "grid": 1.5,
+  "phases": [
+   {
+    "name": "no ability",
+    "stats": {
+     "walk": 135994,
+     "jumps": 31727,
+     "jumpHits": 0,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 0
+    },
+    "seen": 135995
+   },
+   {
+    "name": "Her fans",
+    "stats": {
+     "walk": 137471,
+     "jumps": 32711,
+     "jumpHits": 0,
+     "glides": 55283,
+     "glideHits": 398,
+     "rounds": 1
+    },
+    "seen": 137870
+   }
+  ],
+  "targets": [
+   {
+    "kind": "ability",
+    "label": "Her fans",
+    "at": [
+     28,
+     5.1,
+     24
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 472,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      28,
+      23.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 84.4,
+     "end": {
+      "x": 24.6,
+      "y": 2.9,
+      "z": 26.9
+     },
+     "maxY": 3.3,
+     "got": {
+      "t": 84.4,
+      "at": {
+       "x": 24.6,
+       "y": 2.9,
+       "z": 26.9
+      },
+      "kind": "ability"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "469/471",
+     "wp": {
+      "x": 26.5,
+      "z": 25,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "pen",
+    "label": "The pen",
+    "at": [
+     -74.8,
+     5.6,
+     115.6
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 411,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -75.5,
+      115
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 74.1,
+     "end": {
+      "x": -78.5,
+      "y": 3.3,
+      "z": 118
+     },
+     "maxY": 3.3,
+     "got": {
+      "t": 74.1,
+      "at": {
+       "x": -78.5,
+       "y": 3.3,
+       "z": 118
+      },
+      "kind": "pen"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "409/410",
+     "wp": {
+      "x": -75.5,
+      "z": 115,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "letter",
+    "label": "The paper",
+    "at": [
+     88,
+     19.3,
+     -136
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 533,
+     "jumps": 0,
+     "glides": 1,
+     "from": [
+      88,
+      -135.5
+     ]
+    },
+    "reachableWithoutAbility": false,
+    "drive": {
+     "ok": true,
+     "t": 112,
+     "end": {
+      "x": 83.8,
+      "y": 18.6,
+      "z": -134.1
+     },
+     "maxY": 33.2,
+     "got": {
+      "t": 112,
+      "at": {
+       "x": 83.8,
+       "y": 18.6,
+       "z": -134.1
+      },
+      "kind": "letter"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "530/532",
+     "wp": {
+      "x": -104,
+      "z": -65,
+      "launch": true
+     }
+    }
+   },
+   {
+    "kind": "desk",
+    "label": "The writing desk",
+    "at": [
+     -10,
+     0.2,
+     723.2
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 8,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -11,
+      725.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 1.2,
+     "end": {
+      "x": -10,
+      "y": 0.2,
+      "z": 727.5
+     },
+     "maxY": 0.2,
+     "got": {
+      "t": 1.2,
+      "at": {
+       "x": -10,
+       "y": 0.2,
+       "z": 727.5
+      },
+      "kind": "desk"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "6/7",
+     "wp": {
+      "x": -11,
+      "z": 725.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "post",
+    "label": "Ollie the postman",
+    "at": [
+     0,
+     4.8,
+     248
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 322,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -0.5,
+      248.5
+     ]
+    },
+    "wander": {
+     "reachable": 537,
+     "total": 537,
+     "frac": 1
+    },
+    "drive": {
+     "skipped": "wandering NPC"
+    }
+   },
+   {
+    "kind": "secret",
+    "label": "The folded note",
+    "at": [
+     -108.8,
+     31.7,
+     -70.4
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 535,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -108.5,
+      -71
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 97.4,
+     "end": {
+      "x": -112.2,
+      "y": 28.9,
+      "z": -67.3
+     },
+     "maxY": 28.9,
+     "got": {
+      "t": 97.4,
+      "at": {
+       "x": -112.2,
+       "y": 28.9,
+       "z": -67.3
+      },
+      "kind": "secret"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "532/534",
+     "wp": {
+      "x": -110,
+      "z": -69.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "dock",
+    "label": "The boat",
+    "at": [
+     0,
+     0.8,
+     752.8
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 16,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -0.5,
+      752.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 2.1,
+     "end": {
+      "x": 7.3,
+      "y": -0.5,
+      "z": 746.4
+     },
+     "maxY": 0.1,
+     "got": {
+      "t": 2.1,
+      "at": {
+       "x": 7.3,
+       "y": -0.5,
+       "z": 746.4
+      },
+      "kind": "dock"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "11/15",
+     "wp": {
+      "x": 4,
+      "z": 748,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 1 (Under the arch)",
+    "at": [
+     44,
+     5.1,
+     64
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 445,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      44.5,
+      64
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 79.1,
+     "end": {
+      "x": 40.8,
+      "y": 2.7,
+      "z": 67.7
+     },
+     "maxY": 3.4,
+     "got": {
+      "t": 79.1,
+      "at": {
+       "x": 40.8,
+       "y": 2.7,
+       "z": 67.7
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "442/444",
+     "wp": {
+      "x": 43,
+      "z": 65.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 2 (On Horse Hill)",
+    "at": [
+     -96,
+     30.8,
+     -64
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 530,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -96.5,
+      -63.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 96.2,
+     "end": {
+      "x": -99.6,
+      "y": 28.5,
+      "z": -60.4
+     },
+     "maxY": 28.5,
+     "got": {
+      "t": 96.2,
+      "at": {
+       "x": -99.6,
+       "y": 28.5,
+       "z": -60.4
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "528/529",
+     "wp": {
+      "x": -96.5,
+      "z": -63.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 3 (By the stream)",
+    "at": [
+     -24,
+     4.2,
+     152
+    ],
+    "phase": "Her fans",
+    "found": true,
+    "path": {
+     "nodes": 386,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -24.5,
+      152.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 67.5,
+     "end": {
+      "x": -27.5,
+      "y": 0.8,
+      "z": 155.5
+     },
+     "maxY": 3.3,
+     "got": {
+      "t": 67.5,
+      "at": {
+       "x": -27.5,
+       "y": 0.8,
+       "z": 155.5
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "384/385",
+     "wp": {
+      "x": -24.5,
+      "z": 152.5,
+      "launch": false
+     }
+    }
+   }
+  ],
+  "cells": {
+   "n": 306051,
+   "valid": 137870
+  },
+  "spawn": {
+   "at": [
+    0,
+    729.8084799999815
+   ],
+   "valid": true,
+   "h": 0.060279857367277145
+  },
+  "moons": {
+   "total": 35,
+   "onFoot": 29,
+   "withJump": 30,
+   "unreachable": [],
+   "byGlide": 5
+  },
+  "ms": 88915,
+  "pageErrors": []
+ },
+ "gr": {
+  "island": "gr",
+  "grid": 1.5,
+  "phases": [
+   {
+    "name": "no ability",
+    "stats": {
+     "walk": 115027,
+     "jumps": 24609,
+     "jumpHits": 1,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 1
+    },
+    "seen": 115029
+   },
+   {
+    "name": "Her boots",
+    "stats": {
+     "walk": 116147,
+     "jumps": 25362,
+     "jumpHits": 43,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 1
+    },
+    "seen": 116191
+   }
+  ],
+  "targets": [
+   {
+    "kind": "ability",
+    "label": "Her boots",
+    "at": [
+     -88,
+     8.1,
+     104
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 98,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -88.5,
+      104.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 16.6,
+     "end": {
+      "x": -91.4,
+      "y": 5.1,
+      "z": 107.3
+     },
+     "maxY": 15.9,
+     "got": {
+      "t": 16.6,
+      "at": {
+       "x": -91.4,
+       "y": 5.1,
+       "z": 107.3
+      },
+      "kind": "ability"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "96/97",
+     "wp": {
+      "x": -88.5,
+      "z": 104.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "pen",
+    "label": "The pen",
+    "at": [
+     -91.6,
+     2.3,
+     -33.8
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 190,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -91.5,
+      -33.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 34.6,
+     "end": {
+      "x": -94.4,
+      "y": 0,
+      "z": -30.5
+     },
+     "maxY": 15.9,
+     "got": {
+      "t": 34.6,
+      "at": {
+       "x": -94.4,
+       "y": 0,
+       "z": -30.5
+      },
+      "kind": "pen"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "188/189",
+     "wp": {
+      "x": -91.5,
+      "z": -33.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "letter",
+    "label": "The paper",
+    "at": [
+     160,
+     19.1,
+     48
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 160,
+     "jumps": 1,
+     "glides": 0,
+     "from": [
+      160.5,
+      47.5
+     ]
+    },
+    "reachableWithoutAbility": false,
+    "drive": {
+     "ok": true,
+     "t": 30.3,
+     "end": {
+      "x": 157.7,
+      "y": 16.9,
+      "z": 44.5
+     },
+     "maxY": 34.3,
+     "got": {
+      "t": 30.3,
+      "at": {
+       "x": 157.7,
+       "y": 16.9,
+       "z": 44.5
+      },
+      "kind": "letter"
+     },
+     "jumps": 1,
+     "stuck": 0,
+     "k": "158/159",
+     "wp": {
+      "x": 160.5,
+      "z": 47.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "desk",
+    "label": "The writing desk",
+    "at": [
+     -10,
+     0.5,
+     242.9
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 6,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -7.5,
+      242.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 1,
+     "end": {
+      "x": -6,
+      "y": 0.1,
+      "z": 244
+     },
+     "maxY": 0.1,
+     "got": {
+      "t": 1,
+      "at": {
+       "x": -6,
+       "y": 0.1,
+       "z": 244
+      },
+      "kind": "desk"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "4/5",
+     "wp": {
+      "x": -7.5,
+      "z": 242.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "post",
+    "label": "Ollie the postman",
+    "at": [
+     0,
+     2.4,
+     224
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 18,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0,
+      224.5
+     ]
+    },
+    "wander": {
+     "reachable": 565,
+     "total": 565,
+     "frac": 1
+    },
+    "drive": {
+     "skipped": "wandering NPC"
+    }
+   },
+   {
+    "kind": "secret",
+    "label": "The folded note",
+    "at": [
+     38.4,
+     32.3,
+     -128
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 253,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      39,
+      -128
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 44.4,
+     "end": {
+      "x": 35.3,
+      "y": 29.8,
+      "z": -124.7
+     },
+     "maxY": 29.8,
+     "got": {
+      "t": 44.4,
+      "at": {
+       "x": 35.3,
+       "y": 29.8,
+       "z": -124.7
+      },
+      "kind": "secret"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "250/252",
+     "wp": {
+      "x": 37.5,
+      "z": -126.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "dock",
+    "label": "The boat",
+    "at": [
+     0,
+     0.8,
+     272.4
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 16,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0,
+      272.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 2.1,
+     "end": {
+      "x": 7.8,
+      "y": -0.6,
+      "z": 266.4
+     },
+     "maxY": 0,
+     "got": {
+      "t": 2.1,
+      "at": {
+       "x": 7.8,
+       "y": -0.6,
+       "z": 266.4
+      },
+      "kind": "dock"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "11/15",
+     "wp": {
+      "x": 4.5,
+      "z": 268,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 1 (Wedged in a fossil)",
+    "at": [
+     -120,
+     2.9,
+     120
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 88,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -120,
+      119.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 14.6,
+     "end": {
+      "x": -123.2,
+      "y": 0.4,
+      "z": 123.8
+     },
+     "maxY": 15.9,
+     "got": {
+      "t": 14.6,
+      "at": {
+       "x": -123.2,
+       "y": 0.4,
+       "z": 123.8
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "85/87",
+     "wp": {
+      "x": -121.5,
+      "z": 121,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 2 (At the foot of the caldera)",
+    "at": [
+     32,
+     38.4,
+     -32
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 189,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      31.5,
+      -32
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 32.1,
+     "end": {
+      "x": 28.2,
+      "y": 34.7,
+      "z": -28.7
+     },
+     "maxY": 34.7,
+     "got": {
+      "t": 32.1,
+      "at": {
+       "x": 28.2,
+       "y": 34.7,
+       "z": -28.7
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "186/188",
+     "wp": {
+      "x": 30,
+      "z": -30.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 3 (Below the ledge)",
+    "at": [
+     120,
+     4.9,
+     96
+    ],
+    "phase": "Her boots",
+    "found": true,
+    "path": {
+     "nodes": 104,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      120,
+      95.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 17.4,
+     "end": {
+      "x": 116.3,
+      "y": 3.1,
+      "z": 99.2
+     },
+     "maxY": 15.1,
+     "got": {
+      "t": 17.4,
+      "at": {
+       "x": 116.3,
+       "y": 3.1,
+       "z": 99.2
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "101/103",
+     "wp": {
+      "x": 118.5,
+      "z": 97,
+      "launch": false
+     }
+    }
+   }
+  ],
+  "cells": {
+   "n": 241527,
+   "valid": 116192
+  },
+  "spawn": {
+   "at": [
+    0,
+    249.4152800000095
+   ],
+   "valid": true,
+   "h": 0
+  },
+  "moons": {
+   "total": 28,
+   "onFoot": 28,
+   "withJump": 28,
+   "unreachable": []
+  },
+  "ms": 21652,
+  "pageErrors": []
+ },
+ "sanity": {
+  "island": "sanity",
+  "grid": 1.5,
+  "phases": [
+   {
+    "name": "no ability",
+    "stats": {
+     "walk": 96625,
+     "jumps": 19226,
+     "jumpHits": 1,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 1
+    },
+    "seen": 96627
+   },
+   {
+    "name": "Her lantern",
+    "stats": {
+     "walk": 97657,
+     "jumps": 20932,
+     "jumpHits": 3,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 1
+    },
+    "seen": 97661
+   }
+  ],
+  "targets": [
+   {
+    "kind": "ability",
+    "label": "Her lantern",
+    "at": [
+     -106.4,
+     15,
+     -84.8
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 346,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -106.5,
+      -84.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 64.1,
+     "end": {
+      "x": -109.7,
+      "y": 10.3,
+      "z": -81.3
+     },
+     "maxY": 10.3,
+     "got": {
+      "t": 64.1,
+      "at": {
+       "x": -109.7,
+       "y": 10.3,
+       "z": -81.3
+      },
+      "kind": "ability"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "344/345",
+     "wp": {
+      "x": -106.5,
+      "z": -84.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "pen",
+    "label": "The pen",
+    "at": [
+     -141.2,
+     8.4,
+     25.3
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 273,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -141,
+      25
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 50.7,
+     "end": {
+      "x": -144.3,
+      "y": 3.1,
+      "z": 28.4
+     },
+     "maxY": 3.1,
+     "got": {
+      "t": 50.7,
+      "at": {
+       "x": -144.3,
+       "y": 3.1,
+       "z": 28.4
+      },
+      "kind": "pen"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "270/272",
+     "wp": {
+      "x": -142.5,
+      "z": 26.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "letter",
+    "label": "The paper",
+    "at": [
+     256,
+     10.3,
+     -48
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 393,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      256.5,
+      -48.5
+     ]
+    },
+    "reachableWithoutAbility": false,
+    "drive": {
+     "ok": true,
+     "t": 66.3,
+     "end": {
+      "x": 253.8,
+      "y": 8.1,
+      "z": -44.4
+     },
+     "maxY": 8.1,
+     "got": {
+      "t": 66.3,
+      "at": {
+       "x": 253.8,
+       "y": 8.1,
+       "z": -44.4
+      },
+      "kind": "letter"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "390/392",
+     "wp": {
+      "x": 255,
+      "z": -47,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "desk",
+    "label": "The writing desk",
+    "at": [
+     -10,
+     0,
+     425.8
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 6,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -7.5,
+      425.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 1,
+     "end": {
+      "x": -6,
+      "y": 0,
+      "z": 427
+     },
+     "maxY": 0,
+     "got": {
+      "t": 1,
+      "at": {
+       "x": -6,
+       "y": 0,
+       "z": 427
+      },
+      "kind": "desk"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "4/5",
+     "wp": {
+      "x": -7.5,
+      "z": 425.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "post",
+    "label": "Ollie the postman",
+    "at": [
+     0,
+     2.4,
+     200
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 156,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0,
+      200.5
+     ]
+    },
+    "wander": {
+     "reachable": 565,
+     "total": 565,
+     "frac": 1
+    },
+    "drive": {
+     "skipped": "wandering NPC"
+    }
+   },
+   {
+    "kind": "secret",
+    "label": "The folded note",
+    "at": [
+     -38.4,
+     2.9,
+     -204.8
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 426,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -39,
+      -204.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 77.3,
+     "end": {
+      "x": -41.7,
+      "y": 1.2,
+      "z": -201.8
+     },
+     "maxY": 9.8,
+     "got": {
+      "t": 77.3,
+      "at": {
+       "x": -41.7,
+       "y": 1.2,
+       "z": -201.8
+      },
+      "kind": "secret"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "424/425",
+     "wp": {
+      "x": -39,
+      "z": -204.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "dock",
+    "label": "The boat",
+    "at": [
+     0,
+     0.8,
+     455.4
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 16,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0,
+      455.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 2.1,
+     "end": {
+      "x": 7.8,
+      "y": -0.3,
+      "z": 449.4
+     },
+     "maxY": 0,
+     "got": {
+      "t": 2.1,
+      "at": {
+       "x": 7.8,
+       "y": -0.3,
+       "z": 449.4
+      },
+      "kind": "dock"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "11/15",
+     "wp": {
+      "x": 4.5,
+      "z": 451,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 1 (In a tide pool)",
+    "at": [
+     85.1,
+     2.4,
+     72.6
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 241,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      85.5,
+      73
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 42.3,
+     "end": {
+      "x": 81.9,
+      "y": 0,
+      "z": 76.6
+     },
+     "maxY": 1.4,
+     "got": {
+      "t": 42.3,
+      "at": {
+       "x": 81.9,
+       "y": 0,
+       "z": 76.6
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "238/240",
+     "wp": {
+      "x": 84,
+      "z": 74.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 2 (At the foot of the lighthouse)",
+    "at": [
+     -125.4,
+     5.2,
+     -114.3
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 366,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -126,
+      -114.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 67.1,
+     "end": {
+      "x": -129.1,
+      "y": 6,
+      "z": -111.1
+     },
+     "maxY": 7.1,
+     "got": {
+      "t": 67.1,
+      "at": {
+       "x": -129.1,
+       "y": 6,
+       "z": -111.1
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "363/365",
+     "wp": {
+      "x": -127.5,
+      "z": -113,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 3 (On the sea stack)",
+    "at": [
+     270,
+     10.2,
+     -36
+    ],
+    "phase": "Her lantern",
+    "found": true,
+    "path": {
+     "nodes": 402,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      270,
+      -36.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 67.2,
+     "end": {
+      "x": 266.9,
+      "y": 8,
+      "z": -40
+     },
+     "maxY": 8.1,
+     "got": {
+      "t": 67.2,
+      "at": {
+       "x": 266.9,
+       "y": 8,
+       "z": -40
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "399/401",
+     "wp": {
+      "x": 268.5,
+      "z": -38,
+      "launch": false
+     }
+    }
+   }
+  ],
+  "cells": {
+   "n": 234919,
+   "valid": 96627
+  },
+  "spawn": {
+   "at": [
+    0,
+    432.37487999999365
+   ],
+   "valid": true,
+   "h": 0
+  },
+  "moons": {
+   "total": 33,
+   "onFoot": 33,
+   "withJump": 33,
+   "unreachable": []
+  },
+  "ms": 8655,
+  "pageErrors": []
+ },
+ "town": {
+  "island": "town",
+  "grid": 1.5,
+  "phases": [
+   {
+    "name": "no ability",
+    "stats": {
+     "walk": 62809,
+     "jumps": 18574,
+     "jumpHits": 0,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 0
+    },
+    "seen": 62810
+   },
+   {
+    "name": "Her crown",
+    "stats": {
+     "walk": 108183,
+     "jumps": 28194,
+     "jumpHits": 0,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 0
+    },
+    "seen": 108184
+   }
+  ],
+  "targets": [
+   {
+    "kind": "ability",
+    "label": "Her crown",
+    "at": [
+     0,
+     4.9,
+     0
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 116,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -4,
+      -5.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 19.2,
+     "end": {
+      "x": -7.2,
+      "y": 1.8,
+      "z": -2.3
+     },
+     "maxY": 8.9,
+     "got": {
+      "t": 19.2,
+      "at": {
+       "x": -7.2,
+       "y": 1.8,
+       "z": -2.3
+      },
+      "kind": "ability"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "114/115",
+     "wp": {
+      "x": -4,
+      "z": -5.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "pen",
+    "label": "The pen",
+    "at": [
+     -197.3,
+     3.1,
+     -7
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 142,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -197.5,
+      -7
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 24.5,
+     "end": {
+      "x": -194.2,
+      "y": 0.2,
+      "z": -3.8
+     },
+     "maxY": 3.4,
+     "got": {
+      "t": 24.5,
+      "at": {
+       "x": -194.2,
+       "y": 0.2,
+       "z": -3.8
+      },
+      "kind": "pen"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "139/141",
+     "wp": {
+      "x": -196,
+      "z": -5.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "letter",
+    "label": "The paper",
+    "at": [
+     197,
+     6.1,
+     41
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 132,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      197,
+      41
+     ]
+    },
+    "reachableWithoutAbility": false,
+    "drive": {
+     "ok": true,
+     "t": 20.1,
+     "end": {
+      "x": 194,
+      "y": 4.7,
+      "z": 44
+     },
+     "maxY": 6.8,
+     "got": {
+      "t": 20.1,
+      "at": {
+       "x": 194,
+       "y": 4.7,
+       "z": 44
+      },
+      "kind": "letter"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "130/131",
+     "wp": {
+      "x": 197,
+      "z": 41,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "desk",
+    "label": "The writing desk",
+    "at": [
+     -10,
+     2.2,
+     160.1
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 9,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -11.5,
+      158
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 1,
+     "end": {
+      "x": -5.8,
+      "y": 2.4,
+      "z": 160.7
+     },
+     "maxY": 2.4,
+     "got": {
+      "t": 1,
+      "at": {
+       "x": -5.8,
+       "y": 2.4,
+       "z": 160.7
+      },
+      "kind": "desk"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "5/8",
+     "wp": {
+      "x": -8.5,
+      "z": 158,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "post",
+    "label": "Ollie the postman",
+    "at": [
+     11.3,
+     3.5,
+     178.7
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 9,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      11,
+      179
+     ]
+    },
+    "wander": {
+     "reachable": 401,
+     "total": 401,
+     "frac": 1
+    },
+    "drive": {
+     "skipped": "wandering NPC"
+    }
+   },
+   {
+    "kind": "secret",
+    "label": "The folded note",
+    "at": [
+     -118.6,
+     2.9,
+     -99.4
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 179,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -118,
+      -100
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 29.6,
+     "end": {
+      "x": -121.8,
+      "y": 2.9,
+      "z": -96.2
+     },
+     "maxY": 13.3,
+     "got": {
+      "t": 29.6,
+      "at": {
+       "x": -121.8,
+       "y": 2.9,
+       "z": -96.2
+      },
+      "kind": "secret"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "176/178",
+     "wp": {
+      "x": -119.5,
+      "z": -98.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "dock",
+    "label": "The boat",
+    "at": [
+     0,
+     0.8,
+     189.7
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 16,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0.5,
+      189.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 2.2,
+     "end": {
+      "x": 7.9,
+      "y": -0.1,
+      "z": 183.7
+     },
+     "maxY": 2.2,
+     "got": {
+      "t": 2.2,
+      "at": {
+       "x": 7.9,
+       "y": -0.1,
+       "z": 183.7
+      },
+      "kind": "dock"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "11/15",
+     "wp": {
+      "x": 5,
+      "z": 185,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 1 (Pinned to a beach umbrella)",
+    "at": [
+     -102.9,
+     3.3,
+     61.4
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 79,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -103,
+      62
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 12.7,
+     "end": {
+      "x": -101,
+      "y": 1.1,
+      "z": 63.6
+     },
+     "maxY": 3.4,
+     "got": {
+      "t": 12.7,
+      "at": {
+       "x": -101,
+       "y": 1.1,
+       "z": 63.6
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "77/78",
+     "wp": {
+      "x": -103,
+      "z": 62,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 2 (By the fountain)",
+    "at": [
+     16,
+     5.8,
+     24
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 96,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      15.5,
+      24.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 15.8,
+     "end": {
+      "x": 12.5,
+      "y": 4.3,
+      "z": 27.5
+     },
+     "maxY": 6.7,
+     "got": {
+      "t": 15.8,
+      "at": {
+       "x": 12.5,
+       "y": 4.3,
+       "z": 27.5
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "94/95",
+     "wp": {
+      "x": 15.5,
+      "z": 24.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 3 (At the gate)",
+    "at": [
+     67.6,
+     2.7,
+     10.7
+    ],
+    "phase": "Her crown",
+    "found": true,
+    "path": {
+     "nodes": 105,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      68,
+      11
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 17.5,
+     "end": {
+      "x": 64.4,
+      "y": 0.5,
+      "z": 14.6
+     },
+     "maxY": 7.6,
+     "got": {
+      "t": 17.5,
+      "at": {
+       "x": 64.4,
+       "y": 0.5,
+       "z": 14.6
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "102/104",
+     "wp": {
+      "x": 66.5,
+      "z": 12.5,
+      "launch": false
+     }
+    }
+   }
+  ],
+  "cells": {
+   "n": 389376,
+   "valid": 107862
+  },
+  "spawn": {
+   "at": [
+    0,
+    166.65269333333012
+   ],
+   "valid": true,
+   "h": 2.2197020053863525
+  },
+  "moons": {
+   "total": 28,
+   "onFoot": 28,
+   "withJump": 28,
+   "unreachable": []
+  },
+  "ms": 13640,
+  "pageErrors": []
+ },
+ "moon": {
+  "island": "moon",
+  "grid": 1.5,
+  "phases": [
+   {
+    "name": "no ability",
+    "stats": {
+     "walk": 85188,
+     "jumps": 16760,
+     "jumpHits": 0,
+     "glides": 0,
+     "glideHits": 0,
+     "rounds": 0
+    },
+    "seen": 85189
+   }
+  ],
+  "targets": [
+   {
+    "kind": "letter",
+    "label": "The fifth song",
+    "at": [
+     -24,
+     69.5,
+     -104
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 143,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -23.5,
+      -104.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 24.2,
+     "end": {
+      "x": -27.1,
+      "y": 65.9,
+      "z": -100.9
+     },
+     "maxY": 65.9,
+     "got": {
+      "t": 24.2,
+      "at": {
+       "x": -27.1,
+       "y": 65.9,
+       "z": -100.9
+      },
+      "kind": "letter"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "140/142",
+     "wp": {
+      "x": -25,
+      "z": -103,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "dock",
+    "label": "The boat",
+    "at": [
+     0,
+     0.8,
+     131.6
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 16,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      0.5,
+      131
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 2.2,
+     "end": {
+      "x": 7.8,
+      "y": -0.2,
+      "z": 125.4
+     },
+     "maxY": 0.8,
+     "got": {
+      "t": 2.2,
+      "at": {
+       "x": 7.8,
+       "y": -0.2,
+       "z": 125.4
+      },
+      "kind": "dock"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "11/15",
+     "wp": {
+      "x": 5,
+      "z": 126.5,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 1 (Nailed to the last post)",
+    "at": [
+     -1.3,
+     3.1,
+     117.3
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 7,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -1,
+      117.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 0.8,
+     "end": {
+      "x": 2.3,
+      "y": 0.6,
+      "z": 113.8
+     },
+     "maxY": 0.8,
+     "got": {
+      "t": 0.8,
+      "at": {
+       "x": 2.3,
+       "y": 0.6,
+       "z": 113.8
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "4/6",
+     "wp": {
+      "x": 0.5,
+      "z": 116,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 2 (Left in the grass)",
+    "at": [
+     104,
+     8.8,
+     24
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 70,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      104,
+      24.5
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 11.3,
+     "end": {
+      "x": 100.5,
+      "y": 4.7,
+      "z": 27.8
+     },
+     "maxY": 10.7,
+     "got": {
+      "t": 11.3,
+      "at": {
+       "x": 100.5,
+       "y": 4.7,
+       "z": 27.8
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "67/69",
+     "wp": {
+      "x": 102.5,
+      "z": 26,
+      "launch": false
+     }
+    }
+   },
+   {
+    "kind": "note",
+    "label": "Note 3 (Halfway up)",
+    "at": [
+     -24,
+     9.7,
+     8
+    ],
+    "phase": "no ability",
+    "found": true,
+    "path": {
+     "nodes": 68,
+     "jumps": 0,
+     "glides": 0,
+     "from": [
+      -23.5,
+      8
+     ]
+    },
+    "drive": {
+     "ok": true,
+     "t": 11.5,
+     "end": {
+      "x": -27.3,
+      "y": 7.1,
+      "z": 11.8
+     },
+     "maxY": 7.1,
+     "got": {
+      "t": 11.5,
+      "at": {
+       "x": -27.3,
+       "y": 7.1,
+       "z": 11.8
+      },
+      "kind": "note"
+     },
+     "jumps": 0,
+     "stuck": 0,
+     "k": "65/67",
+     "wp": {
+      "x": -25,
+      "z": 9.5,
+      "launch": false
+     }
+    }
+   }
+  ],
+  "cells": {
+   "n": 188834,
+   "valid": 85189
+  },
+  "spawn": {
+   "at": [
+    0,
+    108.56922666666604
+   ],
+   "valid": true,
+   "h": 0.7148281335830688
+  },
+  "moons": {
+   "total": 23,
+   "onFoot": 23,
+   "withJump": 23,
+   "unreachable": []
+  },
+  "ms": 4451,
+  "pageErrors": []
+ }
+}

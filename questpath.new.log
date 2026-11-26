@@ -1,0 +1,12 @@
+[questpath] hub 9492 ms  castle:OK dock:OK note:OK note:OK note:OK note:OK note:OK
+[questpath] hub moons 23: on foot 23, with a jump 23, by glide 0, unreachable 0
+[questpath] green 88915 ms  ability:OK pen:OK letter:OK desk:OK post:ok* secret:OK dock:OK note:OK note:OK note:OK
+[questpath] green moons 35: on foot 29, with a jump 30, by glide 5, unreachable 0
+[questpath] gr 21652 ms  ability:OK pen:OK letter:OK desk:OK post:ok* secret:OK dock:OK note:OK note:OK note:OK
+[questpath] gr moons 28: on foot 28, with a jump 28, by glide 0, unreachable 0
+[questpath] sanity 8655 ms  ability:OK pen:OK letter:OK desk:OK post:ok* secret:OK dock:OK note:OK note:OK note:OK
+[questpath] sanity moons 33: on foot 33, with a jump 33, by glide 0, unreachable 0
+[questpath] town 13640 ms  ability:OK pen:OK letter:OK desk:OK post:ok* secret:OK dock:OK note:OK note:OK note:OK
+[questpath] town moons 28: on foot 28, with a jump 28, by glide 0, unreachable 0
+[questpath] moon 4451 ms  letter:OK dock:OK note:OK note:OK note:OK
+[questpath] moon moons 23: on foot 23, with a jump 23, by glide 0, unreachable 0

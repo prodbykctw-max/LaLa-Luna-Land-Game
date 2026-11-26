@@ -1,0 +1,14 @@
+[questpath] sanity 8655 ms  ability:OK pen:OK letter:OK desk:OK post:ok* secret:OK dock:OK note:OK note:OK note:OK
+[questpath] sanity moons 33: on foot 33, with a jump 33, by glide 0, unreachable 0
+[questpath] town 13640 ms  ability:OK pen:OK letter:OK desk:OK post:ok* secret:OK dock:OK note:OK note:OK note:OK
+[questpath] town moons 28: on foot 28, with a jump 28, by glide 0, unreachable 0
+[questpath] moon 4451 ms  letter:OK dock:OK note:OK note:OK note:OK
+[questpath] moon moons 23: on foot 23, with a jump 23, by glide 0, unreachable 0
+[questpath] sanity 8700 ms  ability:OK pen:OK letter:OK desk:OK post:ok* secret:OK dock:OK note:OK note:OK note:OK
+[questpath] sanity moons 33: on foot 33, with a jump 33, by glide 0, unreachable 0
+[questpath] town 13529 ms  ability:OK pen:OK letter:OK desk:OK post:ok* secret:OK dock:OK note:OK note:OK note:OK
+[questpath] town moons 28: on foot 28, with a jump 28, by glide 0, unreachable 0
+[questpath] moon 4476 ms  letter:OK dock:OK note:OK note:OK note:OK
+[questpath] moon moons 23: on foot 23, with a jump 23, by glide 0, unreachable 0
+SUITE questpath  NEW rc=0 OLD rc=0
+rc=0
