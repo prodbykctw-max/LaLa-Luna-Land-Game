@@ -1,0 +1,12 @@
+[det] hub: seeded MATCH (c80ed649 / c80ed649, 355 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] green: seeded MATCH (cd542c9f / cd542c9f, 556 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] gr: seeded MATCH (298e9b34 / 298e9b34, 406 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] sanity: seeded MATCH (ff0e871b / ff0e871b, 412 meshes) · ?seed=random differs true · other seed differs true · creatures still drift false
+[det] town: seeded DIFFER (e278b5cf / 1bb54527, 677 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] hub: seeded MATCH (db3b398e / db3b398e, 354 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] green: seeded MATCH (775cd3ff / 775cd3ff, 611 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] gr: seeded MATCH (cdb7b3c2 / cdb7b3c2, 405 meshes) · ?seed=random differs true · other seed differs true · creatures still drift false
+[det] sanity: seeded DIFFER (43d61e45 / a05e750, 411 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+[det] town: seeded DIFFER (bc5ead6f / 5d2b176, 680 meshes) · ?seed=random differs true · other seed differs true · creatures still drift true
+SUITE determinism  NEW rc=0 OLD rc=0
+rc=0
