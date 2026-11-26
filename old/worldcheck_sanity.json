@@ -1,0 +1,49 @@
+{
+ "island": "sanity",
+ "items": 37,
+ "leftovers": [],
+ "shore": [],
+ "bakedInSea": {
+  "n": 0,
+  "sample": []
+ },
+ "facing": [],
+ "sliding": {},
+ "moved": {
+  "jelly": 9,
+  "dolphin": 4,
+  "fish": 14,
+  "crab": 6,
+  "turtle": 3
+ },
+ "swimOnly": {},
+ "postman": {
+  "riderVsHorse": 0,
+  "moving": false,
+  "horseVsTravel": null
+ },
+ "mounts": [],
+ "take": [
+  {
+   "kind": "ability",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "pen",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "letter",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "secret",
+   "hidden": true,
+   "ghostsLeft": 0
+  }
+ ],
+ "errors": []
+}

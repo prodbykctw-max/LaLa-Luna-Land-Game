@@ -1,0 +1,90 @@
+{
+ "hub": {
+  "findings": 0,
+  "leftovers": 0,
+  "take": "",
+  "shore": 0,
+  "bakedInSea": 0,
+  "facing": 0,
+  "sliding": "",
+  "postman": null,
+  "swimOnly": {},
+  "errors": 0
+ },
+ "green": {
+  "findings": 0,
+  "leftovers": 0,
+  "take": "ability:ok pen:ok letter:ok secret:ok carrot:ok carrot:ok",
+  "shore": 0,
+  "bakedInSea": 0,
+  "facing": 0,
+  "sliding": "",
+  "postman": {
+   "riderVsHorse": 0,
+   "moving": false,
+   "horseVsTravel": null
+  },
+  "swimOnly": {},
+  "errors": 0
+ },
+ "gr": {
+  "findings": 0,
+  "leftovers": 0,
+  "take": "ability:ok pen:ok letter:ok secret:ok",
+  "shore": 0,
+  "bakedInSea": 0,
+  "facing": 0,
+  "sliding": "",
+  "postman": {
+   "riderVsHorse": 0,
+   "moving": false,
+   "horseVsTravel": null
+  },
+  "swimOnly": {},
+  "errors": 0
+ },
+ "sanity": {
+  "findings": 0,
+  "leftovers": 0,
+  "take": "ability:ok pen:ok letter:ok secret:ok",
+  "shore": 0,
+  "bakedInSea": 0,
+  "facing": 0,
+  "sliding": "",
+  "postman": {
+   "riderVsHorse": 0,
+   "moving": false,
+   "horseVsTravel": null
+  },
+  "swimOnly": {},
+  "errors": 0
+ },
+ "town": {
+  "findings": 1,
+  "leftovers": 0,
+  "take": "ability:ok pen:ok letter:ok secret:ok",
+  "shore": 0,
+  "bakedInSea": 0,
+  "facing": 0,
+  "sliding": "flamingo x8 (plays a clip, but not a walk)",
+  "postman": {
+   "riderVsHorse": 0,
+   "moving": true,
+   "horseVsTravel": 2
+  },
+  "swimOnly": {},
+  "errors": 0
+ },
+ "moon": {
+  "findings": 0,
+  "leftovers": 0,
+  "take": "",
+  "shore": 0,
+  "bakedInSea": 0,
+  "facing": 0,
+  "sliding": "",
+  "postman": null,
+  "swimOnly": {},
+  "errors": 0
+ }
+}

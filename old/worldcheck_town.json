@@ -1,0 +1,133 @@
+{
+ "island": "town",
+ "items": 54,
+ "leftovers": [],
+ "shore": [],
+ "bakedInSea": {
+  "n": 0,
+  "sample": []
+ },
+ "facing": [],
+ "sliding": {
+  "flamingo": {
+   "n": 8,
+   "why": "plays a clip, but not a walk",
+   "who": [
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      -22.1,
+      169.9
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      -40.4,
+      156.4
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      27.3,
+      200.4
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      -29.5,
+      163.5
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      18.2,
+      200.2
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      24.8,
+      201.2
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      14.2,
+      197.2
+     ],
+     "moved": 1.01
+    },
+    {
+     "rig": "flamingo",
+     "clip": "idle",
+     "at": [
+      -32.1,
+      163
+     ],
+     "moved": 1.01
+    }
+   ]
+  }
+ },
+ "moved": {
+  "cow": 2,
+  "chicken": 7,
+  "iguana": 2,
+  "troupial": 4,
+  "flamingo": 8
+ },
+ "swimOnly": {},
+ "postman": {
+  "riderVsHorse": 0,
+  "moving": true,
+  "horseVsTravel": 2
+ },
+ "mounts": [
+  {
+   "who": "Neri",
+   "riderVsMount": 0
+  }
+ ],
+ "take": [
+  {
+   "kind": "ability",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "pen",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "letter",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "secret",
+   "hidden": true,
+   "ghostsLeft": 0
+  }
+ ],
+ "errors": []
+}

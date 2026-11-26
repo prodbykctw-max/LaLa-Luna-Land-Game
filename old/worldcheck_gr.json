@@ -1,0 +1,48 @@
+{
+ "island": "gr",
+ "items": 32,
+ "leftovers": [],
+ "shore": [],
+ "bakedInSea": {
+  "n": 0,
+  "sample": []
+ },
+ "facing": [],
+ "sliding": {},
+ "moved": {
+  "dino": 2,
+  "raptor": 5,
+  "ptero": 3,
+  "monkey": 4
+ },
+ "swimOnly": {},
+ "postman": {
+  "riderVsHorse": 0,
+  "moving": false,
+  "horseVsTravel": null
+ },
+ "mounts": [],
+ "take": [
+  {
+   "kind": "ability",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "pen",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "letter",
+   "hidden": true,
+   "ghostsLeft": 0
+  },
+  {
+   "kind": "secret",
+   "hidden": true,
+   "ghostsLeft": 0
+  }
+ ],
+ "errors": []
+}
