@@ -1,0 +1,4 @@
+[syntax] ok - 1 script block(s) parse
+[syntax] ok - 1 script block(s) parse
+SUITE syntax  NEW rc=0 OLD rc=0
+rc=0
