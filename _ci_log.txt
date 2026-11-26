@@ -1,0 +1,4 @@
+{"island":"town","findings":[],"moons":true,"partMeshes":63}
+{"island":"town","findings":[],"moons":false,"partMeshes":65}
+instcheck town NEW rc=0 OLD rc=0
+rc=0
