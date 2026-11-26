@@ -10761,10 +10761,10 @@ function* buildIslandSteps(cfg){   /* the island build, one top-level step per y
   if(FOREST) FOREST.markOpen();      /* QA: bushes from here on stand in the open */
   for(let i=0;i<14;i++){ const s = sample(10, 60, true); if(!s) continue; const bs = .8+Math.random()*.9;
     if(FOREST) FOREST.bush(bs, s[0], height(s[0],s[1]), s[1]); else { const b = makeBush(bs); b.position.set(s[0], height(s[0],s[1])+.25, s[1]); scene.add(b); bushes.push(b); } }
-  /* QA ONLY (?qabush=1): one extra bush on open ground 9-18 u from the spawn, so a proof frame can show a bush as the subject. Draws extra random numbers, so it is never on in the game. */
+  /* QA ONLY (?qabush=1): one extra bush on open ground 10-44 u from the spawn, off the pier, so a proof frame can show a bush as the subject. Draws extra random numbers, so it is never on in the game. */
   if(FOREST && QS.get("qabush")){ const sp0 = cfg.spawn; let qb = null, qs = -1e9;
-    for(let rr = 9; rr <= 18; rr += 1.5) for(let k = 0; k < 24; k++){ const a = k / 24 * Math.PI * 2, x = sp0[0] + Math.cos(a) * rr, z = sp0[1] + Math.sin(a) * rr; if(!inside(x, z) || (Math.abs(x - cfg.dock[0]) < 12 && Math.abs(z - cfg.dock[1]) < DOCK_LEN / 2 + 12)) continue; const y = height(x, z); if(y < .5) continue;
-      let m = 1e9; for(const c of I.colliders) m = Math.min(m, Math.hypot(c.x - x, c.z - z) - (c.camR || 1) * 2.6); const sc2 = Math.min(m, 9) - .05 * rr; if(sc2 > qs){ qs = sc2; qb = [x, y, z]; } }
+    for(let rr = 10; rr <= 44; rr += 2) for(let k = 0; k < 32; k++){ const a = k / 32 * Math.PI * 2, x = sp0[0] + Math.cos(a) * rr, z = sp0[1] + Math.sin(a) * rr; if(!inside(x, z) || (Math.abs(x - cfg.dock[0]) < 12 && Math.abs(z - cfg.dock[1]) < DOCK_LEN / 2 + 12)) continue; const y = height(x, z); if(y < .5) continue;
+      let m = 1e9; for(const c of I.colliders) m = Math.min(m, Math.hypot(c.x - x, c.z - z) - (c.camR || 1) * 2.6); const sc2 = Math.min(m, 9) - .12 * rr; if(sc2 > qs){ qs = sc2; qb = [x, y, z]; } }
     if(qb){ FOREST.bush(1.15, qb[0], qb[1], qb[2]); FOREST.markQA(); } }
   yield;
   if(FOREST) I.forest = FOREST.finish(scene, I);
