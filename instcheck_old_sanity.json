@@ -1,0 +1,122 @@
+{
+ "island": "sanity",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "pen": {
+    "tris": 1288,
+    "materials": 1,
+    "box": [
+     -142.26,
+     7.45,
+     24.11,
+     -140.35,
+     9.6,
+     26.23
+    ]
+   },
+   "secret": {
+    "tris": 348,
+    "materials": 2,
+    "box": [
+     -38.67,
+     2.63,
+     -205.38,
+     -38.13,
+     2.99,
+     -204.22
+    ]
+   },
+   "desk": {
+    "tris": 15009,
+    "materials": 6,
+    "box": [
+     -12.38,
+     0.02,
+     423.39,
+     -8.25,
+     3.46,
+     427.37
+    ]
+   },
+   "pickup": {
+    "tris": 16328,
+    "materials": 3,
+    "box": [
+     -108.76,
+     13.48,
+     -87.15,
+     -104.04,
+     15.7,
+     -82.45
+    ]
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 33,
+   "instanced": false,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 32,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    }
+   ]
+  },
+  "decals": {
+   "proxies": 17,
+   "instanced": false
+  },
+  "partMeshes": {
+   "pen": 3,
+   "secret": 2,
+   "desk": 6,
+   "pickup": 3
+  }
+ },
+ "findings": [],
+ "errors": []
+}
