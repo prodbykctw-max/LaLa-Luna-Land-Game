@@ -1884,8 +1884,8 @@ function bakeGeoC(){
           const anchors = [];
           curves.forEach((c, ci) => { const ar = mulberry32(seedOf("willow-anc:" + sp.seed + ":" + ci)); let acc = 0, nextAt = (c.twig ? .25 : .55) * ar(), prev = c.pts[0];
             for(let i = 1; i < c.pts.length; i++){ const q = c.pts[i], seg = Math.hypot(q[0] - prev[0], q[1] - prev[1], q[2] - prev[2]); acc += seg; prev = q;
-              if(i / (c.pts.length - 1) < (c.twig ? .22 : .16)) continue;
-              while(acc >= nextAt){ nextAt += (c.twig ? .30 : .34) + .14 * ar(); const jx = (ar() - .5) * .22, jz = (ar() - .5) * .22;
+              if(i / (c.pts.length - 1) < (c.twig ? .18 : .10)) continue;
+              while(acc >= nextAt){ nextAt += (c.twig ? .20 : .22) + .10 * ar(); const jx = (ar() - .5) * .22, jz = (ar() - .5) * .22;
                 anchors.push({x: q[0] + jx, y: q[1] + (ar() - .5) * .12, z: q[2] + jz, r: Math.hypot(q[0], q[2]), crest: !c.twig && q[1] > c.ymax - .9, cf: c.cf, tw: c.twig, ci}); } } });
           SK = {curves, anchors};
         }
@@ -1944,7 +1944,7 @@ function bakeGeoC(){
           const flare = Math.max(0, ra - .5) * .25;
           chain(P0.set(an.x, an.y, an.z), O0, wr, fl, an.crest ? sz * .8 : sz, wm, false, an.crest, flare);
           /* a second, shorter strand beside it in a third of the places: the cascade is fuller than a row of single strands */
-          if(!an.crest && wr() < .35){ const sx = (wr() - .5) * .5, sz2 = (wr() - .5) * .5; chain(P0.set(an.x + sx, an.y - .15, an.z + sz2), O0, wr, Math.max(.06, Math.min(an.y - 1.0, fl + (an.y - fl) * (.2 + .4 * wr()))), sz * .85, wm, false, false, flare); } });
+          if(!an.crest && wr() < .55){ const sx = (wr() - .5) * .5, sz2 = (wr() - .5) * .5; chain(P0.set(an.x + sx, an.y - .15, an.z + sz2), O0, wr, Math.max(.06, Math.min(an.y - 1.0, fl + (an.y - fl) * (.2 + .4 * wr()))), sz * .85, wm, false, false, flare); } });
         const ng = new THREE.BufferGeometry();
         ng.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); ng.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); ng.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
         ng.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); ng.setAttribute("aB", new THREE.Float32BufferAttribute(aB, 1)); ng.setAttribute("aW", new THREE.Float32BufferAttribute(aW, 1)); ng.setAttribute("aEx", new THREE.Float32BufferAttribute(aEx, 1));
