@@ -1,0 +1,8 @@
+{"island":"gr","cur":"gr","total":{"calls":246,"tris":996526},"shadow":{"calls":75,"tris":336668},"programs":220,"zeroMain":62,"zeroShadow":1}
+{"island":"gr","cur":"gr","total":{"calls":198,"tris":988874},"shadow":{"calls":74,"tris":336668},"programs":220,"zeroMain":6,"zeroShadow":0}
+{"island":"gr","cur":"gr","total":{"calls":241,"tris":995602},"shadow":{"calls":73,"tris":328044},"programs":214,"zeroMain":6,"zeroShadow":0}
+{"island":"gr","cur":"gr","total":{"calls":190,"tris":996526},"shadow":{"calls":73,"tris":317014},"programs":220,"zeroMain":6,"zeroShadow":0}
+{"island":"gr","cur":"gr","total":{"calls":219,"tris":996524},"shadow":{"calls":74,"tris":336668},"programs":219,"zeroMain":6,"zeroShadow":0}
+{"island":"gr","cur":"gr","total":{"calls":192,"tris":996526},"shadow":{"calls":77,"tris":337956},"programs":220,"zeroMain":6,"zeroShadow":0}
+{"island":"gr","cur":"gr","total":{"calls":395,"tris":997116},"shadow":{"calls":77,"tris":329332},"programs":211,"zeroMain":93,"zeroShadow":1}
+rc=0
