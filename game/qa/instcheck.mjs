@@ -89,17 +89,20 @@ for (const key of argIslands(['hub', 'green', 'gr', 'sanity', 'town'])) {
   R.struct.decals = dec; if (dec.instanced && (dec.mismatch || dec.hiddenParentStillDrawn)) fail('decals: ' + JSON.stringify(dec));
   /* ---- model parts ---- */
   const parts = await H.page.evaluate(() => { const I = window.__T.CUR, THREE_ = window.THREE; const eff = (o, root) => { for (let q = o; q; q = q.parent) { if (!q.visible) return false; if (q === root) break; } return true; };
-    const sum = root => { let tris = 0, meshes = 0; const mats = new Set(), bb = new THREE_.Box3(); root.updateMatrixWorld(true);
-      root.traverse(o => { if (!o.isMesh || o.isInstancedMesh || o.layers.mask !== 1 || !eff(o, root) || !o.geometry.attributes.position) return; const g = o.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3; meshes++; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => mats.add(m.uuid));
-        if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox.clone().applyMatrix4(o.matrixWorld)); });
-      return { tris: Math.round(tris), meshes, materials: mats.size, box: bb.isEmpty() ? null : [bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z].map(v => +v.toFixed(2)) }; };
+    /* root-LOCAL numbers, so a spinning, bobbing or flapping model reads the same at any moment: triangles, the box and centroid of every vertex in the root's own frame, and the set of distinct material LOOKS
+       (a shared material object and ten identical ones are the same look). Butterflies flap, so theirs is tris + looks only. */
+    const sum = (root, flap) => { let tris = 0, meshes = 0, nv = 0; const looks = new Set(), mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9], cs = [0, 0, 0]; root.updateMatrixWorld(true); const inv = new THREE_.Matrix4().copy(root.matrixWorld).invert(), M = new THREE_.Matrix4(), v = new THREE_.Vector3();
+      root.traverse(o => { if (!o.isMesh || o.isInstancedMesh || o.layers.mask !== 1 || !eff(o, root) || !o.geometry.attributes.position) return; const g = o.geometry, P = g.attributes.position; tris += (g.index ? g.index.count : P.count) / 3; meshes++;
+        (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => looks.add([m.type, m.color ? m.color.getHexString() : '', m.opacity, m.transparent, m.side, m.map ? m.map.uuid : '', m.roughness, m.metalness].join('|')));
+        if (flap) return; M.multiplyMatrices(inv, o.matrixWorld); for (let k = 0; k < P.count; k++){ v.fromBufferAttribute(P, k).applyMatrix4(M); for (let c = 0; c < 3; c++){ const x = c === 0 ? v.x : c === 1 ? v.y : v.z; if (x < mn[c]) mn[c] = x; if (x > mx[c]) mx[c] = x; cs[c] += x; } nv++; } });
+      return { tris: Math.round(tris), meshes, materials: looks.size, box: flap || !nv ? null : [...mn, ...mx].map(v => +v.toFixed(2)), centroid: flap || !nv ? null : cs.map(x => +(x / nv).toFixed(2)), verts: flap ? null : nv }; };
     const out = {}; (I.buildings || []).forEach((b, i) => { out['house' + i + ':' + b.userData.bld] = sum(b); });
     (I.quest && I.quest.carrots || []).forEach((c, i) => { out['carrot' + i] = sum(c); });
     if (I.quest) for (const k of ['pen', 'secret', 'desk']) if (I.quest[k]) out[k] = sum(I.quest[k]);
     if (I.pickup) out.pickup = sum(I.pickup);
-    if (I.fx && I.fx.bf) I.fx.bf.list.slice(0, 4).forEach((b, i) => { out['bfly' + i] = sum(b); });
+    if (I.fx && I.fx.bf) I.fx.bf.list.slice(0, 4).forEach((b, i) => { out['bfly' + i] = sum(b, true); });
     return out; });
-  R.state.parts = {}; for (const k of Object.keys(parts)) R.state.parts[k] = { tris: parts[k].tris, materials: parts[k].materials, box: parts[k].box }; R.struct.partMeshes = {}; for (const k of Object.keys(parts)) R.struct.partMeshes[k] = parts[k].meshes;
+  R.state.parts = {}; for (const k of Object.keys(parts)) R.state.parts[k] = { tris: parts[k].tris, materials: parts[k].materials, box: parts[k].box, centroid: parts[k].centroid }; R.struct.partMeshes = {}; for (const k of Object.keys(parts)) R.struct.partMeshes[k] = parts[k].meshes;
   R.errors = H.log.errors.slice(0, 5); if (R.errors.length) fail('console errors: ' + R.errors.join(' | ').slice(0, 300));
   console.log(JSON.stringify({ island: key, findings: R.findings, moons: R.struct.moons.instanced, partMeshes: Object.values(R.struct.partMeshes).reduce((a, b) => a + b, 0) }));
   writeFileSync(`${OUT}/instcheck_${tag}_${key}.json`, JSON.stringify(R, null, 1));
