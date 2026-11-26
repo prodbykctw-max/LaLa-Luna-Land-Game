@@ -1,0 +1,4 @@
+[traversal] sanity: traps=0 pockets=0 camHits=27084 stalls=0 buried=0 fps~59.9
+[traversal] sanity: traps=0 pockets=0 camHits=27084 stalls=0 buried=0 fps~59.9
+SUITE traversal sanity NEW rc=0 OLD rc=0
+rc=0
