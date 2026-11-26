@@ -1688,14 +1688,14 @@ const CLAMP01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
 function bakeTreesC(night){
   const EZ = window.EZTREE; if(!EZ) throw new Error("vendor/eztree.min.js did not load");
   return withFreeRandom(() => {
-    if(!TREE_C_TEX) TREE_C_TEX = {atlas: treeTexLoad("assets/trees/ez/leaf_atlas.webp", true, false), bark: treeTexLoad("assets/trees/ez/bark001_diff.jpg", true, true), barkN: treeTexLoad("assets/trees/ez/bark001_nor.jpg", false, true)};
+    if(!TREE_C_TEX) TREE_C_TEX = {atlas: treeTexLoad("assets/trees/ez/leaf_atlas.webp", true, false), bark: treeTexLoad("assets/trees/ez/bark001_diff.jpg", true, true), barkN: treeTexLoad("assets/trees/ez/bark001_nor.jpg", false, true), willow: treeTexLoad("assets/trees/ez/willow_sprig.webp", true, false)};
     const T = TREE_C_TEX, nk = night ? 1 : 0;
     if(!TREE_C_MATS[nk]) TREE_C_MATS[nk] = {leaf: treeLeafMat(T.atlas, night), bark: treeBarkMat(T.bark, T.barkN, night, new THREE.Color(.50, .40, .31)),
-      leafDepth: treeDepthMat(T.atlas), barkDepth: treeDepthMat(null), barkW: treeBarkMat(T.bark, T.barkN, night, new THREE.Color(.50, .40, .31).multiplyScalar(WBARK))};
+      leafW: treeLeafMat(T.willow, night), leafWDepth: treeDepthMat(T.willow), leafDepth: treeDepthMat(T.atlas), barkDepth: treeDepthMat(null), barkW: treeBarkMat(T.bark, T.barkN, night, new THREE.Color(.50, .40, .31).multiplyScalar(WBARK))};
     const M = TREE_C_MATS[nk];
     if(!TREE_C_GEO) TREE_C_GEO = bakeGeoC();
     window.__TREEGEO = TREE_C_GEO;      /* QA */
-    const dress = (list, w) => list.map(V => ({...V, parts: V.parts.map(p => ({...p, mat: p.leaf ? M.leaf : (w ? M.barkW : M.bark), depth: p.leaf ? M.leafDepth : M.barkDepth}))}));
+    const dress = (list, w) => list.map(V => ({...V, parts: V.parts.map(p => ({...p, mat: p.leaf ? (w ? M.leafW : M.leaf) : (w ? M.barkW : M.bark), depth: p.leaf ? (w ? M.leafWDepth : M.leafDepth) : M.barkDepth}))}));
     return {tree: dress(TREE_C_GEO.tree), willow: dress(TREE_C_GEO.willow, true), bush: dress(TREE_C_GEO.bush)};
   });
 }
@@ -1746,7 +1746,7 @@ function bakeGeoC(){
       const flip = rg() < .5, hue = (rg() - .5) * .10, L = .95 * s, Wd = .74 * s, b = pos.length / 3;
       const cs = [[0, 1], [0, 0], [1, 0], [1, 1]];
       for(const [cu, cv] of cs){ const x = P.x + D.x * cv * L + R.x * (cu - .5) * Wd * (cv ? .9 : 1), y = P.y + D.y * cv * L + R.y * (cu - .5) * Wd * (cv ? .9 : 1), z = P.z + D.z * cv * L + R.z * (cu - .5) * Wd * (cv ? .9 : 1);
-        pos.push(x, Math.max(y, -.04), z); nor.push(Nn.x, Nn.y, Nn.z); uv.push(((flip ? 1 - cu : cu) + cell0) / 3, cv * .5);
+        pos.push(x, Math.max(y, -.04), z); nor.push(Nn.x, Nn.y, Nn.z); uv.push(((flip ? 1 - cu : cu) + cell0) / 3, cv);
         col.push(tint[0] * br * (1 + hue), tint[1] * br, tint[2] * br * (1 - hue)); aB.push(CLAMP01(.15 + .45 * (y / HTb)) * w); aW.push(.25 + .75 * cv); aEx.push(ex); }
       idx.push(b, b + 1, b + 2, b, b + 2, b + 3); };
     const ns = sp.stems, up = new THREE.Vector3(0, 1, 0), cards = [];
@@ -1830,7 +1830,6 @@ function bakeGeoC(){
             const u = flip ? 1 - ua.getX(i0 + k) : ua.getX(i0 + k); ua.setX(i0 + k, (u + cell0) / N3);
             const ci = (i0 + k) * 3; col[ci] = tint[0] * br * (1 + hue); col[ci + 1] = tint[1] * br; col[ci + 2] = tint[2] * br * (1 - hue);
             aB[i0 + k] = cw; aW[i0 + k] = Math.max(0, ua.getY(i0 + k)) * .9; aEx[i0 + k] = ex;
-            ua.setY(i0 + k, ua.getY(i0 + k) * .5);      /* the atlas has two rows now: the oak | ash | aspen row is the bottom half, the willow sprig the top */
           }
           /* the shading normals: scale like a position would, so the crown's rounding survives the fit */
           for(let k = 0; k < 4; k++){ v.fromBufferAttribute(nra, i0 + k); v.set(v.x / kxz, v.y / Math.max(dy, .2 * kxz), v.z / kxz).normalize(); nra.setXYZ(i0 + k, v.x, v.y, v.z); }
@@ -1848,28 +1847,66 @@ function bakeGeoC(){
         pa.needsUpdate = ua.needsUpdate = na.needsUpdate = true; g.computeBoundingSphere();
       };
       lods.forEach(l => { doBranches(l.branches); doLeaves(l.leaves); });
-      /* WILLOW: a weeping willow is curtains, not a dome. Keep only the crown's top as a dome of leaves; everything below it is replaced by long hanging
-         strands of sprigs, one from each chosen outer twig, that fall down to about a third of the tree's height above the grass. Own generator (the bake's
-         `vr` stays where it was, so the bushes baked after the willows do not change). */
-      let ANCH = null;
+      /* WILLOW: its own skeleton. ez-tree's willow limbs are cut away except the trunk; in their place arch 8-10 long limbs that rise from the trunk's top,
+         curve over and fall (a cubic Bezier each, with side twigs), and the strands of sprigs hang FROM THOSE LIMBS' OUTER LENGTHS. So the outline is the
+         limbs' own arches, the strands bunch into cascades along each limb with gaps between limbs (trunk, limbs and sky show through), and the hem is
+         uneven: a strand stops where its cascade's length and its distance from the trunk say, some at the grass, many a third to a half up. Private seeded
+         generator per variant; the bake's `vr` and the page's random stream are not touched. */
+      let SK = null;
       if(kind === "willow") lods.forEach((l, li) => {
-        const d = [NEAR, FARD][li], stride = d.leafStride || 1, scl = d.leafScale || 1, g = l.leaves, pa = g.attributes.position, ua = g.attributes.uv, na = g.attributes.normal;
-        const cr = g.attributes.color, aB0 = g.attributes.aB, aW0 = g.attributes.aW, aE0 = g.attributes.aEx, nq = pa.count / 4, wr = mulberry32(seedOf("willow-curtain:" + sp.seed));
-        const domeY = .48 * HT, keep = [], cand = [];
-        for(let q = 0; q < nq; q++){ const i0 = q * 4; if((pa.getY(i0 + 1) + pa.getY(i0 + 2)) / 2 >= domeY) keep.push(q); }
-        /* anchors sit ON the limbs: random points of the near level's branch mesh, outside the trunk and above the strands' reach, the outer limbs favoured,
-           no two within .55 u of each other */
-        if(!ANCH){ const bp = l.branches.attributes.position, nb = bp.count, anchors = [];
-          for(let t = 0; t < 30000 && anchors.length < 520; t++){ const i = Math.floor(wr() * nb), x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), r = Math.hypot(x, z);
-            if(y < 3.6 || y > HT * (1.02 - .55 * Math.pow(Math.min(1, r / K.HALFW), 2)) || r < .5 || wr() > (.2 + r / K.HALFW) * (.35 + .65 * Math.min(1, y / (HT * .8)))) continue;
-            let ok = true; for(const a of anchors){ const dx = a[0] - x, dy = a[1] - y, dz = a[2] - z; if(dx * dx + dy * dy + dz * dz < .13){ ok = false; break; } }
-            if(ok) anchors.push([x, y, z, r]); }
-          ANCH = anchors; }
-        const anchorsL = ANCH;      /* chosen once from the near level's sprigs; every level hangs the same strands (the far ones every 3rd or 4th) */
+        const d = [NEAR, FARD][li], stride = d.leafStride || 1, scl = d.leafScale || 1, sides = li ? 4 : (TREE_MOBILE ? 5 : 6);
+        const g = l.leaves, wr0 = mulberry32(seedOf("willow-skel:" + sp.seed)), SM = (a, b, x) => { const t = CLAMP01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+        /* the trunk: the thick, low part of ez's branch mesh (everything thinner or further out is dropped) */
+        const bg = l.branches, bpp = bg.attributes.position, bi = bg.index, trR = y => Math.max(.35, 1.05 - .10 * y) + .75, ni = [];
+        for(let t = 0; t < bi.count; t += 3){ let ok = true; for(let k = 0; k < 3; k++){ const v = bi.getX(t + k), y = bpp.getY(v); if(y > 7.6 || Math.hypot(bpp.getX(v), bpp.getZ(v)) > trR(y)){ ok = false; break; } }
+          if(ok) ni.push(bi.getX(t), bi.getX(t + 1), bi.getX(t + 2)); }
+        const TOP = 7.6, axis = y => { let sx = 0, sz = 0, n = 0; for(const v of ni){ const vy = bpp.getY(v); if(Math.abs(vy - y) < .6){ sx += bpp.getX(v); sz += bpp.getZ(v); n++; } } return n ? [sx / n, sz / n] : [0, 0]; };
+        if(!SK){
+          const curves = [], pushCurve = (P0, hx, hz, R, yA, yE, rad0, rad1, twig, cf, wr) => {
+            const S = [0, R * .12, R * .60, R], Y = [P0[1], P0[1] + (yA - P0[1]) * 1.5, yA + (yA - P0[1]) * .12, yE], px = -hz, pz = hx, ph = wr() * 6.28, am = R * (twig ? .05 : .035) * (wr() < .5 ? 1 : -1), N = 28, pts = [];
+            for(let i = 0; i <= N; i++){ const t = i / N, m = 1 - t, b0 = m * m * m, b1 = 3 * m * m * t, b2 = 3 * m * t * t, b3 = t * t * t, s = b0 * S[0] + b1 * S[1] + b2 * S[2] + b3 * S[3], y = b0 * Y[0] + b1 * Y[1] + b2 * Y[2] + b3 * Y[3], w = Math.sin(t * 3.2 + ph) * am * t;
+              pts.push([P0[0] + hx * s + px * w, y, P0[2] + hz * s + pz * w]); }
+            let ymax = -1e9; for(const q of pts) ymax = Math.max(ymax, q[1]);
+            const c = {pts, rad0, rad1, twig, cf, ymax}; curves.push(c); return c; };
+          const nL = 9, phi = wr0() * 6.28;
+          for(let j = 0; j < nL; j++){
+            const u = (j + .5 + (wr0() - .5) * .8) / nL, th = u * 6.2832 + .30 * Math.sin(3 * u * 6.2832 + phi), rank = ((j * 4 + 1) % nL) / (nL - 1), rE = K.HALFW * (.40 + .58 * rank) * (.94 + .12 * wr0());
+            const y0 = 5.0 + 1.5 * wr0(), ax = axis(y0), hx = Math.cos(th), hz = Math.sin(th), rAp = .42 * rE, yA = Math.max(y0 + 1.3, 6.5 + 1.7 * Math.sqrt(Math.max(0, 1 - Math.pow(rAp / (K.HALFW * .9), 2))) + (wr0() - .5) * .5);
+            const yE = yA - (1.5 + 1.7 * rank + wr0() * .9), cf = wr0(), lw = mulberry32(seedOf("willow-limb:" + sp.seed + ":" + j));
+            const P0 = [ax[0] + hx * .12, y0, ax[1] + hz * .12], R = Math.max(1.5, rE - Math.hypot(P0[0], P0[2]));
+            const lc = pushCurve(P0, hx, hz, R, yA, yE, .17, .03, false, cf, lw);
+            const nt = 2 + (lw() < .6 ? 1 : 0);
+            for(let k = 0; k < nt; k++){ const tt = [.42, .62, .80][k] + (lw() - .5) * .06, q = lc.pts[Math.round(tt * 28)], sg = (k & 1) ? 1 : -1, rot = sg * (.65 + lw() * .55), c0 = Math.cos(rot), s0 = Math.sin(rot);
+              const h2x = hx * c0 - hz * s0, h2z = hx * s0 + hz * c0, R2 = (.20 + .22 * lw()) * K.HALFW;
+              pushCurve(q, h2x, h2z, R2, q[1] + .3 + .6 * lw(), q[1] - (1.1 + 1.7 * lw()), .07, .02, true, cf, lw); }
+          }
+          /* anchors: along each limb's outer length (t from .16), every .30 to .46 u; the first ones, over the crest, are the arch ones */
+          const anchors = [];
+          curves.forEach((c, ci) => { const ar = mulberry32(seedOf("willow-anc:" + sp.seed + ":" + ci)); let acc = 0, nextAt = (c.twig ? .25 : .55) * ar(), prev = c.pts[0];
+            for(let i = 1; i < c.pts.length; i++){ const q = c.pts[i], seg = Math.hypot(q[0] - prev[0], q[1] - prev[1], q[2] - prev[2]); acc += seg; prev = q;
+              if(i / (c.pts.length - 1) < (c.twig ? .22 : .16)) continue;
+              while(acc >= nextAt){ nextAt += (c.twig ? .30 : .34) + .14 * ar(); const jx = (ar() - .5) * .22, jz = (ar() - .5) * .22;
+                anchors.push({x: q[0] + jx, y: q[1] + (ar() - .5) * .12, z: q[2] + jz, r: Math.hypot(q[0], q[2]), crest: !c.twig && q[1] > c.ymax - .9, cf: c.cf, tw: c.twig, ci}); } } });
+          SK = {curves, anchors};
+        }
+        /* the limbs as tubes, merged into the branch mesh next to the trunk */
+        { const bp = [], bn = [], bu = [], bB = [], bW = [], bE = [], bidx = [], v3 = new THREE.Vector3(), rg = new THREE.Vector3(), up = new THREE.Vector3();
+          for(const c of SK.curves){ const n = c.pts.length, base = bp.length / 3; let len = 0;
+            for(let i = 0; i < n; i++){ const q = c.pts[i], a = c.pts[Math.max(0, i - 1)], b = c.pts[Math.min(n - 1, i + 1)]; if(i) len += Math.hypot(q[0] - a[0], q[1] - a[1], q[2] - a[2]);
+              v3.set(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize(); rg.crossVectors(v3, Math.abs(v3.y) > .95 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)).normalize(); up.crossVectors(rg, v3).normalize();
+              const rad = c.rad0 + (c.rad1 - c.rad0) * Math.pow(i / (n - 1), .8);
+              for(let k = 0; k <= sides; k++){ const an = k / sides * 6.2832, cx = Math.cos(an), sx = Math.sin(an);
+                bn.push(rg.x * cx + up.x * sx, rg.y * cx + up.y * sx, rg.z * cx + up.z * sx); bp.push(q[0] + (rg.x * cx + up.x * sx) * rad, q[1] + (rg.y * cx + up.y * sx) * rad, q[2] + (rg.z * cx + up.z * sx) * rad);
+                bu.push(k / sides, len * .9); bB.push(CLAMP01(.15 + .45 * i / (n - 1))); bW.push(0); bE.push(0); } }
+            for(let i = 0; i < n - 1; i++) for(let k = 0; k < sides; k++){ const a = base + i * (sides + 1) + k, b = a + 1, c2 = a + sides + 1, d2 = c2 + 1; bidx.push(a, c2, b, b, c2, d2); } }
+          const nb = bpp.count, vtx = nb + bp.length / 3, f = (src, extra, comp) => { const o = new Float32Array(vtx * comp); o.set(src.array.subarray(0, nb * comp)); o.set(extra, nb * comp); return new THREE.BufferAttribute(o, comp); };
+          const ng2 = new THREE.BufferGeometry();
+          ng2.setAttribute("position", f(bg.attributes.position, bp, 3)); ng2.setAttribute("normal", f(bg.attributes.normal, bn, 3)); ng2.setAttribute("uv", f(bg.attributes.uv, bu, 2));
+          ng2.setAttribute("aB", f(bg.attributes.aB, bB, 1)); ng2.setAttribute("aW", f(bg.attributes.aW, bW, 1)); ng2.setAttribute("aEx", f(bg.attributes.aEx, bE, 1));
+          const all = ni.concat(bidx.map(x => x + nb)); ng2.setIndex(new THREE.BufferAttribute(new Uint32Array(all), 1)); ng2.computeBoundingSphere(); l.branches = ng2; }
+        const anchorsL = SK.anchors;
         const pos = [], nor = [], uv = [], col = [], aB = [], aW = [], aEx = [], idx = [];
-        const pushKept = q => { const i0 = q * 4, b = pos.length / 3; for(let k = 0; k < 4; k++){ pos.push(pa.getX(i0 + k), pa.getY(i0 + k), pa.getZ(i0 + k)); nor.push(na.getX(i0 + k), na.getY(i0 + k), na.getZ(i0 + k)); uv.push(ua.getX(i0 + k), ua.getY(i0 + k));
-          col.push(cr.getX(i0 + k), cr.getY(i0 + k), cr.getZ(i0 + k)); aB.push(aB0.getX(i0 + k)); aW.push(aW0.getX(i0 + k)); aEx.push(aE0.getX(i0 + k)); } idx.push(b, b + 1, b + 2, b, b + 2, b + 3); };
-        const pa0k = pa, WTINT = QS.get('wtint') ? QS.get('wtint').split(',').map(Number) : [.85, .66, .42];
+        const WTINT = QS.get('wtint') ? QS.get('wtint').split(',').map(Number) : [.85, .66, .42];
         const V = new THREE.Vector3(), Dk = new THREE.Vector3(), O = new THREE.Vector3(), O0 = new THREE.Vector3(), P0 = new THREE.Vector3(), R = new THREE.Vector3(), P = new THREE.Vector3(), UPv = new THREE.Vector3(0, 1, 0), Nn = new THREE.Vector3();
         /* one hanging chain of willow-sprig cards from a point P0, falling to floorY. Card: WCW x WCL world units (the proportions the sprig was drawn in, so its
            leaves stay about 9:1), the sprig's base at the top of the chain, its tip hanging down. Overlap 38%. */
@@ -1888,34 +1925,31 @@ function bakeGeoC(){
             const b = pos.length / 3; Nn.copy(O).multiplyScalar(.75).addScaledVector(UPv, .30).addScaledVector(R, (wr() - .5) * .4).normalize();
             const cs = [[0, 1], [0, 0], [1, 0], [1, 1]];        /* tip-left, base-left, base-right, tip-right: the sprig's base is v = 0, its tip v = 1, which here points down */
             for(const [cu, cv] of cs){ V.copy(P).addScaledVector(Dk, cv * Lc).addScaledVector(R, (cu - .5) * w * (cv ? .85 : 1)); if(V.y < .05) V.y = .05;
-              pos.push(V.x, V.y, V.z); nor.push(Nn.x, Nn.y, Nn.z); uv.push((flip ? 1 - cu : cu) / N3, .5 + cv * .5);        /* the willow sprig: the top row of the atlas, first cell */
+              pos.push(V.x, V.y, V.z); nor.push(Nn.x, Nn.y, Nn.z); uv.push(flip ? 1 - cu : cu, cv);        /* the willow sprig has a texture of its own */
               col.push(WTINT[0] * br * (1 + hue), WTINT[1] * br, WTINT[2] * br * (1 - hue));
               const tt = t0 + (t1 - t0) * cv; aB.push(CLAMP01(.30 + .80 * tt)); aW.push(.25 + .75 * tt * cv); aEx.push(wE(V.x, V.y, V.z)); }
             idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
             P.addScaledVector(Dk, step); travelled += step; k++; }
         };
-        /* the strands that hang from the limbs: varied length (most reach the grass, some stop short), card width and size */
-        anchorsL.forEach((an, ai) => { if(ai % stride) return; const wr = mulberry32(seedOf('wc:' + sp.seed + ':' + ai));      /* per strand: the same in every level */
-          const lenR = wr(), floorY = HT * (lenR < .72 ? .27 + .08 * wr() : .38 + .30 * wr()), sz = (.80 + wr() * .40) * scl, wm = .85 + wr() * .45, rl = wr() * 6.28;
-          O0.set(an[0], 0, an[2]); if(O0.lengthSq() < .01) O0.set(Math.cos(rl), 0, Math.sin(rl)); O0.normalize();
-          chain(P0.set(an[0], an[1], an[2]), O0, wr, floorY, sz, wm, false, an[1] > HT * .72 && wr() < .6, Math.max(0, an[3] / K.HALFW - .45) * .45); });
-        /* the dome: the old leaf quads of the crown's top are replaced by short drooping chains from the same places (the sun-lit pale clumps were those quads),
-           and these also cover the limbs that showed through */
-        keep.forEach((q, qi) => { if(qi % stride) return; const wr = mulberry32(seedOf('wd:' + sp.seed + ':' + qi)), i0 = q * 4; { const qx = (pa0k.getX(i0 + 1) + pa0k.getX(i0 + 2)) / 2, qz = (pa0k.getZ(i0 + 1) + pa0k.getZ(i0 + 2)) / 2, qy = (pa0k.getY(i0 + 1) + pa0k.getY(i0 + 2)) / 2; if(qy > HT * (1.02 - .55 * Math.pow(Math.min(1, Math.hypot(qx, qz) / K.HALFW), 2))) return; }
-          P0.set((pa0k.getX(i0 + 1) + pa0k.getX(i0 + 2)) / 2, (pa0k.getY(i0 + 1) + pa0k.getY(i0 + 2)) / 2, (pa0k.getZ(i0 + 1) + pa0k.getZ(i0 + 2)) / 2);
-          O0.set(P0.x, 0, P0.z); if(O0.lengthSq() < .01) O0.set(1, 0, 0); O0.normalize();
-          chain(P0, O0, wr, Math.max(P0.y - (1.6 + wr() * 1.9), HT * .30), (.62 + wr() * .30) * scl, .9 + wr() * .3, true, wr() < .7); });
-        /* the bare limbs that droop all the way to the grass (ez-tree's gravity) read as rods once the strands carry the leaves: cut them where the strands start */
-        { const bg = l.branches, bpp = bg.attributes.position, bi = bg.index, ni = [];
-          for(let t = 0; t < bi.count; t += 3){ const a = bi.getX(t), b = bi.getX(t + 1), c = bi.getX(t + 2);
-            const my = Math.max(bpp.getY(a), bpp.getY(b), bpp.getY(c)), mr = Math.min(Math.hypot(bpp.getX(a), bpp.getZ(a)), Math.hypot(bpp.getX(b), bpp.getZ(b)), Math.hypot(bpp.getX(c), bpp.getZ(c)));
-            if(my < 4.3 && mr > 1.7) continue; ni.push(a, b, c); }
-          bg.setIndex(new THREE.BufferAttribute(new Uint32Array(ni), 1)); }
+        /* strands. Hem profile: a strand's lowest point follows its distance from the trunk (the rim is short, so the outline is a rounded shoulder; nearer the
+           trunk they fall to the grass); then each cascade (a limb) has its own length bias and each strand its own luck, so the hem is ragged. */
+        anchorsL.forEach((an, ai) => { if(ai % stride) return; const wr = mulberry32(seedOf('wc:' + sp.seed + ':' + ai)), ra = an.r / K.HALFW, env = HT * (.12 + .44 * SM(.5, 1.0, ra));
+          let fl; const lv = wr();
+          if(an.crest) fl = an.y - (1.3 + 1.3 * wr());
+          else if(an.cf > .5 && lv < .7) fl = .1 + env * (.25 + .5 * wr());
+          else fl = env + (an.y - env) * (.12 + .55 * wr());
+          fl = Math.min(fl, an.y - 1.0); if(fl < .06) fl = .06;
+          const sz = (.80 + wr() * .40) * scl, wm = .85 + wr() * .45, rl = wr() * 6.28;
+          O0.set(an.x, 0, an.z); if(O0.lengthSq() < .01) O0.set(Math.cos(rl), 0, Math.sin(rl)); O0.normalize();
+          const flare = Math.max(0, ra - .5) * .25;
+          chain(P0.set(an.x, an.y, an.z), O0, wr, fl, an.crest ? sz * .8 : sz, wm, false, an.crest, flare);
+          /* a second, shorter strand beside it in a third of the places: the cascade is fuller than a row of single strands */
+          if(!an.crest && wr() < .35){ const sx = (wr() - .5) * .5, sz2 = (wr() - .5) * .5; chain(P0.set(an.x + sx, an.y - .15, an.z + sz2), O0, wr, Math.max(.06, Math.min(an.y - 1.0, fl + (an.y - fl) * (.2 + .4 * wr()))), sz * .85, wm, false, false, flare); } });
         const ng = new THREE.BufferGeometry();
         ng.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); ng.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3)); ng.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
         ng.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); ng.setAttribute("aB", new THREE.Float32BufferAttribute(aB, 1)); ng.setAttribute("aW", new THREE.Float32BufferAttribute(aW, 1)); ng.setAttribute("aEx", new THREE.Float32BufferAttribute(aEx, 1));
         ng.setIndex(new THREE.BufferAttribute(new Uint32Array(idx), 1)); ng.computeBoundingSphere(); l.leaves = ng;
-        if(window.__WILLOWQA) (window.__WILLOWQA = window.__WILLOWQA || []).push({seed: sp.seed, li, anchors: anchorsL.length, strands: Math.ceil(anchorsL.length / stride), cards: (pos.length / 12), kept: keep.length});
+        (window.__WILLOWQA = window.__WILLOWQA || []).push({seed: sp.seed, li, limbs: SK.curves.length, anchors: anchorsL.length, cards: pos.length / 12});
       });
       return {name: kind + " " + sp.preset + " #" + sp.seed, w: sp.w, rad: K.HALFW, H: K.HT,
         parts: [{leaf: false, geos: lods.map(l => l.branches)}, {leaf: true, geos: lods.map(l => l.leaves)}]};

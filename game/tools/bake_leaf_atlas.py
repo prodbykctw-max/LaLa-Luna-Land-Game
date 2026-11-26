@@ -32,8 +32,7 @@ def to_green(rgba):
 # ---- WILLOW sprig (procedural, no outside source): python3 tools/bake_leaf_atlas.py --willow
 # A thin hanging twig with long lance-shaped leaves (about 9:1), alternate, pointing toward the tip and drooping. Drawn in the card's WORLD units
 # (the card is WILLOW_CARD_W x WILLOW_CARD_L world units, base at the bottom of the image, tip at the top: the strand hangs tip-down), so the leaf
-# comes out 9:1 on screen whatever the card's aspect. It goes in the top row of a 2-row atlas; the oak | ash | aspen row is read back from the
-# current atlas and kept byte-for-byte (lossless save), so those sprigs and their mip chain do not change.
+# comes out 9:1 on screen whatever the card's aspect. It is saved on its own as assets/trees/ez/willow_sprig.webp (lossy), so the oak | ash | aspen atlas stays byte for byte as it was.
 WILLOW_CARD_W, WILLOW_CARD_L = 0.80, 2.00
 def willow_cell(S=768, SS=4, seed=11):
     import random, math
@@ -84,14 +83,11 @@ def willow_cell(S=768, SS=4, seed=11):
     im = Image.alpha_composite(im, hl)
     return im.resize((S, S), Image.LANCZOS)
 if sys.argv[1] == '--willow':
-    cur = np.array(Image.open('assets/trees/ez/leaf_atlas.webp').convert('RGBA'))
-    base = cur[CELL:] if cur.shape[0] == 2 * CELL else cur
-    cell = bleed(np.array(willow_cell(CELL)), iters=60)
+    # its own small texture: the leaf atlas file is NOT touched (byte-identical to round 3). One square cell, lossy webp.
+    cell = bleed(np.array(willow_cell(512)), iters=60)
     far = (cell[..., 3] == 0) & (cell[..., :3].sum(2) == 0); cell[far, :3] = (78, 128, 50)       # beyond the bleed: a leaf green, never black, so mips do not darken
-    top = np.concatenate([cell, np.zeros_like(cell), np.zeros_like(cell)], axis=1)
-    A = np.concatenate([top, base], axis=0)
-    Image.fromarray(A, 'RGBA').save('assets/trees/ez/leaf_atlas.webp', lossless=True, quality=100, method=6, exact=True)
-    print(A.shape); sys.exit(0)
+    Image.fromarray(cell, 'RGBA').save('assets/trees/ez/willow_sprig.webp', quality=82, method=6, alpha_quality=90)
+    print(cell.shape); sys.exit(0)
 srcs = sys.argv[1:4]; cells = []
 for k, f in enumerate(srcs):
     im = Image.open(f).convert('RGBA').resize((CELL, CELL), Image.LANCZOS); a = np.array(im)
