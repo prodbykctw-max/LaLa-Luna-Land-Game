@@ -1,0 +1,56 @@
+{
+ "opt": "A",
+ "island": "green",
+ "rows": [
+  {
+   "view": "desktop",
+   "mainPass": {
+    "calls": 790,
+    "tris": 1518044,
+    "samples": 2,
+    "otherSceneRenders": 0,
+    "otherTris": 0
+   },
+   "withShadowPass": {
+    "calls": 935,
+    "tris": 2164962,
+    "samples": 2,
+    "otherSceneRenders": 0,
+    "otherTris": 0
+   },
+   "shadowOnly": {
+    "calls": 145,
+    "tris": 646918
+   },
+   "curKey": "green",
+   "instMeshesVisible": 2,
+   "mobileFlag": false,
+   "errors": []
+  },
+  {
+   "view": "phone",
+   "mainPass": {
+    "calls": 758,
+    "tris": 1245618,
+    "samples": 4,
+    "otherSceneRenders": 0,
+    "otherTris": 0
+   },
+   "withShadowPass": {
+    "calls": 903,
+    "tris": 1800738,
+    "samples": 3,
+    "otherSceneRenders": 0,
+    "otherTris": 0
+   },
+   "shadowOnly": {
+    "calls": 145,
+    "tris": 555120
+   },
+   "curKey": "green",
+   "instMeshesVisible": 2,
+   "mobileFlag": true,
+   "errors": []
+  }
+ ]
+}
