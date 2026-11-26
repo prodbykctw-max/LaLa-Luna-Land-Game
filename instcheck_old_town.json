@@ -1,0 +1,343 @@
+{
+ "island": "town",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "house0:b2": {
+    "tris": 7334,
+    "materials": 2,
+    "box": [
+     33.56,
+     3.07,
+     182.05,
+     47.01,
+     29.1,
+     194.67
+    ]
+   },
+   "house1:b4": {
+    "tris": 0,
+    "materials": 0,
+    "box": null
+   },
+   "house2:b5": {
+    "tris": 4,
+    "materials": 2,
+    "box": [
+     52.28,
+     10.31,
+     190.34,
+     64.92,
+     15.2,
+     203.13
+    ]
+   },
+   "house3:b3": {
+    "tris": 0,
+    "materials": 0,
+    "box": null
+   },
+   "house4:b7": {
+    "tris": 0,
+    "materials": 0,
+    "box": null
+   },
+   "house5:b4": {
+    "tris": 0,
+    "materials": 0,
+    "box": null
+   },
+   "house6:b2": {
+    "tris": 7334,
+    "materials": 2,
+    "box": [
+     -52.08,
+     1.32,
+     119.86,
+     -38.52,
+     27.34,
+     133.13
+    ]
+   },
+   "house7:b5": {
+    "tris": 4,
+    "materials": 2,
+    "box": [
+     -63.91,
+     9.16,
+     104.57,
+     -50.8,
+     14.04,
+     117.63
+    ]
+   },
+   "house8:b3": {
+    "tris": 0,
+    "materials": 0,
+    "box": null
+   },
+   "house9:b10": {
+    "tris": 26,
+    "materials": 2,
+    "box": [
+     -29.26,
+     3.77,
+     81.92,
+     -16.57,
+     13.45,
+     92.17
+    ]
+   },
+   "house10:b15": {
+    "tris": 0,
+    "materials": 0,
+    "box": null
+   },
+   "house11:b9": {
+    "tris": 0,
+    "materials": 0,
+    "box": null
+   },
+   "house12:b11": {
+    "tris": 4,
+    "materials": 1,
+    "box": [
+     54.1,
+     9.84,
+     56.14,
+     57.4,
+     11.56,
+     65.57
+    ]
+   },
+   "house13:b16": {
+    "tris": 0,
+    "materials": 0,
+    "box": null
+   },
+   "house14:b11": {
+    "tris": 4,
+    "materials": 1,
+    "box": [
+     -157.2,
+     3.76,
+     -13.43,
+     -152.49,
+     5.48,
+     -4.51
+    ]
+   },
+   "house15:b19": {
+    "tris": 500,
+    "materials": 1,
+    "box": [
+     -159.92,
+     5.28,
+     -30.81,
+     -142.73,
+     13.96,
+     -14.4
+    ]
+   },
+   "house16:b19": {
+    "tris": 500,
+    "materials": 1,
+    "box": [
+     -147.97,
+     9.96,
+     -43.79,
+     -131.23,
+     18.64,
+     -26.63
+    ]
+   },
+   "pen": {
+    "tris": 1288,
+    "materials": 1,
+    "box": [
+     -198.36,
+     2.04,
+     -8.19,
+     -196.44,
+     4.19,
+     -6.07
+    ]
+   },
+   "secret": {
+    "tris": 348,
+    "materials": 2,
+    "box": [
+     -118.87,
+     2.82,
+     -99.98,
+     -118.33,
+     3.18,
+     -98.82
+    ]
+   },
+   "desk": {
+    "tris": 15009,
+    "materials": 6,
+    "box": [
+     -12.38,
+     2.2,
+     157.7,
+     -8.25,
+     5.64,
+     161.67
+    ]
+   },
+   "pickup": {
+    "tris": 8144,
+    "materials": 2,
+    "box": [
+     -2.34,
+     3.31,
+     -2.33,
+     2.34,
+     6.4,
+     2.33
+    ]
+   },
+   "bfly0": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -0.47,
+     3.09,
+     -24.07,
+     0.41,
+     3.32,
+     -23.37
+    ]
+   },
+   "bfly1": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     36.94,
+     3.5,
+     -18.26,
+     37.69,
+     3.59,
+     -17.29
+    ]
+   },
+   "bfly2": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     13.73,
+     5.26,
+     0.2,
+     14.28,
+     5.75,
+     0.51
+    ]
+   },
+   "bfly3": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -7.57,
+     8.73,
+     40.04,
+     -6.67,
+     8.85,
+     40.64
+    ]
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 28,
+   "instanced": false,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 27,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    }
+   ]
+  },
+  "gate": {
+   "n": 121,
+   "instanced": false
+  },
+  "decals": {
+   "proxies": 77,
+   "instanced": false
+  },
+  "partMeshes": {
+   "house0:b2": 2,
+   "house1:b4": 0,
+   "house2:b5": 2,
+   "house3:b3": 0,
+   "house4:b7": 0,
+   "house5:b4": 0,
+   "house6:b2": 2,
+   "house7:b5": 2,
+   "house8:b3": 0,
+   "house9:b10": 10,
+   "house10:b15": 0,
+   "house11:b9": 0,
+   "house12:b11": 2,
+   "house13:b16": 0,
+   "house14:b11": 2,
+   "house15:b19": 1,
+   "house16:b19": 1,
+   "pen": 3,
+   "secret": 2,
+   "desk": 6,
+   "pickup": 2,
+   "bfly0": 7,
+   "bfly1": 7,
+   "bfly2": 7,
+   "bfly3": 7
+  }
+ },
+ "findings": [],
+ "errors": []
+}
