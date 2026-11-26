@@ -1,0 +1,174 @@
+{
+ "island": "gr",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "pen": {
+    "tris": 1288,
+    "materials": 1,
+    "box": [
+     -92.66,
+     1.44,
+     -34.98,
+     -90.75,
+     3.59,
+     -32.87
+    ]
+   },
+   "secret": {
+    "tris": 348,
+    "materials": 2,
+    "box": [
+     38.14,
+     31.97,
+     -128.58,
+     38.66,
+     32.34,
+     -127.42
+    ]
+   },
+   "desk": {
+    "tris": 15009,
+    "materials": 6,
+    "box": [
+     -12.38,
+     0.48,
+     240.5,
+     -8.25,
+     3.91,
+     244.47
+    ]
+   },
+   "pickup": {
+    "tris": 1988,
+    "materials": 2,
+    "box": [
+     -90.37,
+     6.59,
+     101.64,
+     -85.63,
+     8.84,
+     106.36
+    ]
+   },
+   "bfly0": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     3.57,
+     27.12,
+     -36.34,
+     4.53,
+     27.35,
+     -35.57
+    ]
+   },
+   "bfly1": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     10.06,
+     30.94,
+     4.62,
+     10.83,
+     31.22,
+     5.47
+    ]
+   },
+   "bfly2": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     24.45,
+     34.77,
+     -33.58,
+     25.06,
+     35.27,
+     -32.96
+    ]
+   },
+   "bfly3": {
+    "tris": 276,
+    "materials": 5,
+    "box": [
+     -9.84,
+     26.59,
+     20.73,
+     -8.84,
+     26.73,
+     21.71
+    ]
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 28,
+   "instanced": false,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    },
+    {
+     "k": 27,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "ghostGone": true
+    }
+   ]
+  },
+  "decals": {
+   "proxies": 31,
+   "instanced": false
+  },
+  "partMeshes": {
+   "pen": 3,
+   "secret": 2,
+   "desk": 6,
+   "pickup": 3,
+   "bfly0": 7,
+   "bfly1": 7,
+   "bfly2": 7,
+   "bfly3": 7
+  }
+ },
+ "findings": [],
+ "errors": []
+}
