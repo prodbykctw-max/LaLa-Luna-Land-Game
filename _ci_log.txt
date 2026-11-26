@@ -1,0 +1,4 @@
+[traversal] gr: traps=0 pockets=0 camHits=40344 stalls=0 buried=0 fps~60
+[traversal] gr: traps=0 pockets=0 camHits=40344 stalls=0 buried=0 fps~59.9
+SUITE traversal gr NEW rc=0 OLD rc=0
+rc=0
