@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/sanityperf_top.mjs town --tag=base; cp $BASE/qa/out/sanityperf_top_base_town.json qa/out/
