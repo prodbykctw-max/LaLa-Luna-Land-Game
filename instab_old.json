@@ -1,0 +1,112 @@
+{
+ "video": false,
+ "tag": "old",
+ "clockSteps": {
+  "green": [
+   17,
+   17,
+   16,
+   17,
+   17,
+   16
+  ]
+ },
+ "errors": {
+  "green": []
+ },
+ "shots": {
+  "green": [
+   "spawn",
+   "moon0",
+   "moon1",
+   "moon2",
+   "moonwide0",
+   "moonwide1",
+   "carrot0",
+   "carrot1",
+   "carrot2",
+   "bfly0",
+   "bfly1",
+   "pen",
+   "desk",
+   "pickup"
+  ]
+ },
+ "simFrames": {
+  "green": 120
+ },
+ "seedState": {
+  "green": {
+   "fc": 241,
+   "npcs": [
+    [
+     "Wren",
+     -35.34,
+     131.85,
+     "walk",
+     -0.01
+    ],
+    [
+     "Juno",
+     54.49,
+     81.62,
+     "idle",
+     3.95
+    ],
+    [
+     "Marisol",
+     -7,
+     256,
+     "idle",
+     0.48
+    ],
+    [
+     "Dee",
+     -106,
+     -64,
+     "idle",
+     0.3
+    ],
+    [
+     "Theo",
+     81.16,
+     -144.21,
+     "walk",
+     -0.01
+    ],
+    [
+     "Nan",
+     41.64,
+     25.02,
+     "walk",
+     -0.01
+    ],
+    [
+     "Ollie the postman",
+     0,
+     248,
+     "idle",
+     0.07
+    ]
+   ]
+  }
+ },
+ "poses": {
+  "green": [
+   "spawn@",
+   "moon0@60,42",
+   "moon1@26,-147",
+   "moon2@49,-30",
+   "moonwide0@1,47",
+   "moonwide1@-71,-87",
+   "carrot0@24,25",
+   "carrot1@2,53",
+   "carrot2@37,49",
+   "bfly0@2,13",
+   "bfly1@-16,23",
+   "pen@-78,120",
+   "desk@-17,723",
+   "pickup@22,28"
+  ]
+ }
+}
