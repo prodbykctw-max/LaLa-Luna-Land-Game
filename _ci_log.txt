@@ -1,0 +1,8 @@
+{"island":"sanity","cur":"sanity","total":{"calls":482,"tris":1387746},"shadow":{"calls":67,"tris":263979},"programs":247,"zeroMain":82,"zeroShadow":2}
+{"island":"sanity","cur":"sanity","total":{"calls":409,"tris":1388954},"shadow":{"calls":65,"tris":263979},"programs":247,"zeroMain":6,"zeroShadow":0}
+{"island":"sanity","cur":"sanity","total":{"calls":434,"tris":1368134},"shadow":{"calls":65,"tris":263979},"programs":241,"zeroMain":6,"zeroShadow":0}
+{"island":"sanity","cur":"sanity","total":{"calls":396,"tris":1387226},"shadow":{"calls":65,"tris":263979},"programs":247,"zeroMain":6,"zeroShadow":0}
+{"island":"sanity","cur":"sanity","total":{"calls":414,"tris":1387272},"shadow":{"calls":65,"tris":263979},"programs":246,"zeroMain":6,"zeroShadow":0}
+{"island":"sanity","cur":"sanity","total":{"calls":405,"tris":1387162},"shadow":{"calls":67,"tris":265143},"programs":247,"zeroMain":6,"zeroShadow":0}
+{"island":"sanity","cur":"sanity","total":{"calls":622,"tris":1369244},"shadow":{"calls":70,"tris":265143},"programs":238,"zeroMain":146,"zeroShadow":3}
+rc=0
