@@ -1,0 +1,2714 @@
+{
+ "key": "hub",
+ "total": {
+  "calls": 172,
+  "tris": 748979
+ },
+ "shadow": {
+  "calls": 46,
+  "tris": 202426
+ },
+ "passes": {
+  "19ce|22a5|-|1": 46,
+  "080a|7e17|-|1": 158,
+  "adea|11e8|-|1": 1,
+  "adea|4790|-|1": 2,
+  "adea|49b0|-|1": 1,
+  "adea|a156|-|1": 1,
+  "adea|bfe4|-|1": 1,
+  "adea|66e9|-|1": 1,
+  "adea|8b40|-|1": 1,
+  "adea|2892|-|1": 1,
+  "adea|a0e4|-|1": 1,
+  "adea|4561|-|1": 1,
+  "adea|7f63|-|1": 1,
+  "adea|7e17|-|1": 1,
+  "adea|screen|-|1": 1
+ },
+ "stacks": [
+  {
+   "rt": "7e17",
+   "n": 316,
+   "st": [
+    "at bu.render (http://localhost:8413/vendor/three187.min.js:4248:5898)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "11e8",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:3985)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "4790",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4323)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "49b0",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4577)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "a156",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4323)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "bfe4",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4577)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "66e9",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4323)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "8b40",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4577)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "2892",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4323)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "a0e4",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4577)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "4561",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4323)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "7f63",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4577)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "4790",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:4941)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "7e17",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at r.render (http://localhost:8413/vendor/three187.min.js:4280:5208)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  },
+  {
+   "rt": "screen",
+   "n": 0,
+   "st": [
+    "at Mi.render (http://localhost:8413/vendor/three187.min.js:4248:520)",
+    "at Ra.render (http://localhost:8413/vendor/three187.min.js:4248:1245)",
+    "at Su.render (http://localhost:8413/vendor/three187.min.js:4248:3886)",
+    "at eval (eval at evaluate (:311:30), <anonymous>:25:30)",
+    "at async <anonymous>:337:30"
+   ]
+  }
+ ],
+ "transm": [],
+ "programs": 134,
+ "geometries": 852,
+ "zeroMain": 2,
+ "zeroShadow": 0,
+ "byTris": [
+  {
+   "group": "I.W.group",
+   "kind": "skinned",
+   "mat": "MeshPhysicalMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 149752,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "material",
+     "chain": "material<OurRig<Scene<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 95073,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,hairSquashed,shadowProxy",
+     "mname": "Material.001",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 0,
+   "distMed": 0,
+   "distMax": 0
+  },
+  {
+   "group": "I.foam",
+   "kind": "merged/large",
+   "mat": "ShaderMaterial:T:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 82944,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 42624,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I._skyOcc",
+   "kind": "instanced",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 5,
+   "zero": 0,
+   "tris": 76122,
+   "objects": 5,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 64,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    },
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 18,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 5
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "-:BufferGeometry",
+   "kind": "instanced",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 15,
+   "zero": 0,
+   "tris": 72896,
+   "objects": 15,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 94,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 15
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.forest",
+   "kind": "merged/large",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 52004,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 51208,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.sea",
+   "kind": "merged/large",
+   "mat": "ShaderMaterial:T",
+   "draws": 1,
+   "zero": 0,
+   "tris": 51200,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "PlaneGeometry",
+     "verts": 25921,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "mat,ground",
+     "mname": "",
+     "sc": "-1.1"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.terrainMesh",
+   "kind": "merged/large",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 48136,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 24461,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn,ground",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.npcs",
+   "kind": "skinned",
+   "mat": "MeshStandardMaterial",
+   "draws": 2,
+   "zero": 0,
+   "tris": 35871,
+   "objects": 2,
+   "samples": [
+    {
+     "n": "material",
+     "chain": "material<OurRig<Scene<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 18322,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,farLod",
+     "mname": "",
+     "sc": "0.5"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 2
+   },
+   "cullable": 2,
+   "distMin": 99,
+   "distMed": 329,
+   "distMax": 329
+  },
+  {
+   "group": "I.creatures",
+   "kind": "skinned",
+   "mat": "MeshStandardMaterial",
+   "draws": 11,
+   "zero": 0,
+   "tris": 29492,
+   "objects": 11,
+   "samples": [
+    {
+     "n": "Object_107",
+     "chain": "Object_107<Object_6<Armature<RootNode<Object_2",
+     "gt": "BufferGeometry",
+     "verts": 81,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,farLod",
+     "mname": "Material.001",
+     "sc": "1.0"
+    },
+    {
+     "n": "Object_105",
+     "chain": "Object_105<Object_6<Armature<RootNode<Object_2",
+     "gt": "BufferGeometry",
+     "verts": 81,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,farLod",
+     "mname": "Material.001",
+     "sc": "1.0"
+    },
+    {
+     "n": "Object_9",
+     "chain": "Object_9<Object_6<Armature<RootNode<Object_2",
+     "gt": "BufferGeometry",
+     "verts": 3896,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "targetNames,name,farLod",
+     "mname": "Material.001",
+     "sc": "1.0"
+    },
+    {
+     "n": "Object_7",
+     "chain": "Object_7<GLTF_created_0<GLTF_SceneRootNode<root<Sketchfab_model",
+     "gt": "BufferGeometry",
+     "verts": 6300,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,farLod",
+     "mname": "Lizard_M",
+     "sc": "9.8"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 11
+   },
+   "cullable": 11,
+   "distMin": 201,
+   "distMed": 359,
+   "distMax": 436
+  },
+  {
+   "group": "I.fx.birds",
+   "kind": "skinned",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 9,
+   "zero": 0,
+   "tris": 28916,
+   "objects": 9,
+   "samples": [
+    {
+     "n": "Object_41",
+     "chain": "Object_41<Object_38<EnvironmentAmbientLight001<Dummy001<RootNode",
+     "gt": "BufferGeometry",
+     "verts": 185,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "Seagull_m",
+     "sc": "52.3"
+    },
+    {
+     "n": "Object_29",
+     "chain": "Object_29<Object_26<EnvironmentAmbientLight002<Dummy001<RootNode",
+     "gt": "BufferGeometry",
+     "verts": 185,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "Seagull_m",
+     "sc": "58.7"
+    },
+    {
+     "n": "Object_17",
+     "chain": "Object_17<Object_14<EnvironmentAmbientLight003<Dummy001<RootNode",
+     "gt": "BufferGeometry",
+     "verts": 185,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "Seagull_m",
+     "sc": "66.0"
+    },
+    {
+     "n": "Object_53",
+     "chain": "Object_53<Object_50<EnvironmentAmbientLight<Dummy001<RootNode",
+     "gt": "BufferGeometry",
+     "verts": 185,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "Seagull_m",
+     "sc": "46.6"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 9
+   },
+   "cullable": 0,
+   "distMin": 188,
+   "distMed": 219,
+   "distMax": 386
+  },
+  {
+   "group": "I.forest",
+   "kind": "merged/large",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 24308,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 48616,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.shoreRocks",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 18960,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 10374,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.fleet",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 3,
+   "zero": 0,
+   "tris": 15572,
+   "objects": 3,
+   "samples": [
+    {
+     "n": "dutch_ship_medium_rigging",
+     "chain": "dutch_ship_medium_rigging<dutch_ship_medium<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 16520,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "dutch_ship_medium_rigging",
+     "sc": "-1.1"
+    },
+    {
+     "n": "dutch_ship_medium_hull",
+     "chain": "dutch_ship_medium_hull<dutch_ship_medium<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 9633,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "dutch_ship_medium_hull",
+     "sc": "-1.1"
+    },
+    {
+     "n": "dutch_ship_medium_sails",
+     "chain": "dutch_ship_medium_sails<dutch_ship_medium<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 301,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "dutch_ship_medium_sails",
+     "sc": "-1.1"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 3
+   },
+   "cullable": 3,
+   "distMin": 638,
+   "distMed": 638,
+   "distMax": 638
+  },
+  {
+   "group": "I.foam",
+   "kind": "mesh",
+   "mat": "ShaderMaterial:T",
+   "draws": 1,
+   "zero": 0,
+   "tris": 12096,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 6336,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.rockMesh",
+   "kind": "merged/large",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 11520,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 34560,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I._skyOcc",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 8064,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 4320,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "ground",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.moons",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 22,
+   "zero": 0,
+   "tris": 6776,
+   "objects": 22,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "SphereGeometry",
+     "verts": 195,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "id",
+     "mname": "",
+     "sc": "22.7"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 22
+   },
+   "cullable": 22,
+   "distMin": 223,
+   "distMed": 281,
+   "distMax": 349
+  },
+  {
+   "group": "I._skyOcc",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 21,
+   "zero": 0,
+   "tris": 6284,
+   "objects": 21,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "ExtrudeGeometry",
+     "verts": 3444,
+     "grp": 2,
+     "arr": false,
+     "ukeys": "ground",
+     "mname": "",
+     "sc": "0.0"
+    },
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BoxGeometry",
+     "verts": 24,
+     "grp": 6,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "43.7"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 21
+   },
+   "cullable": 21,
+   "distMin": 23,
+   "distMed": 270,
+   "distMax": 283
+  },
+  {
+   "group": "I.duneGrass",
+   "kind": "instanced",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 5532,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 18,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.shoreWood",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1928,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 1474,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.reliefRocks",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1920,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 5760,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.W.group",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1508,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<Group<mixamorigHead",
+     "gt": "BufferGeometry",
+     "verts": 796,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "2.7"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 3,
+   "distMed": 3,
+   "distMax": 3
+  },
+  {
+   "group": "I.W.group",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 2,
+   "zero": 0,
+   "tris": 1456,
+   "objects": 2,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<Group<mixamorigHead",
+     "gt": "BufferGeometry",
+     "verts": 477,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "2.7"
+    },
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<mixamorigHead<mixamorigNeck",
+     "gt": "LatheGeometry",
+     "verts": 371,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "2.7"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 2
+   },
+   "cullable": 2,
+   "distMin": 3,
+   "distMed": 3,
+   "distMax": 3
+  },
+  {
+   "group": "I.horizon.land",
+   "kind": "mesh",
+   "mat": "ShaderMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1450,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 900,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "ground,hzItems",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.sky.mesh",
+   "kind": "mesh",
+   "mat": "ShaderMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1216,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "SphereGeometry",
+     "verts": 693,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "6.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 13,
+   "distMed": 13,
+   "distMax": 13
+  }
+ ],
+ "byCalls": [
+  {
+   "group": "I.moons",
+   "kind": "mesh",
+   "mat": "MeshBasicMaterial:T:D",
+   "draws": 23,
+   "zero": 0,
+   "tris": 920,
+   "objects": 23,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Mesh<Scene",
+     "gt": "RingGeometry",
+     "verts": 42,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "19.6"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 23
+   },
+   "cullable": 23,
+   "distMin": 223,
+   "distMed": 281,
+   "distMax": 366
+  },
+  {
+   "group": "I.moons",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 22,
+   "zero": 0,
+   "tris": 6776,
+   "objects": 22,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "SphereGeometry",
+     "verts": 195,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "id",
+     "mname": "",
+     "sc": "22.7"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 22
+   },
+   "cullable": 22,
+   "distMin": 223,
+   "distMed": 281,
+   "distMax": 349
+  },
+  {
+   "group": "I._skyOcc",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 21,
+   "zero": 0,
+   "tris": 6284,
+   "objects": 21,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "ExtrudeGeometry",
+     "verts": 3444,
+     "grp": 2,
+     "arr": false,
+     "ukeys": "ground",
+     "mname": "",
+     "sc": "0.0"
+    },
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BoxGeometry",
+     "verts": 24,
+     "grp": 6,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "43.7"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 21
+   },
+   "cullable": 21,
+   "distMin": 23,
+   "distMed": 270,
+   "distMax": 283
+  },
+  {
+   "group": "-:BufferGeometry",
+   "kind": "instanced",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 15,
+   "zero": 0,
+   "tris": 72896,
+   "objects": 15,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 94,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 15
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "-:BufferGeometry",
+   "kind": "mesh",
+   "mat": "ShaderMaterial",
+   "draws": 13,
+   "zero": 0,
+   "tris": 13,
+   "objects": 2,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh",
+     "gt": "BufferGeometry",
+     "verts": 3,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "adea|11e8|-|1": 1,
+    "adea|4790|-|1": 2,
+    "adea|49b0|-|1": 1,
+    "adea|a156|-|1": 1,
+    "adea|bfe4|-|1": 1,
+    "adea|66e9|-|1": 1,
+    "adea|8b40|-|1": 1,
+    "adea|2892|-|1": 1,
+    "adea|a0e4|-|1": 1,
+    "adea|4561|-|1": 1,
+    "adea|7f63|-|1": 1,
+    "adea|screen|-|1": 1
+   },
+   "cullable": 13,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.creatures",
+   "kind": "skinned",
+   "mat": "MeshStandardMaterial",
+   "draws": 11,
+   "zero": 0,
+   "tris": 29492,
+   "objects": 11,
+   "samples": [
+    {
+     "n": "Object_107",
+     "chain": "Object_107<Object_6<Armature<RootNode<Object_2",
+     "gt": "BufferGeometry",
+     "verts": 81,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,farLod",
+     "mname": "Material.001",
+     "sc": "1.0"
+    },
+    {
+     "n": "Object_105",
+     "chain": "Object_105<Object_6<Armature<RootNode<Object_2",
+     "gt": "BufferGeometry",
+     "verts": 81,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,farLod",
+     "mname": "Material.001",
+     "sc": "1.0"
+    },
+    {
+     "n": "Object_9",
+     "chain": "Object_9<Object_6<Armature<RootNode<Object_2",
+     "gt": "BufferGeometry",
+     "verts": 3896,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "targetNames,name,farLod",
+     "mname": "Material.001",
+     "sc": "1.0"
+    },
+    {
+     "n": "Object_7",
+     "chain": "Object_7<GLTF_created_0<GLTF_SceneRootNode<root<Sketchfab_model",
+     "gt": "BufferGeometry",
+     "verts": 6300,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,farLod",
+     "mname": "Lizard_M",
+     "sc": "9.8"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 11
+   },
+   "cullable": 11,
+   "distMin": 201,
+   "distMed": 359,
+   "distMax": 436
+  },
+  {
+   "group": "-:ShapeGeometry",
+   "kind": "mesh",
+   "mat": "MeshBasicMaterial:T:D",
+   "draws": 10,
+   "zero": 0,
+   "tris": 580,
+   "objects": 10,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<Scene",
+     "gt": "ShapeGeometry",
+     "verts": 60,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "26.8"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 10
+   },
+   "cullable": 10,
+   "distMin": 228,
+   "distMed": 228,
+   "distMax": 246
+  },
+  {
+   "group": "I.fx.birds",
+   "kind": "skinned",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 9,
+   "zero": 0,
+   "tris": 28916,
+   "objects": 9,
+   "samples": [
+    {
+     "n": "Object_41",
+     "chain": "Object_41<Object_38<EnvironmentAmbientLight001<Dummy001<RootNode",
+     "gt": "BufferGeometry",
+     "verts": 185,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "Seagull_m",
+     "sc": "52.3"
+    },
+    {
+     "n": "Object_29",
+     "chain": "Object_29<Object_26<EnvironmentAmbientLight002<Dummy001<RootNode",
+     "gt": "BufferGeometry",
+     "verts": 185,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "Seagull_m",
+     "sc": "58.7"
+    },
+    {
+     "n": "Object_17",
+     "chain": "Object_17<Object_14<EnvironmentAmbientLight003<Dummy001<RootNode",
+     "gt": "BufferGeometry",
+     "verts": 185,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "Seagull_m",
+     "sc": "66.0"
+    },
+    {
+     "n": "Object_53",
+     "chain": "Object_53<Object_50<EnvironmentAmbientLight<Dummy001<RootNode",
+     "gt": "BufferGeometry",
+     "verts": 185,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "Seagull_m",
+     "sc": "46.6"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 9
+   },
+   "cullable": 0,
+   "distMin": 188,
+   "distMed": 219,
+   "distMax": 386
+  },
+  {
+   "group": "I._skyOcc",
+   "kind": "instanced",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 5,
+   "zero": 0,
+   "tris": 76122,
+   "objects": 5,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 64,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    },
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 18,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 5
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.notes",
+   "kind": "mesh",
+   "mat": "MeshBasicMaterial:D",
+   "draws": 5,
+   "zero": 0,
+   "tris": 10,
+   "objects": 5,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "PlaneGeometry",
+     "verts": 4,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "26.8"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 5
+   },
+   "cullable": 5,
+   "distMin": 62,
+   "distMed": 223,
+   "distMax": 366
+  },
+  {
+   "group": "I.notes",
+   "kind": "mesh",
+   "mat": "MeshBasicMaterial:T:D",
+   "draws": 5,
+   "zero": 0,
+   "tris": 200,
+   "objects": 5,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "RingGeometry",
+     "verts": 42,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "9.1"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 5
+   },
+   "cullable": 5,
+   "distMin": 62,
+   "distMed": 223,
+   "distMax": 366
+  },
+  {
+   "group": "I.fleet",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 3,
+   "zero": 0,
+   "tris": 15572,
+   "objects": 3,
+   "samples": [
+    {
+     "n": "dutch_ship_medium_rigging",
+     "chain": "dutch_ship_medium_rigging<dutch_ship_medium<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 16520,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "dutch_ship_medium_rigging",
+     "sc": "-1.1"
+    },
+    {
+     "n": "dutch_ship_medium_hull",
+     "chain": "dutch_ship_medium_hull<dutch_ship_medium<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 9633,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "dutch_ship_medium_hull",
+     "sc": "-1.1"
+    },
+    {
+     "n": "dutch_ship_medium_sails",
+     "chain": "dutch_ship_medium_sails<dutch_ship_medium<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 301,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name",
+     "mname": "dutch_ship_medium_sails",
+     "sc": "-1.1"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 3
+   },
+   "cullable": 3,
+   "distMin": 638,
+   "distMed": 638,
+   "distMax": 638
+  },
+  {
+   "group": "I.npcs",
+   "kind": "skinned",
+   "mat": "MeshStandardMaterial",
+   "draws": 2,
+   "zero": 0,
+   "tris": 35871,
+   "objects": 2,
+   "samples": [
+    {
+     "n": "material",
+     "chain": "material<OurRig<Scene<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 18322,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,farLod",
+     "mname": "",
+     "sc": "0.5"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 2
+   },
+   "cullable": 2,
+   "distMin": 99,
+   "distMed": 329,
+   "distMax": 329
+  },
+  {
+   "group": "I.W.group",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 2,
+   "zero": 0,
+   "tris": 1456,
+   "objects": 2,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<Group<mixamorigHead",
+     "gt": "BufferGeometry",
+     "verts": 477,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "2.7"
+    },
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<mixamorigHead<mixamorigNeck",
+     "gt": "LatheGeometry",
+     "verts": 371,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "2.7"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 2
+   },
+   "cullable": 2,
+   "distMin": 3,
+   "distMed": 3,
+   "distMax": 3
+  },
+  {
+   "group": "-:PlaneGeometry",
+   "kind": "mesh",
+   "mat": "MeshBasicMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 2,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "PlaneGeometry",
+     "verts": 4,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "ground",
+     "mname": "",
+     "sc": "-7.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.terrainMesh",
+   "kind": "merged/large",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 48136,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 24461,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn,ground",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I._skyOcc",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 8064,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 4320,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "ground",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.forest",
+   "kind": "merged/large",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 52004,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 51208,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.forest",
+   "kind": "merged/large",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 24308,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 48616,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.rockMesh",
+   "kind": "merged/large",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 11520,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 34560,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.shoreRocks",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 18960,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 10374,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.shoreWood",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1928,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 1474,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.door",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 12,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BoxGeometry",
+     "verts": 24,
+     "grp": 6,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "39.4"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 266,
+   "distMed": 266,
+   "distMax": 266
+  },
+  {
+   "group": "I.basicBatches",
+   "kind": "mesh",
+   "mat": "MeshBasicMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 384,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "basicBatch",
+     "chain": "basicBatch<Scene",
+     "gt": "BufferGeometry",
+     "verts": 1152,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.duneGrass",
+   "kind": "instanced",
+   "mat": "MeshStandardMaterial:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 5532,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 18,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.staticMesh",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 180,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 540,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.reliefRocks",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1920,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 5760,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.W.group",
+   "kind": "skinned",
+   "mat": "MeshPhysicalMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 149752,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "material",
+     "chain": "material<OurRig<Scene<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 95073,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "name,hairSquashed,shadowProxy",
+     "mname": "Material.001",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 0,
+   "distMed": 0,
+   "distMax": 0
+  },
+  {
+   "group": "I.W.group",
+   "kind": "mesh",
+   "mat": "MeshStandardMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1508,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<Group<mixamorigHead",
+     "gt": "BufferGeometry",
+     "verts": 796,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "2.7"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 3,
+   "distMed": 3,
+   "distMax": 3
+  },
+  {
+   "group": "I.horizon.skirt",
+   "kind": "mesh",
+   "mat": "ShaderMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 576,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 384,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "ground",
+     "mname": "",
+     "sc": "-1.6"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.horizon.land",
+   "kind": "mesh",
+   "mat": "ShaderMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1450,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 900,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "ground,hzItems",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.sky.mesh",
+   "kind": "mesh",
+   "mat": "ShaderMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1216,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "SphereGeometry",
+     "verts": 693,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "6.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 13,
+   "distMed": 13,
+   "distMax": 13
+  },
+  {
+   "group": "I.horizon.band",
+   "kind": "mesh",
+   "mat": "ShaderMaterial:T:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 144,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "CylinderGeometry",
+     "verts": 146,
+     "grp": 1,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "547.4"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 548,
+   "distMed": 548,
+   "distMax": 548
+  },
+  {
+   "group": "I.decalInst",
+   "kind": "instanced",
+   "mat": "MeshBasicMaterial:T",
+   "draws": 1,
+   "zero": 0,
+   "tris": 34,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "decalInst",
+     "chain": "decalInst<Scene",
+     "gt": "PlaneGeometry",
+     "verts": 4,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn,noOcc",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.fx.motes",
+   "kind": "points",
+   "mat": "PointsMaterial:T",
+   "draws": 1,
+   "zero": 1,
+   "tris": 0,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Points<Scene",
+     "gt": "BufferGeometry",
+     "verts": 140,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "rise",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 11,
+   "distMed": 11,
+   "distMax": 11
+  },
+  {
+   "group": "I.foam",
+   "kind": "merged/large",
+   "mat": "ShaderMaterial:T:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 82944,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 42624,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.sea",
+   "kind": "merged/large",
+   "mat": "ShaderMaterial:T",
+   "draws": 1,
+   "zero": 0,
+   "tris": 51200,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "PlaneGeometry",
+     "verts": 25921,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "mat,ground",
+     "mname": "",
+     "sc": "-1.1"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.foam",
+   "kind": "mesh",
+   "mat": "ShaderMaterial:T",
+   "draws": 1,
+   "zero": 0,
+   "tris": 12096,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 6336,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "I.water.pts",
+   "kind": "points",
+   "mat": "PointsMaterial:T",
+   "draws": 1,
+   "zero": 1,
+   "tris": 0,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Points<Scene",
+     "gt": "BufferGeometry",
+     "verts": 240,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "080a|7e17|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "-:BufferGeometry",
+   "kind": "mesh",
+   "mat": "ShaderMaterial:T",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh",
+     "gt": "BufferGeometry",
+     "verts": 3,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "adea|7e17|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  }
+ ],
+ "shByCalls": [
+  {
+   "group": "S:I.boat",
+   "kind": "mesh",
+   "mat": "MeshDepthMaterial",
+   "draws": 17,
+   "zero": 0,
+   "tris": 9832,
+   "objects": 17,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 144,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "-1.3"
+    },
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 120,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "-1.3"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 17
+   },
+   "cullable": 17,
+   "distMin": 38,
+   "distMed": 38,
+   "distMax": 39
+  },
+  {
+   "group": "S:I._skyOcc",
+   "kind": "mesh",
+   "mat": "MeshDepthMaterial",
+   "draws": 16,
+   "zero": 0,
+   "tris": 2268,
+   "objects": 16,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BoxGeometry",
+     "verts": 24,
+     "grp": 6,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.5"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 16
+   },
+   "cullable": 16,
+   "distMin": 8,
+   "distMed": 24,
+   "distMax": 270
+  },
+  {
+   "group": "S:I.boat",
+   "kind": "mesh",
+   "mat": "MeshDepthMaterial:D",
+   "draws": 3,
+   "zero": 0,
+   "tris": 2412,
+   "objects": 3,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Group<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 315,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "-1.3"
+    },
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 180,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "-1.3"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 3
+   },
+   "cullable": 3,
+   "distMin": 38,
+   "distMed": 39,
+   "distMax": 39
+  },
+  {
+   "group": "S:I.boat",
+   "kind": "merged/large",
+   "mat": "MeshDepthMaterial:D",
+   "draws": 2,
+   "zero": 0,
+   "tris": 15588,
+   "objects": 2,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 26592,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "-1.3"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 2
+   },
+   "cullable": 2,
+   "distMin": 38,
+   "distMed": 38,
+   "distMax": 38
+  },
+  {
+   "group": "S:I.terrainMesh",
+   "kind": "merged/large",
+   "mat": "MeshDepthMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 48136,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 24461,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn,ground",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "S:I.forest",
+   "kind": "merged/large",
+   "mat": "MeshDepthMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 52004,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 51208,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "S:I.forest",
+   "kind": "merged/large",
+   "mat": "MeshDepthMaterial:D",
+   "draws": 1,
+   "zero": 0,
+   "tris": 24308,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 48616,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "S:I.shoreRocks",
+   "kind": "mesh",
+   "mat": "MeshDepthMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 18960,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 10374,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "S:I.shoreWood",
+   "kind": "mesh",
+   "mat": "MeshDepthMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1928,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 1474,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "dyn",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  },
+  {
+   "group": "S:I.creatures",
+   "kind": "skinned",
+   "mat": "MeshDepthMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 1818,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "Object_9",
+     "chain": "Object_9<Object_6<Armature<RootNode<Object_2",
+     "gt": "BufferGeometry",
+     "verts": 3896,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "targetNames,name,farLod",
+     "mname": "",
+     "sc": "1.0"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 359,
+   "distMed": 359,
+   "distMax": 359
+  },
+  {
+   "group": "S:I.W.group",
+   "kind": "skinned",
+   "mat": "MeshDepthMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 24992,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "material-shadow",
+     "chain": "material-shadow<OurRig<Scene<Group<Scene",
+     "gt": "BufferGeometry",
+     "verts": 95073,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "shadowProxy",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 1
+   },
+   "cullable": 0,
+   "distMin": 0,
+   "distMed": 0,
+   "distMax": 0
+  },
+  {
+   "group": "S:I.staticMesh",
+   "kind": "mesh",
+   "mat": "MeshDepthMaterial",
+   "draws": 1,
+   "zero": 0,
+   "tris": 180,
+   "objects": 1,
+   "samples": [
+    {
+     "n": "",
+     "chain": "Mesh<Scene",
+     "gt": "BufferGeometry",
+     "verts": 540,
+     "grp": 0,
+     "arr": false,
+     "ukeys": "",
+     "mname": "",
+     "sc": "0.0"
+    }
+   ],
+   "passes": {
+    "19ce|22a5|-|1": 1
+   },
+   "cullable": 1,
+   "distMin": 270,
+   "distMed": 270,
+   "distMax": 270
+  }
+ ],
+ "errors": []
+}
