@@ -1,0 +1,284 @@
+{
+ "island": "sanity",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "pen": {
+    "tris": 1288,
+    "materials": 1,
+    "box": [
+     -0.95,
+     -0.96,
+     -0.72,
+     0.62,
+     1.39,
+     0.74
+    ],
+    "centroid": [
+     -0.54,
+     -0.39,
+     0.42
+    ]
+   },
+   "secret": {
+    "tris": 348,
+    "materials": 2,
+    "box": [
+     -0.7,
+     -0.23,
+     -0.23,
+     0.7,
+     0.23,
+     0.23
+    ],
+    "centroid": [
+     0.03,
+     0,
+     0
+    ]
+   },
+   "desk": {
+    "tris": 15009,
+    "materials": 6,
+    "box": [
+     -1.77,
+     0,
+     -1.69,
+     1.77,
+     3.44,
+     1.69
+    ],
+    "centroid": [
+     -0.11,
+     1.56,
+     -0.27
+    ]
+   },
+   "pickup": {
+    "tris": 16328,
+    "materials": 3,
+    "box": [
+     -2,
+     -1.5,
+     -1.98,
+     2,
+     0.72,
+     1.98
+    ],
+    "centroid": [
+     0.01,
+     0,
+     0
+    ]
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 33,
+   "instanced": true,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       67.438,
+       2.043,
+       -115.421,
+       1
+      ],
+      "e": [
+       -0.641,
+       0,
+       -0.767,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.767,
+       0,
+       -0.641,
+       0,
+       67.438,
+       2.043,
+       -115.421,
+       1
+      ],
+      "vis": true,
+      "frame": 4219
+     }
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       29.15,
+       1.915,
+       9.611,
+       1
+      ],
+      "e": [
+       0.436,
+       0,
+       0.9,
+       0,
+       0,
+       1,
+       0,
+       0,
+       -0.9,
+       0,
+       0.436,
+       0,
+       29.15,
+       1.915,
+       9.611,
+       1
+      ],
+      "vis": true,
+      "frame": 5749
+     }
+    },
+    {
+     "k": 32,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": false,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       -0.205,
+       0,
+       -0.979,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.979,
+       0,
+       -0.205,
+       0,
+       -82.441,
+       5.711,
+       115.418,
+       1
+      ],
+      "e": [
+       -0.205,
+       0,
+       -0.979,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.979,
+       0,
+       -0.205,
+       0,
+       -82.441,
+       5.711,
+       115.418,
+       1
+      ],
+      "vis": true,
+      "frame": 7619
+     }
+    }
+   ]
+  },
+  "decals": {
+   "proxies": 17,
+   "instanced": true,
+   "count": 17,
+   "bad": [],
+   "farSwapped": 0,
+   "farSwappedZero": 0,
+   "checked": 16,
+   "mismatch": 0,
+   "hiddenParentStillDrawn": false
+  },
+  "partMeshes": {
+   "pen": 1,
+   "secret": 2,
+   "desk": 6,
+   "pickup": 3
+  }
+ },
+ "findings": [],
+ "errors": []
+}
