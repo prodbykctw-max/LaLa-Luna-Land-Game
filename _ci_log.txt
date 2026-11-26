@@ -1,0 +1,2 @@
+{"island":"gr","cur":"gr","total":{"calls":394,"tris":987948},"shadow":{"calls":77,"tris":329332},"programs":211,"zeroMain":93,"zeroShadow":1}
+rc=0

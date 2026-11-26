@@ -1,0 +1,1 @@
+QA_ROOT=$BASE node qa/sanityperf_top.mjs gr --tag=base; cp $BASE/qa/out/sanityperf_top_base_gr.json qa/out/
