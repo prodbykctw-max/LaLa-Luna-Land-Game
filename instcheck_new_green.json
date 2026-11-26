@@ -1,0 +1,407 @@
+{
+ "island": "green",
+ "state": {
+  "moons": [
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   },
+   {
+    "taken": true,
+    "delta": 1,
+    "visibleAfter": false,
+    "ghost": true,
+    "ghostGone": true
+   }
+  ],
+  "parts": {
+   "carrot0": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     26.32,
+     2.72,
+     31.62,
+     27.51,
+     3.15,
+     32.27
+    ]
+   },
+   "carrot1": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     7.88,
+     2.85,
+     49.64,
+     8.86,
+     3.28,
+     50.71
+    ]
+   },
+   "carrot2": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     33.33,
+     3.02,
+     42.35,
+     34.09,
+     3.45,
+     43.53
+    ]
+   },
+   "carrot3": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -9.77,
+     3.1,
+     -47.9,
+     -8.58,
+     3.53,
+     -47.38
+    ]
+   },
+   "carrot4": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -14.53,
+     3.68,
+     -12.41,
+     -13.58,
+     4.1,
+     -11.32
+    ]
+   },
+   "carrot5": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -37.29,
+     2.26,
+     -43.04,
+     -36.09,
+     2.69,
+     -42.42
+    ]
+   },
+   "carrot6": {
+    "tris": 5544,
+    "materials": 3,
+    "box": [
+     -53.72,
+     3.17,
+     -24.26,
+     -52.6,
+     3.59,
+     -23.36
+    ]
+   },
+   "pen": {
+    "tris": 1288,
+    "materials": 1,
+    "box": [
+     -75.99,
+     4.69,
+     114.42,
+     -73.85,
+     7.05,
+     116.56
+    ]
+   },
+   "secret": {
+    "tris": 348,
+    "materials": 2,
+    "box": [
+     -109,
+     31.43,
+     -70.97,
+     -108.6,
+     31.8,
+     -69.83
+    ]
+   },
+   "desk": {
+    "tris": 15009,
+    "materials": 6,
+    "box": [
+     -12.39,
+     0.2,
+     720.79,
+     -8.25,
+     3.64,
+     724.77
+    ]
+   },
+   "pickup": {
+    "tris": 12718,
+    "materials": 2,
+    "box": [
+     25.45,
+     3.55,
+     21.46,
+     30.55,
+     6.27,
+     26.54
+    ]
+   },
+   "bfly0": {
+    "tris": 276,
+    "materials": 3,
+    "box": [
+     -35.15,
+     4.48,
+     -27.9,
+     -34.51,
+     4.97,
+     -27.36
+    ]
+   },
+   "bfly1": {
+    "tris": 276,
+    "materials": 3,
+    "box": [
+     20.94,
+     5.23,
+     9.73,
+     21.78,
+     5.56,
+     10.64
+    ]
+   },
+   "bfly2": {
+    "tris": 276,
+    "materials": 3,
+    "box": [
+     -12.71,
+     7.06,
+     5.54,
+     -12.15,
+     7.23,
+     6.39
+    ]
+   },
+   "bfly3": {
+    "tris": 276,
+    "materials": 3,
+    "box": [
+     10.16,
+     5.57,
+     10.71,
+     10.8,
+     6.08,
+     11.29
+    ]
+   }
+  }
+ },
+ "struct": {
+  "moons": {
+   "n": 35,
+   "instanced": true,
+   "detail": [
+    {
+     "k": 0,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       63.224,
+       3.932,
+       50.76,
+       1
+      ],
+      "e": [
+       -0.589,
+       0,
+       -0.808,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.808,
+       0,
+       -0.589,
+       0,
+       63.224,
+       3.932,
+       50.76,
+       1
+      ],
+      "vis": true,
+      "frame": 3463
+     }
+    },
+    {
+     "k": 5,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       9.209,
+       3.85,
+       67.486,
+       1
+      ],
+      "e": [
+       0.376,
+       0,
+       0.927,
+       0,
+       0,
+       1,
+       0,
+       0,
+       -0.927,
+       0,
+       0.376,
+       0,
+       9.209,
+       3.85,
+       67.486,
+       1
+      ],
+      "vis": true,
+      "frame": 4993
+     }
+    },
+    {
+     "k": 34,
+     "takenFlag": true,
+     "moonsDelta": 1,
+     "visible": false,
+     "ghostAdded": 1,
+     "sphZero": true,
+     "ringZero": true,
+     "ghostGone": true,
+     "far": true,
+     "restoredSph": true,
+     "restoredRing": true,
+     "dbg": {
+      "s": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       60.571,
+       22.206,
+       -126.857,
+       1
+      ],
+      "e": [
+       -0.14,
+       0,
+       -0.99,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0.99,
+       0,
+       -0.14,
+       0,
+       60.571,
+       22.206,
+       -126.857,
+       1
+      ],
+      "vis": true,
+      "frame": 6523
+     }
+    }
+   ]
+  },
+  "decals": {
+   "proxies": 35,
+   "instanced": true,
+   "count": 35,
+   "bad": [],
+   "farSwapped": 9,
+   "farSwappedZero": 9,
+   "checked": 25,
+   "mismatch": 0,
+   "hiddenParentStillDrawn": false
+  },
+  "partMeshes": {
+   "carrot0": 3,
+   "carrot1": 3,
+   "carrot2": 3,
+   "carrot3": 3,
+   "carrot4": 3,
+   "carrot5": 3,
+   "carrot6": 3,
+   "pen": 1,
+   "secret": 2,
+   "desk": 6,
+   "pickup": 3,
+   "bfly0": 7,
+   "bfly1": 7,
+   "bfly2": 7,
+   "bfly3": 7
+  }
+ },
+ "findings": [],
+ "errors": []
+}
