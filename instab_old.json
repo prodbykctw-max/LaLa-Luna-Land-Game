@@ -1,0 +1,92 @@
+{
+ "video": false,
+ "tag": "old",
+ "clockSteps": {
+  "gr": [
+   17,
+   17,
+   16,
+   17,
+   17,
+   16
+  ]
+ },
+ "errors": {
+  "gr": []
+ },
+ "shots": {
+  "gr": [
+   "spawn",
+   "moon0",
+   "moon1",
+   "moon2",
+   "moonwide0",
+   "moonwide1",
+   "bfly0",
+   "bfly1",
+   "pen",
+   "desk",
+   "pickup"
+  ]
+ },
+ "simFrames": {
+  "gr": 120
+ },
+ "seedState": {
+  "gr": {
+   "fc": 231,
+   "npcs": [
+    [
+     "Marisol",
+     -7.32,
+     234.91,
+     "walk",
+     -0.01
+    ],
+    [
+     "Dee",
+     7.98,
+     -95.22,
+     "walk",
+     0
+    ],
+    [
+     "Theo",
+     -127,
+     112,
+     "idle",
+     0.21
+    ],
+    [
+     "Nan",
+     163.23,
+     39.13,
+     "walk",
+     -0.01
+    ],
+    [
+     "Ollie the postman",
+     2.6,
+     225.03,
+     "walk",
+     0
+    ]
+   ]
+  }
+ },
+ "poses": {
+  "gr": [
+   "spawn@",
+   "moon0@44,112",
+   "moon1@-63,-95",
+   "moon2@-27,66",
+   "moonwide0@44,-95",
+   "moonwide1@95,-36",
+   "bfly0@2,13",
+   "bfly1@-16,23",
+   "pen@-95,-29",
+   "desk@-17,242",
+   "pickup@-94,108"
+  ]
+ }
+}
