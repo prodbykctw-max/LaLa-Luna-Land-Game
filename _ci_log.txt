@@ -1,0 +1,2 @@
+[{"n":"willow Ash Large #1","parts":[[false,0,10400,9850],[false,1,7730,7688],[true,0,4368,2184],[true,1,1640,820]]},{"n":"willow Ash Large #4","parts":[[false,0,9704,8681],[false,1,7150,6775],[true,0,3772,1886],[true,1,1448,724]]},{"n":"willow Ash Large #6","parts":[[false,0,9704,8794],[false,1,7150,6848],[true,0,4220,2110],[true,1,1580,790]]}]
+rc=0
