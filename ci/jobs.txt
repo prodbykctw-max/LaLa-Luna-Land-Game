@@ -1,0 +1,4 @@
+QX='qabush=1' node qa/treelineup.mjs stills A green
+QX='qabush=1' node qa/treelineup.mjs stills C green
+QX='qabush=1&btint=.50,.66,.52' node qa/treelineup.mjs stills C green
+QX='qabush=1&btint=.66,.66,.46' node qa/treelineup.mjs stills C green
