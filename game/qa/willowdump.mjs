@@ -5,7 +5,8 @@ const H = await openCtl({ viewport: { width: 640, height: 360 }, query: 'trees=C
 const r = await H.page.evaluate(() => (window.__TREEGEO.willow || []).map(V => {
   const out = { name: V.name, H: V.H, rad: V.rad, parts: [] };
   V.parts.forEach(pt => pt.geos.forEach((g, li) => { const p = g.attributes.position, n = p.count; let bins = {};
-    for (let i = 0; i < n; i++) { const y = Math.floor(p.getY(i)), r = Math.hypot(p.getX(i), p.getZ(i)); const b = bins[y] || (bins[y] = [1e9, 0, 0]); b[0] = Math.min(b[0], r); b[1] = Math.max(b[1], r); b[2]++; }
+    for (let i = 0; i < n; i++) { const y = Math.floor(p.getY(i)), r = Math.hypot(p.getX(i), p.getZ(i)); const b = bins[y] || (bins[y] = [1e9, 0, 0, 0, 0, 0]); b[0] = Math.min(b[0], r); b[1] = Math.max(b[1], r); b[2]++; if (r < 1.3) { b[3]++; b[4] += p.getX(i); b[5] += p.getZ(i); } }
+    for (const k in bins) { const b = bins[k]; if (b[3]) { b[4] /= b[3]; b[5] /= b[3]; } }
     out.parts.push({ leaf: pt.leaf, li, verts: n, tris: g.index ? g.index.count / 3 : 0, attrs: Object.keys(g.attributes), bins: pt.leaf ? undefined : bins, uvrange: !pt.leaf ? [g.attributes.uv.getX(0), g.attributes.uv.getY(0), g.attributes.uv.getY(n - 1)] : undefined }); }));
   return out; }));
 mkdirSync(OUT, { recursive: true }); writeFileSync(OUT + '/willowdump.json', JSON.stringify(r, null, 1));
