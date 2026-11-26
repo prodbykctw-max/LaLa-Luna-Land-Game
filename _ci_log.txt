@@ -1,0 +1,4 @@
+{"island":"sanity","findings":[],"moons":true,"partMeshes":12}
+{"island":"sanity","findings":[],"moons":false,"partMeshes":14}
+instcheck sanity NEW rc=0 OLD rc=0
+rc=0
