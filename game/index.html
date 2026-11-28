@@ -120,7 +120,7 @@ body.touch #prompt{display:none}
 body.walk.touch .rbtn{display:grid} body.walk.touch #stick{display:block}
 body.desktop #recenter{display:none}
 .topbtn{position:fixed;top:16px;z-index:7;background:none;border:1px solid rgba(247,241,230,.22);
- color:var(--bone);opacity:.5;border-radius:999px;padding:7px 14px;font-size:9px;letter-spacing:.2em;margin:0;
+ color:var(--bone);opacity:.5;border-radius:999px;padding:7px 14px;padding-inline:calc(14px + (8px + .5lh)*(1 - pi/4));font-size:9px;letter-spacing:.2em;margin:0;
  text-transform:uppercase;font-family:"DM Mono",monospace;cursor:pointer;display:none}
 #mute{left:50%;transform:translateX(calc(-100% - 5px))}
 #secretsBtn{left:50%;transform:translateX(5px)}
@@ -151,7 +151,7 @@ body.walk .topbtn{display:block}
 @media (max-width:640px){
   /* These were 8px uppercase with .2em tracking on a 390-wide screen - the three chips that carry
      Sound, Secrets and Travel. The tap target was already 44px; the LETTERS were the problem. */
-  .topbtn{top:calc(96px + env(safe-area-inset-top));font-size:10px;padding:9px 12px;min-height:44px}
+  .topbtn{top:calc(96px + env(safe-area-inset-top));font-size:10px;padding:9px 12px;padding-inline:calc(12px + 22px*(1 - pi/4));min-height:44px}
   #prompt{margin-bottom:calc(214px + env(safe-area-inset-bottom))} .place{font-size:19px}
   #stick{bottom:calc(30px + env(safe-area-inset-bottom));left:calc(22px + env(safe-area-inset-left))}
   .rbtn{right:calc(26px + env(safe-area-inset-right))} #jmp{bottom:calc(40px + env(safe-area-inset-bottom))} #act{bottom:calc(150px + env(safe-area-inset-bottom))} #recenter{bottom:calc(250px + env(safe-area-inset-bottom))}
@@ -160,7 +160,7 @@ body.walk .topbtn{display:block}
    and got the desktop pill's ~26px height. Scope this one to touch devices by viewport HEIGHT so
    a small desktop window is unaffected. */
 @media (max-height:480px){
-  body.touch .topbtn{min-height:44px;padding:9px 12px;font-size:10px}
+  body.touch .topbtn{min-height:44px;padding:9px 12px;padding-inline:calc(12px + 22px*(1 - pi/4));font-size:10px}
 }
 /* was bottom:200px, chosen to clear a touch joystick that should never have been on
    desktop at all. With the stick correctly gated to .touch this sits where it belongs. */
@@ -199,7 +199,7 @@ h1 span{display:block;font-style:normal;font-size:.2em;letter-spacing:.28em;
    "Step outside", "Go ashore" and "Put it back" are the three buttons the game is actually driven
    from. min-height does it without changing how any of them look. */
 button{pointer-events:auto;margin-top:26px;font-family:"DM Mono",monospace;font-size:11px;
- letter-spacing:.2em;text-transform:uppercase;padding:14px 32px;min-height:44px;border-radius:999px;border:0;
+ letter-spacing:.2em;text-transform:uppercase;padding:14px 32px;padding-inline:calc(32px + 22px*(1 - pi/4));min-height:44px;border-radius:999px;border:0;
  cursor:pointer;background:var(--moon);color:var(--ink);transition:transform .18s}
 @media (hover:hover) and (pointer:fine){button:hover{transform:translateY(-2px)}}
 button:focus-visible{outline:2px solid var(--coral);outline-offset:4px}
@@ -294,7 +294,7 @@ body.sail #khint{display:block}
 @keyframes tkBob{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
 #tkBox.pop{animation:tkPop .3s cubic-bezier(.2,.9,.3,1.15)}
 @keyframes tkPop{0%{transform:translateX(-50%) translateY(10px) scale(.985);opacity:.35}100%{transform:translateX(-50%) translateY(0) scale(1);opacity:1}}
-#tkSkip{position:absolute;top:calc(9vh + 10px);right:14px;font:500 11px "DM Mono",monospace;letter-spacing:.16em;padding:9px 16px;border-radius:999px;
+#tkSkip{position:absolute;top:calc(9vh + 10px);right:14px;font:500 11px "DM Mono",monospace;letter-spacing:.16em;padding:9px 16px;padding-inline:calc(16px + (10px + .5lh)*(1 - pi/4));border-radius:999px;
   border:1px solid rgba(255,246,214,.55);background:rgba(18,16,28,.6);color:#FFF6D6;cursor:pointer;opacity:0;transition:opacity .4s}
 #talk.in #tkSkip{opacity:1}
 body.talking #stick,body.talking #cstick,body.talking #act,body.talking #jmp,body.talking #recenter,body.talking #khint,body.talking #prompt,
